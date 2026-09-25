@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { mkdir, readdir, rm, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
-import type { AdoptionCandidate, KeyValueStoreBackend } from '@crawlee/fs-storage';
+import type { AdoptionCandidate, KeyValueStoreHookOptions, PurgeableKeyValueStoreBackend } from '@crawlee/fs-storage';
 import { FileSystemStorageBackend } from '@crawlee/fs-storage';
 import type { KeyValueStoreRecord } from '@crawlee/types';
 
@@ -133,7 +133,7 @@ describe('a hand-written store directory', () => {
 // What the Apify SDK does for its run input: claim a bare `INPUT` / `INPUT.json` in the default store
 // as the record `INPUT`, and keep that record when the store is purged on start.
 class InputAwareBackend extends FileSystemStorageBackend {
-    protected override keyValueStoreAdoptionCandidates(isDefaultStore: boolean): AdoptionCandidate[] {
+    protected override keyValueStoreAdoptionCandidates(options: KeyValueStoreHookOptions): AdoptionCandidate[] {
         const inputCandidate: AdoptionCandidate = {
             key: 'INPUT',
             files: [
@@ -142,11 +142,14 @@ class InputAwareBackend extends FileSystemStorageBackend {
             ],
         };
 
-        return [...(isDefaultStore ? [inputCandidate] : []), ...super.keyValueStoreAdoptionCandidates(isDefaultStore)];
+        return [...(options.isDefaultStore ? [inputCandidate] : []), ...super.keyValueStoreAdoptionCandidates(options)];
     }
 
-    protected override async purgeKeyValueStore(store: KeyValueStoreBackend, isDefaultStore: boolean): Promise<void> {
-        await (isDefaultStore ? store.purgeExcept(['INPUT']) : store.purge());
+    protected override async purgeKeyValueStore(
+        store: PurgeableKeyValueStoreBackend,
+        options: KeyValueStoreHookOptions,
+    ): Promise<void> {
+        await (options.isDefaultStore ? store.purgeExcept(['INPUT']) : store.purge());
     }
 }
 

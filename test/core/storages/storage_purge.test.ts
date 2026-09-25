@@ -1,7 +1,7 @@
 import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
-import type { KeyValueStoreBackend as FileSystemKeyValueStoreBackend } from '@crawlee/fs-storage';
+import type { KeyValueStoreHookOptions, PurgeableKeyValueStoreBackend } from '@crawlee/fs-storage';
 import { FileSystemStorageBackend } from '@crawlee/fs-storage';
 import { MemoryStorageBackend, RequestQueue, purgeDefaultStorages, serviceLocator } from '@crawlee/core';
 import type { KeyValueStoreBackend, RequestQueueBackend, StorageBackend } from '@crawlee/types';
@@ -91,10 +91,10 @@ describe.each([
 test('a FileSystemStorageBackend subclass can spare keys of the default key-value store on purge', async () => {
     class InputAwareBackend extends FileSystemStorageBackend {
         protected override async purgeKeyValueStore(
-            store: FileSystemKeyValueStoreBackend,
-            isDefaultStore: boolean,
+            store: PurgeableKeyValueStoreBackend,
+            options: KeyValueStoreHookOptions,
         ): Promise<void> {
-            await (isDefaultStore ? store.purgeExcept(['INPUT']) : store.purge());
+            await (options.isDefaultStore ? store.purgeExcept(['INPUT']) : store.purge());
         }
     }
 

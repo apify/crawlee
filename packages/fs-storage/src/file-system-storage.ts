@@ -41,6 +41,18 @@ const DEFAULT_STORAGE_DIRECTORY = 'default';
 const ADOPTED_JSON_CONTENT_TYPE = 'application/json; charset=utf-8';
 const ADOPTED_BINARY_CONTENT_TYPE = 'application/octet-stream';
 
+/** What the key-value store hooks of {@link FileSystemStorageBackend} learn about the store at hand. */
+export interface KeyValueStoreHookOptions {
+    /** Whether the store is the run's default key-value store. */
+    isDefaultStore: boolean;
+}
+
+/** A file-system key-value store backend as seen by {@link FileSystemStorageBackend.purgeKeyValueStore}. */
+export interface PurgeableKeyValueStoreBackend extends storage.KeyValueStoreBackend {
+    /** Remove every record from the store except the given keys. */
+    purgeExcept(keys: string[]): Promise<void>;
+}
+
 export interface FileSystemStorageOptions {
     /**
      * Path to directory where the data will be saved.
@@ -181,7 +193,7 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
             this.localDataDirectory,
             // useTestClock — always real wall-clock outside of native tests.
             undefined,
-            this.keyValueStoreAdoptionCandidates(cacheKey === DEFAULT_STORAGE_DIRECTORY),
+            this.keyValueStoreAdoptionCandidates({ isDefaultStore: cacheKey === DEFAULT_STORAGE_DIRECTORY }),
         );
         const newStore = await KeyValueStoreBackend.create({
             name: alias ? undefined : (name ?? cacheKey),
@@ -240,9 +252,8 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
      * Once adopted, the file is an ordinary record: readable, listed, deletable, and — in a run-scoped
      * store — purged on start unless {@link purgeKeyValueStore} spares it.
      *
-     * @param _isDefaultStore Whether the store being opened is the run's default key-value store.
      */
-    protected keyValueStoreAdoptionCandidates(_isDefaultStore: boolean): AdoptionCandidate[] {
+    protected keyValueStoreAdoptionCandidates(_options: KeyValueStoreHookOptions): AdoptionCandidate[] {
         return [
             {
                 files: [
@@ -255,9 +266,12 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
 
     /**
      * Empties one run-scoped key-value store during {@link purge}. Subclasses may spare some keys of the
-     * default store with {@link KeyValueStoreBackend.purgeExcept} — the Apify SDK keeps its run input.
+     * default store with {@link PurgeableKeyValueStoreBackend.purgeExcept} — the Apify SDK keeps its run input.
      */
-    protected async purgeKeyValueStore(store: KeyValueStoreBackend, _isDefaultStore: boolean): Promise<void> {
+    protected async purgeKeyValueStore(
+        store: PurgeableKeyValueStoreBackend,
+        _options: KeyValueStoreHookOptions,
+    ): Promise<void> {
         await store.purge();
     }
 
@@ -359,7 +373,7 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
             this.#purgeRunScopedStorages(
                 this.keyValueStoresDirectory,
                 async (alias) => this.createKeyValueStoreBackend({ alias }) as Promise<KeyValueStoreBackend>,
-                async (store, isDefault) => this.purgeKeyValueStore(store, isDefault),
+                async (store, isDefault) => this.purgeKeyValueStore(store, { isDefaultStore: isDefault }),
             ),
             this.#purgeRunScopedStorages(
                 this.datasetsDirectory,
