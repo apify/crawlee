@@ -2,7 +2,8 @@ import { Transform } from 'node:stream';
 
 import type { BaseHttpClient } from '@crawlee/http-client';
 import type { ParseSitemapOptions } from '@crawlee/utils';
-import { EnqueueStrategy, parseArgument, parseSitemap, schemas } from '@crawlee/utils/internal';
+import { EnqueueStrategy } from '@crawlee/utils';
+import { parseArgument, parseSitemap, schemas } from '@crawlee/utils/internal';
 import { minimatch } from 'minimatch';
 import type { RequiredDeep } from 'type-fest';
 import { z } from 'zod';

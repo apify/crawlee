@@ -15,7 +15,7 @@ import { CriticalError } from '@crawlee/core';
 import { Dataset } from '@crawlee/core';
 import type { DatasetExportOptions } from '@crawlee/core';
 import { Dictionary } from '@crawlee/types';
-import { EnqueueStrategy } from '@crawlee/utils/internal';
+import { EnqueueStrategy } from '@crawlee/utils';
 import type { EnqueueStrategyOption } from '@crawlee/core';
 import { EventManager } from '@crawlee/core';
 import type { HttpRequestOptions } from '@crawlee/types';
