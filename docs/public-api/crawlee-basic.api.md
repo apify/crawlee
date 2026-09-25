@@ -264,11 +264,6 @@ export class ContextPipelineCleanupError extends CriticalError {
     constructor(error: unknown, options?: ErrorOptions);
 }
 
-// @public (undocumented)
-export class ContextPipelineInterruptedError extends Error {
-    constructor(message?: string);
-}
-
 // @public
 export class CpuLoadSignal implements LoadSignal {
     constructor(options?: CpuLoadSignalOptions);
@@ -731,6 +726,7 @@ export interface RestrictedCrawlingContext<UserData extends Dictionary = Diction
     request: CrawlingRequest<UserData>;
     // (undocumented)
     session: ISession;
+    skipRequest(reason?: string): never;
     useState: <State extends Dictionary = Dictionary>(defaultValue?: State) => Promise<State>;
 }
 
@@ -948,10 +944,11 @@ export interface SitemapRequestLoaderOptions extends UrlConstraints {
 export type SkippedRequestCallback = (args: {
     request: Request_2;
     reason: SkippedRequestReason;
+    message?: string;
 }) => Awaitable<void>;
 
 // @public (undocumented)
-export type SkippedRequestReason = 'robotsTxt' | 'limit' | 'enqueueLimit' | 'filters' | 'transform' | 'redirect' | 'depth';
+export type SkippedRequestReason = 'robotsTxt' | 'limit' | 'enqueueLimit' | 'filters' | 'transform' | 'redirect' | 'depth' | 'manual';
 
 // @public (undocumented)
 export interface SnapshotResult {

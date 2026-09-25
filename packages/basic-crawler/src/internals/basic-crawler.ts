@@ -500,7 +500,8 @@ export interface BasicCrawlerOptions<
      * 1. based on robots.txt file,
      * 2. because they don't match enqueueLinks filters,
      * 3. because they are redirected to a URL that doesn't match the enqueueLinks strategy,
-     * 4. or because the {@apilink BasicCrawlerOptions.maxRequestsPerCrawl|`maxRequestsPerCrawl`} limit has been reached
+     * 4. because the {@apilink BasicCrawlerOptions.maxRequestsPerCrawl|`maxRequestsPerCrawl`} limit has been reached,
+     * 5. or by {@apilink RestrictedCrawlingContext.skipRequest|`context.skipRequest()`}.
      */
     onSkippedRequest?: SkippedRequestCallback;
 
@@ -1242,20 +1243,6 @@ export class BasicCrawler<
                         // Roll back *before* the error handler runs, for the same reason `handleRequest` does.
                         currentStorageTransaction()?.rollback();
 
-                        // ContextPipelineInterruptedError means the request was intentionally skipped
-                        // (e.g., doesn't match enqueue strategy after redirect). Just return gracefully.
-                        if (rawError instanceof ContextPipelineInterruptedError) {
-                            this.statistics.discardRequestRecord(request.id || request.uniqueKey);
-                            await this.timeoutAndRetry(
-                                async () => this.requestManager?.markRequestAsHandled(request),
-                                this.internalTimeoutMillis,
-                                `Marking request ${crawlingContext.request.url} (${crawlingContext.request.id}) as handled timed out after ${
-                                    this.internalTimeoutMillis / 1e3
-                                } seconds.`,
-                            );
-                            return;
-                        }
-
                         // An error during pipeline initialization (e.g., navigation timeout, session/proxy error,
                         // i.e. not in user's requestHandler) goes through the normal error flow.
                         const error = this.unwrapError(rawError);
@@ -1437,14 +1424,7 @@ export class BasicCrawler<
             this.log.warning(
                 `Skipping request ${request.url} (${request.id}) because it is disallowed based on robots.txt`,
             );
-            request.state = RequestState.SKIPPED;
-            request.noRetry = true;
-            await this.#handleSkippedRequest({
-                request,
-                reason: 'robotsTxt',
-            });
-
-            throw new ContextPipelineInterruptedError(`Skipping request ${request.url} as disallowed by robots.txt`);
+            throw new ContextPipelineInterruptedError('robotsTxt');
         }
 
         return {};
@@ -1504,6 +1484,11 @@ export class BasicCrawler<
                 this.requestManager?.extendRequestProcessingTimeSecs?.(context.request, secs)?.catch((error) => {
                     this.log.debug('Extending the request processing time failed', { url: context.request.url, error });
                 });
+            },
+            skipRequest: (reason?: string): never => {
+                const message = `Skipping request ${context.request.url} (${context.request.id})${reason ? `: ${reason}` : ''}`;
+                this.log.debug(message);
+                throw new ContextPipelineInterruptedError('manual', reason);
             },
         };
     }
@@ -1597,13 +1582,7 @@ export class BasicCrawler<
                 // eslint-disable-next-line dot-notation
                 const message = `Skipping request ${request.id} (starting url: ${request.url} -> loaded url: ${request.loadedUrl}) because it does not match the enqueue strategy (${request['enqueueStrategy']}).`;
                 this.log.debug(message);
-
-                request.noRetry = true;
-                request.state = RequestState.SKIPPED;
-
-                await this.#handleSkippedRequest({ request, reason: 'redirect' });
-
-                throw new ContextPipelineInterruptedError(message);
+                throw new ContextPipelineInterruptedError('redirect');
             }
             return context;
         });
@@ -2702,7 +2681,9 @@ export class BasicCrawler<
                 if (!(err instanceof CriticalError)) {
                     isRequestLocked = false; // requestFunctionErrorHandler calls either markRequestAsHandled or reclaimRequest
                 }
-                request.state = RequestState.DONE;
+                if (!(err instanceof ContextPipelineInterruptedError)) {
+                    request.state = RequestState.DONE;
+                }
             } catch (secondaryError: any) {
                 const unwrappedSecondaryError = this.unwrapError(secondaryError) as any;
 
@@ -2829,6 +2810,15 @@ export class BasicCrawler<
         request: CrawlingRequest,
         source: IRequestManager,
     ): Promise<void> {
+        if (error instanceof ContextPipelineInterruptedError) {
+            request.state = RequestState.SKIPPED;
+            request.noRetry = true;
+            await this.#handleSkippedRequest({ request, reason: error.reason, message: error.skipMessage });
+            await source.markRequestAsHandled(request);
+            this.statistics.discardRequestRecord(request.id || request.uniqueKey);
+            return;
+        }
+
         if (error instanceof RequestThrottledError) {
             // The domain told us to come back later, so the request was never really attempted. Put it back
             // without recording a failure - it costs neither a retry nor session reputation.
@@ -2946,7 +2936,11 @@ export class BasicCrawler<
      * failure says nothing about the session (a rate limit is a property of the domain).
      */
     private errorAbsolvesSession(error: Error): boolean {
-        return error instanceof SessionError || error instanceof RequestThrottledError;
+        return (
+            error instanceof SessionError ||
+            error instanceof RequestThrottledError ||
+            error instanceof ContextPipelineInterruptedError
+        );
     }
 
     private canRequestBeRetried(request: CrawlingRequest, error: Error) {

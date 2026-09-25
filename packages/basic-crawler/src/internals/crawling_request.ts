@@ -11,7 +11,8 @@ export type SkippedRequestReason =
     | 'filters'
     | 'transform'
     | 'redirect'
-    | 'depth';
+    | 'depth'
+    | 'manual';
 
 export enum RequestState {
     UNPROCESSED,
