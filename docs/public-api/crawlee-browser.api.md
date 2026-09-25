@@ -49,7 +49,7 @@ export abstract class BrowserCrawler<Page extends CommonPage = CommonPage, Respo
 }
 
 // @public (undocumented)
-export interface BrowserCrawlerOptions<Page extends CommonPage = CommonPage, Response extends BaseResponse = BaseResponse, Context extends BrowserCrawlingContext<Page, Response> = BrowserCrawlingContext<Page, Response>, ContextExtension = Dictionary<never>, ExtendedContext extends Context = Context & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>, StatisticStateExtension extends object = {}> extends Omit<BasicCrawlerOptions<Context, ContextExtension, ExtendedContext, Routes, StatisticStateExtension>, 'requestHandler' | 'failedRequestHandler' | 'errorHandler'> {
+export interface BrowserCrawlerOptions<Page extends CommonPage = CommonPage, Response extends BaseResponse = BaseResponse, Context extends BrowserCrawlingContext<Page, Response> = BrowserCrawlingContext<Page, Response>, ContextExtension = Dictionary<never>, ExtendedContext extends Context = Context & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>, StatisticStateExtension extends object = {}> extends Omit<BasicCrawlerOptions<Context, ContextExtension, ExtendedContext, Routes, StatisticStateExtension>, 'requestHandler' | 'failedRequestHandler' | 'errorHandler' | 'contextPipelineBuilder'> {
     browserPool?: IBrowserPool<Page>;
     errorHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
     failedRequestHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;

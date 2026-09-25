@@ -428,14 +428,7 @@ export class StagehandCrawler<
     ) {
         const parsedOptions = parseArgument(options, StagehandCrawler.optionsSchema, 'StagehandCrawlerOptions');
 
-        const {
-            stagehandOptions,
-            launchContext,
-            headless,
-            configuration,
-            contextPipelineBuilder,
-            ...browserCrawlerOptions
-        } = parsedOptions;
+        const { stagehandOptions, launchContext, headless, configuration, ...browserCrawlerOptions } = parsedOptions;
 
         if (options.browserPool) {
             // The raw options, not the parsed ones: `launchContext` has a default, so by now it is always set.
@@ -471,7 +464,7 @@ export class StagehandCrawler<
                           headless,
                           configuration,
                       })) as unknown as OwnedBrowserPool<StagehandPage>,
-            contextPipelineBuilder: contextPipelineBuilder ?? (() => this.#buildContextPipeline()),
+            contextPipelineBuilder: () => this.#buildContextPipeline(),
         });
     }
 

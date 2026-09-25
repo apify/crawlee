@@ -179,7 +179,7 @@ export interface AdaptivePlaywrightCrawlerOptions<
                 Routes,
                 StatisticStateExtension
             >,
-            'preNavigationHooks' | 'postNavigationHooks'
+            'preNavigationHooks' | 'postNavigationHooks' | 'contextPipelineBuilder'
         >,
         Pick<PlaywrightCrawlerOptions, 'launchContext' | 'headless' | 'browserPool' | 'remoteBrowser'> {
     /**
@@ -367,7 +367,6 @@ export class AdaptivePlaywrightCrawler<
             preNavigationHooks = [],
             postNavigationHooks = [],
             extendContext,
-            contextPipelineBuilder,
             transactionalStorage,
             launchContext,
             headless,
@@ -426,7 +425,7 @@ export class AdaptivePlaywrightCrawler<
                     stateExtension:
                         adaptivePlaywrightCrawlerStatisticState as StatisticStateExtensionOptions<StatisticStateExtension>,
                 }),
-            contextPipelineBuilder: contextPipelineBuilder ?? (() => this.#buildContextPipeline()),
+            contextPipelineBuilder: () => this.#buildContextPipeline(),
             // The base crawler must not wrap requests in a transaction of its own - this crawler opens
             // one per request handler attempt in `crawlOne` instead, forwarding the write policy of the
             // user-facing option (validated above) to those.

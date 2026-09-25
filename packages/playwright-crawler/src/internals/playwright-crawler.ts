@@ -224,8 +224,7 @@ export class PlaywrightCrawler<
     ) {
         const parsedOptions = parseArgument(options, PlaywrightCrawler.optionsSchema, 'PlaywrightCrawlerOptions');
 
-        const { launchContext, headless, configuration, contextPipelineBuilder, ...browserCrawlerOptions } =
-            parsedOptions;
+        const { launchContext, headless, configuration, ...browserCrawlerOptions } = parsedOptions;
 
         if (launchContext.proxyUrl) {
             throw new Error(
@@ -254,7 +253,7 @@ export class PlaywrightCrawler<
                 remoteBrowser
                     ? remotePlaywrightBrowserPool({ ...remoteBrowser, launchContext, headless, configuration })
                     : playwrightBrowserPool({ launchContext, headless, configuration }),
-            contextPipelineBuilder: contextPipelineBuilder ?? (() => this.#buildContextPipeline()),
+            contextPipelineBuilder: () => this.#buildContextPipeline(),
         });
     }
 

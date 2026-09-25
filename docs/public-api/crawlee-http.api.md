@@ -60,7 +60,7 @@ export class DOMCrawler<Parsed extends DOMParseResult = DOMParseResult, ContextE
 }
 
 // @public (undocumented)
-export interface DOMCrawlerOptions<Parsed extends DOMParseResult = DOMParseResult, ContextExtension = Dictionary<never>, ExtendedContext extends DOMCrawlingContext<Parsed> = DOMCrawlingContext<Parsed> & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, any>, StatisticStateExtension extends object = {}> extends HttpCrawlerOptions<DOMCrawlingContext<Parsed>, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
+export interface DOMCrawlerOptions<Parsed extends DOMParseResult = DOMParseResult, ContextExtension = Dictionary<never>, ExtendedContext extends DOMCrawlingContext<Parsed> = DOMCrawlingContext<Parsed> & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, any>, StatisticStateExtension extends object = {}> extends Omit<HttpCrawlerOptions<DOMCrawlingContext<Parsed>, ContextExtension, ExtendedContext, Routes, StatisticStateExtension>, 'contextPipelineBuilder'> {
     parser: DOMParser_2<Parsed>;
 }
 
@@ -97,7 +97,7 @@ export interface DOMParseResult {
 
 // @public
 export class FileDownload extends BasicCrawler<FileDownloadCrawlingContext> {
-    constructor(options?: BasicCrawlerOptions<FileDownloadCrawlingContext>);
+    constructor(options?: Omit<BasicCrawlerOptions<FileDownloadCrawlingContext>, 'contextPipelineBuilder'>);
 }
 
 // @public (undocumented)

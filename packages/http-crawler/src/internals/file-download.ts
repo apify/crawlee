@@ -73,10 +73,10 @@ export type FileDownloadRequestHandler<
  */
 export class FileDownload extends BasicCrawler<FileDownloadCrawlingContext> {
     // TODO hooks
-    constructor(options: BasicCrawlerOptions<FileDownloadCrawlingContext> = {}) {
+    constructor(options: Omit<BasicCrawlerOptions<FileDownloadCrawlingContext>, 'contextPipelineBuilder'> = {}) {
         super({
             ...options,
-            contextPipelineBuilder: options.contextPipelineBuilder ?? (() => this.#buildContextPipeline()),
+            contextPipelineBuilder: () => this.#buildContextPipeline(),
         });
     }
 

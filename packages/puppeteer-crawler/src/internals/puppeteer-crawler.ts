@@ -217,14 +217,7 @@ export class PuppeteerCrawler<
     ) {
         const parsedOptions = parseArgument(options, PuppeteerCrawler.optionsSchema, 'PuppeteerCrawlerOptions');
 
-        const {
-            launchContext,
-            headless,
-            configuration,
-            proxyConfiguration,
-            contextPipelineBuilder,
-            ...browserCrawlerOptions
-        } = parsedOptions;
+        const { launchContext, headless, configuration, proxyConfiguration, ...browserCrawlerOptions } = parsedOptions;
 
         if (launchContext.proxyUrl) {
             throw new Error(
@@ -257,7 +250,7 @@ export class PuppeteerCrawler<
                 remoteBrowser
                     ? remotePuppeteerBrowserPool({ ...remoteBrowser, launchContext, headless, configuration })
                     : puppeteerBrowserPool({ launchContext, headless, configuration }),
-            contextPipelineBuilder: contextPipelineBuilder ?? (() => this.#buildContextPipeline()),
+            contextPipelineBuilder: () => this.#buildContextPipeline(),
         });
     }
 

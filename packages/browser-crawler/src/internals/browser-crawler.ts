@@ -119,8 +119,8 @@ export interface BrowserCrawlerOptions<
     StatisticStateExtension extends object = {},
 > extends Omit<
     BasicCrawlerOptions<Context, ContextExtension, ExtendedContext, Routes, StatisticStateExtension>,
-    // Overridden with browser context
-    'requestHandler' | 'failedRequestHandler' | 'errorHandler'
+    // Overridden with browser context; `contextPipelineBuilder` is supplied by the concrete crawler
+    'requestHandler' | 'failedRequestHandler' | 'errorHandler' | 'contextPipelineBuilder'
 > {
     /**
      * The browser pool the crawler should serve its pages from. This is the single way to run a pool with
