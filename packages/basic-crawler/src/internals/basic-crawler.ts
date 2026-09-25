@@ -2830,13 +2830,13 @@ export class BasicCrawler<
         source: IRequestManager,
     ): Promise<void> {
         if (error instanceof RequestThrottledError) {
-            // The domain told us to come back later, so the request was never really attempted. Put it back
-            // without recording a failure - it costs neither a retry nor session reputation.
+            // The domain told us to come back later, so the request was never really attempted. Put it back where
+            // it was, without recording a failure - it costs neither a retry nor session reputation.
             this.log.debug(`Deferring request because its domain is rate-limiting us. ${error.message}`, {
                 id: request.id,
                 url: request.url,
             });
-            await source.reclaimRequest(request, { forefront: request.userData?.__crawlee?.forefront });
+            await source.reclaimRequest(request, { forefront: true });
             return;
         }
 
@@ -2873,7 +2873,7 @@ export class BasicCrawler<
                     retryCount,
                 });
 
-                await source.reclaimRequest(request, { forefront: request.userData?.__crawlee?.forefront });
+                await source.reclaimRequest(request);
                 return;
             }
         }
