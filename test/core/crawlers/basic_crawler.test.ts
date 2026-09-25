@@ -3625,6 +3625,50 @@ describe('BasicCrawler', () => {
         });
     });
 
+    describe('skipRequest()', () => {
+        test.each(['extendContext', 'requestHandler'] as const)(
+            'called from %s settles the request as skipped, not failed',
+            async (caller) => {
+                const url = 'https://example.com/skipped';
+                const onSkippedRequest = vitest.fn();
+                const failedRequestHandler = vitest.fn();
+                let attempts = 0;
+                const requestManager = await RequestQueue.open();
+
+                const crawler = new BasicCrawler({
+                    requestManager,
+                    maxRequestRetries: 3,
+                    extendContext: ({ skipRequest }) => {
+                        if (caller === 'extendContext') {
+                            attempts++;
+                            skipRequest('not interesting');
+                        }
+                        return {};
+                    },
+                    requestHandler: async ({ skipRequest }) => {
+                        attempts++;
+                        skipRequest('not interesting');
+                    },
+                    failedRequestHandler,
+                    onSkippedRequest,
+                });
+
+                const stats = await crawler.run([url]);
+
+                expect(attempts).toBe(1);
+                expect(failedRequestHandler).not.toHaveBeenCalled();
+                expect(stats).toMatchObject({ requestsFailed: 0, requestsSucceeded: 0 });
+                expect(onSkippedRequest).toHaveBeenCalledExactlyOnceWith(
+                    expect.objectContaining({ reason: 'manual', message: 'not interesting' }),
+                );
+
+                const stored = await requestManager.getRequest(url);
+                expect(stored?.handledAt).toBeDefined();
+                expect(CrawlingRequest.fromSchema(stored!).state).toBe(RequestState.SKIPPED);
+            },
+        );
+    });
+
     describe('transactional storage', () => {
         test('a failing request handler leaves no dataset/KVS writes, but write-through enqueues survive', async () => {
             const crawler = new BasicCrawler({

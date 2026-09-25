@@ -1,5 +1,7 @@
 import { CriticalError, NonRetryableError } from '@crawlee/core';
 
+import type { SkippedRequestReason } from './crawling_request.js';
+
 /**
  * @ignore
  */
@@ -50,9 +52,17 @@ export class MissingSessionError extends Error {
     }
 }
 
+/**
+ * Settles the request as skipped rather than failed: no retry, no failure, and its storage writes are rolled back.
+ * Use {@apilink RestrictedCrawlingContext.skipRequest|`context.skipRequest()`} rather than throwing this directly.
+ * @internal
+ */
 export class ContextPipelineInterruptedError extends Error {
-    constructor(message?: string) {
-        super(`Request handling was interrupted during context initialization ${message ? ` - ${message}` : ''}`);
+    constructor(
+        readonly reason: SkippedRequestReason,
+        readonly skipMessage?: string,
+    ) {
+        super(skipMessage ?? 'Request was skipped');
     }
 }
 

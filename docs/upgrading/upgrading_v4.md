@@ -897,6 +897,10 @@ The `robotsTxtFile` / `respectRobotsTxtFile` per-call options are removed from `
 
 The callback now gets `{ request, reason }` instead of `{ url, reason }` — use `request.url` for the URL.
 
+### Skipping a request with `context.skipRequest()`
+
+In v3, skipping a request without it counting as a failure took a hack: set `request.noRetry`, throw, then decrement `requestsFailed` and silence the error log. Call `skipRequest(reason?)` from the crawling context instead — in `extendContext`, a navigation hook or the request handler. The request is marked as handled with `state` set to `RequestState.SKIPPED`, is neither retried nor passed to `failedRequestHandler`, and `onSkippedRequest` fires with the new `'manual'` reason. Storage writes made for the request before the skip are rolled back.
+
 ### Internal KVS keys renamed
 
 Several internal Crawlee keys were prefixed with the `SDK_` prefix for legacy reasons — these keys now start with `CRAWLEE_` instead. These are, e.g., `CRAWLEE_SESSION_POOL_STATE` or `CRAWLEE_CRAWLER_STATISTICS_{n}`.

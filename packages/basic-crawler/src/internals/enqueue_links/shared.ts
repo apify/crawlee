@@ -50,7 +50,12 @@ export const urlPatternSchema = z.union([
     schemas.objectWithKeys(['regexp']),
 ]) as z.ZodType<UrlPatternInput>;
 
-export type SkippedRequestCallback = (args: { request: Request; reason: SkippedRequestReason }) => Awaitable<void>;
+export type SkippedRequestCallback = (args: {
+    request: Request;
+    reason: SkippedRequestReason;
+    /** The `reason` passed to {@apilink RestrictedCrawlingContext.skipRequest|`context.skipRequest()`}, if any. */
+    message?: string;
+}) => Awaitable<void>;
 
 /**
  * Builds the `{ request, reason }` argument passed to a {@apilink SkippedRequestCallback}, constructing the
