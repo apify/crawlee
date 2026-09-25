@@ -2172,16 +2172,15 @@ describe('BasicCrawler', () => {
             // the request is never handled, so the queue never finishes; `stop()` lets the in-flight request wind down
             extendContext: () => {
                 crawler.stop();
-                throw new ContextPipelineInterruptedError('skipped by the test');
+                throw new ContextPipelineInterruptedError('manual', 'skipped by the test');
             },
             requestHandler: async () => {},
         });
         const warningSpy = vitest.spyOn(crawler.log, 'warning');
 
         await expect(crawler.run(['https://example.com'])).resolves.toBeDefined();
-        // anchored, so that the `timeoutAndRetry` retry warnings ("... (retrying 1/3)") do not count
         expect(warningSpy).toHaveBeenCalledWith(
-            expect.stringMatching(/^Marking request .* as handled timed out after 0\.1 seconds\.$/),
+            expect.stringMatching(/^Handling request failure of .* timed out after 0\.1 seconds\.$/),
         );
     });
 
@@ -3741,6 +3740,50 @@ describe('BasicCrawler', () => {
                 ]);
             }
         });
+    });
+
+    describe('skipRequest()', () => {
+        test.each(['extendContext', 'requestHandler'] as const)(
+            'called from %s settles the request as skipped, not failed',
+            async (caller) => {
+                const url = 'https://example.com/skipped';
+                const onSkippedRequest = vitest.fn();
+                const failedRequestHandler = vitest.fn();
+                let attempts = 0;
+                const requestManager = await RequestQueue.open();
+
+                const crawler = new BasicCrawler({
+                    requestManager,
+                    maxRequestRetries: 3,
+                    extendContext: ({ skipRequest }) => {
+                        if (caller === 'extendContext') {
+                            attempts++;
+                            skipRequest('not interesting');
+                        }
+                        return {};
+                    },
+                    requestHandler: async ({ skipRequest }) => {
+                        attempts++;
+                        skipRequest('not interesting');
+                    },
+                    failedRequestHandler,
+                    onSkippedRequest,
+                });
+
+                const stats = await crawler.run([url]);
+
+                expect(attempts).toBe(1);
+                expect(failedRequestHandler).not.toHaveBeenCalled();
+                expect(stats).toMatchObject({ requestsFailed: 0, requestsSucceeded: 0 });
+                expect(onSkippedRequest).toHaveBeenCalledExactlyOnceWith(
+                    expect.objectContaining({ reason: 'manual', message: 'not interesting' }),
+                );
+
+                const stored = await requestManager.getRequest(url);
+                expect(stored?.handledAt).toBeDefined();
+                expect(CrawlingRequest.fromSchema(stored!).state).toBe(RequestState.SKIPPED);
+            },
+        );
     });
 
     describe('transactional storage', () => {
