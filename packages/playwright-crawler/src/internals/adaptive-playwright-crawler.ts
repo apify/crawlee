@@ -21,6 +21,7 @@ import type {
 } from '@crawlee/basic';
 import {
     BasicCrawler,
+    ContextPipelineInitializationError,
     RequestHandlerError,
     resolveBaseUrlForEnqueueLinksFiltering,
     Router,
@@ -719,7 +720,8 @@ export class AdaptivePlaywrightCrawler<
                 // Execution will "fall through" and try running the request handler in a browser
                 if (!plainHTTPRun.ok) {
                     const actualError =
-                        plainHTTPRun.error instanceof RequestHandlerError
+                        plainHTTPRun.error instanceof RequestHandlerError ||
+                        plainHTTPRun.error instanceof ContextPipelineInitializationError
                             ? (plainHTTPRun.error.cause as Error)
                             : (plainHTTPRun.error as Error);
 

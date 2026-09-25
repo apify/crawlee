@@ -77,6 +77,7 @@ import {
     MissingSessionError,
     NavigationSkippedError,
     PersistentRateLimitError,
+    ContextPipelineInitializationError,
     RequestHandlerError,
     RequestThrottledError,
     RetryRequestError,
@@ -1234,47 +1235,11 @@ export class BasicCrawler<
                     // matching `recordRequestStart`.
                     this.statistics.recordRequestStart(request.id || request.uniqueKey);
 
-                    const crawlingContext = { request } as { request: CrawlingRequest } & Partial<CrawlingContext>;
-
-                    // Runs inside the pipeline call, so the deferred cleanups registered by earlier middlewares
-                    // (e.g. closing the page) only fire after the error handler has seen the partial context.
-                    const handleInitializationError = async (rawError: unknown) => {
-                        // Roll back *before* the error handler runs, for the same reason `handleRequest` does.
-                        currentStorageTransaction()?.rollback();
-
-                        // ContextPipelineInterruptedError means the request was intentionally skipped
-                        // (e.g., doesn't match enqueue strategy after redirect). Just return gracefully.
-                        if (rawError instanceof ContextPipelineInterruptedError) {
-                            this.statistics.discardRequestRecord(request.id || request.uniqueKey);
-                            await this.timeoutAndRetry(
-                                async () => this.requestManager?.markRequestAsHandled(request),
-                                this.internalTimeoutMillis,
-                                `Marking request ${crawlingContext.request.url} (${crawlingContext.request.id}) as handled timed out after ${
-                                    this.internalTimeoutMillis / 1e3
-                                } seconds.`,
-                            );
-                            return;
-                        }
-
-                        // An error during pipeline initialization (e.g., navigation timeout, session/proxy error,
-                        // i.e. not in user's requestHandler) goes through the normal error flow.
-                        const error = this.unwrapError(rawError);
-                        await this.requestFunctionErrorHandler(
-                            error,
-                            crawlingContext as CrawlingContext,
-                            request,
-                            this.requestManager!,
-                        );
-                        // SessionError already retired the session in `requestFunctionErrorHandler`;
-                        // skip `markBad` to avoid double-counting usage/error score.
-                        if (!this.errorAbsolvesSession(error)) {
-                            crawlingContext.session?.markBad();
-                        }
-                    };
+                    const crawlingContext: PendingCrawlingContext = { request };
 
                     try {
                         // The transaction spans the whole pipeline call, covering the navigation hooks
-                        // and `extendContext` too; `handleRequest` drives its outcome explicitly.
+                        // and `extendContext` too; `handleRequest` commits it and `handleRequestFailure` rolls it back.
                         await this.runInStorageTransaction(
                             async () =>
                                 // Navigation, the navigation hooks and the request handler are timed individually, but the
@@ -1282,20 +1247,17 @@ export class BasicCrawler<
                                 // catch-all for that - see `raceWithTimeout` for why it is a bare timer, not a timeout frame.
                                 await this.withRequestTimeout(
                                     crawlingContext,
-                                    this.basicContextPipeline
-                                        .chain(this.contextPipeline)
-                                        .call(
-                                            crawlingContext,
-                                            (ctx) => this.handleRequest(ctx, source, request),
-                                            handleInitializationError,
-                                        ),
+                                    this.basicContextPipeline.chain(this.contextPipeline).call(
+                                        crawlingContext,
+                                        (ctx) => this.handleRequest(ctx, source, request),
+                                        (error) => this.#handleRequestFailure(error, crawlingContext, source, request),
+                                    ),
                                 ),
                         );
                     } catch (error) {
-                        // A bare `TimeoutError` is the internal timeout above firing; a `SessionError` can only be a
-                        // secondary error from `handleRequest` - both take the normal error flow. Anything else thrown
-                        // inside the pipeline arrives wrapped.
-                        if (error instanceof SessionError || error instanceof TimeoutError) {
+                        // The internal timeout above fired, or `handleRequestFailure` threw a `SessionError` - both
+                        // take the normal error flow. Anything else is fatal.
+                        if (error instanceof SessionError || crawlingContext[timeoutExpiredKey]?.()) {
                             const unwrappedError = this.unwrapError(error);
 
                             await this.requestFunctionErrorHandler(
@@ -2465,8 +2427,8 @@ export class BasicCrawler<
 
     /**
      * Runs `callback` inside a {@apilink StorageTransaction}, unless transactional storage is disabled.
-     * Deliberately does **not** commit on return - `handleRequest` swallows request handler failures, so
-     * a normal return says nothing about success. `handleRequest` owns the outcome.
+     * Deliberately does **not** commit on return - the pipeline hands failures to `handleRequestFailure`, so a
+     * normal return says nothing about success. `handleRequest` commits on success.
      */
     private async runInStorageTransaction<T>(callback: () => Promise<T>): Promise<T> {
         if (!this.#transactionalStorageEnabled) {
@@ -2485,7 +2447,7 @@ export class BasicCrawler<
             return result;
         } finally {
             if (transaction.state === 'open') {
-                // `handleRequest` commits or rolls back on every normal path, so an open transaction on
+                // `handleRequest` commits or `handleRequestFailure` rolls back on every normal path, so an open transaction on
                 // a normal return is a wiring bug; on a propagating throw (a pipeline-level failure) it is
                 // expected. Either way, discard the unvalidated writes; only the former is worth flagging.
                 if (!threw) {
@@ -2640,7 +2602,7 @@ export class BasicCrawler<
         return this.requestManager.fetchNextRequest();
     }
 
-    /** Handles a single request - runs the request handler with retries, error handling, and lifecycle management. */
+    /** Runs the request handler and marks the request as handled. Failures are left to `handleRequestFailure`. */
     // oxlint-disable-next-line crawlee/prefer-private-fields -- patched by @crawlee/otel
     private async handleRequest(
         crawlingContext: ExtendedContext,
@@ -2654,91 +2616,107 @@ export class BasicCrawler<
             return;
         }
 
-        const statisticsId = request.id || request.uniqueKey;
+        request.state = RequestState.REQUEST_HANDLER;
+        await this.runRequestHandler(crawlingContext);
 
+        // Commit *before* marking the request as handled, so a commit failure fails the request and
+        // it is retried. This also closes the transaction, so everything below passes through.
         // Opened by `runInStorageTransaction`; absent when disabled or when the subclass opens its own.
-        const transaction = currentStorageTransaction();
+        await currentStorageTransaction()?.commit();
 
-        let isRequestLocked = true;
+        await this.timeoutAndRetry(
+            async () => requestSource.markRequestAsHandled(request!),
+            this.internalTimeoutMillis,
+            `Marking request ${request.url} (${request.id}) as handled timed out after ${
+                this.internalTimeoutMillis / 1e3
+            } seconds.`,
+        );
 
-        try {
-            request.state = RequestState.REQUEST_HANDLER;
-            await this.runRequestHandler(crawlingContext);
+        this.statistics.recordRequestSuccess(request.id || request.uniqueKey, request.retryCount);
 
-            // Commit *before* marking the request as handled, so a commit failure fails the request and
-            // it is retried. This also closes the transaction, so everything below passes through.
-            await transaction?.commit();
+        // reclaim session if request finishes successfully
+        request.state = RequestState.DONE;
+        crawlingContext.session.markGood();
+    }
 
+    /**
+     * Handles a request that failed anywhere in the context pipeline - a middleware (e.g. navigation or its hooks)
+     * or `handleRequest`. Runs inside the pipeline call, so the cleanups (e.g. closing the page) only fire after the
+     * error handler has seen the context.
+     */
+    async #handleRequestFailure(
+        rawError: unknown,
+        crawlingContext: PendingCrawlingContext,
+        requestSource: IRequestManager,
+        request: CrawlingRequest,
+    ) {
+        // Roll back *before* any error handler runs - error handlers write to real storage precisely
+        // because the transaction is already closed. A no-op when the commit in `handleRequest` succeeded.
+        currentStorageTransaction()?.rollback();
+
+        // ContextPipelineInterruptedError means the request was intentionally skipped
+        // (e.g., doesn't match enqueue strategy after redirect). Just return gracefully.
+        if (
+            rawError instanceof ContextPipelineInitializationError &&
+            rawError.cause instanceof ContextPipelineInterruptedError
+        ) {
+            this.statistics.discardRequestRecord(request.id || request.uniqueKey);
             await this.timeoutAndRetry(
-                async () => requestSource.markRequestAsHandled(request!),
+                async () => requestSource.markRequestAsHandled(request),
                 this.internalTimeoutMillis,
                 `Marking request ${request.url} (${request.id}) as handled timed out after ${
                     this.internalTimeoutMillis / 1e3
                 } seconds.`,
             );
-            isRequestLocked = false; // markRequestAsHandled succeeded and unlocked the request
+            return;
+        }
 
-            this.statistics.recordRequestSuccess(statisticsId, request.retryCount);
+        const err = this.unwrapError(rawError);
+        const context = crawlingContext as CrawlingContext;
 
-            // reclaim session if request finishes successfully
+        try {
+            request.state = RequestState.ERROR_HANDLER;
+            await addTimeoutToPromise(
+                async () => this.requestFunctionErrorHandler(err, context, request, requestSource),
+                this.internalTimeoutMillis,
+                `Handling request failure of ${request.url} (${request.id}) timed out after ${
+                    this.internalTimeoutMillis / 1e3
+                } seconds.`,
+            );
             request.state = RequestState.DONE;
-            crawlingContext.session.markGood();
-        } catch (rawError) {
-            // Roll back *before* any error handler runs - error handlers write to real storage precisely
-            // because the transaction is already closed. A no-op when the commit above succeeded.
-            transaction?.rollback();
+        } catch (secondaryError) {
+            const unwrappedSecondaryError = this.unwrapError(secondaryError);
 
-            const err = this.unwrapError(rawError);
-
-            try {
-                request.state = RequestState.ERROR_HANDLER;
-                await addTimeoutToPromise(
-                    async () => this.requestFunctionErrorHandler(err, crawlingContext, request, requestSource),
-                    this.internalTimeoutMillis,
-                    `Handling request failure of ${request.url} (${request.id}) timed out after ${
-                        this.internalTimeoutMillis / 1e3
-                    } seconds.`,
+            // avoid reprinting the same critical error multiple times, as it will be printed by Nodejs at the end anyway
+            if (!(unwrappedSecondaryError instanceof CriticalError)) {
+                const apifySpecific = process.env.APIFY_IS_AT_HOME
+                    ? `This may have happened due to an internal error of Apify's API or due to a misconfigured crawler.`
+                    : '';
+                this.log.exception(
+                    unwrappedSecondaryError,
+                    'An exception occurred during handling of failed request. ' +
+                        `This places the crawler and its underlying storages into an unknown state and crawling will be terminated. ${apifySpecific}`,
                 );
-                if (!(err instanceof CriticalError)) {
-                    isRequestLocked = false; // requestFunctionErrorHandler calls either markRequestAsHandled or reclaimRequest
-                }
-                request.state = RequestState.DONE;
-            } catch (secondaryError: any) {
-                const unwrappedSecondaryError = this.unwrapError(secondaryError) as any;
+            }
+            request.state = RequestState.ERROR;
 
-                if (
-                    !unwrappedSecondaryError.triggeredFromUserHandler &&
-                    // avoid reprinting the same critical error multiple times, as it will be printed by Nodejs at the end anyway
-                    !(unwrappedSecondaryError instanceof CriticalError)
-                ) {
-                    const apifySpecific = process.env.APIFY_IS_AT_HOME
-                        ? `This may have happened due to an internal error of Apify's API or due to a misconfigured crawler.`
-                        : '';
-                    this.log.exception(
-                        unwrappedSecondaryError as Error,
-                        'An exception occurred during handling of failed request. ' +
-                            `This places the crawler and its underlying storages into an unknown state and crawling will be terminated. ${apifySpecific}`,
-                    );
-                }
-                request.state = RequestState.ERROR;
-                throw unwrappedSecondaryError;
-            }
-            // decrease the session score if the request fails (but the error handler did not throw);
-            // skip when the error is a SessionError, which already retired the session
-            if (!this.errorAbsolvesSession(err)) {
-                crawlingContext.session.markBad();
-            }
-        } finally {
-            // Safety net - return the request to the queue if nobody managed to mark it as handled
-            // or reclaim it before (e.g. after a CriticalError). Reclaiming a request that is no longer
-            // in progress is a harmless no-op on the storage backend.
-            if (isRequestLocked && requestSource instanceof RequestQueue) {
+            // Safety net - the error handler neither marked the request as handled nor reclaimed it (e.g. after a
+            // CriticalError). Reclaiming a request that is no longer in progress is a harmless no-op on the storage backend.
+            if (requestSource instanceof RequestQueue) {
                 try {
                     await requestSource.reclaimRequest(request);
                 } catch {
                     // The request was never in progress, or could not be reclaimed. Either way it's fine.
                 }
             }
+
+            throw unwrappedSecondaryError;
+        }
+
+        // decrease the session score if the request fails (but the error handler did not throw);
+        // skip when the error is a SessionError, which already retired the session
+        if (!this.errorAbsolvesSession(err)) {
+            context.session?.markBad();
         }
     }
 
@@ -2808,10 +2786,14 @@ export class BasicCrawler<
 
     /**
      * Unwraps errors thrown by the context pipeline to get the actual user error.
-     * RequestHandlerError and ContextPipelineCleanupError wrap the actual error.
+     * RequestHandlerError, ContextPipelineInitializationError and ContextPipelineCleanupError wrap the actual error.
      */
     private unwrapError(error: unknown): Error {
-        if (error instanceof RequestHandlerError || error instanceof ContextPipelineCleanupError) {
+        if (
+            error instanceof RequestHandlerError ||
+            error instanceof ContextPipelineInitializationError ||
+            error instanceof ContextPipelineCleanupError
+        ) {
             return this.unwrapError(error.cause);
         }
         return error as Error;
