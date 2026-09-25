@@ -131,14 +131,14 @@ export interface IBrowserPool<Page = unknown> {
     /**
      * Signals the pool that the caller is done with the page. The pool is
      * responsible for closing the page and performing any necessary cleanup
-     * (e.g. retiring the underlying browser when a session has gone bad).
+     * (e.g. retiring the underlying browser once the page's session is finished).
      *
      * @param page The page to release back to the pool.
-     * @param options.error If the page is being released because of an error,
-     *   pass the error here. In particular, if the error is a
-     *   {@apilink SessionError}, implementations should treat it as a signal
-     *   to purge all state associated with the session (e.g. discard any
-     *   browser that served the page).
+     * @param options.error If the error is a {@apilink SessionError}, the
+     *   session that served the page is finished. A plain `SessionError`
+     *   means it was blocked: discard any browser state tied to it. A
+     *   {@apilink SessionRetiredError} means it merely reached its usage or
+     *   age limit, so a pool may keep a warm page instead.
      */
     closePage(page: Page, options?: { error?: Error }): Promise<void>;
 

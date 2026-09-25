@@ -62,6 +62,14 @@ export class ContextPipelineCleanupError extends CriticalError {
     }
 }
 
+/** Wraps a failure of a context pipeline middleware, telling it apart from a {@apilink RequestHandlerError}. */
+export class ContextPipelineInitializationError extends Error {
+    constructor(error: unknown, options?: ErrorOptions) {
+        super(undefined, { cause: error, ...options });
+    }
+}
+
+/** Wraps a failure of the context pipeline's final consumer (the request handler), telling it apart from a middleware failure. */
 export class RequestHandlerError extends Error {
     constructor(error: unknown, options?: ErrorOptions) {
         super(undefined, { cause: error, ...options });

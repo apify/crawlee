@@ -1,4 +1,9 @@
-import { ContextPipeline, ContextPipelineCleanupError, RequestHandlerError } from '@crawlee/basic';
+import {
+    ContextPipeline,
+    ContextPipelineCleanupError,
+    ContextPipelineInitializationError,
+    RequestHandlerError,
+} from '@crawlee/basic';
 import { describe, expect, it, vi } from 'vitest';
 
 const rethrow = (error: unknown) => {
@@ -39,15 +44,15 @@ describe('ContextPipeline', () => {
         expect(consumer).toHaveBeenCalledWith({ c: [2, 1] });
     });
 
-    it('should hand initialization errors to onInitializationError before running cleanups', async () => {
+    it('should hand middleware errors to onError wrapped in ContextPipelineInitializationError, then to the cleanups', async () => {
         const initializationError = new Error('Pipeline initialization failed');
-        const order: string[] = [];
+        const order: [string, unknown][] = [];
         const thirdMiddleware = vi.fn();
 
         const pipeline = ContextPipeline.create()
             .compose(async (_, onCleanup) => {
-                onCleanup(() => {
-                    order.push('cleanup');
+                onCleanup((error) => {
+                    order.push(['cleanup', error]);
                 });
                 return {};
             })
@@ -57,50 +62,45 @@ describe('ContextPipeline', () => {
             .compose(thirdMiddleware);
 
         const consumer = vi.fn();
-        const onInitializationError = vi.fn(async (error: unknown) => {
-            order.push('onInitializationError');
-            expect(error).toBe(initializationError);
+
+        await pipeline.call({}, consumer, (error) => {
+            order.push(['onError', error]);
         });
 
-        await pipeline.call({}, consumer, onInitializationError);
-
-        expect(onInitializationError).toHaveBeenCalledOnce();
         expect(thirdMiddleware).not.toHaveBeenCalled();
         expect(consumer).not.toHaveBeenCalled();
-        expect(order).toEqual(['onInitializationError', 'cleanup']);
-    });
+        expect(order.map(([step]) => step)).toEqual(['onError', 'cleanup']);
 
-    it('should wrap errors in the final consumer', async () => {
-        const consumerError = new Error('Request handler failed');
-        const context = { a: 3 };
-
-        const pipeline = ContextPipeline.create().compose(async () => ({ b: 4 }));
-
-        const consumer = vi.fn().mockRejectedValue(consumerError);
-
-        await expect(pipeline.call(context, consumer, rethrow)).rejects.toThrow(
-            expect.objectContaining({
-                cause: consumerError,
-                constructor: RequestHandlerError,
-            }),
+        const [[, reported], [, cleanedUpWith]] = order;
+        expect(reported).toEqual(
+            expect.objectContaining({ cause: initializationError, constructor: ContextPipelineInitializationError }),
         );
-
-        expect(consumer).toHaveBeenCalledWith({ a: 3, b: 4 });
+        expect(cleanedUpWith).toBe(reported);
     });
 
-    it('should pass the consumer error to cleanup routines', async () => {
+    it('should hand consumer errors to onError wrapped in RequestHandlerError, then to the cleanups', async () => {
         const consumerError = new Error('Request handler failed');
-        const context = { a: 3 };
-        const cleanup = vi.fn();
+        const order: [string, unknown][] = [];
 
         const pipeline = ContextPipeline.create().compose(async (_, onCleanup) => {
-            onCleanup(cleanup);
+            onCleanup((error) => {
+                order.push(['cleanup', error]);
+            });
             return { b: 4 };
         });
 
-        await expect(pipeline.call(context, vi.fn().mockRejectedValue(consumerError), rethrow)).rejects.toThrow();
+        const consumer = vi.fn().mockRejectedValue(consumerError);
 
-        expect(cleanup).toHaveBeenCalledWith(consumerError);
+        await pipeline.call({ a: 3 }, consumer, (error) => {
+            order.push(['onError', error]);
+        });
+
+        expect(consumer).toHaveBeenCalledWith({ a: 3, b: 4 });
+        expect(order.map(([step]) => step)).toEqual(['onError', 'cleanup']);
+
+        const [[, reported], [, cleanedUpWith]] = order;
+        expect(reported).toEqual(expect.objectContaining({ cause: consumerError, constructor: RequestHandlerError }));
+        expect(cleanedUpWith).toBe(reported);
     });
 
     it('should call cleanup routines without an error if the consumer succeeds', async () => {
