@@ -24,32 +24,20 @@ describe('the default storage on disk', () => {
         expect(await readdir(storage.requestQueuesDirectory)).toEqual(['default']);
     });
 
-    // The documented way to supply input to a local run: drop a file into the default key-value store
-    // directory by hand. It only works if that directory is the one the default store actually opens.
-    test('reads an INPUT.json placed in the default key-value store directory by hand', async () => {
+    // A hand-placed file only turns up as a record if the `default` directory is the one the default
+    // store actually opens.
+    test('adopts a file placed in the default key-value store directory by hand', async () => {
         const storage = new FileSystemStorageBackend({ localDataDirectory: tmpLocation });
         await mkdir(resolve(storage.keyValueStoresDirectory, 'default'), { recursive: true });
         await writeFile(
-            resolve(storage.keyValueStoresDirectory, 'default', 'INPUT.json'),
+            resolve(storage.keyValueStoresDirectory, 'default', 'hand-placed.json'),
             JSON.stringify({ hello: 'world' }),
         );
 
         const defaultStore = await storage.createKeyValueStoreBackend();
 
-        expect((await defaultStore.getValue('INPUT'))?.value.toString()).toBe(JSON.stringify({ hello: 'world' }));
-    });
-
-    test('keeps a hand-placed INPUT.json across a purge', async () => {
-        const storage = new FileSystemStorageBackend({ localDataDirectory: tmpLocation });
-        await mkdir(resolve(storage.keyValueStoresDirectory, 'default'), { recursive: true });
-        await writeFile(
-            resolve(storage.keyValueStoresDirectory, 'default', 'INPUT.json'),
+        expect((await defaultStore.getValue('hand-placed.json'))?.value.toString()).toBe(
             JSON.stringify({ hello: 'world' }),
         );
-
-        await storage.purge();
-
-        const defaultStore = await storage.createKeyValueStoreBackend();
-        expect((await defaultStore.getValue('INPUT'))?.value.toString()).toBe(JSON.stringify({ hello: 'world' }));
     });
 });

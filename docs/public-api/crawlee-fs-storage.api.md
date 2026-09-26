@@ -4,8 +4,11 @@
 
 ```ts
 
+import { AdoptionCandidate } from '@crawlee/fs-storage-native';
 import type { CrawleeLogger } from '@crawlee/types';
 import type * as storage from '@crawlee/types';
+
+export { AdoptionCandidate }
 
 // @public
 export class FileSystemStorageBackend implements storage.StorageBackend {
@@ -19,6 +22,7 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
     // (undocumented)
     readonly datasetsDirectory: string;
     getStorageBackendCacheKey(): string;
+    protected keyValueStoreAdoptionCandidates(_options: KeyValueStoreHookOptions): AdoptionCandidate[];
     // (undocumented)
     readonly keyValueStoresDirectory: string;
     // (undocumented)
@@ -26,6 +30,7 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
     // (undocumented)
     readonly logger?: CrawleeLogger;
     purge(): Promise<void>;
+    protected purgeKeyValueStore(store: PurgeableKeyValueStoreBackend, _options: KeyValueStoreHookOptions): Promise<void>;
     // (undocumented)
     readonly requestQueueAccess: 'single' | 'shared';
     // (undocumented)
@@ -37,10 +42,19 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
 
 // @public (undocumented)
 export interface FileSystemStorageOptions {
-    inputKey?: string;
     localDataDirectory: string;
     logger?: CrawleeLogger;
     requestQueueAccess?: 'single' | 'shared';
+}
+
+// @public
+export interface KeyValueStoreHookOptions {
+    isDefaultStore: boolean;
+}
+
+// @public
+export interface PurgeableKeyValueStoreBackend extends storage.KeyValueStoreBackend {
+    purgeExcept(keys: string[]): Promise<void>;
 }
 
 // (No @packageDocumentation comment for this package)

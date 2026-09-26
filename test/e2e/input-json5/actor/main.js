@@ -1,4 +1,4 @@
-import { Actor, Dataset, KeyValueStore, log } from 'apify';
+import { Actor, Dataset, log } from 'apify';
 
 const mainOptions = {
     exit: Actor.isAtHome(),
@@ -9,7 +9,7 @@ const mainOptions = {
 };
 
 await Actor.main(async () => {
-    const a = await KeyValueStore.getInput();
+    const a = await Actor.getInput();
 
     log.info('val', a);
 

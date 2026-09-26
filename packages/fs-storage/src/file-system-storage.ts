@@ -14,7 +14,6 @@ import { RequestQueueBackend } from './resource-clients/request-queue.js';
 const fileSystemStorageOptionsSchema = z.object({
     localDataDirectory: z.string(),
     requestQueueAccess: z.enum(['single', 'shared']).default('single'),
-    inputKey: z.string().min(1).default('INPUT'),
     logger: schemas.logger.optional(),
 });
 
@@ -34,9 +33,6 @@ const DEFAULT_STORAGE_ALIAS = '__default__';
 /** The directory the default storage lives in, one level below `datasets` / `key_value_stores` / etc. */
 const DEFAULT_STORAGE_DIRECTORY = 'default';
 
-/** The conventional run-input key, always treated as one alongside the configured `inputKey`. */
-const DEFAULT_INPUT_KEY = 'INPUT';
-
 /**
  * Content types declared for adopted files. The native client infers nothing from extensions, and
  * neither do we beyond this: a `.json` file is JSON, anything else is bytes for the
@@ -44,6 +40,18 @@ const DEFAULT_INPUT_KEY = 'INPUT';
  */
 const ADOPTED_JSON_CONTENT_TYPE = 'application/json; charset=utf-8';
 const ADOPTED_BINARY_CONTENT_TYPE = 'application/octet-stream';
+
+/** What the key-value store hooks of {@link FileSystemStorageBackend} learn about the store at hand. */
+export interface KeyValueStoreHookOptions {
+    /** Whether the store is the run's default key-value store. */
+    isDefaultStore: boolean;
+}
+
+/** A file-system key-value store backend as seen by {@link FileSystemStorageBackend.purgeKeyValueStore}. */
+export interface PurgeableKeyValueStoreBackend extends storage.KeyValueStoreBackend {
+    /** Remove every record from the store except the given keys. */
+    purgeExcept(keys: string[]): Promise<void>;
+}
 
 export interface FileSystemStorageOptions {
     /**
@@ -72,19 +80,6 @@ export interface FileSystemStorageOptions {
      * @default 'single'
      */
     requestQueueAccess?: 'single' | 'shared';
-
-    /**
-     * The key the run input is read from — Crawlee's `inputKey` (`CRAWLEE_INPUT_KEY`).
-     *
-     * Like the conventional `INPUT`, this key may arrive in the default key-value store as a bare value
-     * file with no metadata sidecar (e.g. the Apify CLI writes the effective input to `__CLI_INPUT.json`
-     * and points the run at that key). Such a file is adopted into a record under this key when the
-     * store is opened, and the key is preserved when the default store is purged — exactly like
-     * `INPUT`, which is always treated as an input key regardless of this setting.
-     *
-     * @default 'INPUT'
-     */
-    inputKey?: string;
 }
 
 /**
@@ -102,22 +97,18 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
     readonly requestQueuesDirectory: string;
     readonly logger?: CrawleeLogger;
     readonly requestQueueAccess: 'single' | 'shared';
-    /** `INPUT` plus the configured `inputKey`, deduplicated. */
-    readonly #inputKeys: string[];
-
     readonly #keyValueStoreBackendCache: KeyValueStoreBackend[] = [];
     readonly #datasetBackendCache: DatasetBackend[] = [];
     readonly #requestQueueBackendCache: RequestQueueBackend[] = [];
 
     constructor(options: FileSystemStorageOptions) {
-        const { logger, requestQueueAccess, inputKey, localDataDirectory } = parseArgument(
+        const { logger, requestQueueAccess, localDataDirectory } = parseArgument(
             options,
             fileSystemStorageOptionsSchema,
         );
 
         this.logger = logger;
         this.requestQueueAccess = requestQueueAccess;
-        this.#inputKeys = [...new Set([DEFAULT_INPUT_KEY, inputKey])];
 
         this.localDataDirectory = localDataDirectory;
         this.datasetsDirectory = resolve(this.localDataDirectory, 'datasets');
@@ -202,14 +193,13 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
             this.localDataDirectory,
             // useTestClock — always real wall-clock outside of native tests.
             undefined,
-            this.#adoptionCandidates(cacheKey === DEFAULT_STORAGE_DIRECTORY),
+            this.keyValueStoreAdoptionCandidates({ isDefaultStore: cacheKey === DEFAULT_STORAGE_DIRECTORY }),
         );
         const newStore = await KeyValueStoreBackend.create({
             name: alias ? undefined : (name ?? cacheKey),
             cacheKey,
             nativeBackend,
             logger: this.logger,
-            inputKeys: this.#inputKeys,
         });
         this.#keyValueStoreBackendCache.push(newStore);
 
@@ -254,28 +244,19 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
     /**
      * What the native `open` may turn into records: value files sitting in the store directory with no
      * metadata sidecar, written out-of-band by a CLI, a project template, a v3 Crawlee or a text editor.
+     * Each becomes a record keyed by its filename, with the content type derived from the extension alone.
      *
-     * Each run-input key claims a bare `<key>` or `<key>.json` first — that is the layout the Apify CLI
-     * and the templates produce, and the key must end up being `INPUT` rather than `INPUT.json`. Only
-     * the default store holds the run input, so elsewhere an `INPUT.json` is just a file named
-     * `INPUT.json`, adopted by the trailing sweep like every other one.
+     * Subclasses may claim specific files under a key of their own by prepending candidates — the Apify
+     * SDK adopts a bare `INPUT` or `INPUT.json` in the default store as the record `INPUT` this way.
      *
      * Once adopted, the file is an ordinary record: readable, listed, deletable, and — in a run-scoped
-     * store — purged on start unless its key is a run-input key.
+     * store — purged on start unless {@link purgeKeyValueStore} spares it. Files adoption skips (dotfiles)
+     * are purged all the same: the purge sweeps the directory and keeps only the store metadata and the
+     * spared keys.
+     *
      */
-    #adoptionCandidates(isDefaultStore: boolean): AdoptionCandidate[] {
-        const inputCandidates: AdoptionCandidate[] = isDefaultStore
-            ? this.#inputKeys.map((key) => ({
-                  key,
-                  files: [
-                      { filename: key, contentType: ADOPTED_BINARY_CONTENT_TYPE },
-                      { filename: `${key}.json`, contentType: ADOPTED_JSON_CONTENT_TYPE },
-                  ],
-              }))
-            : [];
-
+    protected keyValueStoreAdoptionCandidates(_options: KeyValueStoreHookOptions): AdoptionCandidate[] {
         return [
-            ...inputCandidates,
             {
                 files: [
                     { filename: '*.json', contentType: ADOPTED_JSON_CONTENT_TYPE },
@@ -283,6 +264,17 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
                 ],
             },
         ];
+    }
+
+    /**
+     * Empties one run-scoped key-value store during {@link purge}. Subclasses may spare some keys of the
+     * default store with {@link PurgeableKeyValueStoreBackend.purgeExcept} — the Apify SDK keeps its run input.
+     */
+    protected async purgeKeyValueStore(
+        store: PurgeableKeyValueStoreBackend,
+        _options: KeyValueStoreHookOptions,
+    ): Promise<void> {
+        await store.purge();
     }
 
     async storageExists(id: string, type: 'Dataset' | 'KeyValueStore' | 'RequestQueue'): Promise<boolean> {
@@ -383,8 +375,7 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
             this.#purgeRunScopedStorages(
                 this.keyValueStoresDirectory,
                 async (alias) => this.createKeyValueStoreBackend({ alias }) as Promise<KeyValueStoreBackend>,
-                // Only the default store holds the run input, so it is the only one that keeps `INPUT`.
-                async (store, isDefault) => (isDefault ? store.purgeExceptInput() : store.purge()),
+                async (store, isDefault) => this.purgeKeyValueStore(store, { isDefaultStore: isDefault }),
             ),
             this.#purgeRunScopedStorages(
                 this.datasetsDirectory,

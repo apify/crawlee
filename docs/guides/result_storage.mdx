@@ -14,7 +14,7 @@ By default, Crawlee storage is managed by the <ApiLink to="fs-storage/class/File
 
 The key-value store is used for saving and reading data records or files. Each data record is represented by a unique key and associated with a MIME content type. Key-value stores are ideal for saving screenshots of web pages, PDFs or to persist the state of crawlers.
 
-Each Crawlee project run is associated with a **default key-value store**. By convention, the project input and output are stored in the default key-value store under the `INPUT` and `OUTPUT` keys respectively. Typically, both input and output are JSON files, although they could be any other format.
+Each Crawlee project run is associated with a **default key-value store**. It is purged when the run starts (see [`purgeDefaultStorages()`](#cleaning-up-the-storages)), so it is the place for data that belongs to a single run.
 
 In Crawlee, the key-value store is represented by the <ApiLink to="core/class/KeyValueStore">`KeyValueStore`</ApiLink> class. In order to simplify access to the default key-value store, Crawlee also provides <ApiLink to="core/class/KeyValueStore#getValue">`KeyValueStore.getValue()`</ApiLink> and <ApiLink to="core/class/KeyValueStore#setValue">`KeyValueStore.setValue()`</ApiLink> functions.
 
@@ -29,7 +29,7 @@ The data is stored in the directory specified by the `CRAWLEE_STORAGE_DIR` envir
 
 `{STORE_ID}` is the name or the ID of the key-value store. The default key-value store has ID `default`. The `{KEY}` is the key of the record, used as the filename verbatim — no extension is derived from the content type, which is recorded in the `{KEY}.__metadata__.json` sidecar instead.
 
-A file you drop into the directory by hand is adopted as a record when the store is opened, keyed by its filename (see the [v4 upgrading guide](../upgrading/upgrading-to-v4#out-of-band-key-value-files-eg-a-hand-placed-inputjson) for the run-input exception). Files added while the crawler is running are not picked up — write those with `setValue()`.
+A file you drop into the directory by hand is adopted as a record when the store is opened, keyed by its filename (see the [v4 upgrading guide](../upgrading/upgrading-to-v4#out-of-band-key-value-files-eg-a-hand-placed-inputjson)). Files added while the crawler is running are not picked up — write those with `setValue()`.
 
 :::
 
@@ -37,12 +37,6 @@ The following code demonstrates basic operations of key-value stores:
 
 ```javascript
 import { KeyValueStore } from 'crawlee';
-
-// Get the INPUT from the default key-value store
-const input = await KeyValueStore.getInput();
-
-// Write the OUTPUT to the default key-value store
-await KeyValueStore.setValue('OUTPUT', { myResult: 123 });
 
 // Open a named key-value store
 const store = await KeyValueStore.open('some-name');
@@ -61,7 +55,7 @@ const value = await store.getValue('some-key');
 await store.setValue('some-key', null);
 ```
 
-To see a real-world example of how to get the input from the key-value store, see the [Screenshots](../examples/capture-screenshot) example.
+To see a real-world example of using the key-value store, see the [Screenshots](../examples/capture-screenshot) example.
 
 ## Dataset
 
@@ -113,7 +107,7 @@ import { purgeDefaultStorages } from 'crawlee';
 await purgeDefaultStorages();
 ```
 
-Calling this function will clean up the run-scoped results storage directories - the default ones and any alias-keyed one - except the `INPUT` key in the default key-value store directory. This is a shortcut for running (optional) `purge` method on the <ApiLink to="core/interface/StorageBackend">`StorageBackend`</ApiLink> interface, in other words it will call the `purge` method of the underlying storage implementation we are currently using. In addition, this method will make sure the storage is purged only once for a given execution context, so it is safe to call it multiple times.
+Calling this function will clean up the run-scoped results storage directories - the default ones and any alias-keyed one. This is a shortcut for running (optional) `purge` method on the <ApiLink to="core/interface/StorageBackend">`StorageBackend`</ApiLink> interface, in other words it will call the `purge` method of the underlying storage implementation we are currently using. In addition, this method will make sure the storage is purged only once for a given execution context, so it is safe to call it multiple times.
 
 ## Transactional storage
 

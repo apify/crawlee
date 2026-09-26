@@ -154,7 +154,6 @@ export const crawleeConfigFields: {
     persistStateIntervalMillis: ConfigField<z.ZodDefault<z.ZodPreprocess<z.ZodNumber, unknown>>>;
     internalTimeoutMillis: ConfigField<z.ZodOptional<z.ZodPreprocess<z.ZodNumber, unknown>>>;
     systemInfoIntervalMillis: ConfigField<z.ZodDefault<z.ZodPreprocess<z.ZodNumber, unknown>>>;
-    inputKey: ConfigField<z.ZodDefault<z.ZodString>>;
     headless: ConfigField<z.ZodDefault<z.ZodPreprocess<z.ZodBoolean, unknown>>>;
     xvfb: ConfigField<z.ZodDefault<z.ZodPreprocess<z.ZodBoolean, unknown>>>;
     chromeExecutablePath: ConfigField<z.ZodOptional<z.ZodString>>;

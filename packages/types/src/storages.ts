@@ -478,7 +478,7 @@ export interface StorageBackend {
 
     /**
      * Empty the run-scoped storages — the default one and every alias-keyed one, including any left
-     * behind by a previous run. Named storages persist across runs, as does the default store's `INPUT`.
+     * behind by a previous run. Named storages persist across runs.
      */
     purge?(): Promise<void>;
     teardown?(): Promise<void>;

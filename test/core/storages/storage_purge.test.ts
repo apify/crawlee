@@ -1,6 +1,7 @@
 import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
+import type { KeyValueStoreHookOptions, PurgeableKeyValueStoreBackend } from '@crawlee/fs-storage';
 import { FileSystemStorageBackend } from '@crawlee/fs-storage';
 import { MemoryStorageBackend, RequestQueue, purgeDefaultStorages, serviceLocator } from '@crawlee/core';
 import type { KeyValueStoreBackend, RequestQueueBackend, StorageBackend } from '@crawlee/types';
@@ -68,9 +69,8 @@ describe.each([
         await expect(namedDataset.getData()).resolves.toMatchObject({ items: [{ from: 'named' }] });
     });
 
-    // The run input lives in the default key-value store, so that one store keeps its `INPUT` key.
-    // An alias-keyed store is just another run-scoped storage — nothing there is the run input.
-    test('keeps INPUT in the default key-value store but not in an alias-keyed one', async () => {
+    // Crawlee has no notion of a run input: nothing in the default key-value store is special.
+    test('empties the default key-value store like any other run-scoped one', async () => {
         const backend = createBackend();
 
         const defaultStore = await backend.createKeyValueStoreBackend();
@@ -81,9 +81,35 @@ describe.each([
 
         await backend.purge!();
 
-        expect(await readInput(defaultStore)).toBe(input.value);
+        expect(await readInput(defaultStore)).toBeUndefined();
         expect(await readInput(aliasStore)).toBeUndefined();
     });
+});
+
+// The Apify SDK spares its run input through the `purgeKeyValueStore` hook, in the default store only.
+// An alias-keyed store is just another run-scoped storage — nothing there is the run input.
+test('a FileSystemStorageBackend subclass can spare keys of the default key-value store on purge', async () => {
+    class InputAwareBackend extends FileSystemStorageBackend {
+        protected override async purgeKeyValueStore(
+            store: PurgeableKeyValueStoreBackend,
+            options: KeyValueStoreHookOptions,
+        ): Promise<void> {
+            await (options.isDefaultStore ? store.purgeExcept(['INPUT']) : store.purge());
+        }
+    }
+
+    const backend = new InputAwareBackend({ localDataDirectory: temporaryDirectory() });
+
+    const defaultStore = await backend.createKeyValueStoreBackend();
+    const aliasStore = await backend.createKeyValueStoreBackend({ alias: 'run-scoped' });
+
+    await defaultStore.setValue(input);
+    await aliasStore.setValue(input);
+
+    await backend.purge();
+
+    expect(await readInput(defaultStore)).toBe(input.value);
+    expect(await readInput(aliasStore)).toBeUndefined();
 });
 
 // The file system backend has to find leftovers on disk, since a fresh process starts with an empty

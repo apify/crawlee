@@ -214,6 +214,14 @@ Configuration instances are immutable — attempting to assign a property throws
 Previously, environment variables always won. Now `new Configuration({ headless: false })`
 works even when `CRAWLEE_HEADLESS=true` is set.
 
+### `KeyValueStore.getInput()` and `Configuration.inputKey` moved to the Apify SDK
+
+Reading the run input is an Apify platform concern, so Crawlee no longer has any notion of it:
+
+- **`KeyValueStore.getInput()` is removed.** Use `Actor.getInput()` from `apify`, which also handles the platform-assigned input key, encrypted secrets and input schema defaults.
+- **`Configuration.inputKey` and the `CRAWLEE_INPUT_KEY` environment variable are removed.** The Apify SDK's `Configuration` defines `inputKey` itself.
+- **The default key-value store is purged in full**, `INPUT` included. Sparing a key, and claiming a bare `<key>` / `<key>.json` file as the record `<key>` (see [Out-of-band key-value files](#out-of-band-key-value-files-eg-a-hand-placed-inputjson)), is left to subclasses of `FileSystemStorageBackend` through its two protected hooks, `keyValueStoreAdoptionCandidates` and `purgeKeyValueStore`. The Apify SDK's `ApifyFileSystemStorageBackend` does this for its run input; plain Crawlee treats a hand-placed `INPUT.json` as any other file.
+
 ### Service management moved from `Configuration` to `ServiceLocator`
 
 The service management functionality has been extracted from `Configuration` into a new `ServiceLocator` class.
@@ -1879,10 +1887,10 @@ Keys are literal. `aaa` and `aaa.json` are two distinct keys, and `FileSystemSto
 
 What v4 does instead is *adopt* value files that turn up in a store directory without the `<key>.__metadata__.json` sidecar that marks a record — the Apify CLI's input, a project template, a v3 store directory, a file you dropped in with an editor. Opening the store writes the missing sidecar (the value bytes are never touched), and from then on the file is an ordinary record: read by `getValue`, enumerated by `listKeys`, removed by `deleteValue`. Two rules decide the key:
 
-- In the **default** store, the run-input keys (`INPUT` and the configured `inputKey`) claim a bare `INPUT` or `INPUT.json`. The key is `INPUT` while the file keeps its name, so `listKeys` reports `INPUT`, `getValue('INPUT.json')` is `undefined`, and `getPublicUrl('INPUT')` points at `INPUT.json`. If both files are present, opening the store fails instead of guessing which one is the input.
+- A subclass of `FileSystemStorageBackend` may claim specific files under a key of its own by overriding `keyValueStoreAdoptionCandidates`. The Apify SDK's `ApifyFileSystemStorageBackend` claims a bare `INPUT` or `INPUT.json` in the **default** store (and the same for the configured `ACTOR_INPUT_KEY`) as the record `INPUT`: the file keeps its name, `listKeys` reports `INPUT`, `getValue('INPUT.json')` is `undefined`, and `getPublicUrl('INPUT')` points at `INPUT.json`. If both files are present, opening the store fails instead of guessing which one is the input. Plain Crawlee claims nothing, so there a bare `INPUT.json` is just a file named `INPUT.json`.
 - Every other sidecar-less file becomes a record **keyed by its filename**, in every store: a hand-placed `some-key.json` is the key `some-key.json`, and so is an `INPUT.json` in a store other than the default one. Dotfiles are skipped.
 
-A `.json` file is adopted as `application/json; charset=utf-8` and anything else as `application/octet-stream`; there is no content sniffing. Adopted records are subject to the purge of the default store on start like any other record — only the run-input keys are spared.
+A `.json` file is adopted as `application/json; charset=utf-8` and anything else as `application/octet-stream`; there is no content sniffing. Adopted records are subject to the purge of the default store on start like any other record, unless a subclass spares them through `purgeKeyValueStore` — the Apify SDK keeps its run input this way.
 
 Beyond the literal keys, three v3 behaviors are gone:
 
@@ -2239,6 +2247,7 @@ The full list of removed exports and members, for ctrl-F purposes. Where a repla
 - `context.blockResources` and `context.cacheResponses` — no longer attached to the crawling context. The functionality is still available as deprecated functions, accessible both via the `puppeteerUtils` namespace (`puppeteerUtils.blockResources`, `puppeteerUtils.cacheResponses`) and as top-level exports from `@crawlee/puppeteer` (`import { blockResources, cacheResponses } from '@crawlee/puppeteer'`). Unlike the old context helpers, these take an explicit `page` argument — e.g. `await blockResources(page)`. Both are `@deprecated` and will be removed in a future release, so migrate away from them.
 - `context.closeCookieModals`, `playwrightUtils.closeCookieModals` and `puppeteerUtils.closeCookieModals` — removed along with the optional `idcac-playwright` peer dependency (see [Crawling context no longer includes `closeCookieModals`](#crawling-context-no-longer-includes-closecookiemodals) and the [cookie modals guide](../guides/cookie-modals))
 - `Configuration.systemInfoV2` / `CRAWLEE_SYSTEM_INFO_V2` environment variable — the v2 behavior is now the default (see [Available resource detection](#available-resource-detection))
+- `KeyValueStore.getInput()` and `Configuration.inputKey` / `CRAWLEE_INPUT_KEY` — reading the run input moved to the Apify SDK (see [`KeyValueStore.getInput()` and `Configuration.inputKey` moved to the Apify SDK](#keyvaluestoregetinput-and-configurationinputkey-moved-to-the-apify-sdk))
 - `Configuration.defaultDatasetId` / `defaultKeyValueStoreId` / `defaultRequestQueueId` and their `CRAWLEE_DEFAULT_*_ID` environment variables — the default storage is addressed by a reserved alias, not by a configurable ID. Open a storage by name if you need a specific one.
 - `checkAndSerialize` and `chunkBySize` functions (from `@crawlee/core`) — value (de)serialization now lives in the `KeyValueStore` frontend; use `serializeValue` / `parseValue` (see [`maybeStringify` is removed](#maybestringify-is-removed))
 - `BASIC_CRAWLER_TIMEOUT_BUFFER_SECS` constant (from `@crawlee/basic`) — was an internal timeout buffer, no longer exported
