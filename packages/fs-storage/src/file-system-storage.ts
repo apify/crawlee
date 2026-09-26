@@ -250,7 +250,9 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
      * SDK adopts a bare `INPUT` or `INPUT.json` in the default store as the record `INPUT` this way.
      *
      * Once adopted, the file is an ordinary record: readable, listed, deletable, and — in a run-scoped
-     * store — purged on start unless {@link purgeKeyValueStore} spares it.
+     * store — purged on start unless {@link purgeKeyValueStore} spares it. Files adoption skips (dotfiles)
+     * are purged all the same: the purge sweeps the directory and keeps only the store metadata and the
+     * spared keys.
      *
      */
     protected keyValueStoreAdoptionCandidates(_options: KeyValueStoreHookOptions): AdoptionCandidate[] {

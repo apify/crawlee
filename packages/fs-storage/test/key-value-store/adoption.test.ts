@@ -82,13 +82,18 @@ describe('sidecar-less files', () => {
         });
     });
 
-    test('are purged from a run-scoped store on start', async () => {
-        const storage = await seedStore(tmpLocation, 'default', { 'INPUT.json': payload, 'leftover.json': '{}' });
+    test('are purged from a run-scoped store on start, adopted or not', async () => {
+        const storage = await seedStore(tmpLocation, 'default', {
+            'INPUT.json': payload,
+            'leftover.json': '{}',
+            '.hidden': 'never adopted',
+        });
 
         await storage.purge();
 
-        expect(await readdir(resolve(storage.keyValueStoresDirectory, 'default'))).not.toContain('INPUT.json');
-        expect(await readdir(resolve(storage.keyValueStoresDirectory, 'default'))).not.toContain('leftover.json');
+        // The purge sweeps the directory, so the dotfile adoption skipped goes too; only the store
+        // metadata is left.
+        expect(await readdir(resolve(storage.keyValueStoresDirectory, 'default'))).toEqual(['__metadata__.json']);
     });
 });
 
