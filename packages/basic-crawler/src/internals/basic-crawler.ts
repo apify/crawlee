@@ -429,7 +429,16 @@ export interface BasicCrawlerOptions<
     /**
      * Allows to keep the crawler alive even if the {@apilink RequestQueue} gets empty.
      * By default, the `crawler.run()` will resolve once the queue is empty. With `keepAlive: true` it will keep running,
-     * waiting for more requests to come. Use `crawler.stop()` to exit the crawler gracefully, or `crawler.teardown()` to stop it immediately.
+     * waiting for more requests to come.
+     *
+     * `crawler.stop()` only stops the crawler from dispatching new requests — it does not wait for or drain
+     * requests already sitting in the queue. If this crawler is fed by another crawler or an external producer,
+     * calling `stop()` as soon as the producer finishes can abandon requests the producer already enqueued but
+     * this crawler had not yet picked up.
+     *
+     * To shut down only once the queue is genuinely empty and the producer has stopped, override
+     * {@apilink BasicCrawlerOptions.taskLoopOptions|`taskLoopOptions.isFinishedFunction`} to check both
+     * `(await requestManager.checkReadiness()).status === 'finished'` and the producer's own running/finished flag.
      */
     keepAlive?: boolean;
 
