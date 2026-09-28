@@ -1,4 +1,3 @@
-import { EventEmitter } from 'node:events';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -6,12 +5,6 @@ import { z } from 'zod';
 
 import { log, LogLevel } from './log.js';
 import { serviceLocator } from './service_locator.js';
-
-// Crawlee attaches many listeners to shared EventEmitters (one per crawler/session/autoscaled pool),
-// which can exceed Node's default limit of 10 and trigger spurious MaxListenersExceededWarning logs.
-// Raising the global default avoids false positives; real leaks will still manifest as unbounded growth.
-// TODO: tracked in https://github.com/apify/crawlee/issues/3615 — find a less side-effecting place for this.
-EventEmitter.defaultMaxListeners = 50;
 
 // --- Field definition helpers ---
 
