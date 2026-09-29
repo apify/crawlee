@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.18.2](https://github.com/apify/crawlee/compare/v3.18.1...v3.18.2) (2026-09-29)
+
+### Bug Fixes
+
+* **browser-pool:** survive a page.close() that never settles ([#4108](https://github.com/apify/crawlee/issues/4108)) ([31678af](https://github.com/apify/crawlee/commit/31678afd376aae0994eec2293577ec7e66af65e9)), closes [#1829](https://github.com/apify/crawlee/issues/1829)
+
+
 ## [3.18.1](https://github.com/apify/crawlee/compare/v3.18.0...v3.18.1) (2026-08-12)
 
 **Note:** Version bump only for package @crawlee/browser-pool

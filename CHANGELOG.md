@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.18.2](https://github.com/apify/crawlee/compare/v3.18.1...v3.18.2) (2026-09-29)
+
+### Bug Fixes
+
+* **browser-pool:** survive a page.close() that never settles ([#4108](https://github.com/apify/crawlee/issues/4108)) ([31678af](https://github.com/apify/crawlee/commit/31678afd376aae0994eec2293577ec7e66af65e9)), closes [#1829](https://github.com/apify/crawlee/issues/1829)
+* **core:** notify() no longer leaks a timed-out task's context into the pool loop ([#4096](https://github.com/apify/crawlee/issues/4096)) ([c7ee7e3](https://github.com/apify/crawlee/commit/c7ee7e315c8a7429e7bad8409913182975cef89c)), closes [#4081](https://github.com/apify/crawlee/issues/4081)
+
+
 ## [3.18.1](https://github.com/apify/crawlee/compare/v3.18.0...v3.18.1) (2026-08-12)
 
 ### Bug Fixes
