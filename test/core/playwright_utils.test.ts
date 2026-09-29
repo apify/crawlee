@@ -3,6 +3,7 @@ import path from 'node:path';
 
 import { MemoryStorageBackend, serviceLocator } from '@crawlee/core';
 import { KeyValueStore, launchPlaywright, playwrightUtils, Request } from '@crawlee/playwright';
+import { sleep } from '@crawlee/utils';
 import type { Browser, Page } from 'playwright';
 import { chromium } from 'playwright';
 import { runExampleComServer } from '../shared/_helper.js';
@@ -493,6 +494,41 @@ describe('playwrightUtils', () => {
             await expect(handleCloudflareChallenge(page, 'https://example.com', fastOptions())).rejects.toThrow(
                 /Blocked by Cloudflare/,
             );
+        });
+
+        test('detects the challenge when the challenge page navigates itself during the check', async () => {
+            const url = 'https://challenge.test/';
+            await page.route(`${url}**`, async (route) => {
+                if (!route.request().url().includes('__cf_chl_tk')) {
+                    // keeps the check busy until the navigation below commits and destroys its execution context
+                    await route.fulfill({
+                        contentType: 'text/html',
+                        body: `<html><body>${currentChallengeBody}<script>
+                            window.addEventListener('load', () => setTimeout(() => { location.href = '/?__cf_chl_tk=1'; }));
+                            const querySelector = document.querySelector.bind(document);
+                            document.querySelector = (selector) => {
+                                const end = Date.now() + 1000;
+                                while (Date.now() < end) {}
+                                return querySelector(selector);
+                            };
+                        </script></body></html>`,
+                    });
+                    return;
+                }
+
+                await sleep(200);
+                await route.fulfill({
+                    contentType: 'text/html',
+                    body: `<html><body>${currentChallengeBody}</body></html>`,
+                });
+            });
+
+            const selfNavigation = page.waitForRequest((request) => request.url().includes('__cf_chl_tk'));
+            await page.goto(url);
+            await selfNavigation;
+
+            await expect(handleCloudflareChallenge(page, url, fastOptions())).rejects.toThrow(/Blocked by Cloudflare/);
+            await page.unrouteAll();
         });
 
         test('resolves without detection on a regular page', async () => {
