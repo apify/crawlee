@@ -65,19 +65,26 @@ const addRequestsBatchedOptionsSchema = z.strictObject({
     waitBetweenBatchesMillis: schemas.anyNumber.default(1000),
     maxNewRequests: schemas.anyNumber.optional(),
 });
-const newRequestLikeSchema = z.looseObject({
-    url: z.string(),
-    id: z.undefined().optional(),
-});
-const handledRequestSchema = z.looseObject({
-    id: z.string(),
-    uniqueKey: z.string(),
-    handledAt: z.string().optional(),
-});
-const reclaimedRequestSchema = z.looseObject({
-    id: z.string(),
-    uniqueKey: z.string(),
-});
+// Compiled: these run once per request.
+const newRequestLikeSchema = z.compile(
+    z.looseObject({
+        url: z.string(),
+        id: z.undefined().optional(),
+    }),
+);
+const handledRequestSchema = z.compile(
+    z.looseObject({
+        id: z.string(),
+        uniqueKey: z.string(),
+        handledAt: z.string().optional(),
+    }),
+);
+const reclaimedRequestSchema = z.compile(
+    z.looseObject({
+        id: z.string(),
+        uniqueKey: z.string(),
+    }),
+);
 const uniqueKeySchema = z.string();
 const openOptionsSchema = z.strictObject({
     configuration: z.instanceof(Configuration).optional(),
@@ -858,6 +865,19 @@ export class RequestQueue implements IStorage, IRequestManager {
 
         this.#expectedRequestProcessingSecs = secs;
         await this.backend.setExpectedRequestProcessingTimeSecs?.(secs);
+    }
+
+    /**
+     * @inheritdoc
+     * Unlike {@link RequestQueue.setExpectedRequestProcessingTimeSecs}, which sizes every future lock,
+     * this only touches the one request it is given.
+     */
+    async extendRequestProcessingTimeSecs(request: Request, secs: number): Promise<boolean> {
+        if (!request.id) {
+            return false;
+        }
+
+        return (await this.backend.extendRequestProcessingTimeSecs?.(request.id, secs)) ?? false;
     }
 
     /**

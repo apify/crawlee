@@ -350,6 +350,7 @@ export interface QueueOperationInfo {
 export interface RequestQueueBackend {
     addBatchOfRequests(requests: RequestSchema[], options?: RequestQueueOperationOptions): Promise<BatchAddRequestsResult>;
     drop(): Promise<void>;
+    extendRequestProcessingTimeSecs?(requestId: string, secs: number): Promise<boolean>;
     fetchNextRequest(): Promise<UpdateRequestSchema | undefined>;
     getMetadata(): Promise<RequestQueueInfo>;
     getRequest(uniqueKey: string): Promise<UpdateRequestSchema | undefined>;

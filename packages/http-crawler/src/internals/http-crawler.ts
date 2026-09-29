@@ -914,6 +914,7 @@ export class HttpCrawler<
             {
                 session,
                 cookieJar,
+                proxyUrl: opts.proxyUrl,
                 signal: cancelSignal,
                 timeoutMillis: cancelSignal ? undefined : opts.timeout,
                 ignoreTlsErrors: this.#ignoreTlsErrors,

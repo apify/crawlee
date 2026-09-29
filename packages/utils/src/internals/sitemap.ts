@@ -653,6 +653,11 @@ export async function* discoverValidSitemaps(
             }
         } else {
             const firstUrl = new URL(domainUrls[0]);
+            // The guessed candidates are well-known paths on the same origin, so the query string
+            // and fragment of the input URL are not part of them - carrying them over probes (and
+            // yields) URLs like `/sitemap.xml?page=2`, which servers may well answer with a 404.
+            firstUrl.search = '';
+            firstUrl.hash = '';
             const possibleSitemapPathnames = ['/sitemap.xml', '/sitemap.txt', '/sitemap_index.xml'];
             const candidateSitemapUrls = possibleSitemapPathnames.map((pathname) => {
                 firstUrl.pathname = pathname;

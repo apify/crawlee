@@ -361,4 +361,20 @@ describe('RequestManagerTandem', () => {
         await tandem.fetchNextRequest();
         expect(hintSpy).toHaveBeenCalledWith(600);
     });
+
+    test('extendRequestProcessingTimeSecs forwards to the writable request manager', async () => {
+        const requestList = await RequestList.open(null, []);
+        const requestQueue = await RequestQueue.open();
+        await requestQueue.addRequest({ url: 'https://example.com/1' });
+        const fetched = await requestQueue.fetchNextRequest();
+        expect(fetched).not.toBeNull();
+
+        const stub = vi.fn(async () => true);
+        (requestQueue.backend as any).extendRequestProcessingTimeSecs = stub;
+
+        const tandem = new RequestManagerTandem(requestList, requestQueue);
+
+        await expect(tandem.extendRequestProcessingTimeSecs!(fetched!, 30)).resolves.toBe(true);
+        expect(stub).toHaveBeenCalledExactlyOnceWith(fetched!.id, 30);
+    });
 });

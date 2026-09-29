@@ -23,7 +23,7 @@ interface PurgeDefaultStorageOptions {
 /**
  * Cleans up the local storage folder (defaults to `./storage`) created when running code locally.
  * Purging empties the storages that belong to a single run — the default one and every alias-keyed one —
- * keeping only INPUT.json in the default KV store. Named storages persist across runs and are not touched.
+ * Named storages persist across runs and are not touched.
  *
  * Purging of storages is happening automatically when we run our crawler (or when we open some storage
  * explicitly, e.g. via `RequestList.open()`). We can disable that via `purgeOnStart` {@apilink Configuration}
@@ -38,7 +38,7 @@ export async function purgeDefaultStorages(options?: PurgeDefaultStorageOptions)
 /**
  * Cleans up the local storage folder (defaults to `./storage`) created when running code locally.
  * Purging empties the storages that belong to a single run — the default one and every alias-keyed one —
- * keeping only INPUT.json in the default KV store. Named storages persist across runs and are not touched.
+ * Named storages persist across runs and are not touched.
  *
  * Purging of storages is happening automatically when we run our crawler (or when we open some storage
  * explicitly, e.g. via `RequestList.open()`). We can disable that via `purgeOnStart` {@apilink Configuration}

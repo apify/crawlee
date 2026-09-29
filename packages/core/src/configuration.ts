@@ -68,8 +68,6 @@ export const crawleeConfigFields = {
     internalTimeoutMillis: field(coerceNumber.optional(), 'CRAWLEE_INTERNAL_TIMEOUT'),
     /** @default 1_000 */
     systemInfoIntervalMillis: field(coerceNumber.default(1_000)),
-    /** @default 'INPUT' */
-    inputKey: field(z.string().default('INPUT'), 'CRAWLEE_INPUT_KEY'),
     /** @default true */
     headless: field(coerceBoolean.default(true), 'CRAWLEE_HEADLESS'),
     /** @default false */
@@ -160,7 +158,6 @@ export interface Configuration extends ResolvedConfigValues {}
  *
  * Key | Environment Variable | Default Value
  * ---|---|---
- * `inputKey` | `CRAWLEE_INPUT_KEY` | `'INPUT'`
  * `xvfb` | `CRAWLEE_XVFB` | `false`
  * `chromeExecutablePath` | `CRAWLEE_CHROME_EXECUTABLE_PATH` | -
  * `defaultBrowserPath` | `CRAWLEE_DEFAULT_BROWSER_PATH` | -

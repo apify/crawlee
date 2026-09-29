@@ -13,7 +13,7 @@ Keep changes minimal and scoped. Do not fix unrelated issues, touch unrelated fi
 
 ## Pre-Commit Checks
 
-Always run `yarn tsc-check-tests` (or the project's type-check command) before committing any TypeScript changes. Never assume type safety — verify it.
+Always run `pnpm tsc-check-tests` (or the project's type-check command) before committing any TypeScript changes. Never assume type safety — verify it.
 
 ## Code Editing Rules
 
@@ -31,35 +31,35 @@ When opening PRs, write concise descriptions focused on what changed and why. Av
 ## Build & Test Commands
 
 ```bash
-# Setup (uses Yarn v4 via Corepack)
+# Setup (pnpm via Corepack)
 corepack enable
-yarn install
+pnpm install
 
 # Build
-yarn build                    # Build all packages (Turbo + TypeScript)
+pnpm build                    # Build all packages (Turbo + TypeScript)
 
 # Test
-yarn test                     # Run all tests (vitest), fast config
-yarn test:full                # Difficult tests + full firefox/webkit plugin matrix
-yarn vitest run path/to/test.ts    # Run specific test file
+pnpm test                     # Run all tests (vitest), fast config
+pnpm test:full                # Difficult tests + full firefox/webkit plugin matrix
+pnpm vitest run path/to/test.ts    # Run specific test file
 
 # Code Quality
-yarn lint                     # ESLint
-yarn lint:fix                 # ESLint with auto-fix
-yarn format                   # Format with Biome
-yarn tsc-check-tests          # Type-check test files
+pnpm lint                     # oxlint
+pnpm lint:fix                 # oxlint with auto-fix
+pnpm format                   # Format with oxfmt
+pnpm tsc-check-tests          # Type-check test files
 ```
 
 ## Architecture
 
-Crawlee is a **Yarn workspaces monorepo** with Turbo build orchestration. All packages are in `/packages/`.
+Crawlee is a **pnpm workspaces monorepo** with Turbo build orchestration. All packages are in `/packages/`.
 
 ### Package Hierarchy
 
 ```
 @crawlee/types          # Shared TypeScript interfaces
 @crawlee/utils          # Shared utilities
-@crawlee/memory-storage # In-memory storage (default for testing)
+@crawlee/fs-storage     # File-system storage backend (in-memory backend lives in @crawlee/core)
        ↓
 @crawlee/core           # Request, RequestQueue, RequestList, Dataset
        ↓
@@ -67,7 +67,6 @@ Crawlee is a **Yarn workspaces monorepo** with Turbo build orchestration. All pa
        ↓
 @crawlee/http           # HttpCrawler
        ↓
-↓
 @crawlee/cheerio
 (@crawlee/jsdom and @crawlee/linkedom moved to their own repositories)
 
@@ -75,16 +74,28 @@ Crawlee is a **Yarn workspaces monorepo** with Turbo build orchestration. All pa
        ↓
 @crawlee/browser        # BrowserCrawler base
        ↓
+┌──────┴──────┬────────────────────┐
+↓             ↓                    ↓
+@crawlee/playwright  @crawlee/puppeteer  @crawlee/stagehand   # stagehand: AI-driven browser crawler
+
+@crawlee/http-client    # Pluggable HTTP client interface
+       ↓
 ┌──────┴──────┐
 ↓             ↓
-@crawlee/playwright  @crawlee/puppeteer
+@crawlee/impit-client  @crawlee/got-scraping-client
+
+@crawlee/otel           # OpenTelemetry instrumentation
+
+@crawlee/templates      # Project templates
+       ↓
+@crawlee/cli            # `crawlee` CLI (create/run projects, install Playwright browsers)
 
 crawlee                 # Meta-package re-exporting most @crawlee/* packages
 ```
 
 ### Test Location
 
-Tests are in `/test/` at the repo root (not inside packages). E2E tests are in `/test/e2e/`.
+Most tests are in `/test/` at the repo root; some packages also have their own `packages/*/test/`. E2E tests are in `/test/e2e/`. `tsc-check-tests` only type-checks `/test/`, not `packages/*/test/`.
 
 ## Vitest Notes (vs Jest)
 

@@ -54,6 +54,17 @@ export interface IRequestManager extends IRequestLoader {
      * @returns `true` if anything in the composition took responsibility for the signal.
      */
     recordPacingSignal(signal: PacingSignal): boolean;
+
+    /**
+     * Extends the lock on a request previously handed out by `fetchNextRequest()` and still being
+     * processed, on storage backends that reserve requests via locking (e.g. via
+     * {@apilink CrawlingContext.extendTimeout|`context.extendTimeout`}).
+     *
+     * @returns `true` when the lock was prolonged, `false` when this manager does not lock
+     * requests or no longer holds this one; non-locking implementations may leave it `undefined`,
+     * which callers treat as `false`.
+     */
+    extendRequestProcessingTimeSecs?(request: Request, secs: number): Promise<boolean>;
 }
 
 /**

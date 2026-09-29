@@ -192,9 +192,6 @@ export class MemoryStorageBackend implements storage.StorageBackend {
         // marks them as run-scoped. `'default'` is the exception — it collapses onto the default storage.
         const isRunScoped = (store: { name?: string }) => store.name === undefined || store.name === 'default';
 
-        const isDefault = (store: { name?: string; cacheKey: string }) =>
-            store.name === 'default' || store.cacheKey === 'default';
-
         const purgeRunScoped = async <T extends { name?: string; cacheKey: string }>(
             cache: T[],
             purgeStore: (store: T) => Promise<void>,
@@ -203,10 +200,7 @@ export class MemoryStorageBackend implements storage.StorageBackend {
         };
 
         await Promise.all([
-            // Only the default store holds the run input, so it is the only one that keeps `INPUT`.
-            purgeRunScoped(this.#keyValueStoreBackendCache, async (store) =>
-                isDefault(store) ? store.purgeExceptInput() : store.purge(),
-            ),
+            purgeRunScoped(this.#keyValueStoreBackendCache, async (store) => store.purge()),
             purgeRunScoped(this.#datasetBackendCache, async (store) => store.purge()),
             purgeRunScoped(this.#requestQueueBackendCache, async (store) => store.purge()),
         ]);

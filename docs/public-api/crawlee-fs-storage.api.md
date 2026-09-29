@@ -4,7 +4,10 @@
 
 ```ts
 
+import { AdoptionCandidate } from '@crawlee/fs-storage-native';
 import type * as storage from '@crawlee/types';
+
+export { AdoptionCandidate }
 
 // @public
 export class FileSystemStorageBackend implements storage.StorageBackend {
@@ -16,7 +19,9 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
     // (undocumented)
     createRequestQueueBackend(options?: storage.StorageIdentifier): Promise<storage.RequestQueueBackend>;
     getStorageBackendCacheKey(): string;
+    protected keyValueStoreAdoptionCandidates(_options: KeyValueStoreHookOptions): AdoptionCandidate[];
     purge(): Promise<void>;
+    protected purgeKeyValueStore(store: PurgeableKeyValueStoreBackend, _options: KeyValueStoreHookOptions): Promise<void>;
     // (undocumented)
     storageExists(id: string, type: 'Dataset' | 'KeyValueStore' | 'RequestQueue'): Promise<boolean>;
     teardown(): Promise<void>;
@@ -24,9 +29,18 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
 
 // @public (undocumented)
 export interface FileSystemStorageOptions {
-    inputKey?: string;
     localDataDirectory: string;
     requestQueueAccess?: 'single' | 'shared';
+}
+
+// @public
+export interface KeyValueStoreHookOptions {
+    isDefaultStore: boolean;
+}
+
+// @public
+export interface PurgeableKeyValueStoreBackend extends storage.KeyValueStoreBackend {
+    purgeExcept(keys: string[]): Promise<void>;
 }
 
 // (No @packageDocumentation comment for this package)
