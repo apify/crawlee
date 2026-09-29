@@ -65,6 +65,7 @@
         "@crawlee/basic": "workspace:*",
         "@crawlee/cheerio": "workspace:*",
         "@crawlee/core": "workspace:*",
+        "@crawlee/fs-storage": "workspace:*",
         "@crawlee/http-client": "workspace:*",
         "@crawlee/impit-client": "workspace:*",
         "@crawlee/otel": "workspace:*",

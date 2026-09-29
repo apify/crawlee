@@ -173,8 +173,9 @@ overrides:
   tar: ^7.5.16
   lerna>js-yaml: ^4.2.0
   lerna>minimatch: ^3.1.4
-  apify: ^4.0.0-beta.39
+  apify: ^4.0.0-beta.40
   apify>@crawlee/core: workspace:*
+  apify>@crawlee/fs-storage: workspace:*
   apify>@crawlee/types: workspace:*
   apify>@crawlee/utils: workspace:*
   header-generator>ow: ^2.0.0
@@ -208,6 +209,9 @@ importers:
       '@crawlee/core':
         specifier: workspace:*
         version: link:packages/core
+      '@crawlee/fs-storage':
+        specifier: workspace:*
+        version: link:packages/fs-storage
       '@crawlee/http-client':
         specifier: workspace:*
         version: link:packages/http-client
@@ -323,7 +327,7 @@ importers:
         specifier: ^4.0.16
         version: 4.1.4(vitest@4.1.4)
       apify:
-        specifier: ^4.0.0-beta.39
+        specifier: ^4.0.0-beta.40
         version: 4.0.0-beta.46(bufferutil@4.1.0)(debug@4.4.3(supports-color@7.2.0))(supports-color@7.2.0)
       apify-node-curl-impersonate:
         specifier: ^1.0.23
@@ -467,7 +471,7 @@ importers:
         specifier: ^1.39.0
         version: 1.43.0
       apify:
-        specifier: ^4.0.0-beta.39
+        specifier: ^4.0.0-beta.40
         version: 4.0.0-beta.46(bufferutil@4.1.0)(debug@4.4.3(supports-color@8.1.1))(supports-color@8.1.1)
       crawlee:
         specifier: workspace:*
@@ -505,7 +509,7 @@ importers:
         version: 1.0.1
       '@apify/utilities':
         specifier: ^3.0.1
-        version: 3.0.1
+        version: 3.1.0
       '@crawlee/core':
         specifier: workspace:*
         version: link:../core
@@ -689,7 +693,7 @@ importers:
         version: 1.0.1
       '@apify/utilities':
         specifier: ^3.0.1
-        version: 3.0.1
+        version: 3.1.0
       '@crawlee/fs-storage':
         specifier: workspace:*
         version: link:../fs-storage
@@ -827,7 +831,7 @@ importers:
         version: 1.0.1
       '@apify/utilities':
         specifier: ^3.0.1
-        version: 3.0.1
+        version: 3.1.0
       '@crawlee/basic':
         specifier: workspace:*
         version: link:../basic-crawler
@@ -1030,7 +1034,7 @@ importers:
     devDependencies:
       '@browserbasehq/stagehand':
         specifier: 3.0.7
-        version: 3.0.7(@cfworker/json-schema@4.1.1)(@opentelemetry/api@1.9.0)(@opentelemetry/exporter-trace-otlp-proto@0.217.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.10.0(@opentelemetry/api@1.9.0))(deepmerge@4.3.1)(dotenv@16.4.7)(encoding@0.1.13)(proxy-agent@8.0.2(supports-color@7.2.0))(supports-color@8.1.1)(zod@4.6.5)
+        version: 3.0.7(@cfworker/json-schema@4.1.1)(@opentelemetry/api@1.9.0)(@opentelemetry/exporter-trace-otlp-proto@0.217.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.10.0(@opentelemetry/api@1.9.0))(deepmerge@4.3.1)(dotenv@16.4.7)(encoding@0.1.13)(proxy-agent@8.0.2(supports-color@8.1.1))(supports-color@8.1.1)(zod@4.6.5)
       playwright:
         specifier: ^1.60.0
         version: 1.61.1
@@ -1102,7 +1106,7 @@ importers:
         version: 1.34.1(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
       '@apify/utilities':
         specifier: ^3.0.1
-        version: 3.0.1
+        version: 3.1.0
       '@docusaurus/core':
         specifier: 3.10.2
         version: 3.10.2(patch_hash=7e95e0e59f770d24c0e51e1e2635b0a25edf33b38938162fa8c69ab42d38b1fb)(@docusaurus/faster@3.10.2(@docusaurus/types@3.10.2(@swc/core@1.15.43)(esbuild@0.27.7)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(supports-color@8.1.1)(uglify-js@3.19.3))(esbuild@0.27.7)(uglify-js@3.19.3))(@mdx-js/react@3.1.1(@types/react@19.2.14)(react@19.2.5))(@rspack/core@1.7.11)(@swc/core@1.15.43)(bufferutil@4.1.0)(csso@5.0.5)(debug@4.4.3(supports-color@8.1.1))(esbuild@0.27.7)(lightningcss@1.33.0)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(supports-color@8.1.1)(typescript@6.0.3)(uglify-js@3.19.3)
@@ -1138,7 +1142,7 @@ importers:
         version: 1.2.2(patch_hash=9c7d64b548a8bb7332cf782e4f959d760e600e78aef2d10562df8a05d7459695)(@docusaurus/core@3.10.2(patch_hash=7e95e0e59f770d24c0e51e1e2635b0a25edf33b38938162fa8c69ab42d38b1fb)(@docusaurus/faster@3.10.2(@docusaurus/types@3.10.2(@swc/core@1.15.43)(esbuild@0.27.7)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(supports-color@8.1.1)(uglify-js@3.19.3))(esbuild@0.27.7)(uglify-js@3.19.3))(@mdx-js/react@3.1.1(@types/react@19.2.14)(react@19.2.5))(@rspack/core@1.7.11)(@swc/core@1.15.43)(bufferutil@4.1.0)(csso@5.0.5)(debug@4.4.3(supports-color@8.1.1))(esbuild@0.27.7)(lightningcss@1.33.0)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(supports-color@8.1.1)(typescript@6.0.3)(uglify-js@3.19.3))(supports-color@8.1.1)
       axios:
         specifier: ^1.19.0
-        version: 1.19.0(debug@4.4.3(supports-color@8.1.1))(supports-color@8.1.1)
+        version: 1.20.0(debug@4.4.3(supports-color@8.1.1))(supports-color@8.1.1)
       buffer:
         specifier: ^6.0.3
         version: 6.0.3
@@ -1478,10 +1482,6 @@ packages:
     peerDependencies:
       react: 17.x || 18.x || 19.x
       react-dom: 17.x || 18.x || 19.x
-
-  '@apify/utilities@3.0.1':
-    resolution: {integrity: sha512-Py701iCY26eSLvdG45T9c9uJS2+xqI4j4rHwGqG84RUOmPD8T6Zua5MflSoWwZ+GM/+ABIJtsza/gqVvyJeESg==}
-    engines: {node: '>=22'}
 
   '@apify/utilities@3.1.0':
     resolution: {integrity: sha512-x/Nvq3obzGcQyReYQ5thS0/dPfgdDXtkB2qvZAji1bB0mb7p1IOr1nzqwoZm4wkao3LG69XS9GMpTN/4nKC+5g==}
@@ -2234,22 +2234,6 @@ packages:
   '@crawlee/fs-storage-native@0.2.2':
     resolution: {integrity: sha512-WGKNyPoRq1LKqndeJ9LdEWigGNm9Z+3U8jJaSlEVgPq8CkmcqHANXxpZXkgGXl9jfEiWzFlJmWm4JUMqT/TxfA==}
     engines: {node: '>= 20'}
-
-  '@crawlee/fs-storage@4.0.0-beta.201':
-    resolution: {integrity: sha512-LXXupV8iVPMWZFvU+jVBPKKrkAbH/ckXnd/hRSbgXN8LcJXQc+z1dalPUAMQzKpDpUMVas9oreTu9g95gO4zxg==}
-    engines: {node: '>=22.0.0'}
-
-  '@crawlee/http-client@4.0.0-beta.201':
-    resolution: {integrity: sha512-FVUJF5w4KLIBG9/5McnCf15+hR6CA70bZ+8UVE/RnJMkHnLitDrzT37dukYNCRzxlxM6NBtdOTfTk0+q0JAjYw==}
-    engines: {node: '>=22.0.0'}
-
-  '@crawlee/types@4.0.0-beta.201':
-    resolution: {integrity: sha512-KjEXO8bvkvfUt60aZHZUL8XruwvjVVnMrbnBQ6E1vZ3szQyvK85iPV1+0CH7jGez2tSI5wqchuo+lIW/izxkHg==}
-    engines: {node: '>=22.0.0'}
-
-  '@crawlee/utils@4.0.0-beta.201':
-    resolution: {integrity: sha512-oZLd+YhVU2vNGTFF/amw0bqwx6S3c9ROx8vtQ+dEziIV2eQ9dk3S9dN7Sh70nn0x69VkY8CLMbXnJLVGJJw7Sg==}
-    engines: {node: '>=22.0.0'}
 
   '@csstools/cascade-layer-name-parser@2.0.5':
     resolution: {integrity: sha512-p1ko5eHgV+MgXFVa4STPKpvPxr6ReS8oS2jzTukjR74i5zJNyWO1ZM1m8YKBXnzDKWfBN1ztLYlHxbVemDD88A==}
@@ -6013,9 +5997,6 @@ packages:
 
   axios@1.18.1:
     resolution: {integrity: sha512-3nTvFlvpn9Zu/RkHUqtc7/+al4UpRW5az71ap5zccp6e8RAYEzhMTecX8Dz1wWDYrPpUoB1HAQEGEAEvUr7S9g==}
-
-  axios@1.19.0:
-    resolution: {integrity: sha512-ht/iuYZXEjFxLH/Hkezgd7m6JKlHHXEUSneaDz8uZe1Gj5QZtCnpyDsckvAiEnT89OEbCLmnte4R4sn7P0EKFw==}
 
   axios@1.20.0:
     resolution: {integrity: sha512-r8aOh8j9cGKpgQAqpzrUHnSIc6a59Y3Xf/cv8sy1DrHCkZHzQGEuoq1tARk6qSyDdtQGSDgpb9kFlruzPvrgwg==}
@@ -13612,11 +13593,6 @@ snapshots:
       react: 19.2.5
       react-dom: 19.2.5(react@19.2.5)
 
-  '@apify/utilities@3.0.1':
-    dependencies:
-      '@apify/consts': 3.0.1
-      '@apify/log': 3.0.1
-
   '@apify/utilities@3.1.0':
     dependencies:
       '@apify/consts': 3.0.1
@@ -14402,7 +14378,7 @@ snapshots:
     transitivePeerDependencies:
       - encoding
 
-  '@browserbasehq/stagehand@3.0.7(@cfworker/json-schema@4.1.1)(@opentelemetry/api@1.9.0)(@opentelemetry/exporter-trace-otlp-proto@0.217.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.10.0(@opentelemetry/api@1.9.0))(deepmerge@4.3.1)(dotenv@16.4.7)(encoding@0.1.13)(proxy-agent@8.0.2(supports-color@7.2.0))(supports-color@8.1.1)(zod@4.6.5)':
+  '@browserbasehq/stagehand@3.0.7(@cfworker/json-schema@4.1.1)(@opentelemetry/api@1.9.0)(@opentelemetry/exporter-trace-otlp-proto@0.217.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.10.0(@opentelemetry/api@1.9.0))(deepmerge@4.3.1)(dotenv@16.4.7)(encoding@0.1.13)(proxy-agent@8.0.2(supports-color@8.1.1))(supports-color@8.1.1)(zod@4.6.5)':
     dependencies:
       '@ai-sdk/provider': 2.0.1
       '@anthropic-ai/sdk': 0.39.0(encoding@0.1.13)
@@ -14442,7 +14418,7 @@ snapshots:
       patchright-core: 1.59.4
       playwright: 1.61.1
       playwright-core: 1.61.1
-      puppeteer-core: 22.15.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@7.2.0))(supports-color@8.1.1)
+      puppeteer-core: 22.15.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1))(supports-color@8.1.1)
     transitivePeerDependencies:
       - '@cfworker/json-schema'
       - '@opentelemetry/api'
@@ -14615,71 +14591,6 @@ snapshots:
       '@crawlee/fs-storage-native-linux-x64-musl': 0.2.2
       '@crawlee/fs-storage-native-win32-arm64-msvc': 0.2.2
       '@crawlee/fs-storage-native-win32-x64-msvc': 0.2.2
-
-  '@crawlee/fs-storage@4.0.0-beta.201(supports-color@7.2.0)':
-    dependencies:
-      '@crawlee/fs-storage-native': 0.2.2
-      '@crawlee/types': 4.0.0-beta.201
-      '@crawlee/utils': 4.0.0-beta.201(supports-color@7.2.0)
-      zod: 4.6.5
-    transitivePeerDependencies:
-      - supports-color
-
-  '@crawlee/fs-storage@4.0.0-beta.201(supports-color@8.1.1)':
-    dependencies:
-      '@crawlee/fs-storage-native': 0.2.2
-      '@crawlee/types': 4.0.0-beta.201
-      '@crawlee/utils': 4.0.0-beta.201(supports-color@8.1.1)
-      zod: 4.6.5
-    transitivePeerDependencies:
-      - supports-color
-
-  '@crawlee/http-client@4.0.0-beta.201':
-    dependencies:
-      '@crawlee/types': 4.0.0-beta.201
-      tough-cookie: 6.0.1
-
-  '@crawlee/types@4.0.0-beta.201':
-    dependencies:
-      tslib: 2.8.1
-
-  '@crawlee/utils@4.0.0-beta.201(supports-color@7.2.0)':
-    dependencies:
-      '@apify/ps-tree': 1.2.0
-      '@apify/validations': 1.1.1
-      '@crawlee/http-client': 4.0.0-beta.201
-      '@crawlee/types': 4.0.0-beta.201
-      '@types/sax': 1.2.7
-      cheerio: 1.2.0
-      domhandler: 5.0.3
-      file-type: 21.3.4(supports-color@7.2.0)
-      robots-parser: 3.0.1
-      sax: 1.6.0
-      tldts: 7.0.28
-      tslib: 2.8.1
-      whatwg-mimetype: 4.0.0
-      zod: 4.6.5
-    transitivePeerDependencies:
-      - supports-color
-
-  '@crawlee/utils@4.0.0-beta.201(supports-color@8.1.1)':
-    dependencies:
-      '@apify/ps-tree': 1.2.0
-      '@apify/validations': 1.1.1
-      '@crawlee/http-client': 4.0.0-beta.201
-      '@crawlee/types': 4.0.0-beta.201
-      '@types/sax': 1.2.7
-      cheerio: 1.2.0
-      domhandler: 5.0.3
-      file-type: 21.3.4(supports-color@8.1.1)
-      robots-parser: 3.0.1
-      sax: 1.6.0
-      tldts: 7.0.28
-      tslib: 2.8.1
-      whatwg-mimetype: 4.0.0
-      zod: 4.6.5
-    transitivePeerDependencies:
-      - supports-color
 
   '@csstools/cascade-layer-name-parser@2.0.5(@csstools/css-parser-algorithms@3.0.5(@csstools/css-tokenizer@3.0.4))(@csstools/css-tokenizer@3.0.4)':
     dependencies:
@@ -18003,13 +17914,6 @@ snapshots:
     dependencies:
       defer-to-connect: 2.0.1
 
-  '@tokenizer/inflate@0.4.1(supports-color@7.2.0)':
-    dependencies:
-      debug: 4.4.3(supports-color@7.2.0)
-      token-types: 6.1.2
-    transitivePeerDependencies:
-      - supports-color
-
   '@tokenizer/inflate@0.4.1(supports-color@8.1.1)':
     dependencies:
       debug: 4.4.3(supports-color@8.1.1)
@@ -19020,7 +18924,7 @@ snapshots:
       '@apify/utilities': 3.1.0
       '@apify/validations': 1.1.1
       '@crawlee/core': link:packages/core
-      '@crawlee/fs-storage': 4.0.0-beta.201(supports-color@7.2.0)
+      '@crawlee/fs-storage': link:packages/fs-storage
       '@crawlee/types': link:packages/types
       '@crawlee/utils': link:packages/utils
       apify-client: 3.0.0-beta.35(debug@4.4.3(supports-color@7.2.0))(supports-color@7.2.0)
@@ -19047,7 +18951,7 @@ snapshots:
       '@apify/utilities': 3.1.0
       '@apify/validations': 1.1.1
       '@crawlee/core': link:packages/core
-      '@crawlee/fs-storage': 4.0.0-beta.201(supports-color@8.1.1)
+      '@crawlee/fs-storage': link:packages/fs-storage
       '@crawlee/types': link:packages/types
       '@crawlee/utils': link:packages/utils
       apify-client: 3.0.0-beta.35(debug@4.4.3(supports-color@8.1.1))(supports-color@8.1.1)
@@ -19222,16 +19126,6 @@ snapshots:
       follow-redirects: 1.16.0(debug@4.4.3(supports-color@7.2.0))
       form-data: 4.0.6
       https-proxy-agent: 5.0.1(supports-color@7.2.0)
-      proxy-from-env: 2.1.0
-    transitivePeerDependencies:
-      - debug
-      - supports-color
-
-  axios@1.19.0(debug@4.4.3(supports-color@8.1.1))(supports-color@8.1.1):
-    dependencies:
-      follow-redirects: 1.16.0(debug@4.4.3(supports-color@8.1.1))
-      form-data: 4.0.6
-      https-proxy-agent: 5.0.1(supports-color@8.1.1)
       proxy-from-env: 2.1.0
     transitivePeerDependencies:
       - debug
@@ -21621,15 +21515,6 @@ snapshots:
       schema-utils: 3.3.0
       webpack: 5.106.1(@swc/core@1.15.43)(esbuild@0.27.7)(uglify-js@3.19.3)
 
-  file-type@21.3.4(supports-color@7.2.0):
-    dependencies:
-      '@tokenizer/inflate': 0.4.1(supports-color@7.2.0)
-      strtok3: 10.3.5
-      token-types: 6.1.2
-      uint8array-extras: 1.5.0
-    transitivePeerDependencies:
-      - supports-color
-
   file-type@21.3.4(supports-color@8.1.1):
     dependencies:
       '@tokenizer/inflate': 0.4.1(supports-color@8.1.1)
@@ -23131,7 +23016,7 @@ snapshots:
       whatwg-encoding: 3.1.1
       whatwg-mimetype: 4.0.0
       whatwg-url: 14.2.0
-      ws: 8.21.3(bufferutil@4.1.0)
+      ws: 8.22.0(bufferutil@4.1.0)
       xml-name-validator: 5.0.0
     transitivePeerDependencies:
       - bufferutil
@@ -26042,9 +25927,9 @@ snapshots:
     dependencies:
       escape-goat: 4.0.0
 
-  puppeteer-core@22.15.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@7.2.0))(supports-color@8.1.1):
+  puppeteer-core@22.15.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1))(supports-color@8.1.1):
     dependencies:
-      '@puppeteer/browsers': 3.0.4(proxy-agent@8.0.2(supports-color@7.2.0))
+      '@puppeteer/browsers': 3.0.4(proxy-agent@8.0.2(supports-color@8.1.1))
       chromium-bidi: 0.6.3(devtools-protocol@0.0.1312386)
       debug: 4.4.3(supports-color@8.1.1)
       devtools-protocol: 0.0.1312386
