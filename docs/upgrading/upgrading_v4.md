@@ -357,7 +357,7 @@ Navigation and the request handler are now timed independently, and each reports
 | `requestHandlerTimeoutSecs` | your `requestHandler` only | 60 |
 | `navigationTimeoutSecs` | the `preNavigationHooks`, the navigation, and the `postNavigationHooks` together | 30 (HTTP), 60 (browser) |
 
-`navigationTimeoutSecs` is a single budget shared by the whole navigation phase, so a slow hook eats into the same window the navigation uses. The separate `navigationHooksTimeoutSecs` option has been removed.
+`navigationTimeoutSecs` is a single budget shared by the whole navigation phase, so a slow hook eats into the same window the navigation uses.
 
 Two things to watch for when upgrading:
 
@@ -927,10 +927,9 @@ If you subclass a crawler or implement a custom browser plugin, these `protected
 - `BrowserCrawler._navigationHandler` -> `navigationHandler` (including the `PlaywrightCrawler`, `PuppeteerCrawler` and `StagehandCrawler` overrides)
 - `BrowserPlugin._addProxyToLaunchOptions` -> `addProxyToLaunchOptions`
 - `BrowserPlugin._isChromiumBasedBrowser` -> `isChromiumBasedBrowser`
-- `BrowserPlugin._connectToRemoteBrowser` -> `connectToRemoteBrowser`
 - `BrowserPlugin._throwAugmentedLaunchError` -> `throwAugmentedLaunchError`
 
-Two `@internal` members were renamed the same way: `LaunchContext._remoteToken` -> `remoteToken` and `PlaywrightBrowser._setBrowserType` -> `setBrowserType`.
+The `@internal` `PlaywrightBrowser._setBrowserType` was renamed the same way, to `setBrowserType`.
 
 A handful of hooks intentionally keep the underscore, because the un-prefixed name is taken by their public wrapper method: `BrowserPlugin._launch` (wrapped by `launch()`) and `BrowserController._close`, `_kill`, `_newPage`, `_getCookies`, `_setCookies` (wrapped by the same names without the underscore). Custom plugin or controller implementations override these under their existing names, unchanged.
 
@@ -942,7 +941,7 @@ Private class properties across the codebase were converted from TypeScript's co
 
 TypeScript's `private` was purely a compile-time construct: the properties still existed on the instances at runtime, so code could reach them via `(crawler as any).something` or `crawler['something']`, and they showed up in `Object.keys()`, object spread and `JSON.stringify()`. Native `#` fields close that hole — they are inaccessible outside the declaring class and invisible to enumeration and serialization. If you were reaching into any of them, that now fails at runtime, not just in the type checker. As with the visibility tightening above, the supported extension points (handlers, hooks, `ContextPipeline` composition and the `ISessionPool` / `IBrowserPool` / `IRequestManager` interfaces) are the way to go; open an issue if something you need is missing.
 
-One related behavior change: `LaunchContext.extend()` now consistently rejects all declared fields as reserved keys — including `fingerprint`, `proxyUrl` and `remoteToken`, which previously slipped through the reserved-name check. Set those directly instead (e.g. `launchContext.fingerprint = ...`); `extend()` is only for attaching your own extra fields.
+One related behavior change: `LaunchContext.extend()` now consistently rejects all declared fields as reserved keys — including `fingerprint` and `proxyUrl`, which previously slipped through the reserved-name check. Set those directly instead (e.g. `launchContext.fingerprint = ...`); `extend()` is only for attaching your own extra fields.
 
 ### Unintentionally exposed internals are now private
 
@@ -1463,9 +1462,9 @@ A persisted record is also validated on load now. One that does not match the ex
 
 ### Subclassing `Statistics` to track extra fields is replaced by the `stateExtension` option
 
-`defaultState()`, `serializeState()`, `deserializeState()` and `persistStateKey` were `protected` and are now private, so a subclass can no longer override them. Declare the extra fields via the new `stateExtension` option instead — `{ defaultState, deserialize, serialize }`, the same trio `RecoverableState` takes, scoped to the custom fields. See the [Custom statistics fields](../guides/custom-statistics) guide.
+`persistStateKey` was `protected` and is now private. Declare extra fields via the new `stateExtension` option instead — `{ defaultState, deserialize, serialize }`, the same trio `RecoverableState` takes, scoped to the custom fields. See the [Custom statistics fields](../guides/custom-statistics) guide.
 
-A consequence of the hooks going away: the persisted record is now validated strictly, and keys that are neither built-in nor declared in `stateExtension` are dropped rather than written back. `calculate()` is still public and still an override point.
+The persisted record is now validated strictly, and keys that are neither built-in nor declared in `stateExtension` are dropped rather than written back. `calculate()` is still public and still an override point.
 
 The custom field types reach `crawler.statistics.state` through a new trailing `StatisticStateExtension` type parameter on the crawler classes and their options. It defaults to `{}`, so existing type arguments keep working — except on `BrowserCrawler` and `BrowserCrawlerOptions`, where it was inserted after `Routes` and shifts the trailing internal parameters (`GoToOptions`, `__BrowserPlugins`, …). Adjust any explicit type arguments you passed to those two.
 
@@ -1728,7 +1727,7 @@ It is also what enforces robots.txt `Crawl-delay` directives — with `respectRo
 `sameDomainDelaySecs` still works and still means what it did in v3 — subdomains included, it paces a whole registrable domain rather than a single host. Underneath, it is now a floor reported to the crawler's request manager as a [pacing signal](#irequestmanager-gained-recordpacingsignal); only when nothing there paces does the crawler wrap its manager in a `ThrottlingRequestManager`, which gives each domain a queue of its own so a delayed request waits in storage rather than in an in-memory map. Consequences worth knowing about:
 
 - A crawl that discovers more than `maxThrottledDomains` domains (100 by default) throws instead of quietly running out of steam. Pass your own `ThrottlingRequestManager` as `requestManager` to raise the ceiling — or crawl fewer sites.
-- Combining it with a manager that paces on its own no longer throws, and no longer gives one domain two clocks: a `ThrottlingRequestManager` with `domains: 'all'` and `throttleBy: 'registrableDomain'` takes the delay as its `minCrawlDelaySecs` floor, wherever it sits in a composition. One that paces only *some* domains throws instead — set `domains: 'all'`, or configure the delay there yourself and drop the option.
+- Combined with a manager that paces on its own, a `ThrottlingRequestManager` with `domains: 'all'` and `throttleBy: 'registrableDomain'` takes the delay as its `minCrawlDelaySecs` floor, wherever it sits in a composition. One that paces only *some* domains throws instead — set `domains: 'all'`, or configure the delay there yourself and drop the option.
 - Requests that never pass through the request manager — those from a `requestsFromUrl` list — are not paced, and the crawler warns when it hands one out.
 
 #### `BasicCrawler.requestList` and `BasicCrawler.requestQueue` fields removed
@@ -1907,11 +1906,11 @@ The `RequestQueue.internalTimeoutMillis` property and the associated "stuck queu
 
 **Apify-specific fields removed from storage metadata.** The metadata returned by `getMetadata()` (`DatasetInfo`, `KeyValueStoreInfo`, `RequestQueueInfo`) has been trimmed to what is meaningful for any storage backend. The following platform-specific fields were dropped: `actId`, `actRunId`, `userId`, and — on `RequestQueueInfo` — `expireAt` and `hadMultipleClients`. The per-storage `stats` field (and its `DatasetStats` / `KeyValueStoreStats` / `RequestQueueStats` types) was removed as well. If you consumed any of these, read them from the Apify API client directly; a custom `StorageBackend` should simply stop returning them.
 
-**Removed types** from `@crawlee/types`: `DatasetClientUpdateOptions`, `KeyValueStoreClientUpdateOptions`, `KeyValueStoreRecordOptions`, `KeyValueStoreClientListData`, `KeyValueStoreClientGetRecordOptions`, `QueueHead`, `RequestQueueHeadItem`, `ListOptions`, `ListAndLockOptions`, `ListAndLockHeadResult`, `ProlongRequestLockOptions`, `ProlongRequestLockResult`, `DeleteRequestLockOptions`, `DatasetStats`, `KeyValueStoreStats`, `RequestQueueStats`. `KeyValueStoreClientListOptions` was renamed to `KeyValueStoreListKeysOptions`. The `CreateDatasetBackendOptions`, `CreateKeyValueStoreBackendOptions`, and `CreateRequestQueueBackendOptions` aliases were removed — the `create*Backend` methods now take `StorageIdentifier` directly.
+**Removed types** from `@crawlee/types`: `DatasetClientUpdateOptions`, `KeyValueStoreClientUpdateOptions`, `KeyValueStoreRecordOptions`, `KeyValueStoreClientListData`, `KeyValueStoreClientGetRecordOptions`, `QueueHead`, `RequestQueueHeadItem`, `ListOptions`, `ListAndLockOptions`, `ListAndLockHeadResult`, `ProlongRequestLockOptions`, `ProlongRequestLockResult`, `DeleteRequestLockOptions`, `DatasetStats`, `KeyValueStoreStats`, `RequestQueueStats`. `KeyValueStoreClientListOptions` was renamed to `KeyValueStoreListKeysOptions`.
 
 The high-level storage classes (`Dataset`, `KeyValueStore`, `RequestQueue`) are now thin wrappers over a single sub-backend, which they receive directly in the constructor options. The constructor takes `{ metadata, backend }`, where `backend` is the sub-backend and `metadata` is the resolved storage info (as returned by the backend's `getMetadata()`) that the storage derives its `id` and `name` from — instead of receiving separate `id` / `name` arguments (or a `StorageBackend` and calling its methods). In practice you never call these constructors yourself; use `Dataset.open()` / `KeyValueStore.open()` / `RequestQueue.open()`, which resolve the metadata and open the backend for you.
 
-`RequestQueue` no longer accepts (or stores) `clientKey` / `timeoutSecs`. These are request-locking concerns that are now internal to the storage backend implementation (see [apify/crawlee#3328](https://github.com/apify/crawlee/issues/3328)); they are also no longer part of the `createRequestQueueBackend` options — all three `create*Backend` methods now take a plain `StorageIdentifier` (`{ id?, name?, alias? }`). The now-redundant `CreateDatasetBackendOptions`, `CreateKeyValueStoreBackendOptions`, and `CreateRequestQueueBackendOptions` type aliases have been removed from `@crawlee/types`; use `StorageIdentifier` instead.
+`RequestQueue` no longer accepts (or stores) `clientKey` / `timeoutSecs`. These are request-locking concerns that are now internal to the storage backend implementation (see [apify/crawlee#3328](https://github.com/apify/crawlee/issues/3328)); the `create*Backend` methods take a plain `StorageIdentifier` (`{ id?, name?, alias? }`).
 
 #### `RecordOptions` simplified
 
@@ -2156,7 +2155,7 @@ try {
 
 #### `autoscaledPoolOptions` is now `taskLoopOptions`, and no longer carries concurrency config
 
-The crawler option was renamed — it was named after a class that is now internal — and narrowed to **only** the task-loop predicates `isFinishedFunction` and `isTaskReadyFunction`. Its type changed from `AutoscaledPoolOptions` to `TaskLoopPredicates` (itself a rename of the interim `AutoscaledPoolPredicateOptions`). Concurrency configuration goes through either the `minConcurrency` / `maxConcurrency` / `maxRequestsPerMinute` shortcuts (which configure the crawler's default `ConcurrencySystem`), or — for anything finer — a supplied `concurrencySystem`.
+The crawler option was renamed — it was named after a class that is now internal — and narrowed to **only** the task-loop predicates `isFinishedFunction` and `isTaskReadyFunction`. Its type changed from `AutoscaledPoolOptions` to `TaskLoopPredicates`. Concurrency configuration goes through either the `minConcurrency` / `maxConcurrency` / `maxRequestsPerMinute` shortcuts (which configure the crawler's default `ConcurrencySystem`), or — for anything finer — a supplied `concurrencySystem`.
 
 Three options that used to live here — `maybeRunIntervalSecs`, `taskTimeoutSecs` and `log` — did *not* move to the `ConcurrencySystem` and have no replacement: the crawler's task-loop cadence is no longer configurable.
 
@@ -2297,7 +2296,6 @@ Besides the resource-detection helpers above, several other `@crawlee/utils` exp
 - **Removed `RobotsFile` alias:** `RobotsFile` was an alias for the `RobotsTxtFile` class and is removed. Rename any usage to `RobotsTxtFile`; the class itself is unchanged apart from the signature change described below.
 - **Split into public and `/internal` entry points:** the main `@crawlee/utils` entry now exposes only the user-facing helpers (`sleep`, `htmlToText`, `extractUrls`, `downloadListOfUrls`, the `social` namespace, the Open Graph parser, and the robots/sitemap utilities `RobotsTxtFile`, `Sitemap` and `discoverValidSitemaps`). Helpers that primarily serve the crawler packages - e.g. `URL_NO_COMMAS_REGEX`, `URL_WITH_COMMAS_REGEX`, `extractUrlsFromCheerio`, `tryAbsoluteURL`, `expandShadowRoots`, and the blocked-detection and iterable helpers - moved to the `@crawlee/utils/internal` entry point, which carries no semver guarantees. They keep working, but imports need updating: `import { URL_NO_COMMAS_REGEX } from '@crawlee/utils/internal'`.
 - **Removed `CheerioRoot` and the cheerio type re-exports:** `CheerioRoot` was an alias for cheerio's own `CheerioAPI` and is gone; `parseWithCheerio()` and `htmlToText()` are typed with `CheerioAPI` directly. The crawler packages also no longer re-export `Cheerio`, `CheerioAPI` and `Element`, so `import type { CheerioAPI } from 'crawlee'` (or from `@crawlee/basic` / `@crawlee/puppeteer` / ...) breaks - import them from `cheerio` and `domhandler`, which are the packages that own them.
-- **`@crawlee/core` no longer re-exports the internal helpers:** `parseArgument`, `schemas` and `tryAbsoluteURL` reached `@crawlee/core` (and through it `@crawlee/basic`, `@crawlee/http`, `@crawlee/browser` and `crawlee`) as public exports, which put symbols from the no-semver `/internal` entry point back into a semver-stable surface. Import them from `@crawlee/utils/internal` instead. `ArgumentValidationError` is unaffected and stays exported from `@crawlee/core`.
 - **`parseSitemap` and `expandShadowRoots` are no longer on the main entry:** `parseSitemap()` (together with the `SitemapUrl` type) moved to `@crawlee/utils/internal`; use the documented `Sitemap.load()` / `Sitemap.fromXmlString()` / `Sitemap.tryCommonNames()` statics, or `discoverValidSitemaps()`, which stay on `@crawlee/utils`. `expandShadowRoots()` moved there too — it is a DOM function that is serialized into a browser page, not a Node helper. Because the `crawlee` meta-package re-exports `@crawlee/utils` wholesale, `import { parseSitemap } from 'crawlee'` (and the same for `expandShadowRoots`) breaks as well.
 
 #### `RobotsTxtFile.find` signature changed; sitemap options removed
@@ -2334,14 +2332,14 @@ The `crawlee` meta-package no longer re-exports them.
 
 The crawler-only parts of `@crawlee/core` moved to `@crawlee/basic`, so that `@crawlee/core` carries just the storage, request and configuration layer. The moved exports are:
 
-- autoscaling: `ConcurrencySystem`, `AutoscaledPool`, `Snapshotter`, `SystemStatus`, the `LoadSignal` implementations and their option/snapshot types
-- crawler internals: `Statistics`, `ErrorTracker`, `ErrorSnapshotter`, `ContextPipeline`, and the crawling-context types (`CrawlingContext`, `RestrictedCrawlingContext`, `LoadedRequest`, …)
+- autoscaling: `AutoscaledPool`, `Snapshotter`, `SystemStatus`, the `LoadSignal` implementations and their option/snapshot types
+- crawler internals: `Statistics`, `ErrorTracker`, `ErrorSnapshotter`, and the crawling-context types (`CrawlingContext`, `RestrictedCrawlingContext`, `LoadedRequest`, …)
 - `SessionPool`, `Session` and the session-pool constants
 - `Router` (with `RouterHandler`, `RouterRoutes` and `defaultRoute`)
-- the cookie helpers (`mergeCookies`, `getCookiesFromResponse`, …) and `parseRetryAfterHeader`
-- `SitemapRequestLoader` (with `SitemapRequestLoaderOptions`) and `ThrottlingRequestManager` (with `ThrottlingRequestManagerOptions`)
-- the `enqueueLinks()` option types (`EnqueueLinksOptions`, `ExtractLinksOptions`, `EnqueueUrlsOptions`, `RequestTransform`, `SkippedRequestCallback`) and the URL pattern types and helpers (`GlobInput`, `RegExpInput`, `UrlPatternInput`, `UrlPatternObject`, `constructUrlPatternObjects`, …)
-- the crawler-only error classes: `RetryRequestError`, `RequestThrottledError`, `PersistentRateLimitError`, `NavigationSkippedError`, `MissingSessionError`, `MissingRouteError`, `RequestHandlerError` and the `ContextPipeline*Error` types
+- the cookie helpers (`mergeCookies`, `getCookiesFromResponse`, …)
+- `SitemapRequestLoader` (with `SitemapRequestLoaderOptions`)
+- the `enqueueLinks()` option types (`EnqueueLinksOptions`, `RequestTransform`, `SkippedRequestCallback`) and the URL pattern types (`GlobInput`, `RegExpInput`, …)
+- the crawler-only error classes `RetryRequestError` and `MissingRouteError`
 
 `@crawlee/basic` re-exports everything from `@crawlee/core`, so `import { SessionPool } from '@crawlee/basic'` (or from `crawlee`, `@crawlee/http`, `@crawlee/playwright`, …) keeps working unchanged. Only imports written against `@crawlee/core` itself need to be pointed at `@crawlee/basic`.
 
