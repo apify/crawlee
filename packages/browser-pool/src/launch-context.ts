@@ -60,6 +60,7 @@ export interface LaunchContextOptions<
      * Whether this launch context represents a connection to a remote browser
      * rather than a locally launched one.
      * @default false
+     * @internal
      */
     isRemote?: boolean;
 }

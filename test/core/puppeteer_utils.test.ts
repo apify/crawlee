@@ -3,9 +3,8 @@ import path from 'node:path';
 
 import { MemoryStorageBackend, serviceLocator } from '@crawlee/core';
 import { KeyValueStore, launchPuppeteer, puppeteerUtils, Request } from '@crawlee/puppeteer';
-import type { Dictionary } from '@crawlee/types';
 // @ts-ignore This only throws when compiled against puppeteer 25+ (ESM only), we only import types, so its alllll gooooood
-import type { Browser, Page, ResponseForRequest } from 'puppeteer';
+import type { Browser, Page } from 'puppeteer';
 import { runExampleComServer } from '../shared/_helper.js';
 
 import log from '@apify/log';
@@ -265,94 +264,6 @@ describe('puppeteerUtils', () => {
                     ]),
                 );
             });
-
-            test('blockResources() supports default values', async () => {
-                const loadedUrls: string[] = [];
-
-                const page = await browser.newPage();
-                await puppeteerUtils.blockResources(page);
-                page.on('response', (response) => loadedUrls.push(response.url()));
-                await page.goto(`${serverAddress}/special/resources`, { waitUntil: 'load' });
-
-                expect(loadedUrls).toEqual(expect.arrayContaining([`${serverAddress}/script.js`]));
-            });
-
-            test('blockResources() supports nondefault values', async () => {
-                const loadedUrls: string[] = [];
-
-                const page = await browser.newPage();
-                await puppeteerUtils.blockResources(page, ['script']);
-                page.on('response', (response) => loadedUrls.push(response.url()));
-                await page.goto(`${serverAddress}/special/resources`, { waitUntil: 'load' });
-
-                expect(loadedUrls).toEqual(
-                    expect.arrayContaining([`${serverAddress}/style.css`, `${serverAddress}/image.png`]),
-                );
-            });
-        });
-
-        test('supports cacheResponses()', async () => {
-            const browser = await launchPuppeteer(launchContext);
-            const cache: Dictionary<Partial<ResponseForRequest>> = {};
-
-            const getResourcesLoadedFromWiki = async () => {
-                let downloadedBytes = 0;
-                const page = await browser.newPage();
-                page.setDefaultNavigationTimeout(0);
-                // Cache all javascript files, png files and svg files
-                await puppeteerUtils.cacheResponses(page, cache, ['.js', /.+\.png/i, /.+\.svg/i]);
-                page.on('response', async (response) => {
-                    if (cache[response.url()]) return;
-                    try {
-                        const buffer = await response.buffer();
-                        downloadedBytes += buffer.byteLength;
-                    } catch (e) {
-                        // do nothing
-                    }
-                });
-                await page.goto(`${serverAddress}/cacheable`, { waitUntil: 'networkidle0', timeout: 60e3 });
-                await page.close();
-                return downloadedBytes;
-            };
-
-            try {
-                const bytesDownloadedOnFirstRun = await getResourcesLoadedFromWiki();
-                const bytesDownloadedOnSecondRun = await getResourcesLoadedFromWiki();
-                expect(bytesDownloadedOnSecondRun).toBeLessThan(bytesDownloadedOnFirstRun);
-            } finally {
-                await browser.close();
-            }
-        });
-
-        test('cacheResponses() throws when rule with invalid type is provided', async () => {
-            const mockedPage = {
-                setRequestInterception: () => {},
-                on: () => {},
-            };
-
-            const testRuleType = async (value: string | RegExp) => {
-                try {
-                    await puppeteerUtils.cacheResponses(mockedPage as any, {}, [value]);
-                } catch (error) {
-                    // this is valid path for this test
-                    return;
-                }
-
-                expect(`Rule '${value}' should have thrown error`).toBe('');
-            };
-
-            // @ts-expect-error
-            await testRuleType(0);
-            // @ts-expect-error
-            await testRuleType(1);
-            // @ts-expect-error
-            await testRuleType(null);
-            // @ts-expect-error
-            await testRuleType([]);
-            // @ts-expect-error
-            await testRuleType(['']);
-            // @ts-expect-error
-            await testRuleType(() => {});
         });
 
         test('compileScript() works', async () => {

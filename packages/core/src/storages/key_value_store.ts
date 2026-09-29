@@ -1033,6 +1033,7 @@ export interface KeyConsumer {
     (key: string, index: number, info: { size: number }): Awaitable<void>;
 }
 
+/** @internal */
 export interface KeyValueStoreOptions {
     /** Resolved metadata for the key-value store, as returned by the backend's `getMetadata()`. */
     metadata: KeyValueStoreInfo;

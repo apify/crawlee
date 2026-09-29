@@ -142,12 +142,9 @@ export interface DOMCrawlerOptions<
     ExtendedContext extends DOMCrawlingContext<Parsed> = DOMCrawlingContext<Parsed> & ContextExtension,
     Routes extends Record<keyof Routes, Dictionary> = Record<string, any>,
     StatisticStateExtension extends object = {},
-> extends HttpCrawlerOptions<
-    DOMCrawlingContext<Parsed>,
-    ContextExtension,
-    ExtendedContext,
-    Routes,
-    StatisticStateExtension
+> extends Omit<
+    HttpCrawlerOptions<DOMCrawlingContext<Parsed>, ContextExtension, ExtendedContext, Routes, StatisticStateExtension>,
+    'contextPipelineBuilder'
 > {
     /**
      * The DOM implementation to parse the response bodies with. Its parse result becomes part of the crawling
@@ -180,12 +177,9 @@ export class DOMCrawler<
     constructor(
         options: DOMCrawlerOptions<Parsed, ContextExtension, ExtendedContext, Routes, StatisticStateExtension>,
     ) {
-        const { parser, contextPipelineBuilder, ...rest } = options;
+        const { parser, ...rest } = options;
 
-        super({
-            ...rest,
-            contextPipelineBuilder: contextPipelineBuilder ?? (() => this.buildContextPipeline()),
-        });
+        super({ ...rest, contextPipelineBuilder: () => this.buildContextPipeline() });
 
         this.#parser = parser;
     }

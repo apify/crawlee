@@ -10,7 +10,7 @@ import { CustomFetchOptions } from '@crawlee/http-client';
 // @public
 export class GotScrapingHttpClient extends BaseHttpClient {
     // (undocumented)
-    fetch(request: Request, options?: RequestInit & CustomFetchOptions): Promise<Response>;
+    protected fetch(request: Request, options?: RequestInit & CustomFetchOptions): Promise<Response>;
 }
 
 // (No @packageDocumentation comment for this package)

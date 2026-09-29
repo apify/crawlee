@@ -25,7 +25,7 @@ describe('RenderingTypePredictor', () => {
             predictor.storeResult(staticRequest, 'static');
             predictor.storeResult(clientRequest, 'clientOnly');
 
-            // Persist the state
+            // Persist the state - `teardown()` flushes it, and the predictor is not used again here.
             const store = await KeyValueStore.open();
             await predictor.teardown();
 

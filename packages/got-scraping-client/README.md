@@ -10,7 +10,7 @@ Simply pass the `GotScrapingHttpClient` instance to the `httpClient` option of t
 
 ```typescript
 import { CheerioCrawler, Dictionary } from '@crawlee/cheerio';
-import { GotScrapingHttpClient, Browser } from '@crawlee/got-scraping-client';
+import { GotScrapingHttpClient } from '@crawlee/got-scraping-client';
 
 const crawler = new CheerioCrawler({
     httpClient: new GotScrapingHttpClient(),

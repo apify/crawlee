@@ -19,7 +19,7 @@ describe('GotScrapingHttpClient', () => {
     test('disables certificate verification when ignoreTlsErrors is set', async () => {
         const httpClient = new GotScrapingHttpClient();
 
-        await httpClient.fetch(new Request('http://example.com'), { ignoreTlsErrors: true });
+        await httpClient.sendRequest(new Request('http://example.com'), { ignoreTlsErrors: true });
 
         expect(gotScraping).toHaveBeenCalledWith(expect.objectContaining({ https: { rejectUnauthorized: false } }));
     });
@@ -27,7 +27,7 @@ describe('GotScrapingHttpClient', () => {
     test('leaves certificate verification enabled without the flag', async () => {
         const httpClient = new GotScrapingHttpClient();
 
-        await httpClient.fetch(new Request('http://example.com'), {});
+        await httpClient.sendRequest(new Request('http://example.com'));
 
         expect(gotScraping).toHaveBeenCalledWith(expect.not.objectContaining({ https: expect.anything() }));
     });

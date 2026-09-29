@@ -3,10 +3,13 @@ import { resolve } from 'node:path';
 
 import { FileSystemStorageBackend } from '@crawlee/fs-storage';
 
+import { storageLayout } from './storage-layout.js';
+
 // The default storage lives in `default`. The alias @crawlee/core opens it under is an internal
 // sentinel, and letting that reach the disk orphans every `storage/` directory an earlier run wrote.
 describe('the default storage on disk', () => {
     const tmpLocation = resolve(import.meta.dirname, './tmp/default-storage-layout');
+    const { datasetsDirectory, keyValueStoresDirectory, requestQueuesDirectory } = storageLayout(tmpLocation);
 
     afterEach(async () => {
         await rm(tmpLocation, { force: true, recursive: true });
@@ -19,18 +22,18 @@ describe('the default storage on disk', () => {
         await storage.createKeyValueStoreBackend();
         await storage.createRequestQueueBackend();
 
-        expect(await readdir(storage.datasetsDirectory)).toEqual(['default']);
-        expect(await readdir(storage.keyValueStoresDirectory)).toEqual(['default']);
-        expect(await readdir(storage.requestQueuesDirectory)).toEqual(['default']);
+        expect(await readdir(datasetsDirectory)).toEqual(['default']);
+        expect(await readdir(keyValueStoresDirectory)).toEqual(['default']);
+        expect(await readdir(requestQueuesDirectory)).toEqual(['default']);
     });
 
     // A hand-placed file only turns up as a record if the `default` directory is the one the default
     // store actually opens.
     test('adopts a file placed in the default key-value store directory by hand', async () => {
         const storage = new FileSystemStorageBackend({ localDataDirectory: tmpLocation });
-        await mkdir(resolve(storage.keyValueStoresDirectory, 'default'), { recursive: true });
+        await mkdir(resolve(keyValueStoresDirectory, 'default'), { recursive: true });
         await writeFile(
-            resolve(storage.keyValueStoresDirectory, 'default', 'hand-placed.json'),
+            resolve(keyValueStoresDirectory, 'default', 'hand-placed.json'),
             JSON.stringify({ hello: 'world' }),
         );
 

@@ -18,12 +18,10 @@ export interface IStorage {
     name?: string;
 }
 
-type Hashable = string;
-
 /** Reserved alias for the default (unnamed) storage. */
 const DEFAULT_STORAGE_ALIAS = '__default__';
 
-type CacheTier = Map<Constructor<IStorage>, Map<string, Map<Hashable, IStorage>>>;
+type CacheTier = Map<Constructor<IStorage>, Map<string, Map<string, IStorage>>>;
 
 /**
  * Three-tier cache for storage instances, modelled after crawlee-python's `_StorageCache`.
@@ -49,7 +47,7 @@ class StorageCache {
             | { id: string; name?: string; alias?: undefined }
             | { id?: string; name: string; alias?: undefined }
             | { id?: undefined; name?: undefined; alias: string }
-        ) & { backendCacheKey: Hashable },
+        ) & { backendCacheKey: string },
     ): T | undefined {
         for (const [tier, key] of [
             [this.byId, id],
@@ -75,7 +73,7 @@ class StorageCache {
         cls: Constructor<T>,
         key: string,
         instance: T,
-        backendCacheKey: Hashable,
+        backendCacheKey: string,
     ): void {
         if (!tier.has(cls)) tier.set(cls, new Map());
         const keyMap = tier.get(cls)!;
@@ -86,7 +84,7 @@ class StorageCache {
     /**
      * Cache an instance under its actual id, name, and an optional alias.
      */
-    set<T extends IStorage>(cls: Constructor<T>, instance: T, backendCacheKey: Hashable, alias?: string): void {
+    set<T extends IStorage>(cls: Constructor<T>, instance: T, backendCacheKey: string, alias?: string): void {
         // Always cache by id.
         this.setInMap(this.byId, cls, instance.id, instance, backendCacheKey);
 
@@ -124,7 +122,7 @@ class StorageCache {
      */
     checkNameAliasConflict<T extends IStorage>(
         cls: Constructor<T>,
-        { name, alias, backendCacheKey }: { name?: string; alias?: string; backendCacheKey: Hashable },
+        { name, alias, backendCacheKey }: { name?: string; alias?: string; backendCacheKey: string },
     ): void {
         if (alias) {
             const existingByName = this.byName.get(cls)?.get(alias)?.get(backendCacheKey);
@@ -204,7 +202,7 @@ export class StorageInstanceManager {
             backendCacheKey,
         }: (ExplicitStorageIdentifier | DefaultStorageIdentifier) & {
             backendOpener: () => Promise<DatasetBackend | KeyValueStoreBackend | RequestQueueBackend>;
-            backendCacheKey: Hashable;
+            backendCacheKey: string;
         },
     ): Promise<TStorage> {
         // Auto-set alias='__default__' when no parameters are specified (mirrors crawlee-python).

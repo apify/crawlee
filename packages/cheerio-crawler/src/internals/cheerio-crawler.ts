@@ -4,7 +4,6 @@ import type {
     ErrorHandler,
     GetUserDataFromRequest,
     HttpCrawlerOptions,
-    InternalHttpHook,
     RequestHandler,
     RouterHandler,
     RouterRoutes,
@@ -30,18 +29,16 @@ export interface CheerioCrawlerOptions<
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     Routes extends Record<keyof Routes, Dictionary> = Record<string, UserData>,
     StatisticStateExtension extends object = {},
-> extends HttpCrawlerOptions<
-    CheerioCrawlingContext<UserData, JSONData>,
-    ContextExtension,
-    ExtendedContext,
-    Routes,
-    StatisticStateExtension
+> extends Omit<
+    HttpCrawlerOptions<
+        CheerioCrawlingContext<UserData, JSONData>,
+        ContextExtension,
+        ExtendedContext,
+        Routes,
+        StatisticStateExtension
+    >,
+    'contextPipelineBuilder'
 > {}
-
-export type CheerioHook<
-    UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-    JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-> = InternalHttpHook<CheerioCrawlingContext<UserData, JSONData>>;
 
 export interface CheerioCrawlingContext<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler

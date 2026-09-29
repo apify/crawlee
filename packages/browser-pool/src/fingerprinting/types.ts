@@ -1,49 +1,12 @@
-import type {
-    BrowserFingerprintWithHeaders as Fingerprint,
-    FingerprintGeneratorOptions as FingerprintOptionsOriginal,
-} from 'fingerprint-generator';
-
-export interface FingerprintGenerator {
-    getFingerprint: (fingerprintGeneratorOptions?: FingerprintGeneratorOptions) => GetFingerprintReturn;
-}
-
-export interface GetFingerprintReturn {
-    fingerprint: Fingerprint;
-}
+import type { FingerprintGeneratorOptions as FingerprintOptionsOriginal } from 'fingerprint-generator';
 
 export interface FingerprintGeneratorOptions extends Partial<FingerprintOptionsOriginal> {}
-
-const SUPPORTED_HTTP_VERSIONS = ['1', '2'] as const;
-
-/**
- * String specifying the HTTP version to use.
- */
-type HttpVersion = (typeof SUPPORTED_HTTP_VERSIONS)[number];
 
 export enum BrowserName {
     chrome = 'chrome',
     firefox = 'firefox',
     safari = 'safari',
     edge = 'edge',
-}
-
-export interface BrowserSpecification {
-    /**
-     * String representing the browser name.
-     */
-    name: BrowserName;
-    /**
-     * Minimum version of browser used.
-     */
-    minVersion?: number;
-    /**
-     * Maximum version of browser used.
-     */
-    maxVersion?: number;
-    /**
-     * HTTP version to be used for header generation (the headers differ depending on the version).
-     */
-    httpVersion?: HttpVersion;
 }
 
 export enum OperatingSystemsName {

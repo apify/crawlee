@@ -150,13 +150,13 @@ describe('AutoscaledPool', () => {
 
         const promise = pool.run();
 
-        // Concurrency is tuned on the governor; the pool only reflects it as read-only telemetry.
+        // Concurrency is tuned on the governor; the pool only reflects it as read-only telemetry. `desiredConcurrency`
+        // is autoscaler-owned, so it is retuned indirectly - by moving the bounds it is clamped into.
         system.minConcurrency = 4;
-        system.maxConcurrency = 14;
-        system.desiredConcurrency = 7;
+        system.maxConcurrency = 7;
 
         expect(system.minConcurrency).toBe(4);
-        expect(system.maxConcurrency).toBe(14);
+        expect(system.maxConcurrency).toBe(7);
         expect(pool.desiredConcurrency).toBe(7);
 
         await promise;
@@ -234,10 +234,8 @@ describe('AutoscaledPool', () => {
 
         test('works with low values', async () => {
             useAutoscaleTimer();
+            // Starts at the default of `minConcurrency`; the loop's first turn during `start()` already takes it to 2.
             const pool = await makePool(taskOptions, concurrencyOptions);
-            // The loop also runs once during `start()`, so scaling is measured from a known value rather than from
-            // whatever that first turn left behind.
-            systemOf(pool).desiredConcurrency = 1;
 
             await tick();
             expect(pool.desiredConcurrency).toBe(2);
@@ -262,8 +260,8 @@ describe('AutoscaledPool', () => {
 
         test('works with high values', async () => {
             useAutoscaleTimer();
-            const pool = await makePool(taskOptions, concurrencyOptions);
-            systemOf(pool).desiredConcurrency = 50;
+            // A starting budget of 50 has to be configured, since `desiredConcurrency` is autoscaler-owned.
+            const pool = await makePool(taskOptions, { ...concurrencyOptions, desiredConcurrency: 50 });
 
             // Should not scale because current concurrency is too low - one short of the 90% of 50 that scaling up
             // asks for.
@@ -298,10 +296,9 @@ describe('AutoscaledPool', () => {
                     isFinishedFunction: async () => count >= limit,
                     isTaskReadyFunction: async () => count < limit,
                 },
-                concurrencyOptions,
+                { ...concurrencyOptions, desiredConcurrency: 10 },
             );
             load.okNow = false;
-            systemOf(pool).desiredConcurrency = 10;
 
             const origStart = pool.system.tryRegisterTaskStart.bind(pool.system);
             const origEnd = pool.system.registerTaskEnd.bind(pool.system);

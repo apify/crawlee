@@ -1,4 +1,4 @@
-import { BrowserPool, PlaywrightPlugin } from '@crawlee/browser-pool';
+import { BROWSER_POOL_EVENTS, BrowserPool, PlaywrightPlugin } from '@crawlee/browser-pool';
 import playwright from 'playwright';
 
 describe('BrowserPool - Using multiple plugins', () => {
@@ -9,13 +9,20 @@ describe('BrowserPool - Using multiple plugins', () => {
     }>;
     const chromePlugin = new PlaywrightPlugin(playwright.chromium);
     const firefoxPlugin = new PlaywrightPlugin(playwright.firefox);
+    // The pool's browser bookkeeping is private, so we count launches through the public event.
+    // No browser is retired in these tests, so this is also the number of active browsers.
+    let launchedBrowsers = 0;
 
     beforeEach(async () => {
         vitest.clearAllMocks();
+        launchedBrowsers = 0;
         browserPool = new BrowserPool({
             browserPlugins: [chromePlugin, firefoxPlugin],
             closeInactiveBrowserAfterSecs: 2,
             retireInactiveBrowserAfterSecs: 30,
+        });
+        browserPool.on(BROWSER_POOL_EVENTS.BROWSER_LAUNCHED, () => {
+            launchedBrowsers++;
         });
     });
 
@@ -40,7 +47,7 @@ describe('BrowserPool - Using multiple plugins', () => {
         const pages = await Promise.all(pagePromises);
 
         expect(pages).toHaveLength(correctPluginOrder.length);
-        expect(browserPool.activeBrowserControllers.size).toEqual(2);
+        expect(launchedBrowsers).toEqual(2);
 
         for (const [idx, page] of pages.entries()) {
             const controller = browserPool.getBrowserControllerByPage(page)!;
@@ -67,12 +74,12 @@ describe('BrowserPool - Using multiple plugins', () => {
         await browserPool.newPage();
         expect(chromePlugin.launch).toHaveBeenCalledTimes(1);
         expect(firefoxPlugin.launch).toHaveBeenCalledTimes(1);
-        expect(browserPool.activeBrowserControllers.size).toBe(2);
+        expect(launchedBrowsers).toBe(2);
 
         // Open more pages
         await browserPool.newPageWithEachPlugin();
         expect(chromePlugin.launch).toHaveBeenCalledTimes(1);
         expect(firefoxPlugin.launch).toHaveBeenCalledTimes(1);
-        expect(browserPool.activeBrowserControllers.size).toBe(2);
+        expect(launchedBrowsers).toBe(2);
     });
 });

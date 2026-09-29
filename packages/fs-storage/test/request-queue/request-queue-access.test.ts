@@ -15,16 +15,6 @@ describe('FileSystemStorageBackend requestQueueAccess', () => {
         await rm(tmpLocation, { force: true, recursive: true });
     });
 
-    test("defaults to 'single'", () => {
-        const storage = new FileSystemStorageBackend({ localDataDirectory: tmpLocation });
-        expect(storage.requestQueueAccess).toBe('single');
-    });
-
-    test("respects an explicit 'shared'", () => {
-        const storage = new FileSystemStorageBackend({ localDataDirectory: tmpLocation, requestQueueAccess: 'shared' });
-        expect(storage.requestQueueAccess).toBe('shared');
-    });
-
     // Seed a queue with two requests, fetch (lock) one without handling it or tearing down — leaving a
     // dangling in-progress lock on disk, exactly the "process died mid-flight" situation.
     async function seedQueueWithDanglingLock(dir: string) {
@@ -40,7 +30,7 @@ describe('FileSystemStorageBackend requestQueueAccess', () => {
         return locked!;
     }
 
-    test("'single' (default): reopening preserves contents but relinquishes the dangling lock", async () => {
+    test("'single': reopening preserves contents but relinquishes the dangling lock", async () => {
         const dir = resolve(tmpLocation, 'single');
         const locked = await seedQueueWithDanglingLock(dir);
 
@@ -61,6 +51,21 @@ describe('FileSystemStorageBackend requestQueueAccess', () => {
         // The previously-locked request survived with its data intact.
         const reFetched = await queue.getRequest(locked.uniqueKey);
         expect(reFetched?.url).toBe(locked.url);
+    });
+
+    // The default is `'single'`, which is only observable through the reclaim behavior: with no
+    // `requestQueueAccess` given at all, the dangling lock is relinquished exactly as it is above.
+    test("defaults to 'single'", async () => {
+        const dir = resolve(tmpLocation, 'default');
+        const locked = await seedQueueWithDanglingLock(dir);
+
+        const reopened = new FileSystemStorageBackend({ localDataDirectory: dir });
+        const queue = await reopened.createRequestQueueBackend({ name: 'default' });
+
+        const a = await queue.fetchNextRequest();
+        const b = await queue.fetchNextRequest();
+        expect([a?.uniqueKey, b?.uniqueKey].sort()).toStrictEqual(['1', '2']);
+        expect((await queue.getRequest(locked.uniqueKey))?.url).toBe(locked.url);
     });
 
     test("'shared': reopening keeps the dangling lock (concurrency-safe mode)", async () => {

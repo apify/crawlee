@@ -287,11 +287,21 @@ const increaseCount = (group: { count?: number }) => {
 export class ErrorTracker {
     #options: ErrorTrackerOptions;
 
-    result: Record<string, unknown>;
+    #result: Record<string, unknown>;
 
-    total: number;
+    #total: number;
 
-    errorSnapshotter?: ErrorSnapshotter;
+    #errorSnapshotter?: ErrorSnapshotter;
+
+    /** The grouped error tree the tracker accumulates. Read-only: the object is mutated in place as errors arrive. */
+    get result(): Record<string, unknown> {
+        return this.#result;
+    }
+
+    /** The total number of errors passed to the tracker, including the same error seen repeatedly. */
+    get total(): number {
+        return this.#total;
+    }
 
     constructor(options: Partial<ErrorTrackerOptions> = {}) {
         this.#options = {
@@ -306,15 +316,15 @@ export class ErrorTracker {
         };
 
         if (this.#options.saveErrorSnapshots) {
-            this.errorSnapshotter = new ErrorSnapshotter();
+            this.#errorSnapshotter = new ErrorSnapshotter();
         }
 
-        this.result = Object.create(null);
-        this.total = 0;
+        this.#result = Object.create(null);
+        this.#total = 0;
     }
 
     private updateGroup(error: ErrnoException) {
-        let group = this.result;
+        let group = this.#result;
 
         if (this.#options.showStackTrace) {
             group = getStackTraceGroup(error, group, this.#options.showFullStack);
@@ -338,7 +348,7 @@ export class ErrorTracker {
     }
 
     add(error: ErrnoException) {
-        this.total++;
+        this.#total++;
 
         this.updateGroup(error);
 
@@ -352,13 +362,13 @@ export class ErrorTracker {
      * We added this new method to avoid breaking changes.
      */
     async addAsync(error: ErrnoException, context?: CrawlingContext) {
-        this.total++;
+        this.#total++;
 
         const group = this.updateGroup(error);
 
         // Capture a snapshot (screenshot and HTML) on the first occurrence of an error
         if (group.count === 1 && context) {
-            await this.captureSnapshot(group, error, context).catch(() => {});
+            await this.#captureSnapshot(group, error, context).catch(() => {});
         }
 
         if (typeof error.cause === 'object' && error.cause !== null) {
@@ -381,7 +391,7 @@ export class ErrorTracker {
             }
         };
 
-        goDeeper(this.result);
+        goDeeper(this.#result);
 
         return count;
     }
@@ -401,21 +411,21 @@ export class ErrorTracker {
             }
         };
 
-        goDeeper(this.result, []);
+        goDeeper(this.#result, []);
 
         return result.sort((a, b) => b[0] - a[0]).slice(0, count);
     }
 
-    async captureSnapshot(
+    async #captureSnapshot(
         storage: Record<string, unknown>,
         error: ErrnoException,
         context: CrawlingContext & SnapshottableProperties,
     ) {
-        if (!this.errorSnapshotter) {
+        if (!this.#errorSnapshotter) {
             return;
         }
 
-        const { screenshotFileUrl, htmlFileUrl } = await this.errorSnapshotter.captureSnapshot(error, context);
+        const { screenshotFileUrl, htmlFileUrl } = await this.#errorSnapshotter.captureSnapshot(error, context);
 
         storage.firstErrorScreenshotUrl = screenshotFileUrl;
         storage.firstErrorHtmlUrl = htmlFileUrl;
@@ -424,8 +434,8 @@ export class ErrorTracker {
     reset() {
         // This actually safe, since we Object.create(null) so no prototype pollution can happen.
         // eslint-disable-next-line no-restricted-syntax, guard-for-in
-        for (const key in this.result) {
-            delete this.result[key];
+        for (const key in this.#result) {
+            delete this.#result[key];
         }
     }
 }

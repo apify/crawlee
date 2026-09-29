@@ -19,6 +19,9 @@ import type { KeyValueStoreRecord } from '@crawlee/types';
 
 const payload = JSON.stringify({ hello: 'from disk' });
 
+/** The backend lays key-value stores out under `<localDataDirectory>/key_value_stores`. */
+const storesDirectory = (directory: string) => resolve(directory, 'key_value_stores');
+
 /** A fresh backend over `directory`, seeded with sidecar-less files in one key-value store. */
 async function seedStore<T extends FileSystemStorageBackend>(
     directory: string,
@@ -27,7 +30,7 @@ async function seedStore<T extends FileSystemStorageBackend>(
     Backend: new (options: { localDataDirectory: string }) => T = FileSystemStorageBackend as never,
 ): Promise<T> {
     const storage = new Backend({ localDataDirectory: directory });
-    const storeDirectory = resolve(storage.keyValueStoresDirectory, store);
+    const storeDirectory = resolve(storesDirectory(directory), store);
     await mkdir(storeDirectory, { recursive: true });
     for (const [file, content] of Object.entries(files)) {
         await writeFile(resolve(storeDirectory, file), content);
@@ -93,7 +96,7 @@ describe('sidecar-less files', () => {
 
         // The purge sweeps the directory, so the dotfile adoption skipped goes too; only the store
         // metadata is left.
-        expect(await readdir(resolve(storage.keyValueStoresDirectory, 'default'))).toEqual(['__metadata__.json']);
+        expect(await readdir(resolve(storesDirectory(tmpLocation), 'default'))).toEqual(['__metadata__.json']);
     });
 });
 
@@ -217,7 +220,7 @@ describe('a subclass claiming keys through the hooks', () => {
         const store = await storage.createKeyValueStoreBackend();
         expect((await store.listKeys()).items.map((item) => item.key)).toEqual(['INPUT']);
         expect((await store.getValue('INPUT'))?.value.toString()).toBe(payload);
-        expect(await readdir(resolve(storage.keyValueStoresDirectory, 'default'))).not.toContain('leftover.json');
+        expect(await readdir(resolve(storesDirectory(tmpLocation), 'default'))).not.toContain('leftover.json');
     });
 
     test('purges a non-default store in full', async () => {
@@ -226,6 +229,6 @@ describe('a subclass claiming keys through the hooks', () => {
 
         await storage.purge();
 
-        expect(await readdir(resolve(storage.keyValueStoresDirectory, 'other'))).not.toContain('INPUT.json');
+        expect(await readdir(resolve(storesDirectory(tmpLocation), 'other'))).not.toContain('INPUT.json');
     });
 });

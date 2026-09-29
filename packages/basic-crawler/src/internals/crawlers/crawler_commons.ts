@@ -92,9 +92,9 @@ export type TypedContextEnqueueLinks<
       ? (options: TypedEnqueueLinksOptions<Options, Routes>) => Result
       : EnqueueLinks;
 
-export type WithRequired<T, K extends keyof T> = T & { [P in K]-?: T[P] };
-
-export type LoadedRequest<R extends Request> = WithRequired<R, 'id' | 'loadedUrl'>;
+/** A {@apilink Request} that has been dispatched, so its `id` and `loadedUrl` are guaranteed to be present. */
+// `Required` (homomorphic) strips `undefined`; an inline mapped type over a literal union would only drop the `?`.
+export type LoadedRequest<R extends Request> = R & Required<Pick<R, 'id' | 'loadedUrl'>>;
 
 /** @internal */
 export type LoadedContext<Context extends RestrictedCrawlingContext> =
@@ -105,6 +105,7 @@ export type LoadedContext<Context extends RestrictedCrawlingContext> =
           } & Omit<Context, 'request'>;
 
 export interface RestrictedCrawlingContext<UserData extends Dictionary = Dictionary> {
+    /** @internal */
     id: string;
     session: ISession;
 

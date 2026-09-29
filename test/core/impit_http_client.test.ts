@@ -17,8 +17,8 @@ describe('ImpitHttpClient', () => {
     test('reuses cached clients by default', async () => {
         const httpClient = new ImpitHttpClient();
 
-        await httpClient.fetch(new Request('http://example.com'), { proxyUrl: 'http://proxy.example' });
-        await httpClient.fetch(new Request('http://example.com'), { proxyUrl: 'http://proxy.example' });
+        await httpClient.sendRequest(new Request('http://example.com'));
+        await httpClient.sendRequest(new Request('http://example.com'));
 
         expect(Impit).toHaveBeenCalledTimes(1);
     });
@@ -26,8 +26,8 @@ describe('ImpitHttpClient', () => {
     test('creates a new client for each request when cacheClients is false', async () => {
         const httpClient = new ImpitHttpClient({ cacheClients: false });
 
-        await httpClient.fetch(new Request('http://example.com'), { proxyUrl: 'http://proxy.example' });
-        await httpClient.fetch(new Request('http://example.com'), { proxyUrl: 'http://proxy.example' });
+        await httpClient.sendRequest(new Request('http://example.com'));
+        await httpClient.sendRequest(new Request('http://example.com'));
 
         expect(Impit).toHaveBeenCalledTimes(2);
     });
@@ -35,7 +35,7 @@ describe('ImpitHttpClient', () => {
     test('forwards the per-request ignoreTlsErrors flag to the impit client', async () => {
         const httpClient = new ImpitHttpClient();
 
-        await httpClient.fetch(new Request('http://example.com'), { ignoreTlsErrors: true });
+        await httpClient.sendRequest(new Request('http://example.com'), { ignoreTlsErrors: true });
 
         expect(Impit).toHaveBeenCalledWith(expect.objectContaining({ ignoreTlsErrors: true }));
     });
@@ -43,7 +43,7 @@ describe('ImpitHttpClient', () => {
     test('keeps constructor-level ignoreTlsErrors when the per-request flag is absent', async () => {
         const httpClient = new ImpitHttpClient({ ignoreTlsErrors: true });
 
-        await httpClient.fetch(new Request('http://example.com'), {});
+        await httpClient.sendRequest(new Request('http://example.com'));
 
         expect(Impit).toHaveBeenCalledWith(expect.objectContaining({ ignoreTlsErrors: true }));
     });

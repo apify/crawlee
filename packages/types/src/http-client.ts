@@ -20,20 +20,10 @@ export interface HttpRequest {
 
     cookieJar?: CookieJar;
     followRedirect?: boolean | ((response: any) => boolean); // TODO BC with got - specify type better in 4.0
-    maxRedirects?: number;
 
     encoding?: BufferEncoding;
-    throwHttpErrors?: boolean;
 
-    // from got-scraping Context
     proxyUrl?: string;
-    headerGeneratorOptions?: Record<string, unknown>;
-    useHeaderGenerator?: boolean;
-    headerGenerator?: {
-        getHeaders: (options: Record<string, unknown>) => Record<string, string>;
-    };
-    insecureHTTPParser?: boolean;
-    sessionToken?: object;
 }
 
 /**
@@ -53,14 +43,6 @@ export interface HttpRequestOptions extends HttpRequest {
     /** Basic HTTP Auth password */
     password?: string;
 }
-
-/**
- * Type of a function called when an HTTP redirect takes place. It is allowed to mutate the `updatedRequest` argument.
- */
-export type RedirectHandler = (
-    redirectResponse: Response,
-    updatedRequest: { url?: string | URL; headers: Headers },
-) => void;
 
 export interface SendRequestOptions {
     session?: ISession;
@@ -82,10 +64,6 @@ export interface SendRequestOptions {
      * disable TLS verification (e.g. the native fetch fallback) ignore it.
      */
     ignoreTlsErrors?: boolean;
-}
-
-export interface StreamOptions extends SendRequestOptions {
-    onRedirect?: RedirectHandler;
 }
 
 /**
