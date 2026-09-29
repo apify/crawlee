@@ -39,6 +39,7 @@ export interface ProxyConfigurationOptions {
      */
     validateRequired?: boolean;
 }
+
 /**
  * Minimal contract that any object passed to a crawler as its `proxyConfiguration`
  * option must satisfy.

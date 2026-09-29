@@ -7,4 +7,4 @@ export * from './internals/iterables.js';
 export * from './internals/url.js';
 export * from './internals/validation.js';
 export * as schemas from './internals/schemas.js';
-export { parseSitemap } from './internals/sitemap.js';
+export { parseSitemap, type SitemapUrl } from './internals/sitemap.js';

@@ -265,7 +265,7 @@ export class Session implements ISession {
 
     /**
      * Gets session state for persistence in KeyValueStore.
-
+     *
      * @internal
      */
     getState(): SessionState {

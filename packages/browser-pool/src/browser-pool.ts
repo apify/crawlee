@@ -355,8 +355,7 @@ export class BrowserPool<
     readonly #postPageCloseHooks: PostPageCloseHook<BrowserControllerReturn>[];
 
     #pageCounter = 0;
-    // kept as TS-private rather than `#`: the page-close tests observe page tracking and
-    // controller retirement directly. Excluded from the public surface map either way.
+    // TS-private rather than `#`: tests observe page tracking and controller retirement directly
     private pages = new Map<string, PageReturn>();
     #pageIds = new WeakMap<PageReturn, string>();
     #startingBrowserControllers = new Set<BrowserControllerReturn>();
