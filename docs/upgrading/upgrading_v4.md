@@ -952,7 +952,7 @@ This is intentional: these were never a supported API. If you relied on overridi
 
 The change spans, among others:
 
-- **`BasicCrawler`** — `running`, `hasFinishedBefore`, `basicContextPipeline`, `unexpectedStop`, `requestHandlerTimeoutMillis`, `sameDomainDelayMillis`, `domainAccessedTime`, `handledRequestsCount`, `statusMessageLoggingInterval`, `statusMessageCallback`, `ignoreHttpErrorStatusCodes`, `taskLoopOptions` (was `autoscaledPoolOptions`), `autoscaledPool`, `respectRobotsTxtFile`, and the helpers `buildBasicContextPipeline`, `validateRequestUserData`, `pauseOnMigration`, `fetchNextRequest`, `delayRequest`, `handleRequest`, `timeoutAndRetry`, `isTaskReadyFunction`, `defaultIsFinishedFunction`, `requestFunctionErrorHandler`, `handleFailedRequestHandler`, `canRequestBeRetried`
+- **`BasicCrawler`** — `running`, `hasFinishedBefore`, `unexpectedStop`, `requestHandlerTimeoutMillis`, `sameDomainDelayMillis`, `domainAccessedTime`, `handledRequestsCount`, `statusMessageLoggingInterval`, `statusMessageCallback`, `ignoreHttpErrorStatusCodes`, `taskLoopOptions` (was `autoscaledPoolOptions`), `autoscaledPool`, `respectRobotsTxtFile`, and the helpers `buildBasicContextPipeline`, `validateRequestUserData`, `pauseOnMigration`, `fetchNextRequest`, `delayRequest`, `handleRequest`, `timeoutAndRetry`, `isTaskReadyFunction`, `defaultIsFinishedFunction`, `requestFunctionErrorHandler`, `handleFailedRequestHandler`, `canRequestBeRetried`
 - **`HttpCrawler`** — `preNavigationHooks`, `postNavigationHooks`, `saveResponseCookies`, `navigationTimeoutMillis`, `suggestResponseEncoding`, `forceResponseEncoding`, `supportedMimeTypes`, and the helpers `requestFunction`, `parseResponse`, `getRequestOptions`, `encodeResponse`, `extendSupportedMimeTypes`, `handleRequestTimeout`
 - **`AutoscaledPool`** — the whole class is `@internal` in v4, so its members are not enumerated here; see [`AutoscaledPool` is no longer public API](#autoscaledpool-is-no-longer-public-api)
 - **`SessionPool`** — all pool internals (`log`, `maxPoolSize`, `createSessionFunction`, `keyValueStore`, `sessions`, `sessionMap`, `sessionOptions`, `persistStateKey`, `persistStateKeyValueStoreId`, `events`, `persistenceOptions`, `sessionReuseStrategy`, and the helpers `ensureInitialized`, `maybeLoadSessionPool`, `registerSession`, `createSession`, `hasSpaceForSession`, `pickSession`, `removeRetiredSessions`, `getRandomIndex`, `defaultCreateSessionFunction`)
@@ -976,17 +976,13 @@ The `running` and `hasFinishedBefore` flags on `BasicCrawler` were internal run-
 
 ### Declarations that are now `@internal`
 
-These are still present at runtime, but they are excluded from the documented surface and can change without a major version bump: `Session.getState()`, `SessionOptions.log`, `Router.getTimeoutSecs()`, `Router.getMaxTimeoutSecs()`, `Request.skippedReason`, `RestrictedCrawlingContext.id`, `ThrottlingRequestManager.drop()` and `ThrottlingRequestManager.innerManager`.
+These are still present at runtime, but they are excluded from the documented surface and can change without a major version bump: `Session.getState()`, `SessionOptions.log`, `Request.skippedReason` and `RestrictedCrawlingContext.id`.
 
 `BLOCKED_STATUS_CODES` is now typed `readonly number[]`. Copy it (`[...BLOCKED_STATUS_CODES]`) if you were mutating it.
 
-### `HttpCrawler`, `FileDownload` and `JSDOMCrawler` internals are no longer accessible to subclasses
+### `HttpCrawler.isRequestBlocked` is now private
 
-`HttpCrawler.isRequestBlocked` and `FileDownload.buildContextPipeline` are now `private`. Block detection is configured through `retryOnBlocked` and `blockedStatusCodes`; to add your own checks, throw a `SessionError` from a `postNavigationHook`.
-
-`HttpCrawler.buildContextPipeline` and `BrowserCrawler.buildContextPipeline` stay `protected` and overridable, and are supported extension points: they are the two levels that genuinely compose context stages, so override one of them to add your own. `BasicCrawler.buildContextPipeline` is gone — it only ever returned an empty pipeline — and the builders on `CheerioCrawler`, `JSDOMCrawler`, `LinkeDOMCrawler`, `PlaywrightCrawler`, `AdaptivePlaywrightCrawler`, `PuppeteerCrawler` and `StagehandCrawler` are now `#private`. If you were overriding one of those to add context members, use the `extendContext` option instead. It runs before navigation, so it cannot see navigation-dependent members such as `page` or `$`; read those in a `postNavigationHook` or the `requestHandler`.
-
-`HttpCrawler.getNavigationTimeoutMillis` and `HttpCrawler.createDefaultConcurrencySystem` stay `protected` and overridable, but are marked `@internal` — they are implementation seams shared with `@crawlee/cheerio`, `@crawlee/jsdom` and `@crawlee/linkedom`, and their signatures may change in a minor release.
+Block detection is configured through `retryOnBlocked` and `blockedStatusCodes`; to add your own checks, throw a `SessionError` from a `postNavigationHook`.
 
 ### The protected `getMessageFromError()` returns `string`
 
@@ -1385,8 +1381,6 @@ postNavigationHooks: [
 
 If you called the standalone `playwrightUtils.handleCloudflareChallenge(page, url, session, options)` directly, note that the `session` parameter is gone - the v4 signature is `handleCloudflareChallenge(page, url, options)`, so an options object passed in the old fourth position would be silently ignored.
 
-The `playwrightUtils` namespace also used to contain a nested, self-referential `playwrightUtils` object; it is gone. `handleCloudflareChallenge` was previously only reachable as `playwrightUtils.playwrightUtils.handleCloudflareChallenge` — `playwrightUtils.handleCloudflareChallenge(page, url, options)` now works as documented.
-
 ### `PlaywrightLauncher` is no longer exported
 
 `PlaywrightLauncher` was an implementation detail of `launchPlaywright()` and the Playwright browser pools, and it is no longer part of `@crawlee/playwright`'s (or `crawlee`'s) public exports. Use `launchPlaywright(launchContext, configuration)` to get a `Browser`, or `playwrightBrowserPool()` / `remotePlaywrightBrowserPool()` when you need a pool. `PlaywrightLaunchContext` is still exported, so the options object can still be typed.
@@ -1405,10 +1399,6 @@ The abstract `BrowserCrawler` base class also lost its third type parameter, `La
 ### Unused browser options are now rejected instead of ignored
 
 `PlaywrightCrawler` no longer accepts a top-level `launcher` option, and `PlaywrightLaunchContext` no longer accepts `launchContextOptions`; both were silently ignored and are now reported as unknown options by the constructors' validation. Pass the browser type as `launchContext.launcher`, and persistent-context settings inside `launchContext.launchOptions`.
-
-### `LauncherBrowserPoolOptions` and `LauncherRemoteBrowserPoolOptions` are no longer exported
-
-These two type aliases described the options accepted by `BrowserLauncher.createBrowserPool()` and `.createRemoteBrowserPool()`, both internal APIs. Use the per-library option types instead — `PlaywrightBrowserPoolOptions` / `RemotePlaywrightBrowserPoolOptions`, `PuppeteerBrowserPoolOptions` / `RemotePuppeteerBrowserPoolOptions`, `StagehandBrowserPoolOptions` / `RemoteStagehandBrowserPoolOptions` — which are the caller-facing types for `playwrightBrowserPool()`, `puppeteerBrowserPool()` and `stagehandBrowserPool()`.
 
 ### Dead v3 fingerprinting types are removed
 
@@ -1432,7 +1422,7 @@ The six hook arrays (`preLaunchHooks`, `postLaunchHooks`, `prePageCreateHooks`, 
 
 `BrowserController.log` and `BrowserPlugin.log` are no longer part of the public type surface either. Subclasses inside `@crawlee/browser-pool` still use them, but they are not covered by backwards-compatibility guarantees — get your own logger from `serviceLocator.getLogger()`.
 
-Several more members are `@internal`, and remain present at runtime only: `BrowserPool.fingerprintInjector`, `.fingerprintCache`, `.fingerprintOptions`, `.maxOpenBrowsers`, `.hasFreeBrowserSlot()`, `.hasActiveBrowserWithFreeCapacity()`; `BrowserController.isActive`, `.totalPages`, `.lastPageOpenedAt`, `.normalizeProxyOptions()`; the `PlaywrightPlugin` / `PuppeteerPlugin` `useRemoteConnection()` overrides; `RemoteBrowserPool.browserPool`; `RemoteBrowserPoolOptions.slotPollIntervalMillis`; `LaunchContextOptions.isRemote`; `AnonymizeProxySugarOptions`; and the `PlaywrightBrowser` constructor. The `_close` / `_kill` / `_newPage` / `_getCookies` / `_setCookies` hooks on `BrowserController` and the `_launch` / `addProxyToLaunchOptions` / `isChromiumBasedBrowser` hooks on `BrowserPlugin` are *not* in that list: they carry no release tag, on the abstract declarations and on the `PlaywrightController` / `PuppeteerController` / `PlaywrightPlugin` / `PuppeteerPlugin` overrides alike, and remain the extension contract for your own subclasses.
+Several more members are `@internal`, and remain present at runtime only: `BrowserPool.fingerprintInjector`, `.fingerprintCache`, `.fingerprintOptions`; `BrowserController.isActive`, `.totalPages`, `.lastPageOpenedAt`, `.normalizeProxyOptions()`; `AnonymizeProxySugarOptions`; and the `PlaywrightBrowser` constructor. The `_close` / `_kill` / `_newPage` / `_getCookies` / `_setCookies` hooks on `BrowserController` and the `_launch` / `addProxyToLaunchOptions` / `isChromiumBasedBrowser` hooks on `BrowserPlugin` are *not* in that list: they carry no release tag, on the abstract declarations and on the `PlaywrightController` / `PuppeteerController` / `PlaywrightPlugin` / `PuppeteerPlugin` overrides alike, and remain the extension contract for your own subclasses.
 
 ## Only if you customize crawler statistics
 
@@ -1520,21 +1510,9 @@ class MyClient extends BaseHttpClient {
 }
 ```
 
-#### `IResponseWithUrl` is removed and `ResponseWithUrl.url` is `readonly`
-
-The `IResponseWithUrl` interface exported by `@crawlee/http-client` has been removed. It only ever described `Response & { url: string }`, which is exactly what the concrete `ResponseWithUrl` class provides — use `ResponseWithUrl` (or plain `Response`) in its place.
-
-`ResponseWithUrl.url` is now `readonly`. Pass the URL through the constructor (`new ResponseWithUrl(body, { url, status, headers })`) rather than assigning to it afterwards; nothing in Crawlee ever mutated it.
-
-#### `fetch` is protected on the built-in HTTP clients
-
-`BaseHttpClient` has always declared `protected abstract fetch(input, init?)`, but `FetchHttpClient`, `GotScrapingHttpClient` and `ImpitHttpClient` accidentally re-declared it without the modifier, making the raw network call publicly reachable. All three are now `protected override`, matching the base contract.
-
-If you were calling `httpClient.fetch(request, options)` directly to bypass Crawlee's cookie and redirect handling, use `httpClient.sendRequest(request, options)` instead — it accepts `session`, `cookieJar`, `proxyUrl`, `timeoutMillis`, `signal` and `ignoreTlsErrors` and returns the final `Response`. Custom clients extending `BaseHttpClient` are unaffected: overriding `fetch` as `protected` was already the documented shape.
-
 #### Removed `@crawlee/types` HTTP types
 
-The `StreamOptions` and `RedirectHandler` types have been removed. They were the options and redirect-callback types for `BaseHttpClient.stream()`, which no longer exists in v4 — a custom HTTP client now only implements `sendRequest(request: Request, options?: SendRequestOptions)`. If you referenced either type, delete the reference; there is no replacement.
+The `RedirectHandler` type has been removed. It was the redirect-callback type for `BaseHttpClient.stream()`, which no longer exists in v4 — a custom HTTP client now only implements `sendRequest(request: Request, options?: SendRequestOptions)`. If you referenced it, delete the reference; there is no replacement.
 
 The `BrowserLikeResponse` interface has been removed. It was a v3-era shim for reading `url()` and `headers()` off a got-style response during cookie handling, and has had no consumer since HTTP responses became standard `Response` objects. Read `response.url` and `response.headers` directly instead.
 
@@ -1808,10 +1786,9 @@ await enqueueLinks({ urls, requestQueue });
 await enqueueLinks({ urls, requestManager });
 ```
 
-#### Removed loader and manager type aliases
+#### Removed `UrlList` type alias
 
-- `UrlList` and `NewUrlOptions` are gone; the signatures that used them now spell their types out inline (`(string | null)[]` and `{ request?: Request }` respectively). No behavioral change — replace the alias with the expansion if you referenced it.
-- `RequestManagerOpener` is no longer exported, along with the `ThrottlingRequestManagerOptions.requestManagerOpener` option that took one.
+`UrlList` is gone; the signatures that used it now spell the type out inline (`(string | null)[]`). No behavioral change — replace the alias with the expansion if you referenced it.
 
 ## Only if you configure or implement storage backends
 
@@ -2029,21 +2006,6 @@ Because the in-memory queue lives entirely within a single process and is never 
 
 `MemoryStorageBackend` never accepted `writeMetadata` (it has no on-disk format to begin with), so there is nothing to change there.
 
-#### `FileSystemStorageBackend` exposes no directory fields
-
-`FileSystemStorageBackend` no longer exposes `localDataDirectory`, `datasetsDirectory`, `keyValueStoresDirectory` or `requestQueuesDirectory` as readable properties — the `StorageBackend` interface declares only methods, and these were never part of it. The on-disk layout is unchanged, so join the paths yourself from the directory you configured:
-
-```typescript
-import { resolve } from 'node:path';
-
-const localDataDirectory = './storage';
-const storageBackend = new FileSystemStorageBackend({ localDataDirectory });
-
-const datasetsDirectory = resolve(localDataDirectory, 'datasets');
-const keyValueStoresDirectory = resolve(localDataDirectory, 'key_value_stores');
-const requestQueuesDirectory = resolve(localDataDirectory, 'request_queues');
-```
-
 #### Out-of-band key-value files (e.g. a hand-placed `INPUT.json`)
 
 Keys are literal. `aaa` and `aaa.json` are two distinct keys, and `FileSystemStorageBackend` never infers a key from a file's extension — in v3 a hand-placed `aaa.json` was readable as `aaa`, in v4 it is not.
@@ -2063,22 +2025,13 @@ Beyond the literal keys, three v3 behaviors are gone:
 
 ### Storage internals are no longer part of the public API
 
-Several declarations that were only ever implementation details of `Dataset`, `KeyValueStore`, `RequestQueue` and `StorageTransaction` are no longer exported or no longer documented:
-
-- `StorageStatsTracker` is no longer exported. Read the counters through the `stats` getter on each storage instead — `dataset.stats`, `store.stats`, `queue.stats` — whose types (`DatasetStats`, `KeyValueStoreStats`, `RequestQueueStats`) remain public.
-- `resolveStorageIdentifier()` is no longer exported. Use `Dataset.open()` / `KeyValueStore.open()` / `RequestQueue.open()`, which accept the same `id` / `name` / `alias` identifier forms.
-- `DatasetOptions`, `KeyValueStoreOptions` and `RequestQueueOptions` are internal. They only described the arguments of the storage constructors, which were already internal — always open storages through the static `open()` methods.
-- `StorageTransaction.journal` and `StorageTransaction.policy`, along with the journal entry types (`JournalEntry`, `DatasetJournalEntry`, `KeyValueStoreJournalEntry`, `RequestQueueJournalEntry`, `JournaledRequest`), are internal. For read-only introspection of a transaction use the `StorageTransactionView` accessors: `datasetItems`, `enqueuedUrls`, `keyValueStoreChanges`.
+`DatasetOptions`, `KeyValueStoreOptions` and `RequestQueueOptions` are internal. They only described the arguments of the storage constructors, which were already internal — always open storages through the static `open()` methods.
 
 ### `Dataset` field visibility now matches its siblings
 
 - `Dataset.backend` is private, matching `KeyValueStore.backend`. Use the `Dataset` methods (`pushData`, `getData`, `getInfo`, `drop`, ...) rather than reaching for the backend client.
 - `Dataset.id` and `Dataset.name` are `readonly`, matching `KeyValueStore` and `RequestQueue`.
 - `Dataset.log` has been removed. It was never read by Crawlee and `KeyValueStore` never had it; use your own logger, or `crawler.log` inside a request handler.
-
-### `MemoryStorageBackend.createRequestQueueBackend()` returns the `RequestQueueBackend` interface
-
-It is now typed with the `RequestQueueBackend` interface from `@crawlee/types`, like its two sibling factories and like `FileSystemStorageBackend`. The runtime object is unchanged, but memory-only members (`listItems()`, `cacheKey`, `handledRequestCount`, `pendingRequestCount`, ...) are no longer visible through the return type. Read queue counts from `await getMetadata()`.
 
 ## Only if you tuned autoscaling
 
@@ -2155,8 +2108,6 @@ const crawler = new CheerioCrawler({
     },
 });
 ```
-
-`ConcurrencySystem.desiredConcurrency` is a **read-only getter** — the setter is gone. The value is owned by the autoscaler, which recomputes it from the load signals on every tick, so any write was overwritten within one `autoscaleIntervalSecs`. Set the starting point with the `desiredConcurrency` constructor option, and retune a running system through `minConcurrency` / `maxConcurrency`, which both clamp `desiredConcurrency` into the new bounds immediately.
 
 `crawler.pause()` resolves once the requests already in flight have settled, and leaves `run()` pending until you `resume()` — unlike `crawler.stop()`, which ends the run gracefully. One behavioral consequence of the split: pausing no longer suspends autoscaling, because the autoscaling interval belongs to the `ConcurrencySystem`, which knows nothing about its borrowers' pause state — deliberately, since other crawlers sharing it may still need scaling. A paused crawler's system keeps evaluating (and possibly scaling down) the desired concurrency and keeps emitting its periodic state log. Scaling *up* stays effectively blocked, as the current concurrency drains below the ratio required for a scale-up. To silence the system during a long pause, `stop()` it (if you own it) and `start()` it again before resuming; a restart discards the snapshots taken before it, so the pause is not mistaken for load.
 
@@ -2388,7 +2339,7 @@ The crawler-only parts of `@crawlee/core` moved to `@crawlee/basic`, so that `@c
 - `SessionPool`, `Session` and the session-pool constants
 - `Router` (with `RouterHandler`, `RouterRoutes` and `defaultRoute`)
 - the cookie helpers (`mergeCookies`, `getCookiesFromResponse`, …) and `parseRetryAfterHeader`
-- `SitemapRequestLoader` (with `SitemapRequestLoaderOptions`) and `ThrottlingRequestManager` (with `ThrottlingRequestManagerOptions` and `RequestManagerOpener`)
+- `SitemapRequestLoader` (with `SitemapRequestLoaderOptions`) and `ThrottlingRequestManager` (with `ThrottlingRequestManagerOptions`)
 - the `enqueueLinks()` option types (`EnqueueLinksOptions`, `ExtractLinksOptions`, `EnqueueUrlsOptions`, `RequestTransform`, `SkippedRequestCallback`) and the URL pattern types and helpers (`GlobInput`, `RegExpInput`, `UrlPatternInput`, `UrlPatternObject`, `constructUrlPatternObjects`, …)
 - the crawler-only error classes: `RetryRequestError`, `RequestThrottledError`, `PersistentRateLimitError`, `NavigationSkippedError`, `MissingSessionError`, `MissingRouteError`, `RequestHandlerError` and the `ContextPipeline*Error` types
 
@@ -2489,7 +2440,6 @@ The full list of removed exports and members, for ctrl-F purposes. Where a repla
 - `PlainResponse` type (from `@crawlee/http`) — it wrapped the `got-scraping` response and is gone along with the rest of the old HTTP response surface (see [`CrawlingContext.response` is now of type `Response`](#crawlingcontextresponse-is-now-of-type-response))
 - `checkStorageAccess`, `withCheckedStorageAccess` and the `RequestHandlerResult` type — superseded by the storage transaction mechanism; use `withDirectStorageAccess()` and `StorageTransactionView` (see [Storage writes in request handlers are transactional](#storage-writes-in-request-handlers-are-transactional))
 - `CreateContextOptions` type (from `@crawlee/basic`) — a leftover of the pre-`ContextPipeline` context-creation design, unused by the library itself; context construction is now driven by `ContextPipeline`
-- `BasicCrawler.basicContextPipeline` (public getter) — the basic half of the pipeline is an implementation detail of `BasicCrawler.run()`; compose behavior via `contextPipelineBuilder` / `ContextPipeline` composition instead
 - `ResponseLike` interface (from `@crawlee/core`) — a vestige of the pre-`fetch` HTTP implementation with no consumers; `getCookiesFromResponse()` has always taken a native `Response`
 - `UrlPatternObject` (from `@crawlee/core`) — the *compiled* form of a URL pattern, produced internally by the `enqueueLinks()` machinery. Keep using `UrlPatternInput` / `GlobInput` / `RegExpInput`, which are unchanged, and let the return type of the pattern helpers be inferred
 - `PERSIST_STATE_KEY` (from `@crawlee/core`) — to change where a session pool persists its state, pass `persistStateKey` to `SessionPool`
@@ -2497,7 +2447,6 @@ The full list of removed exports and members, for ctrl-F purposes. Where a repla
 - `WithRequired` type (from `@crawlee/core`) — a bare TypeScript utility that was never crawlee vocabulary; `LoadedRequest` no longer goes through it, so declare your own if you were using it
 - `ErrorSnapshotter` and its `SnapshotResult` return type (from `@crawlee/core`) — an implementation detail of `ErrorTracker`. Error snapshotting is opt-in through `new Statistics({ saveErrorSnapshots: true })` (or `new ErrorTracker({ saveErrorSnapshots: true })`)
 - `ErrorTracker.errorSnapshotter` and `ErrorTracker.captureSnapshot()` — both private now. Snapshotting is driven from `addAsync()` on the first occurrence of each distinct error; the captured URLs surface as `firstErrorScreenshotUrl` / `firstErrorHtmlUrl` on the corresponding node of `errorTracker.result`, as before
-- `assertBrowserPoolNotConfigured` (from `@crawlee/browser`) — an internal helper that produced the "cannot be combined with `browserPool`" error message; it moved to `@crawlee/utils/internal`
 - `MinimumSpeedStream` and `ByteCounterStream` (from `@crawlee/http`) — these `Transform` factories existed only to be piped inside `FileDownloadOptions.streamHandler`, which v4 removed. Compose your own `Transform` around `context.response.body` in the `requestHandler` instead; see the [file download with streams example](https://crawlee.dev/js/docs/examples/file-download-stream)
 - `HttpHook`, `FileDownloadHook`, `CheerioHook`, `JSDOMHook` and `LinkeDOMHook` types — see [Removed navigation hook type aliases](#removed-navigation-hook-type-aliases)
 - The `puppeteerClickElements` namespace (from `@crawlee/puppeteer`) — `clickElements`, `clickElementsAndInterceptNavigationRequests` and `isTargetRelevant` were internal helpers. Use `puppeteerUtils.enqueueLinksByClickingElements()`, or `context.enqueueLinksByClickingElements()` inside a request handler; the `EnqueueLinksByClickingElementsOptions` type is still exported directly from `@crawlee/puppeteer`
