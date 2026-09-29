@@ -48,6 +48,6 @@ const crawler = new AdaptivePlaywrightCrawler({
 // CrawleeLogger has no setLevel; raise the level on the global @apify/log instead.
 log.setLevel(LogLevel.DEBUG);
 
-await crawler.run(['https://crawlee.dev/js/docs/next/examples/accept-user-input']);
+await crawler.run(['https://crawlee.dev/js/docs/next/examples/add-data-to-dataset']);
 
 await Actor.exit({ exit: Actor.isAtHome() });
