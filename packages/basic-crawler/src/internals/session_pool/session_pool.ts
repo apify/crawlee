@@ -330,15 +330,21 @@ export class SessionPool implements ISessionPool {
      * Adds a new session to the session pool. The pool automatically creates sessions up to the maximum size of the pool,
      * but this allows you to add more sessions once the max pool size is reached.
      * This also allows you to add session with overridden session options (e.g. with specific session id).
+     *
+     * If the pool already contains a session with the same id, it is replaced when it is no longer usable
+     * (e.g. retired), and an error is thrown otherwise.
      * @param [options] The configuration options for the session being added to the session pool.
      */
     async addSession(options: Session | SessionOptions = {}): Promise<void> {
         await this.ensureInitialized();
         const { id } = options;
         if (id) {
-            const sessionExists = this.#sessionMap.has(id);
-            if (sessionExists) {
-                throw new Error(`Cannot add session with id '${id}' as it already exists in the pool`);
+            const existingSession = this.#sessionMap.get(id);
+            if (existingSession) {
+                if (existingSession.isUsable()) {
+                    throw new Error(`Cannot add session with id '${id}' as it already exists in the pool`);
+                }
+                this.#removeSession(existingSession);
             }
         }
 
@@ -483,6 +489,17 @@ export class SessionPool implements ISessionPool {
 
             return false;
         });
+    }
+
+    /**
+     * Removes a `Session` instance from `SessionPool`.
+     */
+    #removeSession(session: Session) {
+        this.#state.currentValue.sessions = this.#state.currentValue.sessions.filter(
+            (storedSession) => storedSession !== session,
+        );
+        this.#sessionMap.delete(session.id);
+        this.#log.debug(`Removed Session - ${session.id}`);
     }
 
     /**
