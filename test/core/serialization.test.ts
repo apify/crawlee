@@ -52,7 +52,7 @@ describe('Data Compression:', () => {
         const jsonBuffer = await gunzip(compressedTestJson);
         const expectedArray = JSON.parse(jsonBuffer.toString('utf8'));
 
-        const decompress = createDeserialize(compressedTestJson);
+        const decompress = await createDeserialize(compressedTestJson);
         const receivedArray = [];
         for await (const item of decompress) {
             receivedArray.push(item);

@@ -3,11 +3,11 @@ import util from 'node:util';
 import zlib from 'node:zlib';
 
 import ow from 'ow';
-import StreamArray from 'stream-json/streamers/StreamArray';
+import type StreamArray from 'stream-json/streamers/stream-array.js' with { 'resolution-mode': 'import' };
 
 const pipeline = util.promisify(streamPipeline);
 
-type Chain = ReturnType<typeof StreamArray.withParser>;
+type Chain = ReturnType<typeof StreamArray.withParserAsStream>;
 
 /**
  * Transforms an array of items to a JSON in a streaming
@@ -82,8 +82,9 @@ export async function serializeArray<T>(data: T[]): Promise<Buffer> {
  */
 export async function deserializeArray<T extends string | Buffer>(compressedData: Buffer | Uint8Array): Promise<T[]> {
     ow(compressedData, ow.uint8Array);
+    const { default: StreamArray } = await import('stream-json/streamers/stream-array.js');
     const { chunks, collector } = createChunkCollector<T>({ fromValuesStream: true });
-    await pipeline(Readable.from([compressedData]), zlib.createGunzip(), StreamArray.withParser(), collector);
+    await pipeline(Readable.from([compressedData]), zlib.createGunzip(), StreamArray.withParserAsStream(), collector);
 
     return chunks as T[];
 }
@@ -97,9 +98,10 @@ export async function deserializeArray<T extends string | Buffer>(compressedData
  * optimized to ingest a Stream if and when apify-client supports streams.
  * @internal
  */
-export function createDeserialize(compressedData: Buffer | Uint8Array): Readable {
+export async function createDeserialize(compressedData: Buffer | Uint8Array): Promise<Readable> {
     ow(compressedData, ow.uint8Array);
-    const streamArray = StreamArray.withParser();
+    const { default: StreamArray } = await import('stream-json/streamers/stream-array.js');
+    const streamArray = StreamArray.withParserAsStream();
     const destination = pluckValue(streamArray);
 
     streamPipeline(

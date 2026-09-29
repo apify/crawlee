@@ -453,7 +453,7 @@ export class RequestList implements IRequestList {
         this.sources = [];
 
         this.areRequestsPersisted = true;
-        const requestStream = createDeserialize(persistedRequests);
+        const requestStream = await createDeserialize(persistedRequests);
         for await (const request of requestStream) {
             this._addRequest(request);
         }
