@@ -323,6 +323,26 @@ describe('PlaywrightCrawler', () => {
         await playwrightCrawler.run();
     });
 
+    test('runs a buildContextPipeline override from a subclass', async () => {
+        class MyCrawler extends PlaywrightCrawler {
+            protected override buildContextPipeline() {
+                return super.buildContextPipeline().compose(async () => ({ myField: 123 }));
+            }
+        }
+
+        let myField: unknown;
+        const crawler = new MyCrawler({
+            requestList,
+            maxRequestRetries: 0,
+            requestHandler: async (context) => {
+                myField = (context as unknown as { myField: number }).myField;
+            },
+        });
+        await crawler.run();
+
+        expect(myField).toBe(123);
+    });
+
     test('validates userData against the router schema when adding requests', async () => {
         const router = createPlaywrightRouter({
             DETAIL: z.object({ id: z.string() }),

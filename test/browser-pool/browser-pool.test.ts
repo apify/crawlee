@@ -142,6 +142,8 @@ describe.each([
             await browserPool.destroy();
 
             expect(browserController.close).toHaveBeenCalled();
+            expect(browserPool['activeBrowserControllers'].size).toBe(0);
+            expect(browserPool['retiredBrowserControllers'].size).toBe(0);
             expect(browserPool['browserKillerInterval']).toBeUndefined();
         });
     });
@@ -246,6 +248,7 @@ describe.each([
             await browserPool.newPageInNewBrowser();
             await browserPool.newPageInNewBrowser();
 
+            expect(browserPool['activeBrowserControllers'].size).toBe(3);
             expect(plugin.launch).toHaveBeenCalledTimes(3);
         });
 

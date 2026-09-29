@@ -469,7 +469,7 @@ export class StagehandCrawler<
     }
 
     #buildContextPipeline(): ContextPipeline<CrawlingContext, StagehandCrawlingContext> {
-        return super.buildContextPipeline().compose(this.setUpStagehand.bind(this));
+        return this.buildContextPipeline().compose(this.setUpStagehand.bind(this));
     }
 
     /**

@@ -12,7 +12,6 @@ import type { DOMCrawlingContext } from '@crawlee/http';
 import type { ErrorHandler } from '@crawlee/http';
 import type { GetUserDataFromRequest } from '@crawlee/http';
 import type { HttpCrawlerOptions } from '@crawlee/http';
-import type { InternalHttpHook } from '@crawlee/http';
 import type { RequestHandler } from '@crawlee/http';
 import type { RouterHandler } from '@crawlee/http';
 import type { RouterRoutes } from '@crawlee/http';
@@ -39,10 +38,6 @@ JSONData extends Dictionary = any> extends DOMCrawlingContext<CheerioParseResult
 export type CheerioErrorHandler<UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
 JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
 ContextExtension = Dictionary<never>> = ErrorHandler<CrawlingContext, CheerioCrawlingContext<UserData, JSONData> & ContextExtension>;
-
-// @public (undocumented)
-export type CheerioHook<UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-JSONData extends Dictionary = any> = InternalHttpHook<CheerioCrawlingContext<UserData, JSONData>>;
 
 // @public (undocumented)
 export interface CheerioParseResult {
