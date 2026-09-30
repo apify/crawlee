@@ -116,9 +116,7 @@ export default defineConfig({
         // config refactor; flip them back on in follow-up cleanup PRs.
         'prefer-destructuring': 'off',
         'no-unassigned-vars': 'off',
-        'jest/expect-expect': 'off',
         'vitest/expect-expect': 'off',
-        'jest/valid-title': 'off',
         'promise/valid-params': 'off',
     },
     overrides: [
