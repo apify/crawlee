@@ -20,6 +20,27 @@ export abstract class BaseHttpClient implements BaseHttpClient_2 {
 }
 
 // @public
+export class BrowserFetchHttpClient<Page extends BrowserFetchPage = BrowserFetchPage> extends BaseHttpClient {
+    constructor(options: BrowserFetchHttpClientOptions<Page>);
+    // (undocumented)
+    protected fetch(request: Request, options?: RequestInit & CustomFetchOptions): Promise<Response>;
+}
+
+// @public (undocumented)
+export interface BrowserFetchHttpClientOptions<Page extends BrowserFetchPage = BrowserFetchPage> {
+    // (undocumented)
+    logger?: CrawleeLogger;
+    login?: (page: Page) => Promise<void>;
+    page: Page;
+}
+
+// @public
+export interface BrowserFetchPage {
+    // (undocumented)
+    evaluate<R, Arg>(pageFunction: (arg: Arg) => R | Promise<R>, arg: Arg): Promise<R>;
+}
+
+// @public
 export interface CustomFetchOptions {
     cookieJar?: CookieJar;
     fingerprint?: SessionFingerprint;

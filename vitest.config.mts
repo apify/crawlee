@@ -11,6 +11,7 @@ const browserTests = [
     'packages/browser-pool/test/**/*.test.ts',
     'test/browser-pool/**/*.test.ts',
     'test/core/autoscaling/memory-infoV2.test.ts',
+    'test/core/browser_fetch_http_client.test.ts',
     'test/core/browser_launchers/*.test.ts',
     'test/core/crawlers/adaptive_playwright_crawler.test.ts',
     'test/core/crawlers/browser_crawler.test.ts',

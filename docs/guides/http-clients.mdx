@@ -8,9 +8,11 @@ import ApiLink from '@site/src/components/ApiLink';
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 import RunnableCodeBlock from '@site/src/components/RunnableCodeBlock';
+import CodeBlock from '@theme/CodeBlock';
 
 import CheerioGotScrapingExample from '!!raw-loader!roa-loader!./http-clients/cheerio-got-scraping-example.ts';
 import CheerioImpitExample from '!!raw-loader!roa-loader!./http-clients/cheerio-impit-example.ts';
+import CheerioBrowserFetchExample from '!!raw-loader!./http-clients/cheerio-browser-fetch-example.ts';
 
 HTTP clients are utilized by HTTP-based crawlers (e.g., <ApiLink to="cheerio-crawler/class/CheerioCrawler">`CheerioCrawler`</ApiLink>) to communicate with web servers. They use external HTTP libraries for communication rather than a browser. Examples of such libraries include [`impit`](https://apify.github.io/impit/) or [`got-scraping`](https://github.com/apify/got-scraping/). After retrieving page content, an HTML parsing library is typically used to facilitate data extraction. Examples of such libraries include [Cheerio](https://cheerio.js.org/), [`jsdom`](https://github.com/jsdom/jsdom) or [`linkedom`](https://github.com/WebReflection/linkedom). These crawlers are faster than browser-based crawlers but generally cannot execute client-side JavaScript.
 
@@ -75,6 +77,18 @@ For <ApiLink to="impit-client/class/ImpitHttpClient">`ImpitHttpClient`</ApiLink>
 ```sh
 npm i @crawlee/impit-client
 ```
+
+## Sending requests from a logged-in browser page
+
+Some sites only serve content to a browser that has logged in or passed an anti-bot check, and block HTTP clients because of their TLS fingerprint, missing cookies or service workers. <ApiLink to="http-client/class/BrowserFetchHttpClient">`BrowserFetchHttpClient`</ApiLink> sends each request with `fetch()` inside a Playwright page you have already set up, so an HTTP-based crawler gets the browser's session while keeping its request queue, retries and statistics.
+
+<CodeBlock language="ts">{CheerioBrowserFetchExample}</CodeBlock>
+
+All requests run concurrently on the one page, and the client never navigates it except through `login`. Keep in mind that:
+
+- only URLs on the page's origin can be fetched, or cross-origin ones whose server allows credentials for it (`Access-Control-Allow-Credentials` with that origin, not `*`). The login must leave the page on the origin you crawl,
+- the browser uses its own cookies and hides the `Cookie` and `Set-Cookie` headers, so the session's cookie jar is not used,
+- the `proxyUrl`, `fingerprint` and `ignoreTlsErrors` options are ignored, as the browser context decides them.
 
 ## Creating custom HTTP clients
 
