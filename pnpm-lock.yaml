@@ -173,7 +173,7 @@ overrides:
   tar: ^7.5.16
   lerna>js-yaml: ^4.2.0
   lerna>minimatch: ^3.1.4
-  apify: ^4.0.0-beta.40
+  apify: ^4.0.0-beta.46
   apify>@crawlee/core: workspace:*
   apify>@crawlee/fs-storage: workspace:*
   apify>@crawlee/types: workspace:*
@@ -327,7 +327,7 @@ importers:
         specifier: ^4.0.16
         version: 4.1.4(vitest@4.1.4)
       apify:
-        specifier: ^4.0.0-beta.40
+        specifier: ^4.0.0-beta.46
         version: 4.0.0-beta.46(bufferutil@4.1.0)(debug@4.4.3(supports-color@7.2.0))(supports-color@7.2.0)
       apify-node-curl-impersonate:
         specifier: ^1.0.23
@@ -471,7 +471,7 @@ importers:
         specifier: ^1.39.0
         version: 1.43.0
       apify:
-        specifier: ^4.0.0-beta.40
+        specifier: ^4.0.0-beta.46
         version: 4.0.0-beta.46(bufferutil@4.1.0)(debug@4.4.3(supports-color@8.1.1))(supports-color@8.1.1)
       crawlee:
         specifier: workspace:*

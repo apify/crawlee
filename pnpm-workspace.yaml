@@ -30,7 +30,7 @@ overrides:
   # compatible with `@crawlee/core@4` (e.g. `Configuration.INTEGER_VARS` was
   # removed), so keep the SDK on the latest v4 beta and force it to use the workspace `@crawlee/*`
   # packages (mirroring the per-actor `overrides.apify` used for PLATFORM tests).
-  apify: "^4.0.0-beta.40"
+  apify: "^4.0.0-beta.46"
   "apify>@crawlee/core": "workspace:*"
   "apify>@crawlee/fs-storage": "workspace:*"
   "apify>@crawlee/types": "workspace:*"
