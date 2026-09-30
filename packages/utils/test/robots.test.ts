@@ -67,6 +67,22 @@ describe('RobotsTxtFile', () => {
         ]);
     });
 
+    it('treats a missing robots.txt (HTTP 404) as allowing everything', async () => {
+        nock('http://no-robots.com').get('/robots.txt').reply(404);
+
+        const robots = await RobotsTxtFile.find('http://no-robots.com/some/page.html', { httpClient });
+
+        expect(robots.isAllowed('http://no-robots.com/some/page.html')).toBe(true);
+        expect(robots.getSitemaps()).toEqual([]);
+        expect(robots.getCrawlDelay()).toBeUndefined();
+    });
+
+    it('still rejects on other non-2xx responses', async () => {
+        nock('http://broken-robots.com').get('/robots.txt').reply(500);
+
+        await expect(RobotsTxtFile.find('http://broken-robots.com/', { httpClient })).rejects.toThrow(/HTTP 500/);
+    });
+
     it('respects user-set timeout', async () => {
         const start = Date.now();
         const robots = RobotsTxtFile.find(`${neverReplies}/robots.txt`, { timeoutMillis: 200 });

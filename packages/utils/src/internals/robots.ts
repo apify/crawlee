@@ -106,10 +106,6 @@ export class RobotsTxtFile {
             signal: options?.signal,
         });
 
-        if (response.status < 200 || response.status >= 300) {
-            throw new Error(`Failed to load robots.txt from ${url}: HTTP ${response.status}`);
-        }
-
         if (response.status === 404) {
             return new RobotsTxtFile(
                 url,
@@ -127,6 +123,10 @@ export class RobotsTxtFile {
                 proxyUrl,
                 logger,
             );
+        }
+
+        if (response.status < 200 || response.status >= 300) {
+            throw new Error(`Failed to load robots.txt from ${url}: HTTP ${response.status}`);
         }
 
         // @ts-ignore
