@@ -703,7 +703,11 @@ export async function handleCloudflareChallenge(
 
     // check if we ended up on the CF challenge page
     const isChallenge = async () => {
-        return options.isChallengeCallback!(page).catch(() => false);
+        return options.isChallengeCallback!(page).catch(async () => {
+            // the challenge page navigates itself, which destroys the context of an in-flight check
+            await page.waitForLoadState('domcontentloaded').catch(() => {});
+            return options.isChallengeCallback!(page).catch(() => false);
+        });
     };
 
     if (!(await isChallenge())) {
