@@ -20,8 +20,9 @@ describe('navigation hook option types (#2063)', () => {
             void request.userData.label;
             gotoOptions.timeout = 60_000;
         };
-        const postNavigationHook = async ({ request }: PuppeteerCrawlingContext<OrderUserData>) =>
+        const postNavigationHook = async ({ request }: PuppeteerCrawlingContext<OrderUserData>) => {
             void request.userData.label;
+        };
 
         const options: PuppeteerCrawlerOptions = {
             preNavigationHooks: [preNavigationHook],
@@ -32,7 +33,9 @@ describe('navigation hook option types (#2063)', () => {
     });
 
     test('puppeteer - hooks typed via the PuppeteerHook generic', () => {
-        const hook: PuppeteerHook<OrderUserData> = async ({ request }) => void request.userData.label;
+        const hook: PuppeteerHook<OrderUserData> = async ({ request }) => {
+            void request.userData.label;
+        };
 
         const options: PuppeteerCrawlerOptions = {
             preNavigationHooks: [hook],
@@ -47,8 +50,9 @@ describe('navigation hook option types (#2063)', () => {
             void request.userData.label;
             gotoOptions.timeout = 60_000;
         };
-        const postNavigationHook = async ({ request }: PlaywrightCrawlingContext<OrderUserData>) =>
+        const postNavigationHook = async ({ request }: PlaywrightCrawlingContext<OrderUserData>) => {
             void request.userData.label;
+        };
 
         const options: PlaywrightCrawlerOptions = {
             preNavigationHooks: [preNavigationHook],
@@ -59,7 +63,9 @@ describe('navigation hook option types (#2063)', () => {
     });
 
     test('playwright - hooks typed via the PlaywrightHook generic', () => {
-        const hook: PlaywrightHook<OrderUserData> = async ({ request }) => void request.userData.label;
+        const hook: PlaywrightHook<OrderUserData> = async ({ request }) => {
+            void request.userData.label;
+        };
 
         const options: PlaywrightCrawlerOptions = {
             preNavigationHooks: [hook],
@@ -74,8 +80,9 @@ describe('navigation hook option types (#2063)', () => {
             void request.userData.label;
             gotoOptions.timeout = 60_000;
         };
-        const postNavigationHook = async ({ request }: StagehandCrawlingContext<OrderUserData>) =>
+        const postNavigationHook = async ({ request }: StagehandCrawlingContext<OrderUserData>) => {
             void request.userData.label;
+        };
 
         const options: StagehandCrawlerOptions = {
             preNavigationHooks: [preNavigationHook],
@@ -86,7 +93,9 @@ describe('navigation hook option types (#2063)', () => {
     });
 
     test('stagehand - hooks typed via the StagehandHook generic', () => {
-        const hook: StagehandHook<OrderUserData> = async ({ request }) => void request.userData.label;
+        const hook: StagehandHook<OrderUserData> = async ({ request }) => {
+            void request.userData.label;
+        };
 
         const options: StagehandCrawlerOptions = {
             preNavigationHooks: [hook],
@@ -97,8 +106,9 @@ describe('navigation hook option types (#2063)', () => {
     });
 
     test('cheerio - pre-navigation hook typed with custom user data stays assignable', () => {
-        const hook: InternalHttpHook<CrawlingContext<OrderUserData>> = async ({ request }) =>
+        const hook: InternalHttpHook<CrawlingContext<OrderUserData>> = async ({ request }) => {
             void request.userData.label;
+        };
 
         const options: CheerioCrawlerOptions = {
             preNavigationHooks: [hook],
@@ -110,8 +120,9 @@ describe('navigation hook option types (#2063)', () => {
 
 describe('request handler option types (#2063)', () => {
     test('playwright - request handler typed with custom user data stays assignable', () => {
-        const requestHandler = async ({ request }: PlaywrightCrawlingContext<OrderUserData>) =>
+        const requestHandler = async ({ request }: PlaywrightCrawlingContext<OrderUserData>) => {
             void request.userData.label;
+        };
 
         const options: PlaywrightCrawlerOptions = { requestHandler };
 
@@ -119,8 +130,9 @@ describe('request handler option types (#2063)', () => {
     });
 
     test('puppeteer - request handler typed with custom user data stays assignable', () => {
-        const requestHandler = async ({ request }: PuppeteerCrawlingContext<OrderUserData>) =>
+        const requestHandler = async ({ request }: PuppeteerCrawlingContext<OrderUserData>) => {
             void request.userData.label;
+        };
 
         const options: PuppeteerCrawlerOptions = { requestHandler };
 
@@ -128,8 +140,9 @@ describe('request handler option types (#2063)', () => {
     });
 
     test('stagehand - request handler typed with custom user data stays assignable', () => {
-        const requestHandler = async ({ request }: StagehandCrawlingContext<OrderUserData>) =>
+        const requestHandler = async ({ request }: StagehandCrawlingContext<OrderUserData>) => {
             void request.userData.label;
+        };
 
         const options: StagehandCrawlerOptions = { requestHandler };
 

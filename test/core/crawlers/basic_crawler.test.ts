@@ -2514,8 +2514,12 @@ describe('BasicCrawler', () => {
                 discardRequestRecord: () => {},
                 registerStatusCode: () => {},
                 calculate: () => ({}) as CalculatedStatistics,
-                startCapturing: async () => void calls.push('startCapturing'),
-                stopCapturing: async () => void calls.push('stopCapturing'),
+                startCapturing: async () => {
+                    calls.push('startCapturing');
+                },
+                stopCapturing: async () => {
+                    calls.push('stopCapturing');
+                },
                 // `persistState` is optional on `IStatistics`; this backend omits it.
             };
 
@@ -3736,7 +3740,9 @@ describe('BasicCrawler', () => {
                 maxRequestRetries: 1,
                 requestHandler: async ({ request, pushData, afterStorageCommit }) => {
                     await pushData({ attempt: request.retryCount });
-                    afterStorageCommit(() => void committedAttempts.push(request.retryCount));
+                    afterStorageCommit(() => {
+                        committedAttempts.push(request.retryCount);
+                    });
 
                     if (request.retryCount === 0) {
                         throw new Error('first attempt fails');
