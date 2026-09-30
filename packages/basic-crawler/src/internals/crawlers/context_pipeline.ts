@@ -169,40 +169,38 @@ class ContextPipelineImpl<TContextBase, TCrawlingContext extends TContextBase> e
         let consumerStarted = false;
 
         try {
-            try {
-                for (const middleware of middlewares) {
-                    const contextExtension = await middleware(crawlingContext, onCleanup);
+            for (const middleware of middlewares) {
+                const contextExtension = await middleware(crawlingContext, onCleanup);
 
-                    const extensionNames = [
-                        ...Object.getOwnPropertyNames(contextExtension),
-                        ...Object.getOwnPropertySymbols(contextExtension),
-                    ];
+                const extensionNames = [
+                    ...Object.getOwnPropertyNames(contextExtension),
+                    ...Object.getOwnPropertySymbols(contextExtension),
+                ];
 
-                    for (const key of extensionNames) {
-                        try {
-                            if (Object.getOwnPropertyDescriptor(crawlingContext, key)?.configurable !== false) {
-                                Object.defineProperty(
-                                    crawlingContext,
-                                    key,
-                                    Object.getOwnPropertyDescriptor(contextExtension, key)!,
-                                );
-                            }
-                        } catch (error: any) {
-                            serviceLocator
-                                .getLogger()
-                                .debug(`Context pipeline failed to define property ${key.toString()}:`, error);
+                for (const key of extensionNames) {
+                    try {
+                        if (Object.getOwnPropertyDescriptor(crawlingContext, key)?.configurable !== false) {
+                            Object.defineProperty(
+                                crawlingContext,
+                                key,
+                                Object.getOwnPropertyDescriptor(contextExtension, key)!,
+                            );
                         }
+                    } catch (error: any) {
+                        serviceLocator
+                            .getLogger()
+                            .debug(`Context pipeline failed to define property ${key.toString()}:`, error);
                     }
                 }
-
-                consumerStarted = true;
-                await finalContextConsumer(crawlingContext as TCrawlingContext);
-            } catch (exception: unknown) {
-                failure = consumerStarted
-                    ? new RequestHandlerError(exception)
-                    : new ContextPipelineInitializationError(exception);
-                await onError(failure);
             }
+
+            consumerStarted = true;
+            await finalContextConsumer(crawlingContext as TCrawlingContext);
+        } catch (exception: unknown) {
+            failure = consumerStarted
+                ? new RequestHandlerError(exception)
+                : new ContextPipelineInitializationError(exception);
+            await onError(failure);
         } finally {
             try {
                 for (const cleanup of cleanupStack.reverse()) {
