@@ -16,11 +16,11 @@ minimumReleaseAgeExclude:
   - "got-scraping"
 
 overrides:
-  # Dedup minimatch to v9 everywhere except inside lerna — lerna 9.x's bundled
-  # code (`__toESM(require('minimatch')).default(...)`) only works with v3,
-  # whose CJS export *is* the function. Pinning v9 there caused the publish
-  # step to silently report 0 changed packages.
-  minimatch: "^9.0.0"
+  # lerna 9.x's bundled code (`__toESM(require('minimatch')).default(...)`) only
+  # works with v3, whose CJS export *is* the function — pin lerna's nested copy
+  # there; the old blanket `minimatch: ^9.0.0` dedupe (everywhere else) was
+  # dropped since it now holds direct v10 consumers (e.g. @crawlee/basic) below
+  # their declared range with no remaining benefit.
   "@puppeteer/browsers": "^3.0.4"
   tar: "^7.5.16"
   "lerna>js-yaml": "^4.2.0"
