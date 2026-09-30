@@ -542,7 +542,9 @@ describe('KeyValueStore in a transaction', () => {
             expect(Object.fromEntries(entries)).toEqual({ real: { real: true }, buffered: { fresh: true } });
 
             const iterated: string[] = [];
-            await store.forEachKey(async (key) => void iterated.push(key));
+            await store.forEachKey(async (key) => {
+                iterated.push(key);
+            });
             expect(new Set(iterated)).toEqual(new Set(['real', 'buffered']));
 
             expect(transaction.keyValueStoreChanges[store.id]).toMatchObject({
