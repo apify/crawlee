@@ -84,8 +84,9 @@ Some sites only serve content to a browser that has logged in or passed an anti-
 
 <CodeBlock language="ts">{CheerioBrowserFetchExample}</CodeBlock>
 
-The client opens one page per origin on an empty document of that origin, without loading the site, so any URL can be fetched with the cookies of the context. A `401` response fails the request, and `errorHandler` runs before it is retried, so log in again there, in a new page of the context. Keep in mind that:
+The client opens one page per origin on an empty document of that origin, without loading the site, so URLs of any origin can be fetched with the cookies of the context. With the default `blockedStatusCodes`, a `401` response fails the request, and `errorHandler` runs before it is retried, so log in again there, in a new page of the context. Keep in mind that:
 
+- redirects to another origin fail, as the browser treats them as cross-origin requests,
 - the browser uses its own cookies and hides the `Cookie` and `Set-Cookie` headers, so the session's cookie jar is not used,
 - the `proxyUrl`, `fingerprint` and `ignoreTlsErrors` options are ignored, as the browser context decides them,
 - the browser sends only a few HTTP/1.1 requests to one host at a time (6 in Chromium), and the others wait in the browser, counting towards the navigation timeout.

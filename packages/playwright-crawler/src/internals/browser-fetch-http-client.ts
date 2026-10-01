@@ -29,8 +29,8 @@ const EMPTY_DOCUMENT_PATH = '/__crawlee_browser_fetch__';
  * A HTTP client implementation that sends requests with `fetch()` from pages of a Playwright browser context.
  *
  * Each origin gets its own page, opened on an empty document of that origin without loading the site, so the requests
- * are same-origin and carry the cookies of the context. The `proxyUrl`, `fingerprint` and `ignoreTlsErrors` options
- * are ignored.
+ * are same-origin and carry the cookies of the context. Redirects to another origin fail, as the browser treats them as
+ * cross-origin requests. The `proxyUrl`, `fingerprint` and `ignoreTlsErrors` options are ignored.
  */
 export class BrowserFetchHttpClient extends BaseHttpClient {
     #context: BrowserContext;
@@ -63,7 +63,7 @@ export class BrowserFetchHttpClient extends BaseHttpClient {
         return new ResponseWithUrl(Buffer.from(response.body, 'base64'), { status, statusText, headers, url });
     }
 
-    async #getPage(origin: string): Promise<Page> {
+    #getPage(origin: string): Promise<Page> {
         const existing = this.#pages.get(origin);
         if (existing) return existing;
 
@@ -71,7 +71,7 @@ export class BrowserFetchHttpClient extends BaseHttpClient {
         const forget = () => {
             if (this.#pages.get(origin) === page) this.#pages.delete(origin);
         };
-        page.then((p) => p.once('close', forget).once('crash', forget), forget);
+        page.then((p) => p.once('close', forget).once('crash', () => void p.close().catch(() => {})), forget);
         this.#pages.set(origin, page);
 
         return page;

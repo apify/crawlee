@@ -7,7 +7,7 @@ import { BrowserFetchHttpClient } from '@crawlee/playwright';
 import type { CrawleeLogger } from '@crawlee/types';
 import { sleep } from '@crawlee/utils';
 import express from 'express';
-import type { Browser, BrowserContext } from 'playwright';
+import type { Browser, BrowserContext, Page } from 'playwright';
 import playwright from 'playwright';
 
 import log from '@apify/log';
@@ -149,7 +149,7 @@ describe('BrowserFetchHttpClient', () => {
         expect(stats.retryHistogram).toEqual([8, 1]);
     });
 
-    test('runs requests concurrently', async () => {
+    test('runs requests concurrently on one page', async () => {
         const crawler = new CheerioCrawler({
             httpClient: new BrowserFetchHttpClient({ context }),
             minConcurrency: 4,
@@ -209,11 +209,17 @@ describe('BrowserFetchHttpClient', () => {
         expect(requestedPaths.sort()).toEqual(['/private/0', '/private/1', '/private/2', '/private/3']);
     });
 
-    test('opens a new page when its page is closed', async () => {
+    test.each([
+        ['is closed', async (page: Page) => page.close()],
+        ['crashes', async (page: Page) => page.goto('chrome://crash').catch(() => {})],
+    ])('opens a new page when its page %s', async (_name, breakPage) => {
         const httpClient = new BrowserFetchHttpClient({ context });
         await httpClient.sendRequest(new Request(`${baseUrl}/final`));
 
-        await context.pages()[0].close();
+        const [page] = context.pages();
+        const closed = new Promise((resolve) => page.once('close', resolve));
+        await breakPage(page);
+        await closed;
         const response = await httpClient.sendRequest(new Request(`${baseUrl}/final`));
 
         expect(response.status).toBe(203);
