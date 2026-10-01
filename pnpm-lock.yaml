@@ -951,7 +951,7 @@ importers:
         specifier: ^6.12.1
         version: 6.12.1
       playwright:
-        specifier: '*'
+        specifier: ^1.52.0
         version: 1.61.1
       string-comparison:
         specifier: ^1.3.0

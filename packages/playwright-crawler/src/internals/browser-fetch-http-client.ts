@@ -19,7 +19,7 @@ interface SerializedResponse {
     statusText: string;
     headers: [string, string][];
     url: string;
-    body: string;
+    body: Uint8Array<ArrayBuffer>;
 }
 
 const CONTROLLERS_KEY = 'crawlee.browserFetchHttpClient';
@@ -51,7 +51,7 @@ export class BrowserFetchHttpClient extends BaseHttpClient {
             );
         }
 
-        const body = request.body ? Buffer.from(await request.arrayBuffer()).toString('base64') : undefined;
+        const body = request.body ? new Uint8Array(await request.arrayBuffer()) : undefined;
         const page = await this.#getPage(new URL(request.url).origin);
         const response = await this.#fetchInPage(
             page,
@@ -60,7 +60,7 @@ export class BrowserFetchHttpClient extends BaseHttpClient {
         );
 
         const { status, statusText, headers, url } = response;
-        return new ResponseWithUrl(Buffer.from(response.body, 'base64'), { status, statusText, headers, url });
+        return new ResponseWithUrl(response.body, { status, statusText, headers, url });
     }
 
     #getPage(origin: string): Promise<Page> {
@@ -98,7 +98,7 @@ export class BrowserFetchHttpClient extends BaseHttpClient {
 
     async #fetchInPage(
         page: Page,
-        request: { url: string; method: string; headers: [string, string][]; body?: string },
+        request: { url: string; method: string; headers: [string, string][]; body?: Uint8Array<ArrayBuffer> },
         signal?: AbortSignal,
     ): Promise<SerializedResponse> {
         signal?.throwIfAborted();
@@ -132,22 +132,16 @@ export class BrowserFetchHttpClient extends BaseHttpClient {
                                 credentials: 'include',
                                 signal: controller.signal,
                             };
-                            if (body !== undefined) init.body = Uint8Array.from(atob(body), (c) => c.charCodeAt(0));
+                            if (body !== undefined) init.body = body;
 
                             const response = await fetch(url, init);
-                            const bytes = new Uint8Array(await response.arrayBuffer());
-
-                            let binary = '';
-                            for (let i = 0; i < bytes.length; i += 0x8000) {
-                                binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
-                            }
 
                             return {
                                 status: response.status,
                                 statusText: response.statusText,
                                 headers: [...response.headers] as [string, string][],
                                 url: response.url,
-                                body: btoa(binary),
+                                body: new Uint8Array(await response.arrayBuffer()),
                             };
                         } finally {
                             controllers.delete(requestId);
