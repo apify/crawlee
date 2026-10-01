@@ -31,9 +31,11 @@ describe('BrowserFetchHttpClient', () => {
     let inFlight = 0;
     let maxInFlight = 0;
     let flakyHits = 0;
-    let hangingClosed: Promise<void>;
-    let resolveHangingClosed: () => void;
+    let hangReached: PromiseWithResolvers<void>;
+    let hangReleased: PromiseWithResolvers<void>;
+    let hangClosed: boolean;
     const requestedPaths: string[] = [];
+    const allBytes = Buffer.from(Array.from({ length: 256 }, (_, i) => i));
 
     const hasSession = (req: express.Request) => {
         const token = /session=([^;]+)/.exec(req.headers.cookie ?? '')?.[1];
@@ -87,15 +89,20 @@ describe('BrowserFetchHttpClient', () => {
             });
         });
         app.get('/binary', (_req, res) => {
-            res.type('application/octet-stream').send(Buffer.from(Array.from({ length: 256 }, (_, i) => i)));
+            res.type('application/octet-stream').send(allBytes);
         });
         app.get('/redirect', (_req, res) => res.redirect(302, '/final'));
         app.get('/final', (_req, res) => {
             res.setHeader('x-custom', 'yes');
             res.status(203).send('final');
         });
-        app.get('/hang', (_req, res) => {
-            res.on('close', () => resolveHangingClosed());
+        app.get('/hang', async (_req, res) => {
+            res.on('close', () => {
+                hangClosed = true;
+            });
+            hangReached.resolve();
+            await hangReleased.promise;
+            res.send('released');
         });
 
         server = await startExpressAppPromise(app, 0);
@@ -114,12 +121,11 @@ describe('BrowserFetchHttpClient', () => {
         inFlight = 0;
         maxInFlight = 0;
         flakyHits = 0;
-        hangingClosed = new Promise((resolve) => {
-            resolveHangingClosed = resolve;
-        });
+        hangReached = Promise.withResolvers();
+        hangReleased = Promise.withResolvers();
+        hangClosed = false;
         context = await browser.newContext();
         await login();
-        requestedPaths.length = 0;
     });
 
     afterEach(async () => {
@@ -246,18 +252,20 @@ describe('BrowserFetchHttpClient', () => {
     test('keeps pages with requests in flight open', async () => {
         const httpClient = new BrowserFetchHttpClient({ context, maxOpenPages: 1 });
 
-        const slow = httpClient.sendRequest(new Request(`${baseUrl}/private/1?delay=500`));
+        const held = httpClient.sendRequest(new Request(`${baseUrl}/hang`));
+        await hangReached.promise;
         const fast = await httpClient.sendRequest(new Request(`${otherUrl}/final`));
+        hangReleased.resolve();
 
         expect(fast.status).toBe(203);
-        expect((await slow).status).toBe(200);
+        expect((await held).status).toBe(200);
         await expect.poll(() => context.pages().map((page) => new URL(page.url()).origin)).toEqual([baseUrl]);
     });
 
     test.each([
         ['text', 'text/plain', Buffer.from('hello world')],
         ['JSON', 'application/json', Buffer.from(JSON.stringify({ foo: 'bar' }))],
-        ['binary', 'application/octet-stream', Buffer.from(Array.from({ length: 256 }, (_, i) => i))],
+        ['binary', 'application/octet-stream', allBytes],
     ])('sends a %s request body intact', async (_name, contentType, body) => {
         const httpClient = new BrowserFetchHttpClient({ context });
 
@@ -273,9 +281,7 @@ describe('BrowserFetchHttpClient', () => {
 
         const response = await httpClient.sendRequest(new Request(`${baseUrl}/binary`));
 
-        expect(Buffer.from(await response.arrayBuffer())).toEqual(
-            Buffer.from(Array.from({ length: 256 }, (_, i) => i)),
-        );
+        expect(Buffer.from(await response.arrayBuffer())).toEqual(allBytes);
     });
 
     test('follows redirects and returns the final status, headers and URL', async () => {
@@ -292,12 +298,13 @@ describe('BrowserFetchHttpClient', () => {
     test('cancels the request in the page when aborted', async () => {
         const httpClient = new BrowserFetchHttpClient({ context });
         const controller = new AbortController();
-        setTimeout(() => controller.abort(), 200);
 
-        await expect(
-            httpClient.sendRequest(new Request(`${baseUrl}/hang`), { signal: controller.signal }),
-        ).rejects.toThrow();
-        await expect(Promise.race([hangingClosed.then(() => 'closed'), sleep(2000)])).resolves.toBe('closed');
+        const response = httpClient.sendRequest(new Request(`${baseUrl}/hang`), { signal: controller.signal });
+        await hangReached.promise;
+        controller.abort();
+
+        await expect(response).rejects.toThrow();
+        await expect.poll(() => hangClosed).toBe(true);
     });
 
     test('warns that ignoreTlsErrors is ignored', async () => {

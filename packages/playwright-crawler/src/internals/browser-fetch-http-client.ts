@@ -26,14 +26,6 @@ interface OpenPage {
     requests: number;
 }
 
-interface SerializedResponse {
-    status: number;
-    statusText: string;
-    headers: [string, string][];
-    url: string;
-    body: Uint8Array<ArrayBuffer>;
-}
-
 const CONTROLLERS_KEY = 'crawlee.browserFetchHttpClient';
 const EMPTY_DOCUMENT_PATH = '/__crawlee_browser_fetch__';
 
@@ -66,18 +58,11 @@ export class BrowserFetchHttpClient extends BaseHttpClient {
             );
         }
 
-        const body = request.body ? new Uint8Array(await request.arrayBuffer()) : undefined;
         const openPage = this.#acquirePage(new URL(request.url).origin);
 
         try {
-            const response = await this.#fetchInPage(
-                await openPage.page,
-                { url: request.url, method: request.method, headers: [...request.headers], body },
-                options?.signal ?? undefined,
-            );
-
-            const { status, statusText, headers, url } = response;
-            return new ResponseWithUrl(response.body, { status, statusText, headers, url });
+            // `options.redirect` is ignored, the browser follows redirects itself
+            return await this.#fetchInPage(await openPage.page, request, options?.signal);
         } finally {
             openPage.requests--;
             this.#closeIdlePages();
@@ -114,7 +99,7 @@ export class BrowserFetchHttpClient extends BaseHttpClient {
             if (requests > 0) continue;
 
             this.#pages.delete(origin);
-            page.then(async (p) => p.close()).catch(() => {});
+            page.then((p) => p.close()).catch(() => {});
         }
     }
 
@@ -134,28 +119,23 @@ export class BrowserFetchHttpClient extends BaseHttpClient {
         return page;
     }
 
-    async #fetchInPage(
-        page: Page,
-        request: { url: string; method: string; headers: [string, string][]; body?: Uint8Array<ArrayBuffer> },
-        signal?: AbortSignal,
-    ): Promise<SerializedResponse> {
+    async #fetchInPage(page: Page, request: Request, signal?: AbortSignal | null): Promise<Response> {
         signal?.throwIfAborted();
 
+        const body = request.body ? new Uint8Array(await request.arrayBuffer()) : undefined;
         const id = randomUUID();
-        let onAbort!: () => void;
-        const aborted = new Promise<never>((_, reject) => {
-            onAbort = () => {
-                page.evaluate(([key, requestId]) => (globalThis as any)[Symbol.for(key)]?.get(requestId)?.abort(), [
-                    CONTROLLERS_KEY,
-                    id,
-                ] as const).catch(() => {});
-                reject(signal!.reason);
-            };
-        });
+        const aborted = Promise.withResolvers<never>();
+        const onAbort = () => {
+            page.evaluate(([key, requestId]) => (globalThis as any)[Symbol.for(key)]?.get(requestId)?.abort(), [
+                CONTROLLERS_KEY,
+                id,
+            ] as const).catch(() => {});
+            aborted.reject(signal!.reason);
+        };
         signal?.addEventListener('abort', onAbort, { once: true });
 
         try {
-            return await Promise.race([
+            const { body: responseBody, ...responseInit } = await Promise.race([
                 page.evaluate(
                     async ({ key, requestId, url, method, headers, body }) => {
                         const controllers: Map<string, AbortController> = ((globalThis as any)[Symbol.for(key)] ??=
@@ -167,17 +147,17 @@ export class BrowserFetchHttpClient extends BaseHttpClient {
                             const init: RequestInit = {
                                 method,
                                 headers,
+                                body,
                                 credentials: 'include',
                                 signal: controller.signal,
                             };
-                            if (body !== undefined) init.body = body;
 
                             const response = await fetch(url, init);
 
                             return {
                                 status: response.status,
                                 statusText: response.statusText,
-                                headers: [...response.headers] as [string, string][],
+                                headers: [...response.headers],
                                 url: response.url,
                                 body: new Uint8Array(await response.arrayBuffer()),
                             };
@@ -185,10 +165,19 @@ export class BrowserFetchHttpClient extends BaseHttpClient {
                             controllers.delete(requestId);
                         }
                     },
-                    { key: CONTROLLERS_KEY, requestId: id, ...request },
+                    {
+                        key: CONTROLLERS_KEY,
+                        requestId: id,
+                        url: request.url,
+                        method: request.method,
+                        headers: [...request.headers],
+                        body,
+                    },
                 ),
-                aborted,
+                aborted.promise,
             ]);
+
+            return new ResponseWithUrl(responseBody, responseInit);
         } finally {
             signal?.removeEventListener('abort', onAbort);
         }

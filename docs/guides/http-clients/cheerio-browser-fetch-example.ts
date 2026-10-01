@@ -6,7 +6,8 @@ const login = async (context: BrowserContext) => {
     await page.goto('https://example.com/login');
     await page.fill('#username', process.env.USERNAME!);
     await page.fill('#password', process.env.PASSWORD!);
-    await Promise.all([page.waitForURL('https://example.com/account'), page.click('button[type=submit]')]);
+    await page.click('button[type=submit]');
+    await page.waitForURL('https://example.com/account');
     await page.close();
 };
 
