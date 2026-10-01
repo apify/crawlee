@@ -562,14 +562,18 @@ export abstract class BrowserCrawler<
                         : failure;
 
                 // Only tells the pool what to do with the page's browser state - the request's failure, if any, has
-                // already been handled. A thrown `SessionError` counts as a block; a session unusable for any other
-                // reason is reported as retired.
+                // already been handled. A thrown `SessionError` or a blocked session counts as a block; a session
+                // unusable for any other reason is reported as retired. `retire()`/`markBad()` also bump the usage
+                // count, so the block check must come first.
+                const { session } = crawlingContext;
                 const closeReason =
                     cause instanceof SessionError
                         ? cause
-                        : crawlingContext.session.isUsable()
-                          ? undefined
-                          : new SessionRetiredError();
+                        : session.isBlocked()
+                          ? new SessionError()
+                          : session.isUsable()
+                            ? undefined
+                            : new SessionRetiredError();
 
                 await this.browserPool
                     .closePage(page, { error: closeReason })

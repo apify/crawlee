@@ -653,10 +653,10 @@ describe('BrowserCrawler', () => {
 
     test('tells closePage whether the session was blocked or just used up', async () => {
         const externalPool = new BrowserPoolClass({ browserPlugins: [new PuppeteerPlugin(puppeteer)] });
-        const closeErrors: (Error | undefined)[] = [];
+        const closeErrors = new Map<string | null, Error | undefined>();
         const originalClosePage = externalPool.closePage.bind(externalPool);
         externalPool.closePage = async (page, options) => {
-            closeErrors.push(options?.error);
+            closeErrors.set(new URL(page.url()).searchParams.get('q'), options?.error);
             return originalClosePage(page, options);
         };
         const blockError = new SessionError('blocked');
@@ -664,20 +664,34 @@ describe('BrowserCrawler', () => {
         try {
             const crawler = new BrowserCrawlerTest({
                 browserPool: externalPool,
-                requestList: await RequestList.open(null, [`${serverAddress}/?q=blocked`, `${serverAddress}/?q=ok`]),
-                sessionPool: new SessionPool({ sessionOptions: { maxUsageCount: 1 } }),
+                // `maxUsageCount: 1` means `markBad()`/`retire()` also exhaust usage, so a block must win over that.
+                sessionPool: new SessionPool({ sessionOptions: { maxUsageCount: 1, maxErrorScore: 3 } }),
                 maxConcurrency: 1,
                 maxRequestRetries: 0,
-                requestHandler: async ({ request }) => {
+                requestHandler: async ({ request, session }) => {
                     if (request.url.endsWith('blocked')) throw blockError;
+                    if (request.url.endsWith('markbad')) for (let i = 0; i < 3; i++) session.markBad();
+                    if (request.url.endsWith('retire')) {
+                        session.retire();
+                        throw new Error('captcha');
+                    }
                 },
             });
 
-            await crawler.run();
+            await crawler.run([
+                `${serverAddress}/?q=blocked`,
+                `${serverAddress}/?q=ok`,
+                `${serverAddress}/?q=markbad`,
+                `${serverAddress}/?q=retire`,
+            ]);
 
-            expect(closeErrors).toHaveLength(2);
-            expect(closeErrors[0]).toBe(blockError);
-            expect(closeErrors[1]).toBeInstanceOf(SessionRetiredError);
+            expect(closeErrors.size).toBe(4);
+            expect(closeErrors.get('blocked')).toBe(blockError);
+            expect(closeErrors.get('ok')).toBeInstanceOf(SessionRetiredError);
+            for (const q of ['markbad', 'retire']) {
+                expect(closeErrors.get(q)).toBeInstanceOf(SessionError);
+                expect(closeErrors.get(q)).not.toBeInstanceOf(SessionRetiredError);
+            }
         } finally {
             await externalPool.destroy();
         }

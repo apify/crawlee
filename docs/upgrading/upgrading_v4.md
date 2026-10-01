@@ -1104,7 +1104,7 @@ const crawler = new BasicCrawler({
 });
 ```
 
-The crawler depends only on the `ISession` interface — `id`, `cookieJar`, `proxyInfo`, `fingerprint`, and the `isUsable()` / `markGood()` / `markBad()` / `retire()` methods — so a custom pool may hand out its own session implementation instead of instances of the built-in `Session` class. `Session` implements `ISession`, so returning `Session` instances (as above) is the shortest path; `crawlingContext.session` is typed as `ISession` either way.
+The crawler depends only on the `ISession` interface — `id`, `cookieJar`, `proxyInfo`, `fingerprint`, and the `isUsable()` / `isBlocked()` / `markGood()` / `markBad()` / `retire()` methods — so a custom pool may hand out its own session implementation instead of instances of the built-in `Session` class. `Session` implements `ISession`, so returning `Session` instances (as above) is the shortest path; `crawlingContext.session` is typed as `ISession` either way.
 
 Returning `undefined` means the pool has no usable session for the request. The crawler turns that into a `MissingSessionError` and retries the request like any other failure.
 

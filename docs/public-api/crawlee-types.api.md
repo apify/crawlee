@@ -202,6 +202,7 @@ export interface ISession {
     fingerprint?: SessionFingerprint;
     // (undocumented)
     readonly id: string;
+    isBlocked(): boolean;
     isUsable(): boolean;
     markBad(): void;
     markGood(): void;

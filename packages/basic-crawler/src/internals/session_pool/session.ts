@@ -254,6 +254,7 @@ export class Session implements ISession {
      * It increases `usageCount` and potentially lowers the `errorScore` by the `errorScoreDecrement`.
      */
     markGood() {
+        if (this.#retired) return;
         this.#usageCount += 1;
 
         if (this.#errorScore > 0) {
@@ -294,7 +295,7 @@ export class Session implements ISession {
      * For transient external failures (such as `5XX` responses), use `markBad()` instead.
      */
     retire() {
-        if (this.#retired) return;
+        if (this.#retired && this.isBlocked()) return;
         this.#errorScore += this.#maxErrorScore;
         this.#usageCount += 1;
         this.#retired = true;
@@ -333,11 +334,12 @@ export class Session implements ISession {
     }
 
     /**
-     * Checks if session is not usable. if it is not retires the session.
+     * Makes an unusable session's state terminal. Unlike `retire()`, this leaves the error score alone so that
+     * `isBlocked()` keeps telling a burned identity from one that merely ran out of uses.
      */
     private maybeSelfRetire(): void {
         if (!this.isUsable()) {
-            this.retire();
+            this.#retired = true;
         }
     }
 }
