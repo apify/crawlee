@@ -1464,10 +1464,11 @@ export class BasicCrawler<
                     this.log.debug('Extending the request processing time failed', { url: context.request.url, error });
                 });
             },
-            skipRequest: (reason?: string): never => {
-                const message = `Skipping request ${context.request.url} (${context.request.id})${reason ? `: ${reason}` : ''}`;
-                this.log.debug(message);
-                throw new ContextPipelineInterruptedError('manual', reason);
+            skipRequest: (message?: string): never => {
+                this.log.debug(
+                    `Skipping request ${context.request.url} (${context.request.id})${message ? `: ${message}` : ''}`,
+                );
+                throw new ContextPipelineInterruptedError('manual', message);
             },
         };
     }

@@ -182,9 +182,9 @@ export interface RestrictedCrawlingContext<UserData extends Dictionary = Diction
      * ],
      * ```
      *
-     * @param reason Passed to `onSkippedRequest` as `message`.
+     * @param message Passed to `onSkippedRequest`.
      */
-    skipRequest(reason?: string): never;
+    skipRequest(message?: string): never;
 }
 
 export interface CrawlingContext<UserData extends Dictionary = Dictionary> extends RestrictedCrawlingContext<UserData> {

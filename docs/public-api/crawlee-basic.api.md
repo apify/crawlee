@@ -641,7 +641,7 @@ export interface RestrictedCrawlingContext<UserData extends Dictionary = Diction
     request: CrawlingRequest<UserData>;
     // (undocumented)
     session: ISession;
-    skipRequest(reason?: string): never;
+    skipRequest(message?: string): never;
     useState: <State extends Dictionary = Dictionary>(defaultValue?: State) => Promise<State>;
 }
 

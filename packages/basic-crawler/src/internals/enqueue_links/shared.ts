@@ -48,7 +48,7 @@ export const urlPatternSchema = z.union([
 export type SkippedRequestCallback = (args: {
     request: Request;
     reason: SkippedRequestReason;
-    /** The `reason` passed to {@apilink RestrictedCrawlingContext.skipRequest|`context.skipRequest()`}, if any. */
+    /** The `message` passed to {@apilink RestrictedCrawlingContext.skipRequest|`context.skipRequest()`}, if any. */
     message?: string;
 }) => Awaitable<void>;
 
