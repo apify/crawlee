@@ -19,6 +19,7 @@ import {
     AfterCommitError,
     BasicCrawler,
     CrawlingRequest,
+    ContextPipelineInterruptedError,
     ConcurrencySystem,
     Configuration,
     CriticalError,
@@ -2073,6 +2074,115 @@ describe('BasicCrawler', () => {
         await crawler.run();
 
         expect(processed).toHaveLength(1);
+    });
+
+    test('an error handler outliving the internal timeout does not crash the crawler', async () => {
+        serviceLocator.reset();
+        serviceLocator.setStorageBackend(new MemoryStorageBackend());
+        serviceLocator.setConfiguration(new Configuration({ internalTimeoutMillis: 100 }));
+
+        let errorHandlerCalls = 0;
+
+        const crawler = new BasicCrawler({
+            maxRequestRetries: 1,
+            // keeps the request timeout well clear, so only the error handler's own timer can fire
+            requestHandlerTimeoutSecs: 1,
+            requestHandler: async () => {
+                throw new Error('boom');
+            },
+            errorHandler: async () => {
+                if (errorHandlerCalls++ === 0) await sleep(300);
+            },
+        });
+        const warningSpy = vitest.spyOn(crawler.log, 'warning');
+
+        await expect(crawler.run(['https://example.com'])).resolves.toMatchObject({ requestsFailed: 1 });
+
+        // without this, the test would also pass if the error handler simply weren't timed out at all
+        expect(warningSpy).toHaveBeenCalledWith(expect.stringContaining('Handling request failure'));
+    });
+
+    test('a timed out error handler still uses up a retry', async () => {
+        serviceLocator.reset();
+        serviceLocator.setStorageBackend(new MemoryStorageBackend());
+        serviceLocator.setConfiguration(new Configuration({ internalTimeoutMillis: 100 }));
+
+        // never settles, so every retry times out - if that did not use up a retry, the request would go round forever
+        const errorHandler = vitest.fn(() => new Promise<never>(() => {}));
+
+        const crawler = new BasicCrawler({
+            maxRequestRetries: 2,
+            requestHandlerTimeoutSecs: 1,
+            requestHandler: async () => {
+                throw new Error('boom');
+            },
+            errorHandler,
+        });
+
+        await expect(crawler.run(['https://example.com'])).resolves.toMatchObject({ requestsFailed: 1 });
+        expect(errorHandler).toHaveBeenCalledTimes(2);
+    });
+
+    test('the request timeout does not fire while the error handler is running', async () => {
+        serviceLocator.reset();
+        serviceLocator.setStorageBackend(new MemoryStorageBackend());
+        // the request timeout is max(internal, handler) = 200ms; the handler times out at 100ms and the
+        // failure handler runs past 200ms, while staying within its own 200ms budget
+        serviceLocator.setConfiguration(new Configuration({ internalTimeoutMillis: 200 }));
+
+        let failedRequestHandlerFinished = false;
+        const failedRequestHandler = vitest.fn(async () => {
+            await sleep(150);
+            failedRequestHandlerFinished = true;
+        });
+
+        const crawler = new BasicCrawler({
+            maxRequestRetries: 0,
+            requestHandlerTimeoutSecs: 0.1,
+            requestHandler: async () => sleep(150),
+            failedRequestHandler,
+        });
+
+        await Promise.all([
+            crawler.run(['https://example.com']).then(() => expect(failedRequestHandlerFinished).toBe(true)),
+            // a second, concurrent failure handling may outlive `run()`; this covers it with room to spare
+            sleep(500),
+        ]);
+
+        // the concurrent second run would get the request timeout instead of the handler's own
+        expect(failedRequestHandler).toHaveBeenCalledExactlyOnceWith(
+            expect.anything(),
+            expect.objectContaining({ message: expect.stringContaining('requestHandler timed out') }),
+        );
+    });
+
+    test('a skipped request whose markRequestAsHandled times out does not crash the crawler', async () => {
+        serviceLocator.reset();
+        serviceLocator.setStorageBackend(new MemoryStorageBackend());
+        serviceLocator.setConfiguration(new Configuration({ internalTimeoutMillis: 100 }));
+
+        const requestQueue = await RequestQueue.open();
+
+        // the whole backend is down, so the safety-net reclaim cannot rescue the request either
+        vitest.spyOn(requestQueue, 'markRequestAsHandled').mockImplementation(() => new Promise<never>(() => {}));
+        vitest.spyOn(requestQueue, 'reclaimRequest').mockImplementation(() => new Promise<never>(() => {}));
+
+        const crawler = new BasicCrawler({
+            requestQueue,
+            // the request is never handled, so the queue never finishes; `stop()` lets the in-flight request wind down
+            extendContext: () => {
+                crawler.stop();
+                throw new ContextPipelineInterruptedError('skipped by the test');
+            },
+            requestHandler: async () => {},
+        });
+        const warningSpy = vitest.spyOn(crawler.log, 'warning');
+
+        await expect(crawler.run(['https://example.com'])).resolves.toBeDefined();
+        // anchored, so that the `timeoutAndRetry` retry warnings ("... (retrying 1/3)") do not count
+        expect(warningSpy).toHaveBeenCalledWith(
+            expect.stringMatching(/^Marking request .* as handled timed out after 0\.1 seconds\.$/),
+        );
     });
 
     test('warns when the internal timeout is shorter than the phase timeouts', async () => {
