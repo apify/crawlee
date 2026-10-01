@@ -123,10 +123,7 @@ export class BrowserFetchHttpClient extends BaseHttpClient {
         const url = `${origin}${EMPTY_DOCUMENT_PATH}`;
 
         try {
-            // The empty icon keeps Firefox from requesting `/favicon.ico` from the site
-            await page.route(url, async (route) =>
-                route.fulfill({ contentType: 'text/html', body: '<link rel="icon" href="data:,">' }),
-            );
+            await page.route(url, async (route) => route.fulfill({ contentType: 'text/html', body: '' }));
             await page.goto(url);
             await page.unroute(url);
         } catch (error) {
