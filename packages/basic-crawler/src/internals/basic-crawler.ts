@@ -99,6 +99,7 @@ import {
     navigationDeadlineKey,
     raceWithTimeout,
     type RequestTimeoutContext,
+    suspendTimeoutKey,
     timeoutExpiredKey,
 } from './request-timeout.js';
 import { createSendRequest } from './send-request.js';
@@ -2650,27 +2651,29 @@ export class BasicCrawler<
         // because the transaction is already closed. A no-op when the commit in `handleRequest` succeeded.
         currentStorageTransaction()?.rollback();
 
-        // ContextPipelineInterruptedError means the request was intentionally skipped
-        // (e.g., doesn't match enqueue strategy after redirect). Just return gracefully.
-        if (
+        const skipped =
             rawError instanceof ContextPipelineInitializationError &&
-            rawError.cause instanceof ContextPipelineInterruptedError
-        ) {
-            this.statistics.discardRequestRecord(request.id || request.uniqueKey);
-            await this.timeoutAndRetry(
-                async () => requestSource.markRequestAsHandled(request),
-                this.internalTimeoutMillis,
-                `Marking request ${request.url} (${request.id}) as handled timed out after ${
-                    this.internalTimeoutMillis / 1e3
-                } seconds.`,
-            );
-            return;
-        }
-
+            rawError.cause instanceof ContextPipelineInterruptedError;
         const err = this.unwrapError(rawError);
         const context = crawlingContext as CrawlingContext;
+        const retryCountBefore = request.retryCount;
+        const resumeRequestTimeout = crawlingContext[suspendTimeoutKey]?.();
 
         try {
+            // ContextPipelineInterruptedError means the request was intentionally skipped
+            // (e.g., doesn't match enqueue strategy after redirect). Just return gracefully.
+            if (skipped) {
+                this.statistics.discardRequestRecord(request.id || request.uniqueKey);
+                await this.timeoutAndRetry(
+                    async () => requestSource.markRequestAsHandled(request),
+                    this.internalTimeoutMillis,
+                    `Marking request ${request.url} (${request.id}) as handled timed out after ${
+                        this.internalTimeoutMillis / 1e3
+                    } seconds.`,
+                );
+                return;
+            }
+
             request.state = RequestState.ERROR_HANDLER;
             await addTimeoutToPromise(
                 async () => this.requestFunctionErrorHandler(err, context, request, requestSource),
@@ -2682,9 +2685,18 @@ export class BasicCrawler<
             request.state = RequestState.DONE;
         } catch (secondaryError) {
             const unwrappedSecondaryError = this.unwrapError(secondaryError);
+            const timedOut = unwrappedSecondaryError instanceof TimeoutError;
+            request.state = RequestState.ERROR;
 
-            // avoid reprinting the same critical error multiple times, as it will be printed by Nodejs at the end anyway
-            if (!(unwrappedSecondaryError instanceof CriticalError)) {
+            if (timedOut) {
+                // Not worth crashing the crawler over. The request's state is unknown, so it gets retried - and the
+                // retry is counted, so that an error handler that always times out does not retry it forever.
+                this.log.warning(unwrappedSecondaryError.message);
+                if (!skipped && request.retryCount === retryCountBefore) {
+                    request.retryCount++;
+                }
+            } else if (!(unwrappedSecondaryError instanceof CriticalError)) {
+                // avoid reprinting the same critical error multiple times, as it will be printed by Nodejs at the end anyway
                 const apifySpecific = process.env.APIFY_IS_AT_HOME
                     ? `This may have happened due to an internal error of Apify's API or due to a misconfigured crawler.`
                     : '';
@@ -2694,24 +2706,29 @@ export class BasicCrawler<
                         `This places the crawler and its underlying storages into an unknown state and crawling will be terminated. ${apifySpecific}`,
                 );
             }
-            request.state = RequestState.ERROR;
 
             // Safety net - the error handler neither marked the request as handled nor reclaimed it (e.g. after a
             // CriticalError). Reclaiming a request that is no longer in progress is a harmless no-op on the storage backend.
-            if (requestSource instanceof RequestQueue) {
-                try {
-                    await requestSource.reclaimRequest(request);
-                } catch {
-                    // The request was never in progress, or could not be reclaimed. Either way it's fine.
-                }
+            try {
+                await addTimeoutToPromise(
+                    async () => requestSource.reclaimRequest(request),
+                    this.internalTimeoutMillis,
+                    `Reclaiming request ${request.url} (${request.id}) timed out.`,
+                );
+            } catch {
+                // The request was never in progress, or could not be reclaimed. Either way it's fine.
             }
 
-            throw unwrappedSecondaryError;
+            if (!timedOut) {
+                throw unwrappedSecondaryError;
+            }
+        } finally {
+            resumeRequestTimeout?.();
         }
 
         // decrease the session score if the request fails (but the error handler did not throw);
         // skip when the error is a SessionError, which already retired the session
-        if (!this.errorAbsolvesSession(err)) {
+        if (!skipped && !this.errorAbsolvesSession(err)) {
             context.session?.markBad();
         }
     }
