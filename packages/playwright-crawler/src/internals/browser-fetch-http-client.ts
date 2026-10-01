@@ -11,7 +11,19 @@ export interface BrowserFetchHttpClientOptions {
      */
     context: BrowserContext;
 
+    /**
+     * The maximum number of pages to keep open, one per origin. When there are more, the least recently used pages
+     * without requests in flight are closed, so the limit can be exceeded while more origins are fetched at once.
+     * @default 20
+     */
+    maxOpenPages?: number;
+
     logger?: CrawleeLogger;
+}
+
+interface OpenPage {
+    page: Promise<Page>;
+    requests: number;
 }
 
 interface SerializedResponse {
@@ -34,12 +46,15 @@ const EMPTY_DOCUMENT_PATH = '/__crawlee_browser_fetch__';
  */
 export class BrowserFetchHttpClient extends BaseHttpClient {
     #context: BrowserContext;
+    #maxOpenPages: number;
     #logger?: CrawleeLogger;
-    #pages = new Map<string, Promise<Page>>();
+    // Ordered from the least recently used
+    #pages = new Map<string, OpenPage>();
 
     constructor(options: BrowserFetchHttpClientOptions) {
         super(options);
         this.#context = options.context;
+        this.#maxOpenPages = options.maxOpenPages ?? 20;
         this.#logger = options.logger;
     }
 
@@ -52,29 +67,55 @@ export class BrowserFetchHttpClient extends BaseHttpClient {
         }
 
         const body = request.body ? new Uint8Array(await request.arrayBuffer()) : undefined;
-        const page = await this.#getPage(new URL(request.url).origin);
-        const response = await this.#fetchInPage(
-            page,
-            { url: request.url, method: request.method, headers: [...request.headers], body },
-            options?.signal ?? undefined,
-        );
+        const openPage = this.#acquirePage(new URL(request.url).origin);
 
-        const { status, statusText, headers, url } = response;
-        return new ResponseWithUrl(response.body, { status, statusText, headers, url });
+        try {
+            const response = await this.#fetchInPage(
+                await openPage.page,
+                { url: request.url, method: request.method, headers: [...request.headers], body },
+                options?.signal ?? undefined,
+            );
+
+            const { status, statusText, headers, url } = response;
+            return new ResponseWithUrl(response.body, { status, statusText, headers, url });
+        } finally {
+            openPage.requests--;
+            this.#closeIdlePages();
+        }
     }
 
-    #getPage(origin: string): Promise<Page> {
-        const existing = this.#pages.get(origin);
-        if (existing) return existing;
+    #acquirePage(origin: string): OpenPage {
+        let openPage = this.#pages.get(origin);
 
-        const page = this.#openPage(origin);
-        const forget = () => {
-            if (this.#pages.get(origin) === page) this.#pages.delete(origin);
-        };
-        page.then((p) => p.once('close', forget).once('crash', () => void p.close().catch(() => {})), forget);
-        this.#pages.set(origin, page);
+        if (!openPage) {
+            const opened: OpenPage = { page: this.#openPage(origin), requests: 0 };
+            const forget = () => {
+                if (this.#pages.get(origin) === opened) this.#pages.delete(origin);
+            };
+            opened.page.then(
+                (p) => p.once('close', forget).once('crash', () => void p.close().catch(() => {})),
+                forget,
+            );
+            openPage = opened;
+        }
 
-        return page;
+        // Re-inserting moves the page to the most recently used end
+        this.#pages.delete(origin);
+        this.#pages.set(origin, openPage);
+        openPage.requests++;
+        this.#closeIdlePages();
+
+        return openPage;
+    }
+
+    #closeIdlePages(): void {
+        for (const [origin, { page, requests }] of this.#pages) {
+            if (this.#pages.size <= this.#maxOpenPages) return;
+            if (requests > 0) continue;
+
+            this.#pages.delete(origin);
+            page.then(async (p) => p.close()).catch(() => {});
+        }
     }
 
     async #openPage(origin: string): Promise<Page> {

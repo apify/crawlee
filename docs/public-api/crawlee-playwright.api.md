@@ -158,6 +158,7 @@ export interface BrowserFetchHttpClientOptions {
     context: BrowserContext;
     // (undocumented)
     logger?: CrawleeLogger;
+    maxOpenPages?: number;
 }
 
 // Not exported by the entry point; reachable only as a referenced type.

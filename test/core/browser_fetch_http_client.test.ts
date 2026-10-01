@@ -16,8 +16,10 @@ import { startExpressAppPromise } from '../shared/_helper.js';
 
 describe('BrowserFetchHttpClient', () => {
     let server: Server;
+    let otherPortServer: Server;
     let baseUrl: string;
     let otherUrl: string;
+    let otherPortUrl: string;
     let browser: Browser;
     let context: BrowserContext;
     let logLevel: number;
@@ -99,6 +101,8 @@ describe('BrowserFetchHttpClient', () => {
         server = await startExpressAppPromise(app, 0);
         baseUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
         otherUrl = `http://localhost:${(server.address() as AddressInfo).port}`;
+        otherPortServer = await startExpressAppPromise(app, 0);
+        otherPortUrl = `http://127.0.0.1:${(otherPortServer.address() as AddressInfo).port}`;
         browser = await playwright.chromium.launch({ headless: true });
     });
 
@@ -125,6 +129,7 @@ describe('BrowserFetchHttpClient', () => {
     afterAll(async () => {
         await browser.close();
         server.close();
+        otherPortServer.close();
         log.setLevel(logLevel);
     });
 
@@ -224,6 +229,29 @@ describe('BrowserFetchHttpClient', () => {
 
         expect(response.status).toBe(203);
         expect(context.pages()).toHaveLength(1);
+    });
+
+    test('closes the least recently used pages when more than maxOpenPages are open', async () => {
+        const httpClient = new BrowserFetchHttpClient({ context, maxOpenPages: 2 });
+
+        for (const url of [baseUrl, otherUrl, baseUrl, otherPortUrl]) {
+            await httpClient.sendRequest(new Request(`${url}/final`));
+        }
+
+        await expect
+            .poll(() => context.pages().map((page) => new URL(page.url()).origin))
+            .toEqual([baseUrl, otherPortUrl]);
+    });
+
+    test('keeps pages with requests in flight open', async () => {
+        const httpClient = new BrowserFetchHttpClient({ context, maxOpenPages: 1 });
+
+        const slow = httpClient.sendRequest(new Request(`${baseUrl}/private/1?delay=500`));
+        const fast = await httpClient.sendRequest(new Request(`${otherUrl}/final`));
+
+        expect(fast.status).toBe(203);
+        expect((await slow).status).toBe(200);
+        await expect.poll(() => context.pages().map((page) => new URL(page.url()).origin)).toEqual([baseUrl]);
     });
 
     test.each([
