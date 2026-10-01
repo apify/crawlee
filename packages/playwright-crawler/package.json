@@ -67,7 +67,7 @@
         "zod": "catalog:"
     },
     "peerDependencies": {
-        "playwright": "^1.52.0"
+        "playwright": ">=1.52.0"
     },
     "peerDependenciesMeta": {
         "playwright": {
