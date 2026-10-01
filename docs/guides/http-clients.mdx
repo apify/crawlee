@@ -78,17 +78,17 @@ For <ApiLink to="impit-client/class/ImpitHttpClient">`ImpitHttpClient`</ApiLink>
 npm i @crawlee/impit-client
 ```
 
-## Sending requests from a logged-in browser page
+## Sending requests from a logged-in browser
 
-Some sites only serve content to a browser that has logged in or passed an anti-bot check, and block HTTP clients because of their TLS fingerprint, missing cookies or service workers. <ApiLink to="playwright-crawler/class/BrowserFetchHttpClient">`BrowserFetchHttpClient`</ApiLink> sends each request with `fetch()` inside a Playwright page you have already set up, so an HTTP-based crawler gets the browser's session while keeping its request queue, retries and statistics.
+Some sites only serve content to a browser that has logged in or passed an anti-bot check, and block HTTP clients because of their TLS fingerprint or missing cookies. <ApiLink to="playwright-crawler/class/BrowserFetchHttpClient">`BrowserFetchHttpClient`</ApiLink> sends each request with `fetch()` from a Playwright browser context you have already set up, so an HTTP-based crawler gets the browser's session while keeping its request queue, retries and statistics.
 
 <CodeBlock language="ts">{CheerioBrowserFetchExample}</CodeBlock>
 
-All requests run concurrently on the one page, and the client never navigates it except through `login`. Keep in mind that:
+The client opens one page per origin on an empty document of that origin, without loading the site, so any URL can be fetched with the cookies of the context. A `401` response fails the request, and `errorHandler` runs before it is retried, so log in again there, in a new page of the context. Keep in mind that:
 
-- only URLs on the page's origin can be fetched, or cross-origin ones whose server allows credentials for it (`Access-Control-Allow-Credentials` with that origin, not `*`). The login must leave the page on the origin you crawl,
 - the browser uses its own cookies and hides the `Cookie` and `Set-Cookie` headers, so the session's cookie jar is not used,
-- the `proxyUrl`, `fingerprint` and `ignoreTlsErrors` options are ignored, as the browser context decides them.
+- the `proxyUrl`, `fingerprint` and `ignoreTlsErrors` options are ignored, as the browser context decides them,
+- the browser sends only a few HTTP/1.1 requests to one host at a time (6 in Chromium), and the others wait in the browser, counting towards the navigation timeout.
 
 ## Creating custom HTTP clients
 
