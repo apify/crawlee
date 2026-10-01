@@ -236,6 +236,11 @@ export class ContextPipelineCleanupError extends CriticalError {
     constructor(error: unknown, options?: ErrorOptions);
 }
 
+// @public
+export class ContextPipelineInitializationError extends Error {
+    constructor(error: unknown, options?: ErrorOptions);
+}
+
 // @public (undocumented)
 export class ContextPipelineInterruptedError extends Error {
     constructor(message?: string);
