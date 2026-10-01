@@ -11,6 +11,7 @@ import { BasicCrawler } from '@crawlee/basic';
 import type { BasicCrawlerOptions } from '@crawlee/basic';
 import type { BatchAddRequestsResult } from '@crawlee/types';
 import type { Browser } from 'playwright';
+import type { BrowserContext } from 'playwright';
 import { BrowserCrawler } from '@crawlee/browser';
 import { BrowserCrawlerOptions } from '@crawlee/browser';
 import type { BrowserCrawlingContext } from '@crawlee/browser';
@@ -146,24 +147,17 @@ interface BlockRequestsOptions {
 }
 
 // @public
-export class BrowserFetchHttpClient<Page extends BrowserFetchPage = BrowserFetchPage> extends BaseHttpClient {
-    constructor(options: BrowserFetchHttpClientOptions<Page>);
+export class BrowserFetchHttpClient extends BaseHttpClient {
+    constructor(options: BrowserFetchHttpClientOptions);
     // (undocumented)
     protected fetch(request: Request, options?: RequestInit & CustomFetchOptions): Promise<Response>;
 }
 
 // @public (undocumented)
-export interface BrowserFetchHttpClientOptions<Page extends BrowserFetchPage = BrowserFetchPage> {
+export interface BrowserFetchHttpClientOptions {
+    context: BrowserContext;
     // (undocumented)
     logger?: CrawleeLogger;
-    login?: (page: Page) => Promise<void>;
-    page: Page;
-}
-
-// @public
-export interface BrowserFetchPage {
-    // (undocumented)
-    evaluate<R, Arg>(pageFunction: (arg: Arg) => R | Promise<R>, arg: Arg): Promise<R>;
 }
 
 // Not exported by the entry point; reachable only as a referenced type.

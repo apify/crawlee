@@ -7,7 +7,7 @@ import { BrowserFetchHttpClient } from '@crawlee/playwright';
 import type { CrawleeLogger } from '@crawlee/types';
 import { sleep } from '@crawlee/utils';
 import express from 'express';
-import type { Browser, Page } from 'playwright';
+import type { Browser, BrowserContext } from 'playwright';
 import playwright from 'playwright';
 
 import log from '@apify/log';
@@ -17,8 +17,9 @@ import { startExpressAppPromise } from '../shared/_helper.js';
 describe('BrowserFetchHttpClient', () => {
     let server: Server;
     let baseUrl: string;
+    let otherUrl: string;
     let browser: Browser;
-    let page: Page;
+    let context: BrowserContext;
     let logLevel: number;
 
     const sessions = new Set<string>();
@@ -30,14 +31,17 @@ describe('BrowserFetchHttpClient', () => {
     let flakyHits = 0;
     let hangingClosed: Promise<void>;
     let resolveHangingClosed: () => void;
+    const requestedPaths: string[] = [];
 
     const hasSession = (req: express.Request) => {
         const token = /session=([^;]+)/.exec(req.headers.cookie ?? '')?.[1];
         return !!token && sessions.has(token);
     };
 
-    const login = async (p: Page) => {
-        await p.goto(`${baseUrl}/login`);
+    const login = async (url = baseUrl) => {
+        const page = await context.newPage();
+        await page.goto(`${url}/login`);
+        await page.close();
     };
 
     beforeAll(async () => {
@@ -45,6 +49,10 @@ describe('BrowserFetchHttpClient', () => {
         log.setLevel(log.LEVELS.ERROR);
 
         const app = express();
+        app.use((req, _res, next) => {
+            requestedPaths.push(req.path);
+            next();
+        });
         app.get('/login', (_req, res) => {
             const token = `token-${++sessionCounter}`;
             sessions.add(token);
@@ -90,6 +98,7 @@ describe('BrowserFetchHttpClient', () => {
 
         server = await startExpressAppPromise(app, 0);
         baseUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+        otherUrl = `http://localhost:${(server.address() as AddressInfo).port}`;
         browser = await playwright.chromium.launch({ headless: true });
     });
 
@@ -104,12 +113,13 @@ describe('BrowserFetchHttpClient', () => {
         hangingClosed = new Promise((resolve) => {
             resolveHangingClosed = resolve;
         });
-        page = await browser.newPage();
-        await login(page);
+        context = await browser.newContext();
+        await login();
+        requestedPaths.length = 0;
     });
 
     afterEach(async () => {
-        await page.close();
+        await context.close();
     });
 
     afterAll(async () => {
@@ -118,10 +128,10 @@ describe('BrowserFetchHttpClient', () => {
         log.setLevel(logLevel);
     });
 
-    test('CheerioCrawler crawls pages that need the session of the page', async () => {
+    test('CheerioCrawler crawls pages that need the session of the context', async () => {
         const titles: string[] = [];
         const crawler = new CheerioCrawler({
-            httpClient: new BrowserFetchHttpClient({ page }),
+            httpClient: new BrowserFetchHttpClient({ context }),
             maxRequestRetries: 1,
             requestHandler: async ({ $ }) => {
                 titles.push($('title').text());
@@ -139,9 +149,9 @@ describe('BrowserFetchHttpClient', () => {
         expect(stats.retryHistogram).toEqual([8, 1]);
     });
 
-    test('runs requests concurrently on one page', async () => {
+    test('runs requests concurrently', async () => {
         const crawler = new CheerioCrawler({
-            httpClient: new BrowserFetchHttpClient({ page }),
+            httpClient: new BrowserFetchHttpClient({ context }),
             minConcurrency: 4,
             maxConcurrency: 4,
             requestHandler: async () => {},
@@ -154,19 +164,24 @@ describe('BrowserFetchHttpClient', () => {
         expect(stats.requestsFailed).toBe(0);
     });
 
-    test('logs in once when the session is lost while requests are in flight', async () => {
+    test('lets errorHandler log in again when the session is lost while requests are in flight', async () => {
         let logins = 0;
+        let relogin: Promise<void> | undefined;
         const crawler = new CheerioCrawler({
-            httpClient: new BrowserFetchHttpClient({
-                page,
-                login: async (p) => {
-                    logins++;
-                    await login(p);
-                },
-            }),
+            httpClient: new BrowserFetchHttpClient({ context }),
             minConcurrency: 4,
             maxConcurrency: 4,
-            maxRequestRetries: 0,
+            maxRequestRetries: 1,
+            errorHandler: async ({ response }) => {
+                if (response?.status !== 401) return;
+                if (!relogin) {
+                    logins++;
+                    relogin = login().finally(() => {
+                        relogin = undefined;
+                    });
+                }
+                await relogin;
+            },
             requestHandler: async () => {},
         });
 
@@ -178,41 +193,31 @@ describe('BrowserFetchHttpClient', () => {
         expect(stats.requestsFailed).toBe(0);
     });
 
-    test('returns a 401 that persists after one re-login', async () => {
-        let logins = 0;
-        const httpClient = new BrowserFetchHttpClient({
-            page,
-            login: async () => {
-                logins++;
-            },
-        });
-        sessions.clear();
+    test('opens one page per origin without loading the site', async () => {
+        await login(otherUrl);
+        requestedPaths.length = 0;
+        const httpClient = new BrowserFetchHttpClient({ context });
 
-        const response = await httpClient.sendRequest(new Request(`${baseUrl}/private/1`));
+        const responses = await Promise.all(
+            [baseUrl, baseUrl, otherUrl, otherUrl].map(async (url, i) =>
+                httpClient.sendRequest(new Request(`${url}/private/${i}`)),
+            ),
+        );
 
-        expect(response.status).toBe(401);
-        expect(logins).toBe(1);
+        expect(responses.map((response) => response.status)).toEqual([200, 200, 200, 200]);
+        expect(context.pages()).toHaveLength(2);
+        expect(requestedPaths.sort()).toEqual(['/private/0', '/private/1', '/private/2', '/private/3']);
     });
 
-    test('stops waiting for a hanging login when the request times out', async () => {
-        const httpClient = new BrowserFetchHttpClient({ page, login: async () => new Promise<void>(() => {}) });
-        sessions.clear();
+    test('opens a new page when its page is closed', async () => {
+        const httpClient = new BrowserFetchHttpClient({ context });
+        await httpClient.sendRequest(new Request(`${baseUrl}/final`));
 
-        const send = async (id: number) =>
-            httpClient.sendRequest(new Request(`${baseUrl}/private/${id}`), { timeoutMillis: 300 }).then(
-                () => 'resolved',
-                () => 'rejected',
-            );
+        await context.pages()[0].close();
+        const response = await httpClient.sendRequest(new Request(`${baseUrl}/final`));
 
-        // The first request starts the login, the second one arrives while it is running
-        const first = send(1);
-        await sleep(100);
-        const second = send(2);
-
-        await expect(Promise.race([Promise.all([first, second]), sleep(2000)])).resolves.toEqual([
-            'rejected',
-            'rejected',
-        ]);
+        expect(response.status).toBe(203);
+        expect(context.pages()).toHaveLength(1);
     });
 
     test.each([
@@ -220,7 +225,7 @@ describe('BrowserFetchHttpClient', () => {
         ['JSON', 'application/json', Buffer.from(JSON.stringify({ foo: 'bar' }))],
         ['binary', 'application/octet-stream', Buffer.from(Array.from({ length: 256 }, (_, i) => i))],
     ])('sends a %s request body intact', async (_name, contentType, body) => {
-        const httpClient = new BrowserFetchHttpClient({ page });
+        const httpClient = new BrowserFetchHttpClient({ context });
 
         const response = await httpClient.sendRequest(
             new Request(`${baseUrl}/echo`, { method: 'POST', headers: { 'content-type': contentType }, body }),
@@ -230,7 +235,7 @@ describe('BrowserFetchHttpClient', () => {
     });
 
     test('returns binary response bodies intact', async () => {
-        const httpClient = new BrowserFetchHttpClient({ page });
+        const httpClient = new BrowserFetchHttpClient({ context });
 
         const response = await httpClient.sendRequest(new Request(`${baseUrl}/binary`));
 
@@ -240,7 +245,7 @@ describe('BrowserFetchHttpClient', () => {
     });
 
     test('follows redirects and returns the final status, headers and URL', async () => {
-        const httpClient = new BrowserFetchHttpClient({ page });
+        const httpClient = new BrowserFetchHttpClient({ context });
 
         const response = await httpClient.sendRequest(new Request(`${baseUrl}/redirect`));
 
@@ -251,7 +256,7 @@ describe('BrowserFetchHttpClient', () => {
     });
 
     test('cancels the request in the page when aborted', async () => {
-        const httpClient = new BrowserFetchHttpClient({ page });
+        const httpClient = new BrowserFetchHttpClient({ context });
         const controller = new AbortController();
         setTimeout(() => controller.abort(), 200);
 
@@ -263,7 +268,7 @@ describe('BrowserFetchHttpClient', () => {
 
     test('warns that ignoreTlsErrors is ignored', async () => {
         const logger = { warningOnce: vi.fn() } as unknown as CrawleeLogger;
-        const httpClient = new BrowserFetchHttpClient({ page, logger });
+        const httpClient = new BrowserFetchHttpClient({ context, logger });
 
         await httpClient.sendRequest(new Request(`${baseUrl}/final`), { ignoreTlsErrors: true });
 

@@ -2,24 +2,14 @@ import { randomUUID } from 'node:crypto';
 
 import { BaseHttpClient, type CustomFetchOptions, ResponseWithUrl } from '@crawlee/http-client';
 import type { CrawleeLogger } from '@crawlee/types';
+import type { BrowserContext, Page } from 'playwright';
 
-/**
- * The part of a Playwright `Page` the client uses.
- */
-export interface BrowserFetchPage {
-    evaluate<R, Arg>(pageFunction: (arg: Arg) => R | Promise<R>, arg: Arg): Promise<R>;
-}
-
-export interface BrowserFetchHttpClientOptions<Page extends BrowserFetchPage = BrowserFetchPage> {
+export interface BrowserFetchHttpClientOptions {
     /**
-     * The page whose `fetch()` sends the requests.
+     * The browser context whose pages send the requests. They use its cookies, so a login in any page of the context
+     * applies to them.
      */
-    page: Page;
-
-    /**
-     * Restores the session of the page. Runs when a request gets a `401` response, once for all concurrent requests.
-     */
-    login?: (page: Page) => Promise<void>;
+    context: BrowserContext;
 
     logger?: CrawleeLogger;
 }
@@ -33,35 +23,23 @@ interface SerializedResponse {
 }
 
 const CONTROLLERS_KEY = 'crawlee.browserFetchHttpClient';
-
-async function untilAborted<T>(promise: Promise<T>, signal?: AbortSignal): Promise<T> {
-    if (!signal) return promise;
-    signal.throwIfAborted();
-
-    return new Promise<T>((resolve, reject) => {
-        const onAbort = () => reject(signal.reason);
-        signal.addEventListener('abort', onAbort, { once: true });
-        promise.then(resolve, reject).finally(() => signal.removeEventListener('abort', onAbort));
-    });
-}
+const EMPTY_DOCUMENT_PATH = '/__crawlee_browser_fetch__';
 
 /**
- * A HTTP client implementation that sends requests with `fetch()` inside an existing Playwright page.
+ * A HTTP client implementation that sends requests with `fetch()` from pages of a Playwright browser context.
  *
- * Requests are sent with the page's cookies, so only same-origin URLs, or cross-origin ones whose server allows credentials
- * for the page's origin, can be fetched. The `proxyUrl`, `fingerprint` and `ignoreTlsErrors` options are ignored.
+ * Each origin gets its own page, opened on an empty document of that origin without loading the site, so the requests
+ * are same-origin and carry the cookies of the context. The `proxyUrl`, `fingerprint` and `ignoreTlsErrors` options
+ * are ignored.
  */
-export class BrowserFetchHttpClient<Page extends BrowserFetchPage = BrowserFetchPage> extends BaseHttpClient {
-    #page: Page;
-    #login?: (page: Page) => Promise<void>;
+export class BrowserFetchHttpClient extends BaseHttpClient {
+    #context: BrowserContext;
     #logger?: CrawleeLogger;
-    #loginPromise?: Promise<void>;
-    #loginCount = 0;
+    #pages = new Map<string, Promise<Page>>();
 
-    constructor(options: BrowserFetchHttpClientOptions<Page>) {
+    constructor(options: BrowserFetchHttpClientOptions) {
         super(options);
-        this.#page = options.page;
-        this.#login = options.login;
+        this.#context = options.context;
         this.#logger = options.logger;
     }
 
@@ -74,50 +52,52 @@ export class BrowserFetchHttpClient<Page extends BrowserFetchPage = BrowserFetch
         }
 
         const body = request.body ? Buffer.from(await request.arrayBuffer()).toString('base64') : undefined;
-        const serialized = { url: request.url, method: request.method, headers: [...request.headers], body };
-        const signal = options?.signal ?? undefined;
-        let retried = false;
+        const page = await this.#getPage(new URL(request.url).origin);
+        const response = await this.#fetchInPage(
+            page,
+            { url: request.url, method: request.method, headers: [...request.headers], body },
+            options?.signal ?? undefined,
+        );
 
-        while (true) {
-            if (this.#loginPromise) await untilAborted(this.#loginPromise, signal);
-            const loginCount = this.#loginCount;
-
-            let response: SerializedResponse;
-            try {
-                response = await this.#fetchInPage(serialized, signal);
-            } catch (error) {
-                // A login navigation destroys the fetches running in the page
-                if (signal?.aborted || retried || (!this.#loginPromise && loginCount === this.#loginCount)) {
-                    throw error;
-                }
-                retried = true;
-                continue;
-            }
-
-            if (response.status === 401 && this.#login && !retried) {
-                retried = true;
-                await this.#relogin(loginCount, signal);
-                continue;
-            }
-
-            const { status, statusText, headers, url } = response;
-            return new ResponseWithUrl(Buffer.from(response.body, 'base64'), { status, statusText, headers, url });
-        }
+        const { status, statusText, headers, url } = response;
+        return new ResponseWithUrl(Buffer.from(response.body, 'base64'), { status, statusText, headers, url });
     }
 
-    async #relogin(loginCount: number, signal?: AbortSignal): Promise<void> {
-        // A login that finished after the request started already restored the session
-        if (!this.#loginPromise && loginCount !== this.#loginCount) return;
+    async #getPage(origin: string): Promise<Page> {
+        const existing = this.#pages.get(origin);
+        if (existing) return existing;
 
-        this.#loginPromise ??= this.#login!(this.#page).finally(() => {
-            this.#loginCount++;
-            this.#loginPromise = undefined;
-        });
+        const page = this.#openPage(origin);
+        const forget = () => {
+            if (this.#pages.get(origin) === page) this.#pages.delete(origin);
+        };
+        page.then((p) => p.once('close', forget).once('crash', forget), forget);
+        this.#pages.set(origin, page);
 
-        await untilAborted(this.#loginPromise, signal);
+        return page;
+    }
+
+    async #openPage(origin: string): Promise<Page> {
+        const page = await this.#context.newPage();
+        const url = `${origin}${EMPTY_DOCUMENT_PATH}`;
+
+        try {
+            // The empty icon keeps Firefox from requesting `/favicon.ico` from the site
+            await page.route(url, async (route) =>
+                route.fulfill({ contentType: 'text/html', body: '<link rel="icon" href="data:,">' }),
+            );
+            await page.goto(url);
+            await page.unroute(url);
+        } catch (error) {
+            await page.close().catch(() => {});
+            throw error;
+        }
+
+        return page;
     }
 
     async #fetchInPage(
+        page: Page,
         request: { url: string; method: string; headers: [string, string][]; body?: string },
         signal?: AbortSignal,
     ): Promise<SerializedResponse> {
@@ -127,12 +107,10 @@ export class BrowserFetchHttpClient<Page extends BrowserFetchPage = BrowserFetch
         let onAbort!: () => void;
         const aborted = new Promise<never>((_, reject) => {
             onAbort = () => {
-                this.#page
-                    .evaluate(([key, requestId]) => (globalThis as any)[Symbol.for(key)]?.get(requestId)?.abort(), [
-                        CONTROLLERS_KEY,
-                        id,
-                    ] as const)
-                    .catch(() => {});
+                page.evaluate(([key, requestId]) => (globalThis as any)[Symbol.for(key)]?.get(requestId)?.abort(), [
+                    CONTROLLERS_KEY,
+                    id,
+                ] as const).catch(() => {});
                 reject(signal!.reason);
             };
         });
@@ -140,7 +118,7 @@ export class BrowserFetchHttpClient<Page extends BrowserFetchPage = BrowserFetch
 
         try {
             return await Promise.race([
-                this.#page.evaluate(
+                page.evaluate(
                     async ({ key, requestId, url, method, headers, body }) => {
                         const controllers: Map<string, AbortController> = ((globalThis as any)[Symbol.for(key)] ??=
                             new Map());
