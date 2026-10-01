@@ -78,7 +78,10 @@ export class BrowserFetchHttpClient extends BaseHttpClient {
                 if (this.#pages.get(origin) === opened) this.#pages.delete(origin);
             };
             opened.page.then(
-                (p) => p.once('close', forget).once('crash', () => void p.close().catch(() => {})),
+                (p) =>
+                    p.once('close', forget).once('crash', () => {
+                        p.close().catch(() => {});
+                    }),
                 forget,
             );
             openPage = opened;
