@@ -1,5 +1,4 @@
-import { CheerioCrawler } from 'crawlee';
-import { BrowserFetchHttpClient } from '@crawlee/http-client';
+import { BrowserFetchHttpClient, CheerioCrawler } from 'crawlee';
 import { chromium, type Page } from 'playwright';
 
 const login = async (page: Page) => {

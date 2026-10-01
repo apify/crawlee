@@ -3,7 +3,7 @@ import type { AddressInfo } from 'node:net';
 
 import { CheerioCrawler } from '@crawlee/cheerio';
 import { MemoryStorageBackend, serviceLocator } from '@crawlee/core';
-import { BrowserFetchHttpClient } from '@crawlee/http-client';
+import { BrowserFetchHttpClient } from '@crawlee/playwright';
 import type { CrawleeLogger } from '@crawlee/types';
 import { sleep } from '@crawlee/utils';
 import express from 'express';

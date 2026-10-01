@@ -929,6 +929,9 @@ importers:
       '@crawlee/core':
         specifier: workspace:*
         version: link:../core
+      '@crawlee/http-client':
+        specifier: workspace:*
+        version: link:../http-client
       '@crawlee/types':
         specifier: workspace:*
         version: link:../types

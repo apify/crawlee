@@ -80,7 +80,7 @@ npm i @crawlee/impit-client
 
 ## Sending requests from a logged-in browser page
 
-Some sites only serve content to a browser that has logged in or passed an anti-bot check, and block HTTP clients because of their TLS fingerprint, missing cookies or service workers. <ApiLink to="http-client/class/BrowserFetchHttpClient">`BrowserFetchHttpClient`</ApiLink> sends each request with `fetch()` inside a Playwright page you have already set up, so an HTTP-based crawler gets the browser's session while keeping its request queue, retries and statistics.
+Some sites only serve content to a browser that has logged in or passed an anti-bot check, and block HTTP clients because of their TLS fingerprint, missing cookies or service workers. <ApiLink to="playwright-crawler/class/BrowserFetchHttpClient">`BrowserFetchHttpClient`</ApiLink> sends each request with `fetch()` inside a Playwright page you have already set up, so an HTTP-based crawler gets the browser's session while keeping its request queue, retries and statistics.
 
 <CodeBlock language="ts">{CheerioBrowserFetchExample}</CodeBlock>
 

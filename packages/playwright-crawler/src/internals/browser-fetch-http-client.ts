@@ -1,9 +1,7 @@
 import { randomUUID } from 'node:crypto';
 
+import { BaseHttpClient, type CustomFetchOptions, ResponseWithUrl } from '@crawlee/http-client';
 import type { CrawleeLogger } from '@crawlee/types';
-
-import { BaseHttpClient, type CustomFetchOptions } from './base-http-client.js';
-import { ResponseWithUrl } from './response.js';
 
 /**
  * The part of a Playwright `Page` the client uses.
