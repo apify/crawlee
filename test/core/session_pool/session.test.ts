@@ -79,39 +79,40 @@ describe('Session - testing session behaviour', () => {
         expect(session.usageCount).toBe(usageCount);
     });
 
-    test('should retire session after marking bad', () => {
-        vitest.spyOn(session, 'retire');
-        session.markBad();
-        expect(session.retire).toBeCalledTimes(0);
-        session.isUsable = () => false;
-        session.markBad();
-        expect(session.retire).toBeCalledTimes(1);
+    test('running out of uses is terminal but not a block', () => {
+        session = new Session({ maxUsageCount: 1 });
+        session.markGood();
+
+        expect(session.isUsable()).toBe(false);
+        expect(session.isBlocked()).toBe(false);
+        expect(session.getState().retired).toBe(true);
     });
 
-    test('should retire session after marking good', () => {
-        vitest.spyOn(session, 'retire');
+    test('marking bad up to maxErrorScore blocks the session', () => {
+        session = new Session({ maxErrorScore: 2 });
+        session.markBad();
+        expect(session.isBlocked()).toBe(false);
+        session.markBad();
 
-        session.markGood();
-        expect(session.retire).toBeCalledTimes(0);
-
-        session.isUsable = () => false;
-        session.markGood();
-        expect(session.retire).toBeCalledTimes(1);
+        expect(session.isBlocked()).toBe(true);
+        expect(session.getState().retired).toBe(true);
     });
 
-    test('should reevaluate usability of session after marking the session', () => {
-        vitest.spyOn(session, 'retire');
-
-        // A usable session is not retired when marked.
-        session.markGood();
-        expect(session.retire).toBeCalledTimes(0);
-
-        // Once the session becomes unusable, marking it (good or bad) retires it.
-        session.isUsable = () => false;
-        session.markGood();
-        expect(session.retire).toBeCalledTimes(1);
+    test('retire() blocks a session that already ran out of uses', () => {
+        session = new Session({ maxUsageCount: 1 });
         session.markBad();
-        expect(session.retire).toBeCalledTimes(2);
+        session.retire();
+
+        expect(session.isBlocked()).toBe(true);
+    });
+
+    test('markGood() does not unblock a blocked session', () => {
+        session = new Session({ maxErrorScore: 2 });
+        session.markBad();
+        session.markBad();
+        session.markGood();
+
+        expect(session.isBlocked()).toBe(true);
     });
 
     test('should get state', () => {

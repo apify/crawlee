@@ -225,7 +225,7 @@ export type ContextMiddleware<TCrawlingContext, TCrawlingContextExtension> = (co
 
 // @public
 export abstract class ContextPipeline<TContextBase, TCrawlingContext extends TContextBase> {
-    abstract call(crawlingContext: TContextBase, finalContextConsumer: (finalContext: TCrawlingContext) => Awaitable<unknown>, onInitializationError: (error: unknown) => Awaitable<void>): Promise<void>;
+    abstract call(crawlingContext: TContextBase, finalContextConsumer: (finalContext: TCrawlingContext) => Awaitable<unknown>, onError: (error: unknown) => Awaitable<void>): Promise<void>;
     abstract chain<TFinalContext extends TCrawlingContext>(other: ContextPipeline<TCrawlingContext, TFinalContext>): ContextPipeline<TContextBase, TFinalContext>;
     abstract compose<TCrawlingContextExtension>(middleware: ContextMiddleware<TCrawlingContext, TCrawlingContextExtension>): ContextPipeline<TContextBase, TCrawlingContext & TCrawlingContextExtension>;
     static create<TContextBase>(): ContextPipeline<TContextBase, TContextBase>;
@@ -233,6 +233,11 @@ export abstract class ContextPipeline<TContextBase, TCrawlingContext extends TCo
 
 // @public (undocumented)
 export class ContextPipelineCleanupError extends CriticalError {
+    constructor(error: unknown, options?: ErrorOptions);
+}
+
+// @public
+export class ContextPipelineInitializationError extends Error {
     constructor(error: unknown, options?: ErrorOptions);
 }
 
@@ -586,7 +591,7 @@ export interface RegExpObject {
 // @public (undocumented)
 export type RequestHandler<Context extends CrawlingContext = CrawlingContext> = (inputs: Context) => Awaitable<void>;
 
-// @public (undocumented)
+// @public
 export class RequestHandlerError extends Error {
     constructor(error: unknown, options?: ErrorOptions);
 }
