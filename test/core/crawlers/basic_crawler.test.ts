@@ -3784,6 +3784,58 @@ describe('BasicCrawler', () => {
                 expect(CrawlingRequest.fromSchema(stored!).state).toBe(RequestState.SKIPPED);
             },
         );
+
+        test('called from errorHandler settles the request as skipped', async () => {
+            const url = 'https://example.com/skipped';
+            const onSkippedRequest = vitest.fn();
+            const failedRequestHandler = vitest.fn();
+            const requestHandler = vitest.fn(async () => {
+                throw new Error('404');
+            });
+            const requestManager = await RequestQueue.open();
+
+            const crawler = new BasicCrawler({
+                requestManager,
+                maxRequestRetries: 3,
+                requestHandler,
+                errorHandler: ({ skipRequest }) => skipRequest('gone'),
+                failedRequestHandler,
+                onSkippedRequest,
+            });
+
+            const stats = await crawler.run([url]);
+
+            expect(requestHandler).toHaveBeenCalledOnce();
+            expect(failedRequestHandler).not.toHaveBeenCalled();
+            expect(stats).toMatchObject({ requestsFailed: 0, requestsSucceeded: 0 });
+            expect(onSkippedRequest).toHaveBeenCalledExactlyOnceWith(
+                expect.objectContaining({ reason: 'manual', message: 'gone' }),
+            );
+
+            const stored = await requestManager.getRequest(url);
+            expect(stored?.handledAt).toBeDefined();
+            expect(CrawlingRequest.fromSchema(stored!).state).toBe(RequestState.SKIPPED);
+        });
+
+        test('called from failedRequestHandler leaves the request failed and does not crash the crawler', async () => {
+            const onSkippedRequest = vitest.fn();
+
+            const crawler = new BasicCrawler({
+                maxRequestRetries: 0,
+                requestHandler: async () => {
+                    throw new Error('404');
+                },
+                failedRequestHandler: ({ skipRequest }) => skipRequest('gone'),
+                onSkippedRequest,
+            });
+            const warningSpy = vitest.spyOn(crawler.log, 'warning');
+
+            const stats = await crawler.run(['https://example.com/failed']);
+
+            expect(stats).toMatchObject({ requestsFailed: 1 });
+            expect(onSkippedRequest).not.toHaveBeenCalled();
+            expect(warningSpy).toHaveBeenCalledWith(expect.stringContaining('skipRequest()'));
+        });
     });
 
     describe('transactional storage', () => {

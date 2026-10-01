@@ -171,6 +171,9 @@ export interface RestrictedCrawlingContext<UserData extends Dictionary = Diction
      * Storage writes made for the request so far are rolled back, as with a failure, unless
      * {@apilink BasicCrawlerOptions.transactionalStorage|`transactionalStorage`} is disabled.
      *
+     * Works in `errorHandler` too, skipping a request that would otherwise be retried. In `failedRequestHandler` it
+     * has no effect, since the request has already failed.
+     *
      * ```ts
      * preNavigationHooks: [
      *     async ({ request, skipRequest }) => {

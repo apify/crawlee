@@ -2644,7 +2644,6 @@ export class BasicCrawler<
         // because the transaction is already closed. A no-op when the commit in `handleRequest` succeeded.
         currentStorageTransaction()?.rollback();
 
-
         const err = this.unwrapError(rawError);
         const context = crawlingContext as CrawlingContext;
         const retryCountBefore = request.retryCount;
@@ -2833,10 +2832,17 @@ export class BasicCrawler<
 
         if (shouldRetryRequest) {
             await this.statistics.errorTrackerRetry.addAsync(error, crawlingContext);
-            await this.#errorHandler?.(
-                crawlingContext as CrawlingContext & Partial<ExtendedContext>, // valid cast - ExtendedContext transitively extends CrawlingContext
-                error,
-            );
+            try {
+                await this.#errorHandler?.(
+                    crawlingContext as CrawlingContext & Partial<ExtendedContext>, // valid cast - ExtendedContext transitively extends CrawlingContext
+                    error,
+                );
+            } catch (handlerError) {
+                if (handlerError instanceof ContextPipelineInterruptedError) {
+                    return this.requestFunctionErrorHandler(handlerError, crawlingContext, request, source);
+                }
+                throw handlerError;
+            }
 
             if (error instanceof SessionError) {
                 crawlingContext.session?.retire();
@@ -2892,10 +2898,15 @@ export class BasicCrawler<
 
         this.log.error(`Request failed and reached maximum retries. ${message}`, { id, url, method, uniqueKey });
 
-        if (this.#failedRequestHandler) {
+        try {
             await this.#failedRequestHandler?.(
                 crawlingContext as CrawlingContext & Partial<ExtendedContext>, // valid cast - ExtendedContext transitively extends CrawlingContext
                 error,
+            );
+        } catch (handlerError) {
+            if (!(handlerError instanceof ContextPipelineInterruptedError)) throw handlerError;
+            this.log.warning(
+                `skipRequest() has no effect in failedRequestHandler, request ${url} (${id}) has already failed.`,
             );
         }
     }
