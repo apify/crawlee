@@ -932,6 +932,9 @@ importers:
       '@crawlee/core':
         specifier: workspace:*
         version: link:../core
+      '@crawlee/http-client':
+        specifier: workspace:*
+        version: link:../http-client
       '@crawlee/types':
         specifier: workspace:*
         version: link:../types
@@ -951,7 +954,7 @@ importers:
         specifier: ^6.12.1
         version: 6.12.1
       playwright:
-        specifier: '*'
+        specifier: '>=1.52.0'
         version: 1.61.1
       string-comparison:
         specifier: ^1.3.0

@@ -6,10 +6,12 @@
 
 import type { AnyNode } from 'domhandler';
 import type { Awaitable } from '@crawlee/types';
+import { BaseHttpClient } from '@crawlee/http-client';
 import { BasicCrawler } from '@crawlee/basic';
 import type { BasicCrawlerOptions } from '@crawlee/basic';
 import type { BatchAddRequestsResult } from '@crawlee/types';
 import type { Browser } from 'playwright';
+import type { BrowserContext } from 'playwright';
 import { BrowserCrawler } from '@crawlee/browser';
 import { BrowserCrawlerOptions } from '@crawlee/browser';
 import type { BrowserCrawlingContext } from '@crawlee/browser';
@@ -22,8 +24,10 @@ import type { BrowserType } from 'playwright';
 import { Cheerio } from 'cheerio';
 import { CheerioAPI } from 'cheerio';
 import { Configuration } from '@crawlee/browser';
+import type { CrawleeLogger } from '@crawlee/types';
 import type { CrawlingContext } from '@crawlee/basic';
 import type { CrawlingRequest } from '@crawlee/browser';
+import { CustomFetchOptions } from '@crawlee/http-client';
 import type { Dictionary } from '@crawlee/types';
 import type { Download } from 'playwright';
 import type { EnqueueLinksOptions } from '@crawlee/basic';
@@ -140,6 +144,21 @@ function blockRequests(page: Page, options?: BlockRequestsOptions): Promise<void
 interface BlockRequestsOptions {
     extraUrlPatterns?: string[];
     urlPatterns?: string[];
+}
+
+// @public
+export class BrowserFetchHttpClient extends BaseHttpClient {
+    constructor(options: BrowserFetchHttpClientOptions);
+    // (undocumented)
+    protected fetch(request: Request, options?: RequestInit & CustomFetchOptions): Promise<Response>;
+}
+
+// @public (undocumented)
+export interface BrowserFetchHttpClientOptions {
+    context: BrowserContext;
+    // (undocumented)
+    logger?: CrawleeLogger;
+    maxOpenPages?: number;
 }
 
 // Not exported by the entry point; reachable only as a referenced type.

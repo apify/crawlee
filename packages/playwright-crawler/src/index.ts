@@ -4,6 +4,7 @@ export * from './internals/playwright-crawler.js';
 export { launchPlaywright } from './internals/playwright-launcher.js';
 export type { PlaywrightLaunchContext } from './internals/playwright-launcher.js';
 export * from './internals/adaptive-playwright-crawler.js';
+export { BrowserFetchHttpClient, type BrowserFetchHttpClientOptions } from './internals/browser-fetch-http-client.js';
 export { RenderingTypePredictor } from './internals/utils/rendering-type-prediction.js';
 
 export * as playwrightUtils from './internals/utils/playwright-utils.js';
