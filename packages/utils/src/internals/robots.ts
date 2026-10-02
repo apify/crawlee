@@ -106,16 +106,14 @@ export class RobotsTxtFile {
             signal: options?.signal,
         });
 
-        if (response.status < 200 || response.status >= 300) {
-            throw new Error(`Failed to load robots.txt from ${url}: HTTP ${response.status}`);
-        }
-
-        if (response.status === 404) {
+        // RFC 9309: an unavailable (4xx) robots.txt allows everything, an unreachable (5xx) one disallows everything.
+        if (response.status >= 400 && response.status < 600) {
+            const allowed = response.status < 500;
             return new RobotsTxtFile(
                 url,
                 {
                     isAllowed() {
-                        return true;
+                        return allowed;
                     },
                     getSitemaps() {
                         return [];
@@ -127,6 +125,10 @@ export class RobotsTxtFile {
                 proxyUrl,
                 logger,
             );
+        }
+
+        if (response.status < 200 || response.status >= 300) {
+            throw new Error(`Failed to load robots.txt from ${url}: HTTP ${response.status}`);
         }
 
         // @ts-ignore

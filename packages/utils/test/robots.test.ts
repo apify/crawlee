@@ -67,6 +67,32 @@ describe('RobotsTxtFile', () => {
         ]);
     });
 
+    it.each([401, 403, 404, 410])('treats an unavailable robots.txt (HTTP %i) as allow-all', async (status) => {
+        nock('http://no-robots.com').get('/robots.txt').reply(status, 'User-agent: *\nDisallow: /');
+
+        const robots = await RobotsTxtFile.find('http://no-robots.com/some/page.html', { httpClient });
+
+        expect(robots.isAllowed('http://no-robots.com/some/page.html')).toBe(true);
+        expect(robots.getSitemaps()).toEqual([]);
+        expect(robots.getCrawlDelay()).toBeUndefined();
+    });
+
+    it.each([500, 503])('treats an unreachable robots.txt (HTTP %i) as disallow-all', async (status) => {
+        nock('http://broken-robots.com').get('/robots.txt').reply(status, 'User-agent: *\nAllow: /');
+
+        const robots = await RobotsTxtFile.find('http://broken-robots.com/some/page.html', { httpClient });
+
+        expect(robots.isAllowed('http://broken-robots.com/some/page.html')).toBe(false);
+        expect(robots.getSitemaps()).toEqual([]);
+        expect(robots.getCrawlDelay()).toBeUndefined();
+    });
+
+    it('still rejects on other non-2xx responses', async () => {
+        nock('http://broken-robots.com').get('/robots.txt').reply(304);
+
+        await expect(RobotsTxtFile.find('http://broken-robots.com/', { httpClient })).rejects.toThrow(/HTTP 304/);
+    });
+
     it('respects user-set timeout', async () => {
         const start = Date.now();
         const robots = RobotsTxtFile.find(`${neverReplies}/robots.txt`, { timeoutMillis: 200 });

@@ -904,6 +904,12 @@ The `robotsTxtFile` / `respectRobotsTxtFile` per-call options are removed from `
 
 The callback now gets `{ request, reason }` instead of `{ url, reason }` — use `request.url` for the URL.
 
+### robots.txt error responses follow RFC 9309
+
+v3 parsed the body of a robots.txt response regardless of its status code. v4 follows [RFC 9309](https://www.rfc-editor.org/rfc/rfc9309#section-2.3.1.3) instead: a `4xx` response allows everything and a `5xx` response disallows everything, whatever the body says.
+
+With `respectRobotsTxtFile` enabled, a site that answers `/robots.txt` with a `5xx` is therefore skipped entirely. The crawler caches robots.txt per origin for the whole run, so every request to that origin is skipped with the `robotsTxt` reason.
+
 ### Internal KVS keys renamed
 
 Several internal Crawlee keys were prefixed with the `SDK_` prefix for legacy reasons — these keys now start with `CRAWLEE_` instead. These are, e.g., `CRAWLEE_SESSION_POOL_STATE` or `CRAWLEE_CRAWLER_STATISTICS_{n}`.
