@@ -200,6 +200,32 @@ beforeAll(async () => {
         res.end();
     });
 
+    // Two sitemap indexes referencing each other; only `cycle-a` also points at an actual urlset.
+    app.get('/cycle-a.xml', async (req, res) => {
+        res.setHeader('content-type', 'text/xml');
+        res.end(
+            [
+                '<?xml version="1.0" encoding="UTF-8"?>',
+                '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+                `<sitemap><loc>${url}/cycle-b.xml</loc></sitemap>`,
+                `<sitemap><loc>${url}/sitemap.xml</loc></sitemap>`,
+                '</sitemapindex>',
+            ].join('\n'),
+        );
+    });
+
+    app.get('/cycle-b.xml', async (req, res) => {
+        res.setHeader('content-type', 'text/xml');
+        res.end(
+            [
+                '<?xml version="1.0" encoding="UTF-8"?>',
+                '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+                `<sitemap><loc>${url}/cycle-a.xml</loc></sitemap>`,
+                '</sitemapindex>',
+            ].join('\n'),
+        );
+    });
+
     // --- Fixtures for the enqueue-strategy filtering tests ---
     // The server answers on both `localhost` and `127.0.0.1` (distinct hostnames), so the `127.0.0.1`
     // variant is a reachable "cross-host" target — a dropped entry is distinguishable from a failed fetch.
@@ -673,6 +699,28 @@ describe('SitemapRequestLoader', () => {
         // The strategy is persisted on the request so it keeps being enforced after navigation.
         expect(CrawlingRequest.fromSchema(request!).enqueueStrategy).toBe('same-hostname');
     });
+
+    test('sitemap indexes referencing each other are each loaded only once', async () => {
+        const list = await SitemapRequestLoader.open({ sitemapUrls: [`${url}/cycle-a.xml`], enqueueStrategy: 'all' });
+
+        const urls: string[] = [];
+        for await (const request of list) {
+            urls.push(request.url);
+            await list.markRequestAsHandled(request);
+            // Guard against the loader cycling between the two indexes forever.
+            if (urls.length > 20) break;
+        }
+
+        expect(list.isSitemapFullyLoaded()).toBe(true);
+        expect(urls).toEqual([
+            'http://not-exists.com/',
+            'http://not-exists.com/catalog?item=12&desc=vacation_hawaii',
+            'http://not-exists.com/catalog?item=73&desc=vacation_new_zealand',
+            'http://not-exists.com/catalog?item=74&desc=vacation_newfoundland',
+            'http://not-exists.com/catalog?item=83&desc=vacation_usa',
+        ]);
+        await list.teardown();
+    }, 10_000);
 
     test('persistState does not deadlock a backpressured sitemap load', async () => {
         // `maxBufferSize: 1` makes the background loader block on backpressure right after
