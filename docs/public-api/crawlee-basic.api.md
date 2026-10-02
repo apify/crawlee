@@ -241,10 +241,6 @@ export class ContextPipelineInitializationError extends Error {
     constructor(error: unknown, options?: ErrorOptions);
 }
 
-// @public (undocumented)
-export class ContextPipelineInterruptedError extends Error {
-    constructor(message?: string);
-}
 // @public
 export class CpuLoadSignal implements LoadSignal {
     constructor(options?: CpuLoadSignalOptions);
