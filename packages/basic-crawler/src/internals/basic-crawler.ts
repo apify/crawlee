@@ -510,7 +510,8 @@ export interface BasicCrawlerOptions<
      * 1. based on robots.txt file,
      * 2. because they don't match enqueueLinks filters,
      * 3. because they are redirected to a URL that doesn't match the enqueueLinks strategy,
-     * 4. or because the {@apilink BasicCrawlerOptions.maxRequestsPerCrawl|`maxRequestsPerCrawl`} limit has been reached
+     * 4. because the {@apilink BasicCrawlerOptions.maxRequestsPerCrawl|`maxRequestsPerCrawl`} limit has been reached,
+     * 5. or by {@apilink RestrictedCrawlingContext.skipRequest|`context.skipRequest()`}.
      */
     onSkippedRequest?: SkippedRequestCallback;
 
@@ -1410,14 +1411,7 @@ export class BasicCrawler<
             this.log.warning(
                 `Skipping request ${request.url} (${request.id}) because it is disallowed based on robots.txt`,
             );
-            request.state = RequestState.SKIPPED;
-            request.noRetry = true;
-            await this.#handleSkippedRequest({
-                request,
-                reason: 'robotsTxt',
-            });
-
-            throw new ContextPipelineInterruptedError(`Skipping request ${request.url} as disallowed by robots.txt`);
+            throw new ContextPipelineInterruptedError('robotsTxt');
         }
 
         return {};
@@ -1469,6 +1463,12 @@ export class BasicCrawler<
                 this.requestManager?.extendRequestProcessingTimeSecs?.(context.request, secs)?.catch((error) => {
                     this.log.debug('Extending the request processing time failed', { url: context.request.url, error });
                 });
+            },
+            skipRequest: (message?: string): never => {
+                this.log.debug(
+                    `Skipping request ${context.request.url} (${context.request.id})${message ? `: ${message}` : ''}`,
+                );
+                throw new ContextPipelineInterruptedError('manual', message);
             },
         };
     }
@@ -1562,13 +1562,7 @@ export class BasicCrawler<
                 // eslint-disable-next-line dot-notation
                 const message = `Skipping request ${request.id} (starting url: ${request.url} -> loaded url: ${request.loadedUrl}) because it does not match the enqueue strategy (${request['enqueueStrategy']}).`;
                 this.log.debug(message);
-
-                request.noRetry = true;
-                request.state = RequestState.SKIPPED;
-
-                await this.#handleSkippedRequest({ request, reason: 'redirect' });
-
-                throw new ContextPipelineInterruptedError(message);
+                throw new ContextPipelineInterruptedError('redirect');
             }
             return context;
         });
@@ -2651,29 +2645,12 @@ export class BasicCrawler<
         // because the transaction is already closed. A no-op when the commit in `handleRequest` succeeded.
         currentStorageTransaction()?.rollback();
 
-        const skipped =
-            rawError instanceof ContextPipelineInitializationError &&
-            rawError.cause instanceof ContextPipelineInterruptedError;
         const err = this.unwrapError(rawError);
         const context = crawlingContext as CrawlingContext;
         const retryCountBefore = request.retryCount;
         const resumeRequestTimeout = crawlingContext[suspendTimeoutKey]?.();
 
         try {
-            // ContextPipelineInterruptedError means the request was intentionally skipped
-            // (e.g., doesn't match enqueue strategy after redirect). Just return gracefully.
-            if (skipped) {
-                this.statistics.discardRequestRecord(request.id || request.uniqueKey);
-                await this.timeoutAndRetry(
-                    async () => requestSource.markRequestAsHandled(request),
-                    this.internalTimeoutMillis,
-                    `Marking request ${request.url} (${request.id}) as handled timed out after ${
-                        this.internalTimeoutMillis / 1e3
-                    } seconds.`,
-                );
-                return;
-            }
-
             request.state = RequestState.ERROR_HANDLER;
             await addTimeoutToPromise(
                 async () => this.requestFunctionErrorHandler(err, context, request, requestSource),
@@ -2682,7 +2659,9 @@ export class BasicCrawler<
                     this.internalTimeoutMillis / 1e3
                 } seconds.`,
             );
-            request.state = RequestState.DONE;
+            if (!(err instanceof ContextPipelineInterruptedError)) {
+                request.state = RequestState.DONE;
+            }
         } catch (secondaryError) {
             const unwrappedSecondaryError = this.unwrapError(secondaryError);
             const timedOut = unwrappedSecondaryError instanceof TimeoutError;
@@ -2692,7 +2671,7 @@ export class BasicCrawler<
                 // Not worth crashing the crawler over. The request's state is unknown, so it gets retried - and the
                 // retry is counted, so that an error handler that always times out does not retry it forever.
                 this.log.warning(unwrappedSecondaryError.message);
-                if (!skipped && request.retryCount === retryCountBefore) {
+                if (!(err instanceof ContextPipelineInterruptedError) && request.retryCount === retryCountBefore) {
                     request.retryCount++;
                 }
             } else if (!(unwrappedSecondaryError instanceof CriticalError)) {
@@ -2728,7 +2707,7 @@ export class BasicCrawler<
 
         // decrease the session score if the request fails (but the error handler did not throw);
         // skip when the error is a SessionError, which already retired the session
-        if (!skipped && !this.errorAbsolvesSession(err)) {
+        if (!this.errorAbsolvesSession(err)) {
             context.session?.markBad();
         }
     }
@@ -2824,6 +2803,15 @@ export class BasicCrawler<
         request: CrawlingRequest,
         source: IRequestManager,
     ): Promise<void> {
+        if (error instanceof ContextPipelineInterruptedError) {
+            request.state = RequestState.SKIPPED;
+            request.noRetry = true;
+            await this.#handleSkippedRequest({ request, reason: error.reason, message: error.skipMessage });
+            await source.markRequestAsHandled(request);
+            this.statistics.discardRequestRecord(request.id || request.uniqueKey);
+            return;
+        }
+
         if (error instanceof RequestThrottledError) {
             // The domain told us to come back later, so the request was never really attempted. Put it back where
             // it was, without recording a failure - it costs neither a retry nor session reputation.
@@ -2845,10 +2833,17 @@ export class BasicCrawler<
 
         if (shouldRetryRequest) {
             await this.statistics.errorTrackerRetry.addAsync(error, crawlingContext);
-            await this.#errorHandler?.(
-                crawlingContext as CrawlingContext & Partial<ExtendedContext>, // valid cast - ExtendedContext transitively extends CrawlingContext
-                error,
-            );
+            try {
+                await this.#errorHandler?.(
+                    crawlingContext as CrawlingContext & Partial<ExtendedContext>, // valid cast - ExtendedContext transitively extends CrawlingContext
+                    error,
+                );
+            } catch (handlerError) {
+                if (handlerError instanceof ContextPipelineInterruptedError) {
+                    return this.requestFunctionErrorHandler(handlerError, crawlingContext, request, source);
+                }
+                throw handlerError;
+            }
 
             if (error instanceof SessionError) {
                 crawlingContext.session?.retire();
@@ -2904,10 +2899,15 @@ export class BasicCrawler<
 
         this.log.error(`Request failed and reached maximum retries. ${message}`, { id, url, method, uniqueKey });
 
-        if (this.#failedRequestHandler) {
+        try {
             await this.#failedRequestHandler?.(
                 crawlingContext as CrawlingContext & Partial<ExtendedContext>, // valid cast - ExtendedContext transitively extends CrawlingContext
                 error,
+            );
+        } catch (handlerError) {
+            if (!(handlerError instanceof ContextPipelineInterruptedError)) throw handlerError;
+            this.log.warning(
+                `skipRequest() has no effect in failedRequestHandler, request ${url} (${id}) has already failed.`,
             );
         }
     }
@@ -2942,7 +2942,11 @@ export class BasicCrawler<
      * failure says nothing about the session (a rate limit is a property of the domain).
      */
     private errorAbsolvesSession(error: Error): boolean {
-        return error instanceof SessionError || error instanceof RequestThrottledError;
+        return (
+            error instanceof SessionError ||
+            error instanceof RequestThrottledError ||
+            error instanceof ContextPipelineInterruptedError
+        );
     }
 
     private canRequestBeRetried(request: CrawlingRequest, error: Error) {
