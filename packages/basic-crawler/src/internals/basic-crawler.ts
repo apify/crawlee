@@ -2659,7 +2659,8 @@ export class BasicCrawler<
                     this.internalTimeoutMillis / 1e3
                 } seconds.`,
             );
-            if (!(err instanceof ContextPipelineInterruptedError)) {
+            // The error handler may have set `SKIPPED`; TS keeps the narrowing from the assignment above.
+            if ((request.state as RequestState) !== RequestState.SKIPPED) {
                 request.state = RequestState.DONE;
             }
         } catch (secondaryError) {

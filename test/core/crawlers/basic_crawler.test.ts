@@ -3793,12 +3793,16 @@ describe('BasicCrawler', () => {
                 throw new Error('404');
             });
             const requestManager = await RequestQueue.open();
+            let inMemoryRequest: CrawlingRequest | undefined;
 
             const crawler = new BasicCrawler({
                 requestManager,
                 maxRequestRetries: 3,
                 requestHandler,
-                errorHandler: ({ skipRequest }) => skipRequest('gone'),
+                errorHandler: ({ request, skipRequest }) => {
+                    inMemoryRequest = request;
+                    skipRequest('gone');
+                },
                 failedRequestHandler,
                 onSkippedRequest,
             });
@@ -3815,6 +3819,7 @@ describe('BasicCrawler', () => {
             const stored = await requestManager.getRequest(url);
             expect(stored?.handledAt).toBeDefined();
             expect(CrawlingRequest.fromSchema(stored!).state).toBe(RequestState.SKIPPED);
+            expect(inMemoryRequest?.state).toBe(RequestState.SKIPPED);
         });
 
         test('called from failedRequestHandler leaves the request failed and does not crash the crawler', async () => {

@@ -906,7 +906,9 @@ The callback now gets `{ request, reason }` instead of `{ url, reason }` — use
 
 ### Skipping a request with `context.skipRequest()`
 
-In v3, skipping a request without it counting as a failure took a hack: set `request.noRetry`, throw, then decrement `requestsFailed` and silence the error log. Call `skipRequest(message?)` from the crawling context instead — in `extendContext`, a navigation hook or the request handler. The request is marked as handled with `state` set to `RequestState.SKIPPED`, is neither retried nor passed to `failedRequestHandler`, and `onSkippedRequest` fires with the new `'manual'` reason. Storage writes made for the request before the skip are rolled back.
+In v3, skipping a request without it counting as a failure took a hack: set `request.noRetry`, throw, then decrement `requestsFailed` and silence the error log. Call `skipRequest(message?)` from the crawling context instead — in `extendContext`, a navigation hook, the request handler or the `errorHandler`. The request is marked as handled with `state` set to `RequestState.SKIPPED`, is neither retried nor passed to `failedRequestHandler`, and `onSkippedRequest` fires with the new `'manual'` reason. Storage writes made for the request before the skip are rolled back.
+
+See the [Skipping requests](../examples/skip-request) example.
 
 ### Internal KVS keys renamed
 
