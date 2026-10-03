@@ -2805,12 +2805,13 @@ export class BasicCrawler<
         source: IRequestManager,
     ): Promise<void> {
         if (error instanceof ContextPipelineInterruptedError) {
-            request.state = RequestState.SKIPPED;
-            request.noRetry = true;
-            await this.#handleSkippedRequest({ request, reason: error.reason, message: error.skipMessage });
-            await source.markRequestAsHandled(request);
-            this.statistics.discardRequestRecord(request.id || request.uniqueKey);
-            return;
+            try {
+                await this.#settleSkippedRequest(error, request, source);
+                return;
+            } catch (callbackError) {
+                // A failing `onSkippedRequest` makes this an ordinary failure, so the request gets retried.
+                error = this.unwrapError(callbackError);
+            }
         }
 
         if (error instanceof RequestThrottledError) {
@@ -2841,9 +2842,19 @@ export class BasicCrawler<
                 );
             } catch (handlerError) {
                 if (handlerError instanceof ContextPipelineInterruptedError) {
-                    return this.requestFunctionErrorHandler(handlerError, crawlingContext, request, source);
+                    try {
+                        await this.#settleSkippedRequest(handlerError, request, source);
+                        return;
+                    } catch (callbackError) {
+                        // Retry for the original error. Routing `callbackError` through `errorHandler` again
+                        // would loop forever with a handler that always skips.
+                        this.log.warning(`Skipping request ${request.url} failed, retrying it instead.`, {
+                            error: this.unwrapError(callbackError).message,
+                        });
+                    }
+                } else {
+                    throw handlerError;
                 }
-                throw handlerError;
             }
 
             if (error instanceof SessionError) {
@@ -2890,6 +2901,25 @@ export class BasicCrawler<
         this.statistics.recordRequestFailure(request.id || request.uniqueKey, request.retryCount);
 
         await this.handleFailedRequestHandler(crawlingContext, error); // This function prints an error message.
+    }
+
+    /** Settles a skipped request. If `onSkippedRequest` throws, the request is left untouched. */
+    async #settleSkippedRequest(
+        error: ContextPipelineInterruptedError,
+        request: CrawlingRequest,
+        source: IRequestManager,
+    ): Promise<void> {
+        await this.#handleSkippedRequest({ request, reason: error.reason, message: error.skipMessage });
+        request.state = RequestState.SKIPPED;
+        request.noRetry = true;
+        await this.timeoutAndRetry(
+            async () => source.markRequestAsHandled(request),
+            this.internalTimeoutMillis,
+            `Marking request ${request.url} (${request.id}) as handled timed out after ${
+                this.internalTimeoutMillis / 1e3
+            } seconds.`,
+        );
+        this.statistics.discardRequestRecord(request.id || request.uniqueKey);
     }
 
     // oxlint-disable-next-line crawlee/prefer-private-fields -- patched by @crawlee/otel

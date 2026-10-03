@@ -3841,6 +3841,66 @@ describe('BasicCrawler', () => {
             expect(onSkippedRequest).not.toHaveBeenCalled();
             expect(warningSpy).toHaveBeenCalledWith(expect.stringContaining('skipRequest()'));
         });
+
+        test('a throwing onSkippedRequest retries the request instead of crashing the crawler', async () => {
+            const url = 'https://example.com/skipped';
+            const requestHandler = vitest.fn(async ({ skipRequest }) => skipRequest());
+            const onSkippedRequest = vitest
+                .fn()
+                .mockRejectedValueOnce(new Error('webhook down'))
+                .mockResolvedValue(undefined);
+            const requestManager = await RequestQueue.open();
+
+            const crawler = new BasicCrawler({ requestManager, requestHandler, onSkippedRequest });
+            const stats = await crawler.run([url]);
+
+            expect(requestHandler).toHaveBeenCalledTimes(2);
+            expect(onSkippedRequest).toHaveBeenCalledTimes(2);
+            expect(stats).toMatchObject({ requestsFailed: 0 });
+            const stored = await requestManager.getRequest(url);
+            expect(CrawlingRequest.fromSchema(stored!).state).toBe(RequestState.SKIPPED);
+        });
+
+        test('a throwing onSkippedRequest does not loop with an errorHandler that always skips', async () => {
+            const requestHandler = vitest.fn(async () => {
+                throw new Error('404');
+            });
+            const failedRequestHandler = vitest.fn();
+
+            const crawler = new BasicCrawler({
+                maxRequestRetries: 2,
+                requestHandler,
+                errorHandler: ({ skipRequest }) => skipRequest(),
+                failedRequestHandler,
+                onSkippedRequest: async () => {
+                    throw new Error('webhook down');
+                },
+            });
+            const stats = await crawler.run(['https://example.com/skipped']);
+
+            expect(requestHandler).toHaveBeenCalledTimes(3);
+            expect(failedRequestHandler).toHaveBeenCalledOnce();
+            expect(stats).toMatchObject({ requestsFailed: 1 });
+        });
+
+        test('marking a skipped request as handled is retried', async () => {
+            const url = 'https://example.com/skipped';
+            const requestManager = await RequestQueue.open();
+            const markRequestAsHandled = requestManager.markRequestAsHandled.bind(requestManager);
+            vitest
+                .spyOn(requestManager, 'markRequestAsHandled')
+                .mockRejectedValueOnce(new Error('storage hiccup'))
+                .mockImplementation(markRequestAsHandled);
+
+            const crawler = new BasicCrawler({
+                requestManager,
+                requestHandler: async ({ skipRequest }) => skipRequest(),
+            });
+            await crawler.run([url]);
+
+            const stored = await requestManager.getRequest(url);
+            expect(stored?.handledAt).toBeDefined();
+        });
     });
 
     describe('transactional storage', () => {
