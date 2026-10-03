@@ -101,7 +101,7 @@
         "@types/rimraf": "^4.0.5",
         "@types/sax": "^1.2.7",
         "@types/semver": "^7.7.0",
-        "@types/whatwg-mimetype": "^3.0.2",
+        "@types/whatwg-mimetype": "^5.0.0",
         "@types/yargs": "^17.0.33",
         "@vitest/coverage-v8": "^4.0.16",
         "apify": "*",
