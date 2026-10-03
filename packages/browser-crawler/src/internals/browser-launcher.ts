@@ -178,7 +178,7 @@ export abstract class BrowserLauncher<
             ...otherLaunchContextProps
         } = launchContext;
 
-        this.validateProxyUrlProtocol(proxyUrl);
+        this.#validateProxyUrlProtocol(proxyUrl);
 
         // those need to be reassigned otherwise they are {} in types
         this.launcher = launcher!;
@@ -211,7 +211,7 @@ export abstract class BrowserLauncher<
         // parameter, so the argument cannot be checked here. The concrete `*BrowserPool()` factories are where the
         // caller-facing hook types get pinned down.
         return new BrowserPool<{ browserPlugins: [Plugin] }, [Plugin]>({
-            ...this.resolveFingerprinting(options),
+            ...this.#resolveFingerprinting(options),
             browserPlugins: [this.createBrowserPlugin()],
         } as any);
     }
@@ -225,7 +225,7 @@ export abstract class BrowserLauncher<
         return new RemoteBrowserPool<Page>({
             ...options,
             browserPlugins: [this.createBrowserPlugin()],
-            browserPoolOptions: this.resolveFingerprinting(options.browserPoolOptions ?? {}),
+            browserPoolOptions: this.#resolveFingerprinting(options.browserPoolOptions ?? {}),
         });
     }
 
@@ -233,7 +233,7 @@ export abstract class BrowserLauncher<
      * A custom `userAgent` and Crawlee's fingerprint injection would both write the same headers, so an
      * explicitly requested user agent wins.
      */
-    private resolveFingerprinting<T extends { useFingerprints?: boolean }>(options: T): T {
+    #resolveFingerprinting<T extends { useFingerprints?: boolean }>(options: T): T {
         if (!this.userAgent) {
             return options;
         }
@@ -279,7 +279,7 @@ export abstract class BrowserLauncher<
         }
 
         if (this.useChrome && !launchOptions.executablePath) {
-            launchOptions.executablePath = this.getChromeExecutablePath();
+            launchOptions.executablePath = this.#getChromeExecutablePath();
         }
 
         return launchOptions;
@@ -289,14 +289,14 @@ export abstract class BrowserLauncher<
         return this.configuration.headless && !this.configuration.xvfb;
     }
 
-    private getChromeExecutablePath(): string {
-        return this.configuration.chromeExecutablePath ?? this.getTypicalChromeExecutablePath();
+    #getChromeExecutablePath(): string {
+        return this.configuration.chromeExecutablePath ?? this.#getTypicalChromeExecutablePath();
     }
 
     /**
      * Gets a typical path to Chrome executable, depending on the current operating system.
      */
-    private getTypicalChromeExecutablePath(): string {
+    #getTypicalChromeExecutablePath(): string {
         /**
          * Returns path of Chrome executable by its OS environment variable to deal with non-english language OS.
          * Taking also into account the old [chrome 380177 issue](https://bugs.chromium.org/p/chromium/issues/detail?id=380177).
@@ -325,7 +325,7 @@ export abstract class BrowserLauncher<
         }
     }
 
-    private validateProxyUrlProtocol(proxyUrl?: string): void {
+    #validateProxyUrlProtocol(proxyUrl?: string): void {
         if (!proxyUrl) return;
 
         if (!/^(http|https|socks4|socks5)/i.test(proxyUrl)) {

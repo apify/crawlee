@@ -65,7 +65,7 @@ export class LocalEventManager extends EventManager {
      * @internal
      */
     async emitSystemInfoEvent(intervalCallback: () => unknown) {
-        const info = await this.createSystemInfo({
+        const info = await this.#createSystemInfo({
             maxUsedCpuRatio: serviceLocator.getConfiguration().maxUsedCpuRatio,
         });
         this.events.emit(EventType.SYSTEM_INFO, info);
@@ -83,15 +83,15 @@ export class LocalEventManager extends EventManager {
     /**
      * Creates a SystemInfo object based on local metrics.
      */
-    private async createSystemInfo(options: { maxUsedCpuRatio: number }) {
+    async #createSystemInfo(options: { maxUsedCpuRatio: number }) {
         return {
             createdAt: new Date(),
-            ...(await this.createCpuInfo(options)),
-            ...(await this.createMemoryInfo()),
+            ...(await this.#createCpuInfo(options)),
+            ...(await this.#createMemoryInfo()),
         } as SystemInfo;
     }
 
-    private async createCpuInfo(options: { maxUsedCpuRatio: number }) {
+    async #createCpuInfo(options: { maxUsedCpuRatio: number }) {
         const { getCurrentCpuTicksV2 } = await import('../system-info/cpu-info.js');
         const usedCpuRatio = await getCurrentCpuTicksV2({
             containerized: await this.isContainerizedWrapper(),
@@ -103,9 +103,9 @@ export class LocalEventManager extends EventManager {
         };
     }
 
-    private async createMemoryInfo() {
+    async #createMemoryInfo() {
         try {
-            const memInfo = await this.getMemoryInfo();
+            const memInfo = await this.#getMemoryInfo();
             return {
                 memTotalBytes: memInfo.totalBytes,
                 memCurrentBytes: memInfo.mainProcessBytes + memInfo.childProcessesBytes,
@@ -116,7 +116,7 @@ export class LocalEventManager extends EventManager {
         }
     }
 
-    private async getMemoryInfo() {
+    async #getMemoryInfo() {
         const { getMemoryInfo } = await import('../system-info/memory-info.js');
         return getMemoryInfo({
             containerized: await this.isContainerizedWrapper(),

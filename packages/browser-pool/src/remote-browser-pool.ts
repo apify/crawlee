@@ -281,7 +281,7 @@ export class RemoteBrowserPool<Page = unknown> implements IBrowserPool<Page> {
      * allows it (either a new browser slot is free, or an active browser still has page capacity).
      */
     async newPage(options?: NewPageOptions): Promise<Page> {
-        await this.waitForFreeSlot();
+        await this.#waitForFreeSlot();
         return this.#pool.newPage(options);
     }
 
@@ -317,9 +317,9 @@ export class RemoteBrowserPool<Page = unknown> implements IBrowserPool<Page> {
     }
 
     /** Resolves once the wrapped pool can serve another page without exceeding `maxOpenBrowsers`. */
-    private async waitForFreeSlot(): Promise<void> {
+    async #waitForFreeSlot(): Promise<void> {
         while (!this.browserPool.hasFreeBrowserSlot() && !this.browserPool.hasActiveBrowserWithFreeCapacity()) {
-            await this.nextCapacityChange();
+            await this.#nextCapacityChange();
         }
     }
 
@@ -328,7 +328,7 @@ export class RemoteBrowserPool<Page = unknown> implements IBrowserPool<Page> {
      * concurrently-waiting `newPage` calls share a single promise (and a single pair of event listeners)
      * per tick, so a fleet of saturated callers doesn't fan out into N listener pairs on the pool.
      */
-    private nextCapacityChange(): Promise<void> {
+    #nextCapacityChange(): Promise<void> {
         this.#capacityChange ??= new Promise<void>((resolve) => {
             const done = () => {
                 clearTimeout(timer);

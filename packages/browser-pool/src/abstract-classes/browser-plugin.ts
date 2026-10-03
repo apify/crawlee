@@ -267,7 +267,7 @@ export abstract class BrowserPlugin<
 
         if (!launchContext.isRemote && this.isChromiumBasedBrowser(launchContext)) {
             // This will set the args for chromium based browsers to hide the webdriver.
-            (launchOptions as Dictionary).args = this.mergeArgsToHideWebdriver(launchOptions!.args);
+            (launchOptions as Dictionary).args = this.#mergeArgsToHideWebdriver(launchOptions!.args);
             // When User-Agent is not set, and we're using Chromium in headless mode,
             // it is better to use DEFAULT_USER_AGENT to reduce chance of detection,
             // as otherwise 'HeadlessChrome' is present in User-Agent string.
@@ -284,7 +284,7 @@ export abstract class BrowserPlugin<
         return this._launch(launchContext);
     }
 
-    private mergeArgsToHideWebdriver(originalArgs?: string[]): string[] {
+    #mergeArgsToHideWebdriver(originalArgs?: string[]): string[] {
         if (!originalArgs?.length) {
             return ['--disable-blink-features=AutomationControlled'];
         }

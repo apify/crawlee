@@ -104,7 +104,7 @@ export class SystemStatus {
         this.#historyMillis = historySecs * 1000;
 
         this.#signals = [...snapshotter.getLoadSignals(), ...loadSignals];
-        this.assertUniqueSignalNames();
+        this.#assertUniqueSignalNames();
     }
 
     /**
@@ -121,7 +121,7 @@ export class SystemStatus {
      * contradicts actual behavior: both signals are still evaluated (any overloaded one holds concurrency down), but
      * only the last is reported.
      */
-    private assertUniqueSignalNames(): void {
+    #assertUniqueSignalNames(): void {
         const seen = new Set<string>();
 
         for (const { name } of this.#signals) {
@@ -155,7 +155,7 @@ export class SystemStatus {
      * and `true` otherwise.
      */
     getCurrentStatus(): SystemInfo {
-        return this.isSystemIdle(this.#currentHistoryMillis);
+        return this.#isSystemIdle(this.#currentHistoryMillis);
     }
 
     /**
@@ -174,13 +174,13 @@ export class SystemStatus {
      * `historySecs` seconds and `true` otherwise.
      */
     getHistoricalStatus(): SystemInfo {
-        return this.isSystemIdle(this.#historyMillis);
+        return this.#isSystemIdle(this.#historyMillis);
     }
 
     /**
      * Returns a system status object.
      */
-    private isSystemIdle(sampleDurationMillis?: number): SystemInfo {
+    #isSystemIdle(sampleDurationMillis?: number): SystemInfo {
         const result: SystemInfo = {
             isSystemIdle: true,
             memInfo: { isOverloaded: false, limitRatio: 0, actualRatio: 0 },
