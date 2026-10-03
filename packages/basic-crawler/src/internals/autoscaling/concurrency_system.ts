@@ -216,11 +216,11 @@ export interface IConcurrencySystem {
  * @category Scaling
  */
 export class ConcurrencySystem implements IConcurrencySystem {
-    private readonly log: CrawleeLogger;
+    readonly #log: CrawleeLogger;
 
-    private readonly desiredConcurrencyRatio: number;
-    private readonly scaleUpStepRatio: number;
-    private readonly scaleDownStepRatio: number;
+    readonly #desiredConcurrencyRatio: number;
+    readonly #scaleUpStepRatio: number;
+    readonly #scaleDownStepRatio: number;
     readonly #loggingIntervalMillis: number;
     readonly #autoscaleIntervalMillis: number;
     /** The cap on tasks started per minute, or `Infinity` when uncapped. */
@@ -233,9 +233,9 @@ export class ConcurrencySystem implements IConcurrencySystem {
     #lastLoggingTime?: number;
     #tasksPerMinute: number[] = Array.from({ length: 60 }, () => 0);
 
-    private readonly snapshotter: Snapshotter;
+    readonly #snapshotter: Snapshotter;
     readonly #loadSignals: LoadSignal[];
-    private readonly systemStatus: SystemStatus;
+    readonly #systemStatus: SystemStatus;
 
     #autoscaleInterval?: BetterIntervalID;
     #tasksDonePerSecondInterval?: BetterIntervalID;
@@ -266,11 +266,11 @@ export class ConcurrencySystem implements IConcurrencySystem {
             maxTasksPerMinute,
         } = parseArgument(options, concurrencySystemOptionsSchema, 'ConcurrencySystemOptions');
 
-        this.log = log.child({ prefix: 'ConcurrencySystem' });
+        this.#log = log.child({ prefix: 'ConcurrencySystem' });
 
-        this.desiredConcurrencyRatio = desiredConcurrencyRatio;
-        this.scaleUpStepRatio = scaleUpStepRatio;
-        this.scaleDownStepRatio = scaleDownStepRatio;
+        this.#desiredConcurrencyRatio = desiredConcurrencyRatio;
+        this.#scaleUpStepRatio = scaleUpStepRatio;
+        this.#scaleDownStepRatio = scaleDownStepRatio;
         this.#loggingIntervalMillis = (loggingIntervalSecs ?? 0) * 1000;
         this.#autoscaleIntervalMillis = autoscaleIntervalSecs * 1000;
         this.maxTasksPerMinute = maxTasksPerMinute;
@@ -278,18 +278,15 @@ export class ConcurrencySystem implements IConcurrencySystem {
         this.#minConcurrency = minConcurrency;
         this.#maxConcurrency = maxConcurrency;
         this.#desiredConcurrency = desiredConcurrency ?? minConcurrency;
-        this.clampDesiredConcurrency();
-
-        this.autoscale = this.autoscale.bind(this);
-        this.incrementTasksDonePerSecond = this.incrementTasksDonePerSecond.bind(this);
+        this.#clampDesiredConcurrency();
 
         // The built-in signals are collected by the snapshotter; custom ones are simply evaluated alongside them.
         const { custom: customLoadSignals = [], ...builtinSignalOptions } = loadSignals;
 
-        this.snapshotter = new Snapshotter(builtinSignalOptions);
+        this.#snapshotter = new Snapshotter(builtinSignalOptions);
         this.#loadSignals = customLoadSignals;
-        this.systemStatus = new SystemStatus({
-            snapshotter: this.snapshotter,
+        this.#systemStatus = new SystemStatus({
+            snapshotter: this.#snapshotter,
             loadSignals: customLoadSignals,
             currentHistorySecs,
             // Both windows are requested from the signals explicitly, so a signal's own retention can neither widen
@@ -314,7 +311,7 @@ export class ConcurrencySystem implements IConcurrencySystem {
     set minConcurrency(value: number) {
         parseArgument(value, concurrencySchema);
         this.#minConcurrency = value;
-        this.clampDesiredConcurrency();
+        this.#clampDesiredConcurrency();
     }
 
     /**
@@ -333,7 +330,7 @@ export class ConcurrencySystem implements IConcurrencySystem {
     set maxConcurrency(value: number) {
         parseArgument(value, concurrencySchema);
         this.#maxConcurrency = value;
-        this.clampDesiredConcurrency();
+        this.#clampDesiredConcurrency();
     }
 
     /**
@@ -353,7 +350,7 @@ export class ConcurrencySystem implements IConcurrencySystem {
      * meaningless. A contradictory pair (`minConcurrency > maxConcurrency`) resolves in favour of the maximum, since
      * that is the limit callers set in order to protect something.
      */
-    private clampDesiredConcurrency(): void {
+    #clampDesiredConcurrency(): void {
         const atLeastMin = Math.max(this.#desiredConcurrency, this.#minConcurrency);
         this.#desiredConcurrency = Math.min(atLeastMin, this.#maxConcurrency);
     }
@@ -375,16 +372,16 @@ export class ConcurrencySystem implements IConcurrencySystem {
     async start(): Promise<void> {
         // Unwound and dropped again on failure, so a later `start()` retries instead of resolving instantly against
         // a system that is down.
-        this.#startPromise ??= this.boot().catch(async (error) => {
+        this.#startPromise ??= this.#boot().catch(async (error) => {
             this.#startPromise = undefined;
-            await this.shutDown();
+            await this.#shutDown();
             throw error;
         });
 
         await this.#startPromise;
     }
 
-    private async boot(): Promise<void> {
+    async #boot(): Promise<void> {
         // Per-session measurement state, reset so a restarted system isn't judged on the previous session. The
         // per-minute window matters most: its ageing interval is cleared while we are down, so starts from before an
         // arbitrarily long stop would otherwise still count against "this minute" and trip the cap immediately.
@@ -394,14 +391,20 @@ export class ConcurrencySystem implements IConcurrencySystem {
 
         // Signals are told how much history to keep when they start: exactly the longest window they will be sampled
         // over, so nobody has to guess a retention value that matches this system's configuration.
-        const startContext = { maxSampleWindowMillis: this.systemStatus.maxSampleWindowMillis };
-        await this.snapshotter.start(startContext);
+        const startContext = { maxSampleWindowMillis: this.#systemStatus.maxSampleWindowMillis };
+        await this.#snapshotter.start(startContext);
         await Promise.all(this.#loadSignals.map(async (s) => s.start(startContext)));
 
-        this.#autoscaleInterval = betterSetInterval(this.autoscale, this.#autoscaleIntervalMillis);
+        this.#autoscaleInterval = betterSetInterval(
+            (cb: () => void) => this.#autoscale(cb),
+            this.#autoscaleIntervalMillis,
+        );
 
         if (this.maxTasksPerMinute !== Infinity) {
-            this.#tasksDonePerSecondInterval = betterSetInterval(this.incrementTasksDonePerSecond, 1000);
+            this.#tasksDonePerSecondInterval = betterSetInterval(
+                (cb: () => void) => this.#incrementTasksDonePerSecond(cb),
+                1000,
+            );
         }
 
         // Last, so `isRunning` never claims a system whose signals aren't collecting yet.
@@ -425,13 +428,13 @@ export class ConcurrencySystem implements IConcurrencySystem {
         this.#startPromise = undefined;
         this.#running = false;
 
-        await this.shutDown();
+        await this.#shutDown();
     }
 
-    private async shutDown(): Promise<void> {
+    async #shutDown(): Promise<void> {
         if (this.#autoscaleInterval) betterClearInterval(this.#autoscaleInterval);
         if (this.#tasksDonePerSecondInterval) betterClearInterval(this.#tasksDonePerSecondInterval);
-        await this.snapshotter.stop();
+        await this.#snapshotter.stop();
         await Promise.all(this.#loadSignals.map(async (s) => s.stop()));
     }
 
@@ -441,13 +444,13 @@ export class ConcurrencySystem implements IConcurrencySystem {
      * {@apilink ConcurrencySystem.isRunning|`isRunning`} on the way in. Both the overload verdict and
      * `desiredConcurrency` are frozen at that point, so the borrowing pool would otherwise just quietly mis-scale.
      */
-    private warnIfNotRunning(): void {
+    #warnIfNotRunning(): void {
         if (this.#running || this.#warnedAboutQueryWhileStopped) {
             return;
         }
 
         this.#warnedAboutQueryWhileStopped = true;
-        this.log.warning(
+        this.#log.warning(
             'Capacity is being queried on a ConcurrencySystem that is not running, so system load is no longer being ' +
                 'monitored and the concurrency will no longer be adjusted. Whoever creates a ConcurrencySystem owns ' +
                 'its lifecycle: call `await concurrencySystem.stop()` only once every pool and crawler borrowing it ' +
@@ -463,17 +466,17 @@ export class ConcurrencySystem implements IConcurrencySystem {
      * interface, letting the answer be queried directly.
      */
     hasCapacityForTask(_consumer?: ConcurrencyConsumer): boolean {
-        this.warnIfNotRunning();
+        this.#warnIfNotRunning();
 
         if (this.#currentConcurrency >= this.#desiredConcurrency) {
-            this.log.perf('Task will not run. Desired concurrency achieved.');
+            this.#log.perf('Task will not run. Desired concurrency achieved.');
             return false;
         }
 
-        const currentStatus = this.systemStatus.getCurrentStatus();
+        const currentStatus = this.#systemStatus.getCurrentStatus();
         const { isSystemIdle } = currentStatus;
         if (!isSystemIdle && this.#currentConcurrency >= this.#minConcurrency) {
-            this.log.perf(
+            this.#log.perf(
                 'Task will not be run. System is overloaded.',
                 currentStatus as unknown as Record<string, unknown>,
             );
@@ -484,7 +487,7 @@ export class ConcurrencySystem implements IConcurrencySystem {
     }
 
     /** Whether the per-minute task cap has been reached. */
-    private get isOverMaxRequestLimit(): boolean {
+    get #isOverMaxRequestLimit(): boolean {
         if (this.maxTasksPerMinute === Infinity) {
             return false;
         }
@@ -506,8 +509,8 @@ export class ConcurrencySystem implements IConcurrencySystem {
             return false;
         }
 
-        if (this.isOverMaxRequestLimit) {
-            this.log.perf('Task will not run. Maximum tasks per minute reached.');
+        if (this.#isOverMaxRequestLimit) {
+            this.#log.perf('Task will not run. Maximum tasks per minute reached.');
             return false;
         }
 
@@ -527,28 +530,28 @@ export class ConcurrencySystem implements IConcurrencySystem {
      * The one public window into load monitoring — useful for answering *why* a crawl is not scaling up.
      */
     getCurrentStatus(): SystemInfo {
-        return this.systemStatus.getCurrentStatus();
+        return this.#systemStatus.getCurrentStatus();
     }
 
     /**
      * Evaluates the historical system status and scales the shared desired concurrency up or down accordingly. Driven
      * by the autoscaling interval started in {@apilink ConcurrencySystem.start|`start()`}.
      */
-    private autoscale(intervalCallback: () => void): void {
-        if (this.isOverMaxRequestLimit) return intervalCallback();
+    #autoscale(intervalCallback: () => void): void {
+        if (this.#isOverMaxRequestLimit) return intervalCallback();
 
-        const systemStatus = this.systemStatus.getHistoricalStatus();
+        const systemStatus = this.#systemStatus.getHistoricalStatus();
         const { isSystemIdle } = systemStatus;
         const weAreNotAtMax = this.#desiredConcurrency < this.#maxConcurrency;
-        const minCurrentConcurrency = Math.floor(this.#desiredConcurrency * this.desiredConcurrencyRatio);
+        const minCurrentConcurrency = Math.floor(this.#desiredConcurrency * this.#desiredConcurrencyRatio);
         const weAreReachingDesiredConcurrency = this.#currentConcurrency >= minCurrentConcurrency;
 
-        if (isSystemIdle && weAreNotAtMax && weAreReachingDesiredConcurrency) this.scaleUp(systemStatus);
+        if (isSystemIdle && weAreNotAtMax && weAreReachingDesiredConcurrency) this.#scaleUp(systemStatus);
 
         const isSystemOverloaded = !isSystemIdle;
         const weAreNotAtMin = this.#desiredConcurrency > this.#minConcurrency;
 
-        if (isSystemOverloaded && weAreNotAtMin) this.scaleDown(systemStatus);
+        if (isSystemOverloaded && weAreNotAtMin) this.#scaleDown(systemStatus);
 
         if (this.#loggingIntervalMillis > 0) {
             const now = Date.now();
@@ -557,7 +560,7 @@ export class ConcurrencySystem implements IConcurrencySystem {
                 this.#lastLoggingTime = now;
             } else if (now > this.#lastLoggingTime + this.#loggingIntervalMillis) {
                 this.#lastLoggingTime = now;
-                this.log.info('state', {
+                this.#log.info('state', {
                     currentConcurrency: this.#currentConcurrency,
                     desiredConcurrency: this.#desiredConcurrency,
                     systemStatus,
@@ -571,10 +574,10 @@ export class ConcurrencySystem implements IConcurrencySystem {
     /**
      * Scales the system up by increasing the desired concurrency by the scaleUpStepRatio.
      */
-    private scaleUp(systemStatus: SystemInfo): void {
-        const step = Math.ceil(this.#desiredConcurrency * this.scaleUpStepRatio);
+    #scaleUp(systemStatus: SystemInfo): void {
+        const step = Math.ceil(this.#desiredConcurrency * this.#scaleUpStepRatio);
         this.#desiredConcurrency = Math.min(this.#maxConcurrency, this.#desiredConcurrency + step);
-        this.log.debug('scaling up', {
+        this.#log.debug('scaling up', {
             oldConcurrency: this.#desiredConcurrency - step,
             newConcurrency: this.#desiredConcurrency,
             systemStatus,
@@ -584,17 +587,17 @@ export class ConcurrencySystem implements IConcurrencySystem {
     /**
      * Scales the system down by decreasing the desired concurrency by the scaleDownStepRatio.
      */
-    private scaleDown(systemStatus: SystemInfo): void {
-        const step = Math.ceil(this.#desiredConcurrency * this.scaleDownStepRatio);
+    #scaleDown(systemStatus: SystemInfo): void {
+        const step = Math.ceil(this.#desiredConcurrency * this.#scaleDownStepRatio);
         this.#desiredConcurrency = Math.max(this.#minConcurrency, this.#desiredConcurrency - step);
-        this.log.debug('scaling down', {
+        this.#log.debug('scaling down', {
             oldConcurrency: this.#desiredConcurrency + step,
             newConcurrency: this.#desiredConcurrency,
             systemStatus,
         });
     }
 
-    private incrementTasksDonePerSecond(intervalCallback: () => void): void {
+    #incrementTasksDonePerSecond(intervalCallback: () => void): void {
         this.#tasksPerMinute.unshift(0);
         this.#tasksPerMinute.pop();
 

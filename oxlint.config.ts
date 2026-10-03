@@ -57,8 +57,8 @@ export default defineConfig({
             },
         ],
         // Counterpart to `no-underscore-dangle` above: private members should be native `#` fields,
-        // not the TypeScript `private` modifier. `warn` until the existing usages are migrated.
-        'crawlee/prefer-private-fields': 'warn',
+        // not the TypeScript `private` modifier.
+        'crawlee/prefer-private-fields': 'error',
 
         'typescript/consistent-type-imports': ['error', { disallowTypeAnnotations: false }],
         'typescript/consistent-type-definitions': ['error', 'interface'],

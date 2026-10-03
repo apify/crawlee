@@ -13,20 +13,20 @@ const CRAWLEE_TO_WINSTON: Record<number, string> = {
 };
 
 class WinstonAdapter extends BaseCrawleeLogger {
-    constructor(
-        private logger: winston.Logger,
-        options?: Partial<CrawleeLoggerOptions>,
-    ) {
+    #logger: winston.Logger;
+
+    constructor(logger: winston.Logger, options?: Partial<CrawleeLoggerOptions>) {
         super(options);
+        this.#logger = logger;
     }
 
     logWithLevel(level: number, message: string, data?: Record<string, unknown>): void {
         const winstonLevel = CRAWLEE_TO_WINSTON[level] ?? 'info';
-        this.logger.log(winstonLevel, message, data);
+        this.#logger.log(winstonLevel, message, data);
     }
 
     protected createChild(options: Partial<CrawleeLoggerOptions>): CrawleeLogger {
-        return new WinstonAdapter(this.logger.child({ prefix: options.prefix }), { ...this.getOptions(), ...options });
+        return new WinstonAdapter(this.#logger.child({ prefix: options.prefix }), { ...this.getOptions(), ...options });
     }
 }
 

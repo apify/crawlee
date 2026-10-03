@@ -48,22 +48,22 @@ export class DatasetBackend<Data extends Dictionary = Dictionary>
 
     readonly #datasetEntries = new Map<string, Data>();
     // kept as TS-private: storage-backend tests read this field at runtime
-    private readonly storageBackend: MemoryStorageBackend;
+    readonly #storageBackend: MemoryStorageBackend;
 
     constructor(options: DatasetBackendOptions) {
         super(options.id ?? randomUUID());
         this.name = options.name;
         this.cacheKey = options.cacheKey ?? this.name ?? this.id;
-        this.storageBackend = options.storageBackend;
+        this.#storageBackend = options.storageBackend;
     }
 
     async getMetadata(): Promise<storage.DatasetInfo> {
-        this.updateTimestamps(false);
+        this.#updateTimestamps(false);
         return this.toDatasetInfo();
     }
 
     async drop(): Promise<void> {
-        if (this.storageBackend.evictBackend('Dataset', this.id)) {
+        if (this.#storageBackend.evictBackend('Dataset', this.id)) {
             this.itemCount = 0;
             this.#datasetEntries.clear();
         }
@@ -73,23 +73,23 @@ export class DatasetBackend<Data extends Dictionary = Dictionary>
         this.itemCount = 0;
         this.#datasetEntries.clear();
 
-        this.updateTimestamps(true);
+        this.#updateTimestamps(true);
     }
 
     getData(options: storage.DatasetBackendListOptions = {}): Promise<storage.PaginatedList<Data>> {
         const { desc, limit, offset } = parseArgument(options, schemas.datasetListItemsOptions);
 
-        return this.getDataPage({
+        return this.#getDataPage({
             desc,
             offset: offset ?? 0,
             limit: Math.min(limit ?? LIST_ITEMS_LIMIT, LIST_ITEMS_LIMIT),
         });
     }
 
-    private async getDataPage(options: storage.DatasetBackendListOptions = {}): Promise<storage.PaginatedList<Data>> {
+    async #getDataPage(options: storage.DatasetBackendListOptions = {}): Promise<storage.PaginatedList<Data>> {
         const { limit = LIST_ITEMS_LIMIT, offset = 0, desc } = options;
 
-        const [start, end] = this.getStartAndEndIndexes(
+        const [start, end] = this.#getStartAndEndIndexes(
             desc ? Math.max(this.itemCount - offset - limit, 0) : offset,
             limit,
         );
@@ -97,11 +97,11 @@ export class DatasetBackend<Data extends Dictionary = Dictionary>
         const items: Data[] = [];
 
         for (let idx = start; idx < end; idx++) {
-            const entryNumber = this.generateLocalEntryName(idx);
+            const entryNumber = this.#generateLocalEntryName(idx);
             items.push(this.#datasetEntries.get(entryNumber)!);
         }
 
-        this.updateTimestamps(false);
+        this.#updateTimestamps(false);
 
         return {
             count: items.length,
@@ -115,11 +115,11 @@ export class DatasetBackend<Data extends Dictionary = Dictionary>
 
     async pushData(items: Data[]): Promise<void> {
         for (const entry of items) {
-            const idx = this.generateLocalEntryName(++this.itemCount);
+            const idx = this.#generateLocalEntryName(++this.itemCount);
             this.#datasetEntries.set(idx, JSON.parse(JSON.stringify(entry)) as Data);
         }
 
-        this.updateTimestamps(true);
+        this.#updateTimestamps(true);
     }
 
     toDatasetInfo(): storage.DatasetInfo {
@@ -133,17 +133,17 @@ export class DatasetBackend<Data extends Dictionary = Dictionary>
         };
     }
 
-    private generateLocalEntryName(idx: number): string {
+    #generateLocalEntryName(idx: number): string {
         return idx.toString().padStart(LOCAL_ENTRY_NAME_DIGITS, '0');
     }
 
-    private getStartAndEndIndexes(offset: number, limit = this.itemCount) {
+    #getStartAndEndIndexes(offset: number, limit = this.itemCount) {
         const start = offset + 1;
         const end = Math.min(offset + limit, this.itemCount) + 1;
         return [start, end] as const;
     }
 
-    private updateTimestamps(hasBeenModified: boolean) {
+    #updateTimestamps(hasBeenModified: boolean) {
         this.accessedAt = new Date();
 
         if (hasBeenModified) {

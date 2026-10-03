@@ -74,7 +74,7 @@ export class RobotsTxtFile {
         robotsTxtFileUrl.pathname = '/robots.txt';
         robotsTxtFileUrl.search = '';
 
-        return RobotsTxtFile.load(robotsTxtFileUrl.toString(), options);
+        return RobotsTxtFile.#load(robotsTxtFileUrl.toString(), options);
     }
 
     /**
@@ -88,7 +88,7 @@ export class RobotsTxtFile {
         return new RobotsTxtFile(url, robotsParser(url, content), proxyUrl);
     }
 
-    private static async load(
+    static async #load(
         url: string,
         options?: {
             signal?: AbortSignal;

@@ -175,7 +175,7 @@ export class RenderingTypePredictor implements IRenderingTypePredictor {
 
         const predictionUrl = new URL(loadedUrl ?? url);
 
-        const urlFeature = new Matrix([this.calculateFeatureVector(urlComponents(predictionUrl), label)]);
+        const urlFeature = new Matrix([this.#calculateFeatureVector(urlComponents(predictionUrl), label)]);
         const [prediction] = logreg.predict(urlFeature);
         const scores = [logreg.classifiers[0].testScores(urlFeature), logreg.classifiers[1].testScores(urlFeature)];
 
@@ -184,7 +184,7 @@ export class RenderingTypePredictor implements IRenderingTypePredictor {
             detectionProbabilityRecommendation:
                 Math.abs(scores[0] - scores[1]) < 0.1
                     ? 1
-                    : this.#detectionRatio * Math.max(1, 5 - this.resultCount(label)),
+                    : this.#detectionRatio * Math.max(1, 5 - this.#resultCount(label)),
         };
     }
 
@@ -208,16 +208,16 @@ export class RenderingTypePredictor implements IRenderingTypePredictor {
             state.detectionResults.get(renderingType)!.get(label)!.push(urlComponents(resultUrl));
         }
 
-        this.retrain();
+        this.#retrain();
     }
 
-    private resultCount(label: string | undefined): number {
+    #resultCount(label: string | undefined): number {
         return Array.from(this.#state.currentValue.detectionResults.values())
             .map((results) => results.get(label)?.length ?? 0)
             .reduce((acc, value) => acc + value, 0);
     }
 
-    private calculateFeatureVector(url: URLComponents, label: string | undefined): FeatureVector {
+    #calculateFeatureVector(url: URLComponents, label: string | undefined): FeatureVector {
         return [
             mean(
                 (this.#state.currentValue.detectionResults.get('static')?.get(label) ?? []).map(
@@ -232,7 +232,7 @@ export class RenderingTypePredictor implements IRenderingTypePredictor {
         ];
     }
 
-    private retrain(): void {
+    #retrain(): void {
         const X: FeatureVector[] = [
             [0, 1],
             [1, 0],
@@ -242,7 +242,7 @@ export class RenderingTypePredictor implements IRenderingTypePredictor {
         for (const [renderingType, urlsByLabel] of this.#state.currentValue.detectionResults.entries()) {
             for (const [label, urls] of urlsByLabel) {
                 for (const url of urls) {
-                    X.push(this.calculateFeatureVector(url, label));
+                    X.push(this.#calculateFeatureVector(url, label));
                     Y.push(renderingType === 'static' ? 1 : 0);
                 }
             }
