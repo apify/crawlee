@@ -6,7 +6,7 @@
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
-    "typescript": "^6.0.0"
+    "typescript": "^7.0.0"
   },
   "dependencies": {
     "@crawlee/browser-pool": "workspace:*",
