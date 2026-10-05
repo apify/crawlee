@@ -132,7 +132,7 @@ jobs:
 
             -   name: Commit changes
                 id: commit
-                uses: EndBug/add-and-commit@645ecc0dd0a57f4d86d26c0aa5fc42c0a856fbca # v11.0.0
+                uses: EndBug/add-and-commit@cc9c08ba6c8df3b93a8f2db63e89b98368ae2ae8 # v11.1.1
                 with:
                   author_name: Apify Release Bot
                   author_email: noreply@apify.com
@@ -140,7 +140,7 @@ jobs:
                   pull: '--rebase --autostash'
 
             -   name: Publish packages
-                uses: apify/actions/execute-workflow@v1.4.1
+                uses: apify/actions/execute-workflow@v1.6.2
                 with:
                     workflow: publish-to-npm.yml
                     inputs: >
@@ -195,7 +195,7 @@ jobs:
                     pnpm docusaurus api:version $MAJOR_MINOR
 
             -   name: Commit and push the version snapshot
-                uses: EndBug/add-and-commit@645ecc0dd0a57f4d86d26c0aa5fc42c0a856fbca # v11.0.0
+                uses: EndBug/add-and-commit@cc9c08ba6c8df3b93a8f2db63e89b98368ae2ae8 # v11.1.1
                 with:
                     author_name: Apify Release Bot
                     author_email: noreply@apify.com

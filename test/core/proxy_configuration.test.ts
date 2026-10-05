@@ -130,6 +130,15 @@ describe('ProxyConfiguration', () => {
             expect((await proxyConfiguration.newProxyInfo())!.url).toEqual(proxyUrls[2]);
         });
 
+        test('newProxyInfo() should return a passed ProxyInfo without advancing the rotation', async () => {
+            const proxyUrls = ['http://proxy.com:1111', 'http://proxy.com:2222'];
+            const proxyConfiguration = new ProxyConfiguration({ proxyUrls });
+
+            const proxyInfo = await proxyConfiguration.newProxyInfo();
+            expect(await proxyConfiguration.newProxyInfo(proxyInfo)).toBe(proxyInfo);
+            expect((await proxyConfiguration.newProxyInfo())!.url).toEqual(proxyUrls[1]);
+        });
+
         test('should throw cannot combine custom methods', async () => {
             const proxyUrls = ['http://proxy.com:1111', 'http://proxy.com:2222', 'http://proxy.com:3333'];
             const newUrlFunction = () => {
