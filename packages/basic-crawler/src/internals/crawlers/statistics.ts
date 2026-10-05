@@ -305,7 +305,7 @@ export class Statistics<
     #logIntervalMillis: number;
     #logMessage: string;
     #requestsInProgress = new Map<number | string, RequestProcessingRecord>();
-    private readonly log: CrawleeLogger;
+    readonly #log: CrawleeLogger;
     #logInterval: unknown;
 
     /**
@@ -341,7 +341,7 @@ export class Statistics<
         this.id = id ?? String(Statistics.#id++);
         this.#persistStateKey = `CRAWLEE_CRAWLER_STATISTICS_${this.id}`;
 
-        this.log = (log ?? serviceLocator.getLogger()).child({ prefix: 'Statistics' });
+        this.#log = (log ?? serviceLocator.getLogger()).child({ prefix: 'Statistics' });
         this.errorTracker = new ErrorTracker({ ...errorTrackerConfig, saveErrorSnapshots });
         this.errorTrackerRetry = new ErrorTracker({ ...errorTrackerConfig, saveErrorSnapshots });
         this.#logIntervalMillis = logIntervalSecs * 1000;
@@ -373,7 +373,7 @@ export class Statistics<
             persistStateKey: this.#persistStateKey,
             persistenceEnabled: persistenceOptions.enable,
             keyValueStore,
-            logger: this.log,
+            logger: this.#log,
             defaultState: () => this.#defaultState(),
             serialize: (state) => this.#serializeState(state),
             deserialize: (persistedState) => this.#deserializeState(persistedState),
@@ -503,7 +503,7 @@ export class Statistics<
         const durationMillis = record.finish();
         this.state.requestsSucceeded++;
         this.state.requestTotalSucceededDurationMillis += durationMillis;
-        this.saveRetryCountForRequest(retryCount);
+        this.#saveRetryCountForRequest(retryCount);
         if (durationMillis < this.state.requestMinDurationMillis) this.state.requestMinDurationMillis = durationMillis;
         if (durationMillis > this.state.requestMaxDurationMillis) this.state.requestMaxDurationMillis = durationMillis;
         this.#requestsInProgress.delete(id);
@@ -515,7 +515,7 @@ export class Statistics<
         if (!record) return;
         this.state.requestTotalFailedDurationMillis += record.finish();
         this.state.requestsFailed++;
-        this.saveRetryCountForRequest(retryCount);
+        this.#saveRetryCountForRequest(retryCount);
         this.#requestsInProgress.delete(id);
     }
 
@@ -573,7 +573,7 @@ export class Statistics<
         }
 
         this.#logInterval = setInterval(() => {
-            this.log.info(this.#logMessage, {
+            this.#log.info(this.#logMessage, {
                 ...this.calculate(),
                 retryHistogram: this.requestRetryHistogram,
             });
@@ -591,7 +591,7 @@ export class Statistics<
         await this.#recoverableState.teardown();
     }
 
-    private saveRetryCountForRequest(retryCount: number) {
+    #saveRetryCountForRequest(retryCount: number) {
         if (retryCount > 0) this.state.requestsRetries++;
         this.requestRetryHistogram[retryCount] ??= 0;
         this.requestRetryHistogram[retryCount]++;
@@ -607,7 +607,7 @@ export class Statistics<
         await this.#recoverableState
             .persistState()
             .catch((error) =>
-                this.log.warning(`Failed to persist the statistics to ${this.#persistStateKey}`, { error }),
+                this.#log.warning(`Failed to persist the statistics to ${this.#persistStateKey}`, { error }),
             );
     }
 
@@ -626,7 +626,7 @@ export class Statistics<
         if (!restored.success) {
             // Statistics are bookkeeping - a record that cannot be made sense of is worth a warning and a fresh
             // start, not a failed crawl.
-            this.log.warning('Received invalid state from Key-value store, starting the statistics from scratch.', {
+            this.#log.warning('Received invalid state from Key-value store, starting the statistics from scratch.', {
                 persistStateKey: this.#persistStateKey,
                 issues: restored.error.issues,
             });
@@ -634,7 +634,7 @@ export class Statistics<
             return this.#defaultState();
         }
 
-        this.log.debug('Recreating state from KeyValueStore', { persistStateKey: this.#persistStateKey });
+        this.#log.debug('Recreating state from KeyValueStore', { persistStateKey: this.#persistStateKey });
 
         return { ...this.#defaultState(), ...restored.data, ...this.#restoreStateExtension(persistedState) };
     }
@@ -672,7 +672,7 @@ export class Statistics<
         } catch (error) {
             // Same policy as a built-in field that cannot be made sense of, but scoped to the custom ones - a
             // corrupt counter of your own is no reason to throw away the crawler's.
-            this.log.warning(
+            this.#log.warning(
                 'Received invalid custom statistics fields from Key-value store, starting those from scratch.',
                 { persistStateKey: this.#persistStateKey, error },
             );

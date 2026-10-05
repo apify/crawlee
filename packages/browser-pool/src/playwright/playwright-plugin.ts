@@ -75,7 +75,7 @@ export class PlaywrightPlugin extends BrowserPlugin<
         try {
             if (useIncognitoPages) {
                 browser = await this.library.launch(launchOptions).catch((error) => {
-                    return this.throwOnFailedLaunch(launchContext, error);
+                    return this.#throwOnFailedLaunch(launchContext, error);
                 });
 
                 if (anonymizedProxyUrl) {
@@ -87,7 +87,7 @@ export class PlaywrightPlugin extends BrowserPlugin<
                 const browserContext = await this.library
                     .launchPersistentContext(userDataDir, launchOptions)
                     .catch((error) => {
-                        return this.throwOnFailedLaunch(launchContext, error);
+                        return this.#throwOnFailedLaunch(launchContext, error);
                     });
 
                 browserContext.once('close', () => {
@@ -131,7 +131,7 @@ export class PlaywrightPlugin extends BrowserPlugin<
         return browser;
     }
 
-    private throwOnFailedLaunch(launchContext: LaunchContext<BrowserType>, cause: unknown): never {
+    #throwOnFailedLaunch(launchContext: LaunchContext<BrowserType>, cause: unknown): never {
         this.throwAugmentedLaunchError(
             cause,
             launchContext.launchOptions?.executablePath,

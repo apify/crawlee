@@ -12,7 +12,7 @@ import { startExpressAppPromise } from '../../shared/_helper.js';
 import { afterAll, beforeAll, expect, test } from 'vitest';
 
 class ReadableStreamGenerator {
-    private static async generateRandomData(size: number, seed: number): Promise<Uint8Array> {
+    static async #generateRandomData(size: number, seed: number): Promise<Uint8Array> {
         const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
         const array = new Uint8Array(size);
         for (let i = 0; i < size; i++) {
@@ -29,7 +29,7 @@ class ReadableStreamGenerator {
             start: async (controller) => {
                 while (bytesRead < size) {
                     const chunkSize = Math.min(size - bytesRead, 1024);
-                    const chunk = await this.generateRandomData(chunkSize, seed);
+                    const chunk = await this.#generateRandomData(chunkSize, seed);
                     bytesRead += chunk.length;
                     controller.enqueue(chunk);
 

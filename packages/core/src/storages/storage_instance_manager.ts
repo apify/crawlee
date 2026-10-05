@@ -68,7 +68,7 @@ class StorageCache {
     }
 
     /** Write a single entry into a given tier. */
-    private setInMap<T extends IStorage>(
+    #setInMap<T extends IStorage>(
         tier: CacheTier,
         cls: Constructor<T>,
         key: string,
@@ -86,16 +86,16 @@ class StorageCache {
      */
     set<T extends IStorage>(cls: Constructor<T>, instance: T, backendCacheKey: string, alias?: string): void {
         // Always cache by id.
-        this.setInMap(this.byId, cls, instance.id, instance, backendCacheKey);
+        this.#setInMap(this.byId, cls, instance.id, instance, backendCacheKey);
 
         // Cache by name — only for named storages.
         if (instance.name) {
-            this.setInMap(this.byName, cls, instance.name, instance, backendCacheKey);
+            this.#setInMap(this.byName, cls, instance.name, instance, backendCacheKey);
         }
 
         // Cache by alias — only for unnamed storages opened via alias.
         if (alias !== undefined) {
-            this.setInMap(this.byAlias, cls, alias, instance, backendCacheKey);
+            this.#setInMap(this.byAlias, cls, alias, instance, backendCacheKey);
         }
     }
 

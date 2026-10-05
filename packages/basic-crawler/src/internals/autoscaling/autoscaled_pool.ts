@@ -205,7 +205,6 @@ export class AutoscaledPool {
         this.#isStopped = false;
         this.#resolve = null;
         this.#reject = null;
-        this.maybeRunTask = this.maybeRunTask.bind(this);
     }
 
     /**
@@ -259,13 +258,16 @@ export class AutoscaledPool {
         // This is here because if we scale down to let's say 1, then after each promise is finished
         // this.maybeRunTask() doesn't trigger another one. So if that 1 instance gets stuck it results
         // in the crawler getting stuck and even after scaling up it never triggers another promise.
-        this.#maybeRunInterval = betterSetInterval(this.maybeRunTask, this.#maybeRunIntervalMillis);
+        this.#maybeRunInterval = betterSetInterval(
+            (cb: () => void) => this.#maybeRunTask(cb),
+            this.#maybeRunIntervalMillis,
+        );
 
         try {
             await poolPromise;
         } finally {
             // If resolve is null, the pool is already destroyed.
-            if (this.#resolve) await this.destroy();
+            if (this.#resolve) await this.#destroy();
         }
     }
 
@@ -284,7 +286,7 @@ export class AutoscaledPool {
         this.#isStopped = true;
         if (this.#resolve) {
             this.#resolve();
-            await this.destroy();
+            await this.#destroy();
         }
     }
 
@@ -347,7 +349,7 @@ export class AutoscaledPool {
      * every `maybeRunIntervalSecs` seconds. If you want to trigger the processing immediately, use this method.
      */
     async notify(): Promise<void> {
-        setImmediate(this.maybeRunTask);
+        setImmediate(() => this.#maybeRunTask());
     }
 
     /**
@@ -358,7 +360,7 @@ export class AutoscaledPool {
      *
      * It doesn't allow multiple concurrent runs of this method.
      */
-    private async maybeRunTask(intervalCallback?: () => void): Promise<void> {
+    async #maybeRunTask(intervalCallback?: () => void): Promise<void> {
         this.#log.perf('Attempting to run a task.');
         // Check if the function was invoked by the maybeRunInterval and use an empty function if not.
         const done = intervalCallback || (() => {});
@@ -381,7 +383,7 @@ export class AutoscaledPool {
             // to notice that *this* pool has run out of work — `maybeFinish()` is the only thing that ever resolves
             // `run()`. It no-ops while this pool has tasks of its own in flight, which is every case in which an
             // unshared governor reports no capacity.
-            return this.maybeFinish();
+            return this.#maybeFinish();
         }
         // - a task is ready.
         this.#queryingIsTaskReady = true;
@@ -405,7 +407,7 @@ export class AutoscaledPool {
             this.#log.perf('Task will not run. No tasks are ready.');
             done();
             // No tasks could mean that we're finished with all tasks.
-            return this.maybeFinish();
+            return this.#maybeFinish();
         }
 
         const taskId = String(this.#nextTaskId++);
@@ -422,7 +424,7 @@ export class AutoscaledPool {
             // Everything's fine. Run task.
             // Try to run next task to build up concurrency,
             // but defer it so it doesn't create a cycle.
-            setImmediate(this.maybeRunTask);
+            setImmediate(() => this.#maybeRunTask());
 
             // We need to restart interval here, so that it doesn't get blocked by a stalled task.
             done();
@@ -443,7 +445,7 @@ export class AutoscaledPool {
             this.#log.perf('Task finished.');
             // Run task after the previous one finished. Only on success: a failed task rejects the pool, and
             // nudging the loop afterwards could start work on an already destroyed pool.
-            setImmediate(this.maybeRunTask);
+            setImmediate(() => this.#maybeRunTask());
         } catch (e) {
             const err = e as Error;
             this.#log.perf('Running a task failed.');
@@ -472,7 +474,7 @@ export class AutoscaledPool {
      *
      * It doesn't allow multiple concurrent runs of this method.
      */
-    private async maybeFinish(): Promise<void> {
+    async #maybeFinish(): Promise<void> {
         if (this.#queryingIsFinished) return;
         if (this.#ownConcurrency > 0) return;
 
@@ -495,7 +497,7 @@ export class AutoscaledPool {
     /**
      * Cleans up resources.
      */
-    private async destroy(): Promise<void> {
+    async #destroy(): Promise<void> {
         this.#resolve = null;
         this.#reject = null;
 

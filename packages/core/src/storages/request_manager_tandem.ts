@@ -57,7 +57,7 @@ export class RequestManagerTandem implements IRequestManager {
     /**
      * Resolves the writable request manager, opening it lazily (via the factory) on first use and memoizing the result.
      */
-    private async getRequestManager(): Promise<IRequestManager> {
+    async #getRequestManager(): Promise<IRequestManager> {
         if (this.#resolvedRequestManager === undefined) {
             this.#requestManagerPromise ??= Promise.resolve(this.#requestManagerFactory());
             this.#resolvedRequestManager = await this.#requestManagerPromise;
@@ -79,14 +79,14 @@ export class RequestManagerTandem implements IRequestManager {
      * @returns `true` if a request was successfully transferred (or there was nothing to transfer), and `false` if a
      *  transfer was attempted but failed - in which case the caller should not fetch from the manager this round.
      */
-    private async transferNextRequestToQueue(): Promise<boolean> {
+    async #transferNextRequestToQueue(): Promise<boolean> {
         const request = await this.#requestLoader.fetchNextRequest();
 
         if (request === null) {
             return true;
         }
 
-        const requestManager = await this.getRequestManager();
+        const requestManager = await this.#getRequestManager();
 
         try {
             await requestManager.addRequest(request, { forefront: true });
@@ -114,13 +114,13 @@ export class RequestManagerTandem implements IRequestManager {
         if ((await this.#requestLoader.checkReadiness()).status === 'ready') {
             // If the transfer failed, the request was dropped; don't fetch from the manager this round (matching
             // crawlee-python behaviour). The next `fetchNextRequest()` call will pick up where we left off.
-            if (!(await this.transferNextRequestToQueue())) {
+            if (!(await this.#transferNextRequestToQueue())) {
                 return null;
             }
         }
 
         // Try to fetch from manager after the transfer
-        return (await this.getRequestManager()).fetchNextRequest<T>();
+        return (await this.#getRequestManager()).fetchNextRequest<T>();
     }
 
     /**
@@ -128,7 +128,7 @@ export class RequestManagerTandem implements IRequestManager {
      * @inheritdoc
      */
     async checkReadiness(): Promise<RequestSourceStatus> {
-        const requestManager = await this.getRequestManager();
+        const requestManager = await this.#getRequestManager();
         const [loaderStatus, managerStatus] = await Promise.all([
             this.#requestLoader.checkReadiness(),
             requestManager.checkReadiness(),
@@ -142,14 +142,14 @@ export class RequestManagerTandem implements IRequestManager {
      */
     async getHandledCount(): Promise<number> {
         // Since one of the stores needs to have priority when both are present, we query the request manager - the request loader will first be dumped into the manager and then left empty.
-        return (await this.getRequestManager()).getHandledCount();
+        return (await this.#getRequestManager()).getHandledCount();
     }
 
     /**
      * @inheritdoc
      */
     async getTotalCount(): Promise<number> {
-        const requestManager = await this.getRequestManager();
+        const requestManager = await this.#getRequestManager();
         const [managerTotal, loaderTotal] = await Promise.all([
             requestManager.getTotalCount(),
             // count only pending to avoid double counting, requests marked as "handled" have been moved to requestManager
@@ -162,7 +162,7 @@ export class RequestManagerTandem implements IRequestManager {
      * @inheritdoc
      */
     async getPendingCount(): Promise<number> {
-        const requestManager = await this.getRequestManager();
+        const requestManager = await this.#getRequestManager();
         const [managerPending, loaderPending] = await Promise.all([
             requestManager.getPendingCount(),
             this.#requestLoader.getPendingCount(),
@@ -185,7 +185,7 @@ export class RequestManagerTandem implements IRequestManager {
      * @inheritdoc
      */
     async markRequestAsHandled(request: Request): Promise<RequestQueueOperationInfo | void | null> {
-        return (await this.getRequestManager()).markRequestAsHandled(request);
+        return (await this.#getRequestManager()).markRequestAsHandled(request);
     }
 
     /**
@@ -195,14 +195,14 @@ export class RequestManagerTandem implements IRequestManager {
         request: Request,
         options?: RequestQueueOperationOptions,
     ): Promise<RequestQueueOperationInfo | null> {
-        return (await this.getRequestManager()).reclaimRequest(request, options);
+        return (await this.#getRequestManager()).reclaimRequest(request, options);
     }
 
     /**
      * @inheritdoc
      */
     async addRequest(requestLike: Source, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo> {
-        return (await this.getRequestManager()).addRequest(requestLike, options);
+        return (await this.#getRequestManager()).addRequest(requestLike, options);
     }
 
     /**
@@ -212,7 +212,7 @@ export class RequestManagerTandem implements IRequestManager {
         requests: RequestsLike,
         options?: AddRequestsBatchedOptions,
     ): Promise<AddRequestsBatchedResult> {
-        return (await this.getRequestManager()).addRequestsBatched(requests, options);
+        return (await this.#getRequestManager()).addRequestsBatched(requests, options);
     }
 
     /**
@@ -221,7 +221,7 @@ export class RequestManagerTandem implements IRequestManager {
      * @inheritdoc
      */
     async purge(): Promise<void> {
-        await (await this.getRequestManager()).purge?.();
+        await (await this.#getRequestManager()).purge?.();
     }
 
     /**
@@ -245,6 +245,6 @@ export class RequestManagerTandem implements IRequestManager {
     }
 
     async extendRequestProcessingTimeSecs(request: Request, secs: number): Promise<boolean> {
-        return (await this.getRequestManager()).extendRequestProcessingTimeSecs?.(request, secs) ?? false;
+        return (await this.#getRequestManager()).extendRequestProcessingTimeSecs?.(request, secs) ?? false;
     }
 }

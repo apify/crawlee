@@ -279,6 +279,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     readonly #throttleBy: 'hostname' | 'registrableDomain';
     readonly #maxThrottledDomains: number;
     readonly #persistStateKey: string;
+    readonly #config: Configuration;
 
     readonly #subManagers = new Map<string, Promise<T>>();
 
@@ -330,14 +331,15 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
 
     constructor(
         options: ThrottlingRequestManagerOptions<T>,
-        private readonly config: Configuration = serviceLocator.getConfiguration(),
+        config: Configuration = serviceLocator.getConfiguration(),
     ) {
+        this.#config = config;
         parseArgument(options, throttlingRequestManagerOptionsSchema, 'ThrottlingRequestManagerOptions');
 
         if (options.inner === undefined) {
             // Deferred like any other factory, so a manager nobody fetches from opens no storage. The opener is
             // assigned below and read only when this runs.
-            this.#innerFactory = () => this.#requestManagerOpener(null, { configuration: this.config });
+            this.#innerFactory = () => this.#requestManagerOpener(null, { configuration: this.#config });
         } else if (typeof options.inner === 'function') {
             this.#innerFactory = options.inner;
         } else {
@@ -523,7 +525,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
                 // Backends use the alias as a directory name, and an IPv6 literal is full of characters
                 // Windows will not accept. Ordinary hostnames survive this untouched.
                 { alias: `throttled-${encodeURIComponent(domain)}` },
-                { configuration: this.config },
+                { configuration: this.#config },
             );
             this.#subManagers.set(domain, subManager);
             this.#ensureDomainState(domain);
@@ -563,7 +565,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     async #ensureSubManagers(): Promise<void> {
         this.#subManagersReady ??= (async () => {
             if (this.#throttlesEveryDomain) {
-                this.#domainListStore = await KeyValueStore.open(null, { configuration: this.config });
+                this.#domainListStore = await KeyValueStore.open(null, { configuration: this.#config });
 
                 for (const domain of (await this.#domainListStore.getValue<string[]>(this.#persistStateKey)) ?? []) {
                     this.#discoveredDomains.add(domain);
