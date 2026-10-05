@@ -718,8 +718,8 @@ importers:
         specifier: ^2.4.6
         version: 2.4.7
       content-type:
-        specifier: ^1.0.5
-        version: 1.0.5
+        specifier: ^3.0.0
+        version: 3.1.1
       csv-stringify:
         specifier: ^6.5.2
         version: 6.7.0
@@ -856,8 +856,8 @@ importers:
         specifier: ^1.0.0
         version: 1.2.0
       content-type:
-        specifier: ^1.0.5
-        version: 1.0.5
+        specifier: ^3.0.0
+        version: 3.1.1
       iconv-lite:
         specifier: ^0.7.2
         version: 0.7.2
