@@ -29,10 +29,12 @@ import type { InferBrowserPluginArray, UnwrapPromise } from './utils.js';
 const PAGE_CLOSE_TIMEOUT_MILLIS = 5000;
 const PAGE_CLOSE_KILL_TIMEOUT_MILLIS = 1000;
 const BROWSER_KILLER_INTERVAL_MILLIS = 10 * 1000;
+const SLOT_POLL_INTERVAL_MILLIS = 500;
 
 const browserPoolOptionsSchema = z.strictObject({
     browserPlugins: schemas.anyArray.refine((value) => value.length >= 1, 'Expected a non-empty array'),
     maxOpenPagesPerBrowser: schemas.anyNumber.default(20),
+    maxOpenBrowsers: schemas.anyNumber.default(Infinity),
     retireBrowserAfterPageCount: schemas.anyNumber.default(100),
     operationTimeoutSecs: schemas.anyNumber.default(15),
     closeInactiveBrowserAfterSecs: schemas.anyNumber.default(300),
@@ -93,6 +95,16 @@ export interface BrowserPoolOptions<Plugin extends BrowserPlugin = BrowserPlugin
      * @default 20
      */
     maxOpenPagesPerBrowser?: number;
+    /**
+     * Maximum number of browser processes alive at once. A browser counts from the moment its launch starts until it
+     * actually closes — a retired browser that is still finishing its last pages still occupies a slot. Once the
+     * limit is reached, {@apilink BrowserPool.newPage|newPage} waits for a slot (a browser closing, or an open
+     * browser with page capacity to spare) instead of launching another. Set it to a remote browser service's
+     * concurrent-session limit to avoid `429` errors.
+     *
+     * @default Infinity
+     */
+    maxOpenBrowsers?: number;
     /**
      * Browsers tend to get bloated after processing a lot of pages. This option
      * configures the maximum number of processed pages after which the browser will
@@ -329,9 +341,6 @@ export class BrowserPool<
     browserPlugins: BrowserPlugins;
 
     /** @internal */
-    maxOpenBrowsers: number;
-
-    /** @internal */
     fingerprintOptions: FingerprintOptions;
 
     /** @internal */
@@ -343,6 +352,7 @@ export class BrowserPool<
     fingerprintCache?: QuickLRU<string, BrowserFingerprintWithHeaders>;
 
     readonly #maxOpenPagesPerBrowser: number;
+    readonly #maxOpenBrowsers: number;
     readonly #retireBrowserAfterPageCount: number;
     readonly #operationTimeoutMillis: number;
     readonly #closeInactiveBrowserAfterMillis: number;
@@ -373,6 +383,9 @@ export class BrowserPool<
     #limiter = pLimit(1);
     #log!: CrawleeLogger;
 
+    /** Shared by all `newPage` callers waiting for a free slot, so they don't each register their own listeners. */
+    #capacityChange?: Promise<void>;
+
     constructor(options: Options & BrowserPoolHooks<BrowserControllerReturn, LaunchContextReturn, PageReturn>) {
         super();
         this.#log = serviceLocator.getLogger().child({ prefix: 'BrowserPool' });
@@ -380,6 +393,7 @@ export class BrowserPool<
         const {
             browserPlugins,
             maxOpenPagesPerBrowser,
+            maxOpenBrowsers,
             retireBrowserAfterPageCount,
             operationTimeoutSecs,
             closeInactiveBrowserAfterSecs,
@@ -410,7 +424,7 @@ export class BrowserPool<
         }
 
         this.browserPlugins = browserPlugins as unknown as BrowserPlugins;
-        this.maxOpenBrowsers = Infinity;
+        this.#maxOpenBrowsers = maxOpenBrowsers;
         this.fingerprintOptions = fingerprintOptions;
         this.#maxOpenPagesPerBrowser = maxOpenPagesPerBrowser;
         this.#retireBrowserAfterPageCount = retireBrowserAfterPageCount;
@@ -496,6 +510,11 @@ export class BrowserPool<
 
         if (browserPlugin && !this.browserPlugins.includes(browserPlugin)) {
             throw new Error('Provided browserPlugin is not one of the plugins used by BrowserPool.');
+        }
+
+        // Wait outside the limiter so a saturated pool doesn't block page creation on existing browsers.
+        while (!this.hasFreeBrowserSlot() && !this.hasActiveBrowserWithFreeCapacity()) {
+            await this.#nextCapacityChange();
         }
 
         // Bind the limiter callback to the current async-hooks context. p-limit
@@ -1037,11 +1056,6 @@ export class BrowserPool<
      * Returns `true` if the pool can accept a new browser launch without exceeding `maxOpenBrowsers`.
      * Counts starting, active, and retired browsers.
      *
-     * A plain `BrowserPool` leaves `maxOpenBrowsers` at `Infinity`, so this only returns `false` when something
-     * has set a cap — {@apilink RemoteBrowserPool} does, from its own
-     * {@apilink RemoteBrowserPoolOptions.maxOpenBrowsers|`maxOpenBrowsers`} option. There is no
-     * `BrowserPoolOptions` key for it.
-     *
      * @internal
      */
     hasFreeBrowserSlot(): boolean {
@@ -1049,7 +1063,7 @@ export class BrowserPool<
             this.#startingBrowserControllers.size +
             this.activeBrowserControllers.size +
             this.retiredBrowserControllers.size;
-        return total < this.maxOpenBrowsers;
+        return total < this.#maxOpenBrowsers;
     }
 
     /**
@@ -1062,6 +1076,29 @@ export class BrowserPool<
             if (controller.activePages < this.#maxOpenPagesPerBrowser) return true;
         }
         return false;
+    }
+
+    /**
+     * Resolves on the next browser-retired / page-closed event, or after a short fallback interval. All
+     * concurrently-waiting `newPage` calls share a single promise (and a single pair of event listeners) per tick.
+     */
+    #nextCapacityChange(): Promise<void> {
+        this.#capacityChange ??= new Promise<void>((resolve) => {
+            const done = () => {
+                clearTimeout(timer);
+                this.off(BROWSER_POOL_EVENTS.BROWSER_RETIRED, done);
+                this.off(BROWSER_POOL_EVENTS.PAGE_CLOSED, done);
+                this.#capacityChange = undefined;
+                resolve();
+            };
+
+            const timer = setTimeout(done, SLOT_POLL_INTERVAL_MILLIS);
+            timer.unref?.();
+            this.once(BROWSER_POOL_EVENTS.BROWSER_RETIRED, done);
+            this.once(BROWSER_POOL_EVENTS.PAGE_CLOSED, done);
+        });
+
+        return this.#capacityChange;
     }
 
     #initializeFingerprinting(): void {

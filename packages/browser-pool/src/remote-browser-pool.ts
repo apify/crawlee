@@ -213,6 +213,7 @@ export class RemoteBrowserPool<Page = unknown> implements IBrowserPool<Page> {
     readonly #pool: IBrowserPool<Page>;
 
     readonly #registry: RemoteSessionRegistry;
+    readonly #maxOpenBrowsers: number;
     readonly #slotPollIntervalMillis: number;
     readonly #log: CrawleeLogger;
 
@@ -250,7 +251,12 @@ export class RemoteBrowserPool<Page = unknown> implements IBrowserPool<Page> {
             plugin.useRemoteConnection(this.#registry, connection);
         }
 
-        this.browserPool = new BrowserPool({ ...browserPoolOptions, browserPlugins }) as unknown as BrowserPool;
+        this.browserPool = new BrowserPool({
+            ...browserPoolOptions,
+            browserPlugins,
+            ...(resolvedMax !== undefined && { maxOpenBrowsers: resolvedMax }),
+        }) as unknown as BrowserPool;
+        this.#maxOpenBrowsers = resolvedMax ?? Infinity;
         this.#pool = this.browserPool as unknown as IBrowserPool<Page>;
 
         // Release a browser's remote session once it closes. The registry dedupes (close() schedules a delayed
@@ -261,19 +267,11 @@ export class RemoteBrowserPool<Page = unknown> implements IBrowserPool<Page> {
                 if (token !== undefined) void this.#registry.release(token);
             });
         });
-
-        if (resolvedMax !== undefined) {
-            this.browserPool.maxOpenBrowsers = resolvedMax;
-        }
     }
 
     /** Maximum number of remote browsers that may be open at the same time. */
     get maxOpenBrowsers(): number {
-        return this.browserPool.maxOpenBrowsers;
-    }
-
-    set maxOpenBrowsers(value: number) {
-        this.browserPool.maxOpenBrowsers = value;
+        return this.#maxOpenBrowsers;
     }
 
     /**

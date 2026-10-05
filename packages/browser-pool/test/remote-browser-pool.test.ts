@@ -189,20 +189,6 @@ describe('RemoteBrowserPool — RemoteBrowserProvider endpoint', () => {
 });
 
 describe('RemoteBrowserPool — maxOpenBrowsers throttle', () => {
-    it('proxies maxOpenBrowsers to the wrapped pool', async () => {
-        const { plugin } = createCapturingPlugin();
-        const pool = new RemoteBrowserPool({
-            browserPlugins: [plugin],
-            endpoint: 'wss://remote:9222',
-            maxOpenBrowsers: 2,
-        });
-
-        expect(pool.browserPool.maxOpenBrowsers).toBe(2);
-        pool.maxOpenBrowsers = 5;
-        expect(pool.browserPool.maxOpenBrowsers).toBe(5);
-        await pool.destroy();
-    });
-
     it('opens immediately when a browser slot is free', async () => {
         const { plugin } = createCapturingPlugin();
         const pool = new RemoteBrowserPool({
