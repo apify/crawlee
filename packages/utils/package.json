@@ -48,7 +48,7 @@
         "@crawlee/types": "workspace:*",
         "@types/sax": "^1.2.7",
         "cheerio": "^1.0.0",
-        "domhandler": "^5.0.3",
+        "domhandler": "^6.0.0",
         "file-type": "^21.0.0",
         "robots-parser": "^3.0.1",
         "sax": "^1.4.1",
