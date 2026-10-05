@@ -4,6 +4,8 @@ packages:
   - website
 
 catalog:
+  playwright: 1.61.1
+  playwright-core: 1.61.1
   zod: ^4.5.4
 
 minimumReleaseAge: 1440
@@ -43,6 +45,9 @@ overrides:
   # long-stable basic predicate API (string/number/object.exactShape/oneOf/ofType), so it's safe
   # to dedupe onto the same major version everyone else uses.
   "header-generator>ow": "^2.0.0"
+  # A transitive playwright(-core) (stagehand) drifting from the pinned playwright breaks playwright-extra's types.
+  playwright: "catalog:"
+  playwright-core: "catalog:"
 
 # pnpm 11 replaces `onlyBuiltDependencies` with an explicit `allowBuilds` map.
 # Each entry must be true (build allowed) or false (build skipped) — pnpm 11
