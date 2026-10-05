@@ -1,11 +1,17 @@
+import { setImmediate as flush } from 'node:timers/promises';
+
 import { vi } from 'vitest';
 
 import { serviceLocator } from '@crawlee/core';
 import type { CrawleeLogger } from '@crawlee/core';
 
+import { BrowserPool } from '../src/browser-pool.js';
+import { BROWSER_POOL_EVENTS } from '../src/events.js';
 import { PlaywrightPlugin } from '../src/playwright/playwright-plugin.js';
-import { PuppeteerPlugin } from '../src/puppeteer/puppeteer-plugin.js';
-import type { RemoteConnection } from '../src/remote-browser-pool.js';
+import { RemotePlaywrightPlugin } from '../src/playwright/remote-playwright-plugin.js';
+import { RemotePuppeteerPlugin } from '../src/puppeteer/remote-puppeteer-plugin.js';
+import type { RemoteBrowserEndpoint, ResolvedRemoteEndpoint } from '../src/remote-browser-plugin.js';
+import { RemoteBrowserProvider } from '../src/remote-browser-provider.js';
 
 // ---------------------------------------------------------------------------
 // Mock helpers
@@ -20,6 +26,7 @@ function createMockPage() {
     };
 }
 
+/** A fake browser whose `disconnected` listeners can be fired via `disconnect()`. */
 function createMockBrowser() {
     const page = createMockPage();
     const mockContext = {
@@ -28,11 +35,12 @@ function createMockBrowser() {
         on: vi.fn(),
         once: vi.fn(),
     };
+    const listeners: Record<string, (() => void)[]> = {};
     return {
         newPage: vi.fn().mockResolvedValue(createMockPage()),
         close: vi.fn().mockResolvedValue(undefined),
         contexts: vi.fn(() => [mockContext]),
-        on: vi.fn(),
+        on: vi.fn((event: string, cb: () => void) => (listeners[event] ??= []).push(cb)),
         off: vi.fn(),
         once: vi.fn(),
         version: vi.fn(() => '120.0.0'),
@@ -41,6 +49,7 @@ function createMockBrowser() {
         userAgent: vi.fn().mockResolvedValue('mock-ua'),
         createBrowserContext: vi.fn().mockResolvedValue(mockContext),
         createIncognitoBrowserContext: vi.fn().mockResolvedValue(mockContext),
+        disconnect: () => listeners.disconnected?.forEach((cb) => cb()),
     };
 }
 
@@ -82,20 +91,6 @@ function createMockLogger(): CrawleeLogger & { warning: ReturnType<typeof vi.fn>
     return logger;
 }
 
-/** A fake {@link RemoteConnection} that resolves to a fixed URL and records release() calls. */
-function createConnection(
-    url = 'wss://remote:9222',
-    context?: Record<string, unknown>,
-): RemoteConnection & {
-    resolve: ReturnType<typeof vi.fn>;
-    release: ReturnType<typeof vi.fn>;
-} {
-    return {
-        resolve: vi.fn(async (_options?: { proxyUrl?: string }) => ({ url, token: 42, context })),
-        release: vi.fn(async () => {}),
-    } as any;
-}
-
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -107,10 +102,12 @@ beforeEach(() => {
     serviceLocator.setLogger(mockLogger);
 });
 
-describe('Remote connection — PlaywrightPlugin', () => {
-    it('useRemoteConnection forces incognito pages on and marks the launch context remote', () => {
-        const plugin = new PlaywrightPlugin(createMockPlaywrightLibrary() as any, { useIncognitoPages: false });
-        plugin.useRemoteConnection(createConnection());
+describe('RemotePlaywrightPlugin', () => {
+    it('forces incognito pages on and marks the launch context remote', () => {
+        const plugin = new RemotePlaywrightPlugin(createMockPlaywrightLibrary() as any, {
+            endpoint: 'wss://remote:9222',
+            useIncognitoPages: false,
+        });
 
         expect(plugin.useIncognitoPages).toBe(true);
         expect(plugin.createLaunchContext().isRemote).toBe(true);
@@ -118,59 +115,115 @@ describe('Remote connection — PlaywrightPlugin', () => {
 
     it('connects via connectOverCDP by default and skips a local launch', async () => {
         const lib = createMockPlaywrightLibrary();
-        const plugin = new PlaywrightPlugin(lib as any);
-        const connection = createConnection('http://remote:9222');
-        plugin.useRemoteConnection(connection, { connectOptions: { timeout: 5000 } });
+        const plugin = new RemotePlaywrightPlugin(lib as any, {
+            endpoint: 'http://remote:9222',
+            connectOptions: { timeout: 5000 },
+        });
 
-        const ctx = plugin.createLaunchContext();
-        await plugin.launch(ctx);
+        await plugin.launch();
 
-        expect(connection.resolve).toHaveBeenCalledTimes(1);
         expect(lib.connectOverCDP).toHaveBeenCalledWith('http://remote:9222', { timeout: 5000 });
         expect(lib.connect).not.toHaveBeenCalled();
         expect(lib.launch).not.toHaveBeenCalled();
-        expect(ctx.remoteToken).toBe(42);
     });
 
     it("connects via connect() when protocol is 'playwright'", async () => {
         const lib = createMockPlaywrightLibrary();
-        const plugin = new PlaywrightPlugin(lib as any);
-        plugin.useRemoteConnection(createConnection('ws://remote:3000'), { protocol: 'playwright' });
+        const plugin = new RemotePlaywrightPlugin(lib as any, { endpoint: 'ws://remote:3000', protocol: 'playwright' });
 
-        await plugin.launch(plugin.createLaunchContext());
+        await plugin.launch();
 
         expect(lib.connect).toHaveBeenCalledWith('ws://remote:3000', {});
         expect(lib.connectOverCDP).not.toHaveBeenCalled();
     });
 
+    it('passes the launch proxy URL to a function endpoint and releases with its context on disconnect', async () => {
+        const browser = createMockBrowser();
+        const lib = createMockPlaywrightLibrary(browser);
+        const endpoint = vi.fn(async () => ({ url: 'wss://remote:9222', context: { id: 'sess-1' } }));
+        const release = vi.fn();
+        const plugin = new RemotePlaywrightPlugin(lib as any, { endpoint, release });
+
+        await plugin.launch(plugin.createLaunchContext({ proxyUrl: 'http://proxy:8080' }));
+        expect(endpoint).toHaveBeenCalledWith({ proxyUrl: 'http://proxy:8080' });
+        expect(release).not.toHaveBeenCalled();
+
+        browser.disconnect();
+        browser.disconnect();
+        await flush();
+        expect(release).toHaveBeenCalledExactlyOnceWith({ endpoint: 'wss://remote:9222', context: { id: 'sess-1' } });
+    });
+
     it('releases the session and throws BrowserLaunchError when connect fails', async () => {
         const lib = createMockPlaywrightLibrary();
         lib.connectOverCDP.mockRejectedValueOnce(new Error('ECONNREFUSED'));
-        const plugin = new PlaywrightPlugin(lib as any);
-        const connection = createConnection();
-        plugin.useRemoteConnection(connection);
+        const release = vi.fn();
+        const plugin = new RemotePlaywrightPlugin(lib as any, { endpoint: 'wss://remote:9222', release });
 
-        await expect(plugin.launch(plugin.createLaunchContext())).rejects.toThrow(
-            /Failed to connect to remote browser/,
-        );
-        expect(connection.release).toHaveBeenCalledWith(42);
+        await expect(plugin.launch()).rejects.toThrow(/Failed to connect to remote browser/);
+        expect(release).toHaveBeenCalledExactlyOnceWith({ endpoint: 'wss://remote:9222', context: undefined });
     });
 
-    it('throws BrowserLaunchError (without connecting) when endpoint resolution fails', async () => {
+    it.each<[string, RemoteBrowserEndpoint, RegExp]>([
+        ['an empty string', () => '', /empty string/],
+        ['an object without url', () => ({}) as ResolvedRemoteEndpoint, /non-empty 'url'/],
+        [
+            'a throwing function',
+            async () => {
+                throw new Error('no session');
+            },
+            /no session/,
+        ],
+    ])('throws BrowserLaunchError without connecting when the endpoint resolves to %s', async (_, endpoint, cause) => {
         const lib = createMockPlaywrightLibrary();
-        const plugin = new PlaywrightPlugin(lib as any);
-        const connection = createConnection();
-        connection.resolve.mockRejectedValueOnce(new Error('no session'));
-        plugin.useRemoteConnection(connection);
+        const release = vi.fn();
+        const plugin = new RemotePlaywrightPlugin(lib as any, { endpoint, release });
 
-        await expect(plugin.launch(plugin.createLaunchContext())).rejects.toThrow(
-            /resolve the remote browser endpoint/,
-        );
+        await expect(plugin.launch()).rejects.toMatchObject({
+            message: expect.stringMatching(/resolve the remote browser endpoint/),
+            cause: expect.objectContaining({ message: expect.stringMatching(cause) }),
+        });
         expect(lib.connectOverCDP).not.toHaveBeenCalled();
-        expect(connection.release).not.toHaveBeenCalled();
+        expect(release).not.toHaveBeenCalled();
     });
 
-    it('a plain plugin (no remote connection) launches locally', async () => {
+    it('a release() failure is logged, not thrown', async () => {
+        const browser = createMockBrowser();
+        const lib = createMockPlaywrightLibrary(browser);
+        const plugin = new RemotePlaywrightPlugin(lib as any, {
+            endpoint: 'wss://remote:9222',
+            release: async () => {
+                throw new Error('boom');
+            },
+        });
+
+        await plugin.launch();
+        browser.disconnect();
+        await flush();
+
+        expect(mockLogger.warning).toHaveBeenCalledWith('Remote browser release() failed.', { error: 'boom' });
+    });
+
+    it('uses a RemoteBrowserProvider for connect and release', async () => {
+        class TestProvider extends RemoteBrowserProvider<{ id: string }> {
+            connect = vi.fn(async () => ({ url: 'wss://provider:9222', context: { id: 'sess-1' } }));
+            override release = vi.fn(async () => {});
+        }
+        const provider = new TestProvider();
+        const browser = createMockBrowser();
+        const lib = createMockPlaywrightLibrary(browser);
+        const plugin = new RemotePlaywrightPlugin(lib as any, { endpoint: provider });
+
+        await plugin.launch(plugin.createLaunchContext({ proxyUrl: 'http://proxy:8080' }));
+        expect(provider.connect).toHaveBeenCalledWith({ proxyUrl: 'http://proxy:8080' });
+        expect(lib.connectOverCDP).toHaveBeenCalledWith('wss://provider:9222', {});
+
+        browser.disconnect();
+        await flush();
+        expect(provider.release).toHaveBeenCalledExactlyOnceWith({ id: 'sess-1' });
+    });
+
+    it('a plain PlaywrightPlugin launches locally', async () => {
         const lib = createMockPlaywrightLibrary();
         const plugin = new PlaywrightPlugin(lib as any);
 
@@ -179,42 +232,56 @@ describe('Remote connection — PlaywrightPlugin', () => {
         expect(lib.launch).toHaveBeenCalledTimes(1);
         expect(lib.connect).not.toHaveBeenCalled();
         expect(lib.connectOverCDP).not.toHaveBeenCalled();
+        expect(plugin.createLaunchContext().isRemote).toBe(false);
     });
 });
 
-describe('Remote connection — PuppeteerPlugin', () => {
+describe('RemotePuppeteerPlugin', () => {
     it('connects via connect() with the resolved endpoint and skips a local launch', async () => {
         const lib = createMockPuppeteerLibrary();
-        const plugin = new PuppeteerPlugin(lib as any);
-        const connection = createConnection('ws://remote:9222');
-        plugin.useRemoteConnection(connection, { connectOptions: { protocolTimeout: 1000 } });
+        const plugin = new RemotePuppeteerPlugin(lib as any, {
+            endpoint: 'ws://remote:9222',
+            connectOptions: { protocolTimeout: 1000 },
+        });
 
-        const ctx = plugin.createLaunchContext();
-        await plugin.launch(ctx);
+        await plugin.launch();
 
-        expect(connection.resolve).toHaveBeenCalledTimes(1);
         expect(lib.connect).toHaveBeenCalledWith({ protocolTimeout: 1000, browserWSEndpoint: 'ws://remote:9222' });
         expect(lib.launch).not.toHaveBeenCalled();
-        expect(ctx.remoteToken).toBe(42);
+        expect(plugin.createLaunchContext().isRemote).toBe(true);
     });
 
     it('releases the session and throws BrowserLaunchError when connect fails', async () => {
         const lib = createMockPuppeteerLibrary();
         lib.connect.mockRejectedValueOnce(new Error('ECONNREFUSED'));
-        const plugin = new PuppeteerPlugin(lib as any);
-        const connection = createConnection();
-        plugin.useRemoteConnection(connection);
+        const release = vi.fn();
+        const plugin = new RemotePuppeteerPlugin(lib as any, { endpoint: 'wss://remote:9222', release });
 
-        await expect(plugin.launch(plugin.createLaunchContext())).rejects.toThrow(
-            /Failed to connect to remote browser/,
-        );
-        expect(connection.release).toHaveBeenCalledWith(42);
+        await expect(plugin.launch()).rejects.toThrow(/Failed to connect to remote browser/);
+        expect(release).toHaveBeenCalledOnce();
     });
+});
 
-    it('marks the launch context remote', () => {
-        const plugin = new PuppeteerPlugin(createMockPuppeteerLibrary() as any);
-        plugin.useRemoteConnection(createConnection());
+describe('BrowserPool maxOpenBrowsers', () => {
+    it('newPage waits while at capacity, then launches once a browser is retired', async () => {
+        const plugin = new PlaywrightPlugin(createMockPlaywrightLibrary() as any);
+        // Short-circuits the launch so the test only observes *when* the pool tries to launch.
+        const launch = vi.spyOn(plugin, 'launch').mockRejectedValue(new Error('stop here'));
+        const pool = new BrowserPool({ browserPlugins: [plugin], maxOpenBrowsers: 1 });
 
-        expect(plugin.createLaunchContext().isRemote).toBe(true);
+        let atCapacity = true;
+        pool.hasFreeBrowserSlot = vi.fn(() => !atCapacity);
+        pool.hasActiveBrowserWithFreeCapacity = vi.fn(() => false);
+
+        const pagePromise = pool.newPage();
+        await flush();
+        expect(launch).not.toHaveBeenCalled();
+
+        atCapacity = false;
+        pool.emit(BROWSER_POOL_EVENTS.BROWSER_RETIRED, {} as any);
+
+        await expect(pagePromise).rejects.toThrow('stop here');
+        expect(launch).toHaveBeenCalledOnce();
+        await pool.destroy();
     });
 });

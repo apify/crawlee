@@ -2,20 +2,18 @@
  * Abstract base class for remote browser service providers.
  *
  * Implement this class to encapsulate the lifecycle of a remote browser session
- * (creation, connection URL resolution, and cleanup). {@apilink RemoteBrowserPool}
- * calls {@link connect} once per browser launch and {@link release} when the browser
- * closes, crashes, the pool is destroyed, or the connection fails during launch.
+ * (creation, connection URL resolution, and cleanup). A remote browser plugin
+ * ({@apilink RemotePlaywrightPlugin}, {@apilink RemotePuppeteerPlugin}) calls {@link connect}
+ * once per browser launch and {@link release} when the browser disconnects or the connection
+ * fails during launch.
  *
- * Pass the provider instance as the `endpoint` of a {@apilink RemoteBrowserPool}, then
- * hand the pool to a crawler via its `browserPool` option:
+ * Pass the provider instance as the `endpoint` of a remote plugin, or as the crawler's
+ * `remoteBrowser.endpoint`:
  *
  * ```typescript
- * const browserPool = new RemoteBrowserPool({
- *     browserPlugins: [new PlaywrightPlugin(playwright.chromium)],
- *     endpoint: new MyProvider(),
+ * const crawler = new PlaywrightCrawler({
+ *     remoteBrowser: { endpoint: new MyProvider() },
  * });
- *
- * const crawler = new PlaywrightCrawler({ browserPool });
  * ```
  *
  * **Example — simple static endpoint (e.g. Browserless):**
