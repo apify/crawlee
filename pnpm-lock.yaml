@@ -171,7 +171,7 @@ catalogs:
 overrides:
   '@puppeteer/browsers': ^3.0.4
   tar: ^7.5.16
-  lerna>js-yaml: ^4.2.0
+  lerna>js-yaml: ^5.0.0
   lerna>minimatch: ^3.1.4
   apify: ^4.0.0-beta.46
   apify>@crawlee/core: workspace:*
@@ -9173,6 +9173,10 @@ packages:
 
   js-yaml@4.3.2:
     resolution: {integrity: sha512-SFNOvSJ+Dgf/9An904Yx+CgSlIPCkIpao4qo51lpee25TIRejdH3rhR4EZMGoNx3/TP3O+wzWuiTFl4sqbltzA==}
+    hasBin: true
+
+  js-yaml@5.4.2:
+    resolution: {integrity: sha512-m+aqu+LwO1O6sIopafj8HUVl5aawITwZQe/yHpMCKjaWBaA/d07B/QdMb3529REftiU+RMMHL3Vlsw3hON7vWg==}
     hasBin: true
 
   jsesc@3.1.0:
@@ -23406,6 +23410,10 @@ snapshots:
     dependencies:
       argparse: 2.0.1
 
+  js-yaml@5.4.2:
+    dependencies:
+      argparse: 2.0.1
+
   jsesc@3.1.0: {}
 
   json-bigint@1.0.0:
@@ -23577,7 +23585,7 @@ snapshots:
       inquirer: 12.9.6(@types/node@24.19.1)
       is-ci: 3.0.1
       jest-diff: 30.5.2
-      js-yaml: 4.3.2
+      js-yaml: 5.4.2
       libnpmaccess: 10.0.3(supports-color@7.2.0)
       libnpmpublish: 11.1.2(supports-color@7.2.0)
       load-json-file: 6.2.0

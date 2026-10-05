@@ -25,7 +25,7 @@ overrides:
   # their declared range with no remaining benefit.
   "@puppeteer/browsers": "^3.0.4"
   tar: "^7.5.16"
-  "lerna>js-yaml": "^4.2.0"
+  "lerna>js-yaml": "^5.0.0"
   "lerna>minimatch": "^3.1.4"
   # The e2e tests run the `apify` SDK against the local 4.x workspace packages.
   # The default `latest`/`next` tags are the 3.x SDK, which is not runtime
