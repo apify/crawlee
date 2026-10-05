@@ -70,7 +70,7 @@ Environment requirements, renamed options and behavior changes that nearly every
 
 Crawlee v4 is a native ESM package now. It can be still consumed from a CJS project, as long as you use TypeScript and Node.js version that supports `require(esm)`.
 
-### Node 22+ required
+### Node 22.13+ required
 
 Support for older node versions was dropped.
 

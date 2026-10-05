@@ -3,7 +3,7 @@
     "version": "4.0.0",
     "description": "A set of shared utilities that can be used by crawlers",
     "engines": {
-        "node": ">=22.0.0"
+        "node": ">=22.13.0"
     },
     "type": "module",
     "exports": {
