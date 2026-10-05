@@ -9,7 +9,7 @@ import type { BaseHttpClient } from '@crawlee/http-client';
 import type { CrawleeLogger } from '@crawlee/types';
 // Imported as a type only so `sax` (a fairly heavy parser) isn't loaded eagerly with @crawlee/utils.
 import type * as sax from 'sax';
-import MIMEType from 'whatwg-mimetype';
+import { MIMEType } from 'whatwg-mimetype';
 
 import { mergeAsyncIterables } from './iterables.js';
 import { RobotsTxtFile } from './robots.js';

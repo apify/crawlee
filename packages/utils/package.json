@@ -54,7 +54,7 @@
         "sax": "^1.4.1",
         "tldts": "^7.0.6",
         "tslib": "^2.8.1",
-        "whatwg-mimetype": "^4.0.0",
+        "whatwg-mimetype": "^5.0.0",
         "zod": "catalog:"
     }
 }
