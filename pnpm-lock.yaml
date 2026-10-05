@@ -274,9 +274,6 @@ importers:
       '@playwright/browser-webkit':
         specifier: 1.63.0
         version: 1.63.0
-      '@types/content-type':
-        specifier: ^1.1.8
-        version: 1.1.9
       '@types/deep-equal':
         specifier: ^1.0.4
         version: 1.0.4
@@ -718,8 +715,8 @@ importers:
         specifier: ^2.4.6
         version: 2.4.7
       content-type:
-        specifier: ^1.0.5
-        version: 1.0.5
+        specifier: ^3.1.1
+        version: 3.1.1
       csv-stringify:
         specifier: ^6.5.2
         version: 6.9.0
@@ -849,15 +846,12 @@ importers:
       '@crawlee/utils':
         specifier: workspace:*
         version: link:../utils
-      '@types/content-type':
-        specifier: ^1.1.8
-        version: 1.1.9
       cheerio:
         specifier: ^1.0.0
         version: 1.2.0
       content-type:
-        specifier: ^1.0.5
-        version: 1.0.5
+        specifier: ^3.1.1
+        version: 3.1.1
       iconv-lite:
         specifier: ^0.7.2
         version: 0.7.3
@@ -5067,9 +5061,6 @@ packages:
 
   '@types/connect@3.4.38':
     resolution: {integrity: sha512-K6uROf1LD88uDQqJCktA4yzL1YYAK6NgfsI0v/mTgyPKWsX1CnJ0XPSDhViejru1GcRkLWb8RlzFYJRqGUbaug==}
-
-  '@types/content-type@1.1.9':
-    resolution: {integrity: sha512-Hq9IMnfekuOCsEmYl4QX2HBrT+XsfXiupfrLLY8Dcf3Puf4BkBOxSbWYTITSOQAhJoYPBez+b4MJRpIYL65z8A==}
 
   '@types/d3-array@3.2.2':
     resolution: {integrity: sha512-hOLWVbm7uRza0BYXpIIW5pxfrKe0W+D5lrFiAEYR+pb6w3N2SwSMaJbXdUfSEv+dT4MfHBLtn5js0LAWaO6otw==}
@@ -18388,8 +18379,6 @@ snapshots:
   '@types/connect@3.4.38':
     dependencies:
       '@types/node': 24.19.1
-
-  '@types/content-type@1.1.9': {}
 
   '@types/d3-array@3.2.2': {}
 

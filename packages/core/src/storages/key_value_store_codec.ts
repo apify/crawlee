@@ -1,5 +1,5 @@
 import type { Dictionary } from '@crawlee/types';
-import contentTypeParser from 'content-type';
+import { isTypeValid, parse as parseContentType } from 'content-type';
 import JSON5 from 'json5';
 
 import { jsonStringifyExtended } from '@apify/utilities';
@@ -88,16 +88,12 @@ export function parseValue(
     // No content type at all → we have no basis for interpretation; hand back the raw value.
     if (contentTypeHeader === null) return body;
 
-    let contentType: string;
-    let charset: BufferEncoding;
-    try {
-        const result = contentTypeParser.parse(contentTypeHeader);
-        contentType = result.type;
-        charset = result.parameters.charset as BufferEncoding;
-    } catch {
-        // Unparseable header → keep the original value rather than a mangled string.
-        return body;
-    }
+    const result = parseContentType(contentTypeHeader);
+    // Unparseable header → keep the original value rather than a mangled string.
+    if (!isTypeValid(result.type)) return body;
+
+    const contentType = result.type;
+    const charset = result.parameters.charset as BufferEncoding;
 
     // If we can't successfully interpret it, we return the original value rather than mangling it.
     if (!areDataStringifiable(contentType, charset)) return body;

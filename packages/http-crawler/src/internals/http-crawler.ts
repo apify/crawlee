@@ -33,8 +33,7 @@ import { ResponseWithUrl } from '@crawlee/http-client';
 import type { Awaitable, Dictionary, ISession } from '@crawlee/types';
 import { parseArgument, RETRY_CSS_SELECTORS, schemas } from '@crawlee/utils/internal';
 import type { CheerioAPI } from 'cheerio';
-import type { RequestLike, ResponseLike } from 'content-type';
-import contentTypeParser from 'content-type';
+import { isTypeValid, parse as parseContentType } from 'content-type';
 import iconv from 'iconv-lite';
 import type { JsonValue } from 'type-fest';
 import { z } from 'zod';
@@ -846,19 +845,19 @@ export class HttpCrawler<
     /**
      * Checks and extends supported mime types
      */
-    #extendSupportedMimeTypes(additionalMimeTypes: (string | RequestLike | ResponseLike)[]) {
+    #extendSupportedMimeTypes(additionalMimeTypes: string[]) {
         for (const mimeType of additionalMimeTypes) {
             if (mimeType === '*/*') {
                 this.#supportedMimeTypes.add(mimeType);
                 continue;
             }
 
-            try {
-                const parsedType = contentTypeParser.parse(mimeType);
-                this.#supportedMimeTypes.add(parsedType.type);
-            } catch (err) {
+            const parsedType = parseContentType(mimeType);
+            if (!isTypeValid(parsedType.type)) {
                 throw new Error(`Can not parse mime type ${mimeType} from "options.additionalMimeTypes".`);
             }
+
+            this.#supportedMimeTypes.add(parsedType.type);
         }
     }
 
