@@ -54,8 +54,12 @@ export interface IProxyConfiguration {
     /**
      * Creates a new {@apilink ProxyInfo} object describing the proxy to use.
      * Returns `undefined` when no proxy should be used.
+     *
+     * @param proxyInfo A previously created `ProxyInfo`, e.g. one restored with a persisted session. Implementations
+     *  should return an equivalent `ProxyInfo` that is usable in the current environment, or the argument itself when
+     *  there is nothing to refresh.
      */
-    newProxyInfo(): Promise<ProxyInfo | undefined>;
+    newProxyInfo(proxyInfo?: ProxyInfo): Promise<ProxyInfo | undefined>;
 }
 
 /**
@@ -144,9 +148,12 @@ export class ProxyConfiguration implements IProxyConfiguration {
      * Use it if you want to work with a rich representation of a proxy URL.
      * If you need the URL string only, use {@apilink ProxyConfiguration.newUrl}.
      *
+     * @param proxyInfo A previously created `ProxyInfo`, returned unchanged.
      * @return Represents information about used proxy and its configuration.
      */
-    async newProxyInfo(): Promise<ProxyInfo | undefined> {
+    async newProxyInfo(proxyInfo?: ProxyInfo): Promise<ProxyInfo | undefined> {
+        if (proxyInfo) return proxyInfo;
+
         const url = await this.newUrl();
         if (!url) return undefined;
 
