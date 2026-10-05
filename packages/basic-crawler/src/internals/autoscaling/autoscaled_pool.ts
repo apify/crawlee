@@ -424,7 +424,7 @@ export class AutoscaledPool {
             // Everything's fine. Run task.
             // Try to run next task to build up concurrency,
             // but defer it so it doesn't create a cycle.
-            setImmediate(this.#maybeRunTask);
+            setImmediate(() => this.#maybeRunTask());
 
             // We need to restart interval here, so that it doesn't get blocked by a stalled task.
             done();
@@ -445,7 +445,7 @@ export class AutoscaledPool {
             this.#log.perf('Task finished.');
             // Run task after the previous one finished. Only on success: a failed task rejects the pool, and
             // nudging the loop afterwards could start work on an already destroyed pool.
-            setImmediate(this.#maybeRunTask);
+            setImmediate(() => this.#maybeRunTask());
         } catch (e) {
             const err = e as Error;
             this.#log.perf('Running a task failed.');

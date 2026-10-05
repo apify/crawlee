@@ -497,14 +497,17 @@ export class HttpCrawler<
         if (request.skipNavigation) {
             return {
                 request: new Proxy(request, {
-                    get(target, propertyName, receiver) {
+                    get(target, propertyName) {
                         if (propertyName === 'loadedUrl') {
                             throw new NavigationSkippedError(
                                 'The `request.loadedUrl` property is not available - `skipNavigation` was used',
                             );
                         }
-                        return Reflect.get(target, propertyName, receiver);
+                        // `target` as receiver and bound methods, or `#` members throw on the proxy
+                        const value = Reflect.get(target, propertyName, target);
+                        return typeof value === 'function' ? value.bind(target) : value;
                     },
+                    set: (target, propertyName, value) => Reflect.set(target, propertyName, value, target),
                 }) as LoadedRequest<CrawlingRequest>,
                 get response(): InternalHttpCrawlingContext['response'] {
                     throw new NavigationSkippedError(

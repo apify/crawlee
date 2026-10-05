@@ -47,7 +47,6 @@ export class DatasetBackend<Data extends Dictionary = Dictionary>
     itemCount = 0;
 
     readonly #datasetEntries = new Map<string, Data>();
-    // kept as TS-private: storage-backend tests read this field at runtime
     readonly #storageBackend: MemoryStorageBackend;
 
     constructor(options: DatasetBackendOptions) {

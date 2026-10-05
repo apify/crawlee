@@ -132,7 +132,7 @@ class ContextPipelineImpl<TContextBase, TCrawlingContext extends TContextBase> e
         other: ContextPipeline<TCrawlingContext, TFinalContext>,
     ): ContextPipeline<TContextBase, TFinalContext> {
         const otherMiddlewares = Array.from(
-            (other as any).middlewareChain() as Iterable<ContextMiddleware<any, any>>,
+            (other as unknown as ContextPipelineImpl<TCrawlingContext, TFinalContext>).#middlewareChain(),
         ).reverse();
 
         let result: ContextPipeline<TContextBase, any> = this as any;

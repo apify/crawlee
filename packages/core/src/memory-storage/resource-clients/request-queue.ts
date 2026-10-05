@@ -73,7 +73,6 @@ export class RequestQueueBackend extends BaseClient implements storage.RequestQu
      * ever walk the unhandled tail instead of every request the queue has ever seen.
      */
     readonly #pendingRequestIds = new Set<string>();
-    // kept as TS-private: storage-backend tests read this field at runtime
     readonly #storageBackend: MemoryStorageBackend;
 
     constructor(options: RequestQueueBackendOptions) {

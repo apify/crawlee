@@ -58,7 +58,6 @@ export class KeyValueStoreBackend extends BaseClient implements storage.KeyValue
     modifiedAt = new Date();
 
     readonly #keyValueEntries = new Map<string, InternalKeyRecord>();
-    // kept as TS-private: storage-backend tests read this field at runtime
     readonly #storageBackend: MemoryStorageBackend;
 
     constructor(options: KeyValueStoreBackendOptions) {
