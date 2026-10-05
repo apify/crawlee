@@ -108,7 +108,7 @@ export class StagehandPlugin extends BrowserPlugin<BrowserType, LaunchOptions, P
 
             // Handle browser disconnection - cleanup both Stagehand and anonymized proxy
             browser.on('disconnected', async () => {
-                await this.cleanupStagehand(browser);
+                await this.#cleanupStagehand(browser);
                 await closeAnonymizedProxy();
             });
 
@@ -118,7 +118,7 @@ export class StagehandPlugin extends BrowserPlugin<BrowserType, LaunchOptions, P
             await stagehand.close().catch(() => {});
             await closeAnonymizedProxy();
 
-            const augmentedError = this.augmentLaunchError(error, launchContext);
+            const augmentedError = this.#augmentLaunchError(error, launchContext);
             serviceLocator.getLogger().error('Stagehand browser launch failed', { message: augmentedError.message });
             throw augmentedError;
         }
@@ -127,7 +127,7 @@ export class StagehandPlugin extends BrowserPlugin<BrowserType, LaunchOptions, P
     /**
      * Cleans up Stagehand instance when browser disconnects.
      */
-    private async cleanupStagehand(browser: PlaywrightBrowser): Promise<void> {
+    async #cleanupStagehand(browser: PlaywrightBrowser): Promise<void> {
         const stagehand = this.#stagehandInstances.get(browser);
         if (stagehand) {
             try {
@@ -176,7 +176,7 @@ export class StagehandPlugin extends BrowserPlugin<BrowserType, LaunchOptions, P
     /**
      * Augments launch errors with helpful context.
      */
-    private augmentLaunchError(error: unknown, launchContext: LaunchContext<BrowserType>): Error {
+    #augmentLaunchError(error: unknown, launchContext: LaunchContext<BrowserType>): Error {
         const message = error instanceof Error ? error.message : String(error);
         const model = this.#stagehandOptions.model;
 

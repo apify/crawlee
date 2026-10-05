@@ -182,9 +182,9 @@ export class Configuration {
      */
     constructor(options: ConfigurationInput = {}) {
         const fields = (this.constructor as typeof Configuration).fields;
-        const fileOptions = Configuration.loadFileOptions();
-        this.#resolvedValues = Configuration.resolveAll(fields, options as Record<string, unknown>, fileOptions);
-        this.registerAccessors();
+        const fileOptions = Configuration.#loadFileOptions();
+        this.#resolvedValues = Configuration.#resolveAll(fields, options as Record<string, unknown>, fileOptions);
+        this.#registerAccessors();
 
         // Set the log level
         const logLevel = this.logLevel;
@@ -206,7 +206,7 @@ export class Configuration {
      * Resolves all field values once using the priority chain:
      * constructor options > env vars > crawlee.json > schema defaults.
      */
-    private static resolveAll(
+    static #resolveAll(
         fields: Record<string, ConfigField>,
         userOptions: Record<string, unknown>,
         fileOptions: Record<string, unknown>,
@@ -221,7 +221,7 @@ export class Configuration {
             }
 
             // 2. Environment variables
-            const envValue = Configuration.readEnvVar(fieldDef);
+            const envValue = Configuration.#readEnvVar(fieldDef);
             if (envValue != null) {
                 values[key] = fieldDef.schema.parse(envValue);
                 continue;
@@ -244,7 +244,7 @@ export class Configuration {
     /**
      * Registers getters (and throwing setters) on the instance for each field.
      */
-    private registerAccessors(): void {
+    #registerAccessors(): void {
         const fields = (this.constructor as typeof Configuration).fields;
         const descriptors: PropertyDescriptorMap = {};
 
@@ -267,7 +267,7 @@ export class Configuration {
      * Empty strings are treated as unset, falling through to crawlee.json or schema defaults.
      * (Crawlee v3 coerced `''` to `false`/`0`/`''` per type — v4 drops that for consistency.)
      */
-    private static readEnvVar(fieldDef: ConfigField): string | undefined {
+    static #readEnvVar(fieldDef: ConfigField): string | undefined {
         if (!fieldDef.envVar) return undefined;
         const envVars = Array.isArray(fieldDef.envVar) ? fieldDef.envVar : [fieldDef.envVar];
         for (const envVar of envVars) {
@@ -280,7 +280,7 @@ export class Configuration {
     /**
      * Loads config options from crawlee.json in the current working directory.
      */
-    private static loadFileOptions(): Record<string, unknown> {
+    static #loadFileOptions(): Record<string, unknown> {
         try {
             const file = readFileSync(join(process.cwd(), 'crawlee.json'));
             return JSON.parse(file.toString());

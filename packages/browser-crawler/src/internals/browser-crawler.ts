@@ -467,7 +467,7 @@ export abstract class BrowserCrawler<
                         );
                     });
 
-                let pipeline = contextPipelineBuilder().compose(this.prepareNavigation.bind(this));
+                let pipeline = contextPipelineBuilder().compose(this.#prepareNavigation.bind(this));
 
                 for (const hook of this.#preNavigationHooks) {
                     pipeline = pipeline.compose(windowGuard(hook));
@@ -480,9 +480,9 @@ export abstract class BrowserCrawler<
                 }
 
                 return pipeline
-                    .compose(skipGuard(this.finalizeNavigation.bind(this)))
-                    .compose(this.handleBlockedRequestByContent.bind(this))
-                    .compose(this.restoreRequestState.bind(this));
+                    .compose(skipGuard(this.#finalizeNavigation.bind(this)))
+                    .compose(this.#handleBlockedRequestByContent.bind(this))
+                    .compose(this.#restoreRequestState.bind(this));
             },
             extendContext,
         });
@@ -510,10 +510,10 @@ export abstract class BrowserCrawler<
         CrawlingContext,
         BrowserCrawlingContext<Page, Response, Dictionary>
     > {
-        return ContextPipeline.create<CrawlingContext>().compose(this.preparePage.bind(this));
+        return ContextPipeline.create<CrawlingContext>().compose(this.#preparePage.bind(this));
     }
 
-    private async containsSelectors(page: CommonPage, selectors: string[]): Promise<string[] | null> {
+    async #containsSelectors(page: CommonPage, selectors: string[]): Promise<string[] | null> {
         const query = async () => Promise.all(selectors.map((selector) => (page as any).$(selector)));
 
         // a challenge page navigates itself once it is solved, which destroys the context of an in-flight query
@@ -536,18 +536,18 @@ export abstract class BrowserCrawler<
     }: BrowserCrawlingContext<Page, Response>): Promise<string | null> {
         const statusCode = response?.status();
 
-        if (statusCode === 403 && (await this.containsSelectors(page, CLOUDFLARE_RETRY_CSS_SELECTORS))) {
+        if (statusCode === 403 && (await this.#containsSelectors(page, CLOUDFLARE_RETRY_CSS_SELECTORS))) {
             return 'Cloudflare';
         }
 
-        if (statusCode === 202 && (await this.containsSelectors(page, AWS_WAF_RETRY_CSS_SELECTORS))) {
+        if (statusCode === 202 && (await this.#containsSelectors(page, AWS_WAF_RETRY_CSS_SELECTORS))) {
             return 'AWS WAF';
         }
 
         return null;
     }
 
-    private async isRequestBlocked(crawlingContext: BrowserCrawlingContext<Page, Response>): Promise<string | false> {
+    async #isRequestBlocked(crawlingContext: BrowserCrawlingContext<Page, Response>): Promise<string | false> {
         const { page, response } = crawlingContext;
 
         // Cloudflare and AWS WAF serve challenges a browser can pass on its own, with a 403 and a 202 status respectively.
@@ -558,13 +558,13 @@ export abstract class BrowserCrawler<
             await sleep(5000);
 
             // here we cannot test for response code, because we only have the original response, not the one that follows a passed challenge.
-            const foundSelectors = await this.containsSelectors(page, RETRY_CSS_SELECTORS);
+            const foundSelectors = await this.#containsSelectors(page, RETRY_CSS_SELECTORS);
 
             if (!foundSelectors) return false;
             return `${challenge} challenge failed, found selectors: ${foundSelectors.join(', ')}`;
         }
 
-        const foundSelectors = await this.containsSelectors(page, RETRY_CSS_SELECTORS);
+        const foundSelectors = await this.#containsSelectors(page, RETRY_CSS_SELECTORS);
         const statusCode = response?.status() ?? 0;
 
         if (foundSelectors) return `Found selectors: ${foundSelectors.join(', ')}`;
@@ -573,7 +573,7 @@ export abstract class BrowserCrawler<
         return false;
     }
 
-    private async preparePage(
+    async #preparePage(
         crawlingContext: CrawlingContext,
         onCleanup: CleanupRegistrar,
     ): Promise<ContextDifference<CrawlingContext, BrowserCrawlingContext<Page, Response, Dictionary>>> {
@@ -650,18 +650,21 @@ export abstract class BrowserCrawler<
         };
     }
 
-    private async prepareNavigation(crawlingContext: Context): Promise<Partial<Context>> {
+    async #prepareNavigation(crawlingContext: Context): Promise<Partial<Context>> {
         if (crawlingContext.request.skipNavigation) {
             return {
                 request: new Proxy(crawlingContext.request, {
-                    get(target, propertyName, receiver) {
+                    get(target, propertyName) {
                         if (propertyName === 'loadedUrl') {
                             throw new NavigationSkippedError(
                                 'The `request.loadedUrl` property is not available - `skipNavigation` was used',
                             );
                         }
-                        return Reflect.get(target, propertyName, receiver);
+                        // `target` as receiver and bound methods, or `#` members throw on the proxy
+                        const value = Reflect.get(target, propertyName, target);
+                        return typeof value === 'function' ? value.bind(target) : value;
                     },
+                    set: (target, propertyName, value) => Reflect.set(target, propertyName, value, target),
                 }) as LoadedRequest<CrawlingRequest>,
                 get response(): Response {
                     throw new NavigationSkippedError(
@@ -701,15 +704,15 @@ export abstract class BrowserCrawler<
         const cookiesBeforeHooks = readContextField<string>(crawlingContext, COOKIES_BEFORE_HOOKS);
         const cookiesAfterHooks = this.getCookieHeaderFromRequest(crawlingContext.request);
 
-        await this.applyCookies(crawlingContext, cookiesBeforeHooks, cookiesAfterHooks);
+        await this.#applyCookies(crawlingContext, cookiesBeforeHooks, cookiesAfterHooks);
 
         let response: Response | undefined;
         try {
             response = (await this.navigationHandler(crawlingContext, gotoOptions)) ?? undefined;
         } catch (error) {
-            await this.handleNavigationTimeout(crawlingContext, error as Error);
+            await this.#handleNavigationTimeout(crawlingContext, error as Error);
             crawlingContext.request.state = RequestState.ERROR;
-            this.throwIfProxyError(error as Error);
+            this.#throwIfProxyError(error as Error);
             throw error;
         }
         tryCancel();
@@ -719,7 +722,7 @@ export abstract class BrowserCrawler<
         return { response } as Partial<Context>;
     }
 
-    private async finalizeNavigation(crawlingContext: Context): Promise<Partial<Context>> {
+    async #finalizeNavigation(crawlingContext: Context): Promise<Partial<Context>> {
         tryCancel();
 
         let response: Response | undefined;
@@ -730,12 +733,12 @@ export abstract class BrowserCrawler<
             // navigation produced no response and no hook overrode it. Treat as undefined.
         }
 
-        await this.processResponse(response, crawlingContext);
+        await this.#processResponse(response, crawlingContext);
         tryCancel();
 
         // Persist cookies from the navigation response before the user handler runs.
         // Cookies set during `requestHandler` are saved again afterwards.
-        await this.persistCookiesFromPage(crawlingContext);
+        await this.#persistCookiesFromPage(crawlingContext);
 
         return { request: crawlingContext.request as LoadedRequest<CrawlingRequest> } as Partial<Context>;
     }
@@ -743,7 +746,7 @@ export abstract class BrowserCrawler<
     /**
      * Copies cookies from the live browser page into the session cookie jar.
      */
-    private async persistCookiesFromPage(
+    async #persistCookiesFromPage(
         crawlingContext: Pick<BrowserCrawlingContext<Page, Response>, 'session' | 'page' | 'request'>,
     ): Promise<void> {
         if (!this.#saveResponseCookies || !crawlingContext.session) {
@@ -777,7 +780,7 @@ export abstract class BrowserCrawler<
         } finally {
             if (!crawlingContext.request.skipNavigation) {
                 try {
-                    await this.persistCookiesFromPage(crawlingContext);
+                    await this.#persistCookiesFromPage(crawlingContext);
                 } catch {
                     // Page may already be closed on some failure paths; ignore.
                 }
@@ -785,21 +788,21 @@ export abstract class BrowserCrawler<
         }
     }
 
-    private async handleBlockedRequestByContent(crawlingContext: BrowserCrawlingContext<Page, Response>) {
+    async #handleBlockedRequestByContent(crawlingContext: BrowserCrawlingContext<Page, Response>) {
         if (this.retryOnBlocked) {
-            const error = await this.isRequestBlocked(crawlingContext);
+            const error = await this.#isRequestBlocked(crawlingContext);
             if (error) throw new SessionError(error);
         }
 
         return {};
     }
 
-    private async restoreRequestState(crawlingContext: CrawlingContext) {
+    async #restoreRequestState(crawlingContext: CrawlingContext) {
         crawlingContext.request.state = RequestState.REQUEST_HANDLER;
         return {};
     }
 
-    private async applyCookies(
+    async #applyCookies(
         { session, request, page }: BrowserCrawlingContext<Page, Response>,
         preHooksCookies: string,
         postHooksCookies: string,
@@ -820,7 +823,7 @@ export abstract class BrowserCrawler<
     /**
      * Marks session bad on navigation timeout, and stops in-flight page loading on any navigation error.
      */
-    private async handleNavigationTimeout(crawlingContext: BrowserCrawlingContext, error: Error): Promise<void> {
+    async #handleNavigationTimeout(crawlingContext: BrowserCrawlingContext, error: Error): Promise<void> {
         const { session, page } = crawlingContext;
 
         // Fire-and-forget: no user code will run on this page after a failed navigation.
@@ -838,7 +841,7 @@ export abstract class BrowserCrawler<
     /**
      * Transforms proxy-related errors to `SessionError`.
      */
-    private throwIfProxyError(error: Error) {
+    #throwIfProxyError(error: Error) {
         if (this.isProxyError(error)) {
             throw new SessionError(this.getMessageFromError(error));
         }
@@ -849,10 +852,7 @@ export abstract class BrowserCrawler<
         gotoOptions: GoToOptions,
     ): Promise<Context['response'] | null | undefined>;
 
-    private async processResponse(
-        response: Response | undefined,
-        crawlingContext: BrowserCrawlingContext,
-    ): Promise<void> {
+    async #processResponse(response: Response | undefined, crawlingContext: BrowserCrawlingContext): Promise<void> {
         const { session, request, page } = crawlingContext;
 
         if (typeof response === 'object' && typeof response.status === 'function') {

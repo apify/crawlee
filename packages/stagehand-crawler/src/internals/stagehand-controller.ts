@@ -63,7 +63,7 @@ export class StagehandController extends BrowserController<BrowserType, LaunchOp
             });
 
             try {
-                await this.waitForStagehandToRegisterPage(page);
+                await this.#waitForStagehandToRegisterPage(page);
             } catch (error) {
                 await page.close().catch(() => {});
                 throw error;
@@ -86,9 +86,9 @@ export class StagehandController extends BrowserController<BrowserType, LaunchOp
      * a short window, and the AI methods fail with 'Failed to resolve V3 Page from Playwright page'.
      * Stagehand's own `newPage()` polls for the same reason.
      */
-    private async waitForStagehandToRegisterPage(page: Page, timeoutMs = 10_000): Promise<void> {
+    async #waitForStagehandToRegisterPage(page: Page, timeoutMs = 10_000): Promise<void> {
         const stagehand = this.getStagehand();
-        const mainFrameId = await this.getMainFrameId(page);
+        const mainFrameId = await this.#getMainFrameId(page);
         const deadline = Date.now() + timeoutMs;
 
         while (Date.now() < deadline) {
@@ -107,7 +107,7 @@ export class StagehandController extends BrowserController<BrowserType, LaunchOp
     /**
      * Reads the page's main frame id, which is the key Stagehand resolves pages by.
      */
-    private async getMainFrameId(page: Page): Promise<string> {
+    async #getMainFrameId(page: Page): Promise<string> {
         const cdpSession = await page.context().newCDPSession(page);
 
         try {

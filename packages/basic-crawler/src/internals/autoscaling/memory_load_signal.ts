@@ -89,7 +89,7 @@ export class MemoryLoadSignal implements LoadSignal {
                 );
             }
             // Fallback memory measurement in case memTotalBytes is missing from SystemInfo.
-            this.#maxMemoryBytes = await this.getTotalMemoryBytes();
+            this.#maxMemoryBytes = await this.#getTotalMemoryBytes();
         }
 
         this.#events.on(EventType.SYSTEM_INFO, this.handle);
@@ -121,10 +121,10 @@ export class MemoryLoadSignal implements LoadSignal {
         };
 
         this.#store.push(snapshot, createdAt);
-        this.memoryOverloadWarning(systemInfo, maxMemoryBytes);
+        this.#memoryOverloadWarning(systemInfo, maxMemoryBytes);
     }
 
-    private memoryOverloadWarning(systemInfo: SystemInfo, maxMemoryBytes?: number): void {
+    #memoryOverloadWarning(systemInfo: SystemInfo, maxMemoryBytes?: number): void {
         const effectiveMax = maxMemoryBytes ?? this.#maxMemoryBytes;
         const { memCurrentBytes } = systemInfo;
         const createdAt = systemInfo.createdAt ? new Date(systemInfo.createdAt) : new Date();
@@ -152,7 +152,7 @@ export class MemoryLoadSignal implements LoadSignal {
         }
     }
 
-    private async getTotalMemoryBytes(): Promise<number> {
+    async #getTotalMemoryBytes(): Promise<number> {
         const containerized = this.#config.containerized ?? (await isContainerized());
         return (await getMemoryInfo({ containerized, logger: serviceLocator.getLogger() })).totalBytes;
     }
