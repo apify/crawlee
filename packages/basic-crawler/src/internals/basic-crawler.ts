@@ -1195,9 +1195,9 @@ export class BasicCrawler<
                         createSessionFunction: async (opts) =>
                             new Session({
                                 ...opts?.sessionOptions,
-                                proxyInfo:
-                                    (await this.proxyConfiguration?.newProxyInfo(opts?.sessionOptions?.proxyInfo)) ??
-                                    opts?.sessionOptions?.proxyInfo,
+                                proxyInfo: this.proxyConfiguration
+                                    ? await this.proxyConfiguration.newProxyInfo(opts?.sessionOptions?.proxyInfo)
+                                    : opts?.sessionOptions?.proxyInfo,
                             }),
                     }),
             );
