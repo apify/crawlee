@@ -86,21 +86,21 @@ export class CrawleeInstrumentation extends InstrumentationBase<CrawleeInstrumen
                     '@crawlee/core',
                     (moduleExports) => {
                         for (const method of loggerMethods) {
-                            const prototype = this.getPrototype(
+                            const prototype = this.#getPrototype(
                                 moduleExports,
                                 '@crawlee/core',
                                 'BaseCrawleeLogger',
                                 method.methodName,
                             );
                             if (prototype) {
-                                this._wrap(prototype, method.methodName, this.getLogPatch(method));
+                                this._wrap(prototype, method.methodName, this.#getLogPatch(method));
                             }
                         }
                         return moduleExports;
                     },
                     (moduleExports) => {
                         for (const method of loggerMethods) {
-                            this.unwrapIfWrapped(moduleExports?.BaseCrawleeLogger?.prototype, method.methodName);
+                            this.#unwrapIfWrapped(moduleExports?.BaseCrawleeLogger?.prototype, method.methodName);
                         }
                         return moduleExports;
                     },
@@ -110,27 +110,28 @@ export class CrawleeInstrumentation extends InstrumentationBase<CrawleeInstrumen
         return definitions;
     }
 
+    // oxlint-disable-next-line crawlee/prefer-private-fields -- `InstrumentationBase`'s constructor calls `init()` before `#` members exist
     private instantiateModuleDefinitions(moduleDefinitions: ModuleDefinition[]): InstrumentationModuleDefinition[] {
         return moduleDefinitions.map((definition) => {
             return crawleeModuleDefinition(
                 definition.moduleName,
                 (moduleExports) => {
                     for (const patch of definition.classMethodPatches) {
-                        const prototype = this.getPrototype(
+                        const prototype = this.#getPrototype(
                             moduleExports,
                             definition.moduleName,
                             patch.className,
                             patch.methodName,
                         );
                         if (prototype) {
-                            this._wrap(prototype, patch.methodName, this.applyClassMethodPatch(patch));
+                            this._wrap(prototype, patch.methodName, this.#applyClassMethodPatch(patch));
                         }
                     }
                     return moduleExports;
                 },
                 (moduleExports) => {
                     for (const patch of definition.classMethodPatches) {
-                        this.unwrapIfWrapped(moduleExports?.[patch.className]?.prototype, patch.methodName);
+                        this.#unwrapIfWrapped(moduleExports?.[patch.className]?.prototype, patch.methodName);
                     }
                     return moduleExports;
                 },
@@ -142,7 +143,7 @@ export class CrawleeInstrumentation extends InstrumentationBase<CrawleeInstrumen
      * Resolves the prototype holding the method to patch, warning instead of throwing when the class or the method
      * is not there - a missing internal method must not break loading of the instrumented module.
      */
-    private getPrototype(moduleExports: any, moduleName: string, className: string, methodName: string) {
+    #getPrototype(moduleExports: any, moduleName: string, className: string, methodName: string) {
         const prototype = moduleExports?.[className]?.prototype;
 
         if (typeof prototype?.[methodName] !== 'function') {
@@ -156,14 +157,14 @@ export class CrawleeInstrumentation extends InstrumentationBase<CrawleeInstrumen
         return prototype;
     }
 
-    /** Mirrors {@link getPrototype}: only methods that were actually patched are restored. */
-    private unwrapIfWrapped(prototype: any, methodName: string) {
+    /** Mirrors `#getPrototype`: only methods that were actually patched are restored. */
+    #unwrapIfWrapped(prototype: any, methodName: string) {
         if (prototype && isWrapped(prototype[methodName])) {
             this._unwrap(prototype, methodName);
         }
     }
 
-    private applyClassMethodPatch(patch: ClassMethodPatchDefinition): (original: any) => any {
+    #applyClassMethodPatch(patch: ClassMethodPatchDefinition): (original: any) => any {
         const { spanName, spanOptions } = patch;
         const qualifiedName = `${patch.className}.${patch.methodName}`;
         const codeAttributes = { [ATTR_CODE_FUNCTION_NAME]: qualifiedName };
@@ -183,7 +184,7 @@ export class CrawleeInstrumentation extends InstrumentationBase<CrawleeInstrumen
         };
     }
 
-    private getLogPatch(method: LoggerMethodDefinition) {
+    #getLogPatch(method: LoggerMethodDefinition) {
         // oxlint-disable-next-line no-this-alias
         const instrumentation = this;
 
@@ -195,7 +196,7 @@ export class CrawleeInstrumentation extends InstrumentationBase<CrawleeInstrumen
                 try {
                     original.apply(this, args);
                 } finally {
-                    instrumentation.forwardLogRecord(method, args);
+                    instrumentation.#forwardLogRecord(method, args);
                 }
             };
         };
@@ -208,7 +209,7 @@ export class CrawleeInstrumentation extends InstrumentationBase<CrawleeInstrumen
      * the application's own call to `log.info()` and friends, so a failure anywhere in it is reported and dropped
      * rather than raised.
      */
-    private forwardLogRecord(method: LoggerMethodDefinition, args: unknown[]): void {
+    #forwardLogRecord(method: LoggerMethodDefinition, args: unknown[]): void {
         try {
             const { message, data } = method.read(args);
 

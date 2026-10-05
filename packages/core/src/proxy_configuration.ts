@@ -130,8 +130,8 @@ export class ProxyConfiguration implements IProxyConfiguration {
             proxyConfigurationOptionsSchema,
         );
 
-        if (proxyUrls && newUrlFunction) this.throwCannotCombineCustomMethods();
-        if (!proxyUrls && !newUrlFunction && validateRequired) this.throwNoOptionsProvided();
+        if (proxyUrls && newUrlFunction) this.#throwCannotCombineCustomMethods();
+        if (!proxyUrls && !newUrlFunction && validateRequired) this.#throwNoOptionsProvided();
 
         this.#proxyUrls = proxyUrls;
         this.#newUrlFunction = newUrlFunction;
@@ -169,20 +169,20 @@ export class ProxyConfiguration implements IProxyConfiguration {
      */
     async newUrl(): Promise<string | undefined> {
         if (this.#newUrlFunction) {
-            return (await this.callNewUrlFunction()) ?? undefined;
+            return (await this.#callNewUrlFunction()) ?? undefined;
         }
 
-        return this.handleProxyUrlsList() ?? undefined;
+        return this.#handleProxyUrlsList() ?? undefined;
     }
 
-    private handleProxyUrlsList(): string | null {
+    #handleProxyUrlsList(): string | null {
         return this.#proxyUrls![this.#nextCustomUrlIndex++ % this.#proxyUrls!.length];
     }
 
     /**
      * Calls the custom newUrlFunction and checks format of its return value
      */
-    private async callNewUrlFunction() {
+    async #callNewUrlFunction() {
         const proxyUrl = await this.#newUrlFunction!();
         try {
             if (proxyUrl) {
@@ -196,13 +196,13 @@ export class ProxyConfiguration implements IProxyConfiguration {
         }
     }
 
-    private throwCannotCombineCustomMethods(): never {
+    #throwCannotCombineCustomMethods(): never {
         throw new Error(
             'Cannot combine custom proxies "options.proxyUrls" with custom generating function "options.newUrlFunction".',
         );
     }
 
-    private throwNoOptionsProvided(): never {
+    #throwNoOptionsProvided(): never {
         throw new Error('One of "options.proxyUrls" or "options.newUrlFunction" needs to be provided.');
     }
 }

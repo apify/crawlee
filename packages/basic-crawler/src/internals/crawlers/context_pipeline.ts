@@ -132,7 +132,7 @@ class ContextPipelineImpl<TContextBase, TCrawlingContext extends TContextBase> e
         other: ContextPipeline<TCrawlingContext, TFinalContext>,
     ): ContextPipeline<TContextBase, TFinalContext> {
         const otherMiddlewares = Array.from(
-            (other as any).middlewareChain() as Iterable<ContextMiddleware<any, any>>,
+            (other as unknown as ContextPipelineImpl<TCrawlingContext, TFinalContext>).#middlewareChain(),
         ).reverse();
 
         let result: ContextPipeline<TContextBase, any> = this as any;
@@ -143,7 +143,7 @@ class ContextPipelineImpl<TContextBase, TCrawlingContext extends TContextBase> e
         return result as ContextPipeline<TContextBase, TFinalContext>;
     }
 
-    private *middlewareChain() {
+    *#middlewareChain() {
         let step: ContextPipelineImpl<TContextBase, TContextBase> | undefined = this as any;
 
         while (step !== undefined) {
@@ -160,7 +160,7 @@ class ContextPipelineImpl<TContextBase, TCrawlingContext extends TContextBase> e
         finalContextConsumer: (finalContext: TCrawlingContext) => Promise<unknown>,
         onError: (error: unknown) => Awaitable<void>,
     ): Promise<void> {
-        const middlewares = Array.from(this.middlewareChain()).reverse();
+        const middlewares = Array.from(this.#middlewareChain()).reverse();
         const cleanupStack: Parameters<CleanupRegistrar>[0][] = [];
         const onCleanup: CleanupRegistrar = (cleanup) => {
             cleanupStack.push(cleanup);

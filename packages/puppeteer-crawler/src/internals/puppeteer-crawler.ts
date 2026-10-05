@@ -255,10 +255,10 @@ export class PuppeteerCrawler<
     }
 
     #buildContextPipeline(): ContextPipeline<CrawlingContext, PuppeteerCrawlingContext> {
-        return this.buildContextPipeline().compose(this.enhanceContext.bind(this));
+        return this.buildContextPipeline().compose(this.#enhanceContext.bind(this));
     }
 
-    private async enhanceContext(context: BrowserCrawlingContext<Page, HTTPResponse>) {
+    async #enhanceContext(context: BrowserCrawlingContext<Page, HTTPResponse>) {
         const waitForSelector = async (selector: string, timeoutMs = 5_000) => {
             await context.page.waitForSelector(selector, { timeout: timeoutMs });
         };

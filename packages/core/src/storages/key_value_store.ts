@@ -237,7 +237,7 @@ export class KeyValueStore {
         tryCancel();
 
         parseArgument(key, keySchema);
-        const record = await this.readRecord(key);
+        const record = await this.#readRecord(key);
 
         // A missing record falls back to the default; a record that parses to a falsy value (including
         // a stored literal `null`) is returned verbatim, so callers can tell "stored null" from "absent".
@@ -253,7 +253,7 @@ export class KeyValueStore {
      * The active transaction's last buffered write per key for this store, derived from its journal.
      * An entry with a `null` value is a tombstone (an in-transaction deletion).
      */
-    private bufferedJournalEntries(): Map<string, KeyValueStoreJournalEntry> | undefined {
+    #bufferedJournalEntries(): Map<string, KeyValueStoreJournalEntry> | undefined {
         const transaction = activeStorageTransaction();
         if (!transaction) return undefined;
 
@@ -277,9 +277,9 @@ export class KeyValueStore {
      * which is O(journal). Single-record callers let it default (rebuilt per call); the listing paths,
      * which read many keys, pass a map built once so the read stays O(1) per key instead of O(journal).
      */
-    private async readRecord(
+    async #readRecord(
         key: string,
-        buffered = this.bufferedJournalEntries(),
+        buffered = this.#bufferedJournalEntries(),
     ): Promise<{ value: Buffer | ArrayBuffer; contentType: string | null } | null> {
         const entry = buffered?.get(key);
 
@@ -335,7 +335,7 @@ export class KeyValueStore {
         tryCancel();
 
         parseArgument(key, keySchema);
-        return this.readRecord(key);
+        return this.#readRecord(key);
     }
 
     /**
@@ -349,7 +349,7 @@ export class KeyValueStore {
 
         parseArgument(key, keySchema);
 
-        const entry = this.bufferedJournalEntries()?.get(key);
+        const entry = this.#bufferedJournalEntries()?.get(key);
         if (entry) {
             return entry.value !== null;
         }
@@ -377,12 +377,12 @@ export class KeyValueStore {
         }
 
         this.#cache.set(key, value!);
-        this.ensurePersistStateEvent();
+        this.#ensurePersistStateEvent();
 
         return value!;
     }
 
-    private ensurePersistStateEvent(): void {
+    #ensurePersistStateEvent(): void {
         if (this.#persistStateEventStarted) {
             return;
         }
@@ -404,19 +404,19 @@ export class KeyValueStore {
         this.#persistStateEventStarted = true;
     }
 
-    private async *fetchKeyValuePages<T>(
+    async *#fetchKeyValuePages<T>(
         options: KeyValueStoreIteratorOptions,
         mapRecord: (key: string, value: unknown) => T,
     ): AsyncGenerator<T[]> {
         // Reduce the journal once for the whole iteration, not once per key inside `readRecord`.
-        const buffered = this.bufferedJournalEntries();
+        const buffered = this.#bufferedJournalEntries();
 
-        for await (const page of this.fetchKeyPages(options, buffered)) {
+        for await (const page of this.#fetchKeyPages(options, buffered)) {
             const results: T[] = [];
             for (const item of page) {
                 // The shared transaction-aware read, so a key that exists only in the transaction resolves
                 // here instead of being dropped (`values()` would disagree with `keys()` on length).
-                const record = await this.readRecord(item.key, buffered);
+                const record = await this.#readRecord(item.key, buffered);
                 if (record) {
                     const parsed = parseValue(record.value, record.contentType ?? null);
                     results.push(mapRecord(item.key, parsed));
@@ -426,9 +426,9 @@ export class KeyValueStore {
         }
     }
 
-    private async *fetchKeyPages(
+    async *#fetchKeyPages(
         options: KeyValueStoreIteratorOptions,
-        buffered = this.bufferedJournalEntries(),
+        buffered = this.#bufferedJournalEntries(),
         limit = KVS_KEYS_DEFAULT_LIMIT,
     ): AsyncGenerator<KeyValueStoreItemData[]> {
         // Buffered keys are emitted first, then the real pages with any buffered (or tombstoned) key
@@ -664,7 +664,7 @@ export class KeyValueStore {
 
         let index = 0;
 
-        for await (const page of this.fetchKeyPages(parsedOptions)) {
+        for await (const page of this.#fetchKeyPages(parsedOptions)) {
             for (const item of page) {
                 await iteratee(item.key, index++, { size: item.size });
             }
@@ -698,7 +698,7 @@ export class KeyValueStore {
         tryCancel();
 
         return createDualIterable({
-            createPages: () => this.fetchKeyPages(options),
+            createPages: () => this.#fetchKeyPages(options),
             extractItems: (page) => page.map((item) => item.key),
         });
     }
@@ -730,7 +730,7 @@ export class KeyValueStore {
         tryCancel();
 
         return createDualIterable({
-            createPages: () => this.fetchKeyValuePages<T>(options, (_key, value) => value as T),
+            createPages: () => this.#fetchKeyValuePages<T>(options, (_key, value) => value as T),
             extractItems: (page) => page,
         });
     }
@@ -764,7 +764,7 @@ export class KeyValueStore {
         tryCancel();
 
         return createDualIterable({
-            createPages: () => this.fetchKeyValuePages<[string, T]>(options, (key, value) => [key, value as T]),
+            createPages: () => this.#fetchKeyValuePages<[string, T]>(options, (key, value) => [key, value as T]),
             extractItems: (page) => page,
         });
     }
