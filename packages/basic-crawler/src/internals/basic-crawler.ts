@@ -1196,7 +1196,8 @@ export class BasicCrawler<
                             new Session({
                                 ...opts?.sessionOptions,
                                 proxyInfo:
-                                    opts?.sessionOptions?.proxyInfo ?? (await this.proxyConfiguration?.newProxyInfo()),
+                                    (await this.proxyConfiguration?.newProxyInfo(opts?.sessionOptions?.proxyInfo)) ??
+                                    opts?.sessionOptions?.proxyInfo,
                             }),
                     }),
             );
