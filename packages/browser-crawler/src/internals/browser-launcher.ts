@@ -3,14 +3,15 @@ import { createRequire } from 'node:module';
 import os from 'node:os';
 
 import { Configuration, serviceLocator } from '@crawlee/basic';
-import type {
-    BrowserPlugin,
-    BrowserPluginOptions,
-    BrowserPoolHooks,
-    BrowserPoolOptions,
-    RemoteBrowserPoolOptions,
+import {
+    type BrowserPlugin,
+    type BrowserPluginOptions,
+    BrowserPool,
+    type BrowserPoolHooks,
+    type BrowserPoolOptions,
+    type RemoteBrowserOptions,
+    RemoteBrowserProvider,
 } from '@crawlee/browser-pool';
-import { BrowserPool, RemoteBrowserPool } from '@crawlee/browser-pool';
 import type { Constructor, Dictionary } from '@crawlee/types';
 import { schemas } from '@crawlee/utils/internal';
 import { z } from 'zod';
@@ -103,9 +104,16 @@ type LauncherBrowserPoolOptions = Omit<BrowserPoolOptions, 'browserPlugins'> & {
 };
 
 /**
- * The {@apilink RemoteBrowserPool} counterpart of {@apilink LauncherBrowserPoolOptions}.
+ * The remote-connection configuration a browser crawler accepts on its `remoteBrowser` option. Library-specific
+ * connect settings (e.g. Playwright's `protocol`) are added by the concrete crawler's options.
  */
-type LauncherRemoteBrowserPoolOptions = Omit<RemoteBrowserPoolOptions, 'browserPlugins'>;
+export interface CrawlerRemoteBrowserOptions extends RemoteBrowserOptions {
+    /**
+     * Maximum number of remote browsers open at once; see {@apilink BrowserPoolOptions.maxOpenBrowsers}. Defaults
+     * to the {@apilink RemoteBrowserProvider.maxOpenBrowsers|provider's value}, or `Infinity`.
+     */
+    maxOpenBrowsers?: number;
+}
 
 /**
  * Abstract class for creating browser launchers, such as `PlaywrightLauncher` and `PuppeteerLauncher`.
@@ -123,8 +131,9 @@ export abstract class BrowserLauncher<
     useChrome?: boolean;
     launchOptions: Dictionary;
     otherLaunchContextProps: Dictionary;
-    // to be provided by child classes;
+    // to be provided by child classes; `RemotePlugin` only by those supporting remote browsers
     Plugin!: T;
+    RemotePlugin?: T;
     userAgent?: string;
 
     /**
@@ -192,44 +201,54 @@ export abstract class BrowserLauncher<
     /**
      * @ignore
      */
-    createBrowserPlugin(): Plugin {
-        return new this.Plugin(this.launcher, {
+    createBrowserPlugin(remoteBrowser?: CrawlerRemoteBrowserOptions): Plugin {
+        const options = {
             proxyUrl: this.proxyUrl,
             launchOptions: this.createLaunchOptions(),
             ...this.otherLaunchContextProps,
-        });
+        };
+
+        if (!remoteBrowser) {
+            return new this.Plugin(this.launcher, options);
+        }
+
+        if (!this.RemotePlugin) {
+            throw new Error(`${this.constructor.name} does not support remote browsers.`);
+        }
+
+        const { maxOpenBrowsers: _, ...remoteOptions } = remoteBrowser;
+        return new this.RemotePlugin(this.launcher, { ...options, ...remoteOptions });
     }
 
     /**
      * Builds a {@apilink BrowserPool} running a single plugin for this launcher's browser. Shared body of the
      * per-library `*BrowserPool()` factories, which exist so that configuring a pool never requires assembling
      * a plugin by hand — and therefore never lets the plugin drift away from the crawler it is used with.
+     * With `remoteBrowser`, the plugin connects to a remote browser service instead of launching locally.
      * @internal
      */
-    createBrowserPool(options: LauncherBrowserPoolOptions = {}): BrowserPool<{ browserPlugins: [Plugin] }, [Plugin]> {
+    createBrowserPool({
+        remoteBrowser,
+        ...options
+    }: LauncherBrowserPoolOptions & { remoteBrowser?: CrawlerRemoteBrowserOptions } = {}): BrowserPool<
+        { browserPlugins: [Plugin] },
+        [Plugin]
+    > {
+        const provider = remoteBrowser?.endpoint instanceof RemoteBrowserProvider ? remoteBrowser.endpoint : undefined;
+        const maxOpenBrowsers = options.maxOpenBrowsers ?? remoteBrowser?.maxOpenBrowsers ?? provider?.maxOpenBrowsers;
+
         // The hook types `BrowserPool` derives from `Plugin` are unresolvable while `Plugin` is still a free type
         // parameter, so the argument cannot be checked here. The concrete `*BrowserPool()` factories are where the
         // caller-facing hook types get pinned down.
         return new BrowserPool<{ browserPlugins: [Plugin] }, [Plugin]>({
             ...this.#resolveFingerprinting(options),
-            browserPlugins: [this.createBrowserPlugin()],
+            ...(maxOpenBrowsers !== undefined && { maxOpenBrowsers }),
+            browserPlugins: [this.createBrowserPlugin(remoteBrowser)],
         } as any);
     }
 
     /**
-     * The {@apilink RemoteBrowserPool} counterpart of {@apilink BrowserLauncher.createBrowserPool}: the launcher
-     * supplies the plugin, the caller supplies the remote connection details.
-     * @internal
-     */
-    createRemoteBrowserPool<Page>(options: LauncherRemoteBrowserPoolOptions): RemoteBrowserPool<Page> {
-        return new RemoteBrowserPool<Page>({
-            ...options,
-            browserPlugins: [this.createBrowserPlugin()],
-            browserPoolOptions: this.#resolveFingerprinting(options.browserPoolOptions ?? {}),
-        });
-    }
 
-    /**
      * A custom `userAgent` and Crawlee's fingerprint injection would both write the same headers, so an
      * explicitly requested user agent wins.
      */

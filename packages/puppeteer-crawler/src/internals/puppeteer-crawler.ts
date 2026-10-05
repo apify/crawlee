@@ -19,7 +19,7 @@ import type { HTTPResponse, Page } from 'puppeteer';
 import { z } from 'zod';
 
 import type { EnqueueLinksByClickingElementsOptions } from './enqueue-links/click-elements.js';
-import { puppeteerBrowserPool, remotePuppeteerBrowserPool } from './puppeteer-browser-pool.js';
+import { puppeteerBrowserPool } from './puppeteer-browser-pool.js';
 import type { PuppeteerLaunchContext } from './puppeteer-launcher.js';
 import type { InterceptHandler } from './utils/puppeteer_request_interception.js';
 import type {
@@ -247,9 +247,7 @@ export class PuppeteerCrawler<
             configuration,
             proxyConfiguration,
             browserPoolBuilder: (remoteBrowser) =>
-                remoteBrowser
-                    ? remotePuppeteerBrowserPool({ ...remoteBrowser, launchContext, headless, configuration })
-                    : puppeteerBrowserPool({ launchContext, headless, configuration }),
+                puppeteerBrowserPool({ launchContext, headless, configuration, remoteBrowser }),
             contextPipelineBuilder: () => this.#buildContextPipeline(),
         });
     }

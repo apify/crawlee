@@ -1,12 +1,5 @@
-import type { Configuration } from '@crawlee/browser';
-import type {
-    BrowserPool,
-    BrowserPoolHooks,
-    BrowserPoolOptions,
-    PuppeteerPlugin,
-    RemoteBrowserPool,
-    RemoteBrowserPoolOptions,
-} from '@crawlee/browser-pool';
+import type { Configuration, CrawlerRemoteBrowserOptions } from '@crawlee/browser';
+import type { BrowserPool, BrowserPoolHooks, BrowserPoolOptions, PuppeteerPlugin } from '@crawlee/browser-pool';
 // @ts-ignore This only throws when compiled against puppeteer 25+ (ESM only), we only import types, so its alllll gooooood
 import type { Page } from 'puppeteer';
 
@@ -35,12 +28,10 @@ export interface PuppeteerBrowserPoolOptions
 
     /** Configuration to read the browser defaults from. Defaults to the global configuration. */
     configuration?: Configuration;
-}
 
-export interface RemotePuppeteerBrowserPoolOptions
-    extends
-        Pick<PuppeteerBrowserPoolOptions, 'launchContext' | 'headless' | 'configuration'>,
-        Omit<RemoteBrowserPoolOptions, 'browserPlugins'> {}
+    /** Connect to a remote browser service instead of launching locally; see {@apilink BrowserCrawlerOptions.remoteBrowser}. */
+    remoteBrowser?: CrawlerRemoteBrowserOptions;
+}
 
 /**
  * Builds a {@apilink BrowserPool} of Puppeteer browsers to pass to a {@apilink PuppeteerCrawler} as its
@@ -67,22 +58,6 @@ export function puppeteerBrowserPool(options: PuppeteerBrowserPoolOptions = {}):
     const { launchContext, headless, configuration, ...poolOptions } = options;
 
     return puppeteerLauncher(launchContext, headless, configuration).createBrowserPool(poolOptions);
-}
-
-/**
- * The {@apilink RemoteBrowserPool} counterpart of {@apilink puppeteerBrowserPool}: connects to a remote browser
- * service (Browserbase, Browserless, Steel, ...) with a Puppeteer plugin derived from `launchContext`.
- *
- * A {@apilink PuppeteerCrawler} accepts the same connection details directly via
- * {@apilink BrowserCrawlerOptions.remoteBrowser|`remoteBrowser`}; reach for this factory when you also need to
- * tune the wrapping pool, or to share one remote pool between crawlers.
- *
- * @category Browser management
- */
-export function remotePuppeteerBrowserPool(options: RemotePuppeteerBrowserPoolOptions): RemoteBrowserPool<Page> {
-    const { launchContext, headless, configuration, ...remoteOptions } = options;
-
-    return puppeteerLauncher(launchContext, headless, configuration).createRemoteBrowserPool<Page>(remoteOptions);
 }
 
 function puppeteerLauncher(

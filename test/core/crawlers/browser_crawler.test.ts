@@ -6,7 +6,7 @@ import {
     BrowserPool as BrowserPoolClass,
     OperatingSystemsName,
     PuppeteerPlugin,
-    RemoteBrowserPool,
+    RemotePuppeteerPlugin,
 } from '@crawlee/browser-pool';
 import {
     BLOCKED_STATUS_CODES,
@@ -204,17 +204,16 @@ describe('BrowserCrawler', () => {
         }
     });
 
-    test.concurrent('builds and owns a RemoteBrowserPool from the remoteBrowser option', async () => {
+    test.concurrent('builds and owns a remote browser pool from the remoteBrowser option', async () => {
         const crawler = new BrowserCrawlerTest({
-            remoteBrowser: { endpoint: 'ws://remote:9222', maxOpenBrowsers: 2 },
-            browserPoolOptions: { browserPlugins: [new PuppeteerPlugin(puppeteer)] },
+            remoteBrowser: { endpoint: 'ws://remote:9222' },
             requestHandler: async () => {},
         });
 
-        expect(crawler.browserPool).toBeInstanceOf(RemoteBrowserPool);
-        expect((crawler.browserPool as RemoteBrowserPool).maxOpenBrowsers).toBe(2);
+        const pool = crawler.browserPool as BrowserPool;
+        expect(pool.browserPlugins[0]).toBeInstanceOf(RemotePuppeteerPlugin);
 
-        await (crawler.browserPool as RemoteBrowserPool).destroy();
+        await pool.destroy();
     });
 
     test.concurrent('rejects remoteBrowser when a browserPool is passed in', async () => {

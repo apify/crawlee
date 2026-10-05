@@ -1,6 +1,6 @@
 import type { BrowserLaunchContext } from '@crawlee/browser';
 import { BrowserLauncher, Configuration } from '@crawlee/browser';
-import { PuppeteerPlugin } from '@crawlee/browser-pool';
+import { PuppeteerPlugin, RemotePuppeteerPlugin } from '@crawlee/browser-pool';
 import { parseArgument, schemas } from '@crawlee/utils/internal';
 // @ts-ignore This only throws when compiled against puppeteer 25+ (ESM only), we only import types, so its alllll gooooood
 import type { Browser } from 'puppeteer';
@@ -106,6 +106,7 @@ export class PuppeteerLauncher extends BrowserLauncher<PuppeteerPlugin, unknown>
         );
 
         this.Plugin = PuppeteerPlugin;
+        this.RemotePlugin = RemotePuppeteerPlugin;
     }
 
     protected override getDefaultHeadlessOption(): boolean {
