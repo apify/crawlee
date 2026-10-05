@@ -60,7 +60,7 @@
         "@sapphire/async-queue": "^1.5.5",
         "@standard-schema/spec": "^1.0.0",
         "@vladfrangu/async_event_emitter": "^2.4.6",
-        "content-type": "^1.0.5",
+        "content-type": "^3.1.1",
         "csv-stringify": "^6.5.2",
         "json5": "^2.2.3",
         "mime-types": "^3.0.1",

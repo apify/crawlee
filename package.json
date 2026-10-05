@@ -86,7 +86,6 @@
         "@playwright/browser-chromium": "1.63.0",
         "@playwright/browser-firefox": "1.63.0",
         "@playwright/browser-webkit": "1.63.0",
-        "@types/content-type": "^2.0.0",
         "@types/deep-equal": "^1.0.4",
         "@types/domhandler": "^3.1.0",
         "@types/express": "^5.0.1",
