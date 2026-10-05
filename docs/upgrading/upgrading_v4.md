@@ -76,7 +76,7 @@ Support for older node versions was dropped.
 
 ### Collaborators you own are disposable
 
-A crawler never tears down an instance it did not build, so anything you construct and pass in — `SessionPool`, `ConcurrencySystem`, `BrowserPool`, `RemoteBrowserPool`, `RenderingTypePredictor` — is yours to shut down. All of them implement `Symbol.asyncDispose`, so `await using` does it for you:
+A crawler never tears down an instance it did not build, so anything you construct and pass in — `SessionPool`, `ConcurrencySystem`, `BrowserPool`, `RenderingTypePredictor` — is yours to shut down. All of them implement `Symbol.asyncDispose`, so `await using` does it for you:
 
 ```typescript
 await using concurrencySystem = new ConcurrencySystem({ maxConcurrency: 20 });
@@ -499,13 +499,13 @@ In v4, when `saveResponseCookies` is enabled (the default), browser cookies are 
 
 `browserPoolOptions` is gone from every browser crawler. It was a second way of configuring the very pool that the `browserPool` option accepts, and the two could not be combined — passing a pool made the options silently disappear.
 
-Build the pool with the factory that matches your crawler instead. Each factory takes every `BrowserPool` option plus the crawler's own `launchContext` and `headless`, and derives the browser plugin from them, so the pool can never mismatch the crawler it is passed to:
+Build the pool with the factory that matches your crawler instead. Each factory takes every `BrowserPool` option plus the crawler's own `launchContext`, `headless` and `remoteBrowser`, and derives the browser plugin from them, so the pool can never mismatch the crawler it is passed to:
 
-| crawler | factory | remote counterpart |
-| --- | --- | --- |
-| `PlaywrightCrawler` | `playwrightBrowserPool()` | `remotePlaywrightBrowserPool()` |
-| `PuppeteerCrawler` | `puppeteerBrowserPool()` | `remotePuppeteerBrowserPool()` |
-| `StagehandCrawler` | `stagehandBrowserPool()` | `remoteStagehandBrowserPool()` |
+| crawler | factory |
+| --- | --- |
+| `PlaywrightCrawler` | `playwrightBrowserPool()` |
+| `PuppeteerCrawler` | `puppeteerBrowserPool()` |
+| `StagehandCrawler` | `stagehandBrowserPool()` |
 
 **Before:**
 ```typescript
@@ -527,7 +527,7 @@ const crawler = new PlaywrightCrawler({
 
 Building the pool outside the crawler has one consequence worth knowing: a pool passed as `browserPool` is borrowed, so the crawler never destroys it, and the options that would have configured a pool of the crawler's own — `launchContext`, `headless` and `remoteBrowser` — are now **rejected** instead of silently ignored. Move them into the factory call.
 
-`remoteBrowser` keeps working on its own for the terse case; reach for a `remote*BrowserPool()` factory when you also want to tune the pool wrapping the remote connection, or to share one remote pool between crawlers.
+`remoteBrowser` keeps working on its own for the terse case; pass the same `remoteBrowser` to the factory when you also want to tune the pool, or to share one remote pool between crawlers. Remote connections are owned by the `RemotePlaywrightPlugin` / `RemotePuppeteerPlugin` classes from `@crawlee/browser-pool` — there is no separate `RemoteBrowserPool`; `BrowserPool` itself accepts `maxOpenBrowsers`. `StagehandCrawler` does not support `remoteBrowser` (it throws) — Stagehand manages its own browser via `stagehandOptions.env`.
 
 `headless` is now declared on each concrete crawler rather than on `BrowserCrawler`, so the puppeteer-only `'new'` and `'old'` values are only accepted by `PuppeteerCrawler`.
 
@@ -1394,7 +1394,7 @@ If you called the standalone `playwrightUtils.handleCloudflareChallenge(page, ur
 
 ### `PlaywrightLauncher` is no longer exported
 
-`PlaywrightLauncher` was an implementation detail of `launchPlaywright()` and the Playwright browser pools, and it is no longer part of `@crawlee/playwright`'s (or `crawlee`'s) public exports. Use `launchPlaywright(launchContext, configuration)` to get a `Browser`, or `playwrightBrowserPool()` / `remotePlaywrightBrowserPool()` when you need a pool. `PlaywrightLaunchContext` is still exported, so the options object can still be typed.
+`PlaywrightLauncher` was an implementation detail of `launchPlaywright()` and the Playwright browser pools, and it is no longer part of `@crawlee/playwright`'s (or `crawlee`'s) public exports. Use `launchPlaywright(launchContext, configuration)` to get a `Browser`, or `playwrightBrowserPool()` when you need a pool. `PlaywrightLaunchContext` is still exported, so the options object can still be typed.
 
 ### `BrowserCrawler.launchContext` was removed
 
@@ -2410,7 +2410,7 @@ A few Stagehand-specific option types were tightened:
 - The `StagehandRequestHandler` type was removed. It was never referenced by `StagehandCrawlerOptions.requestHandler`, which uses `RequestHandler<StagehandCrawlingContext>` — use that instead.
 - The `stagehandUtils` namespace was removed. Its only member was internal glue that was never part of the documented surface.
 - The `AgentResult` re-export was removed. Import it from `@browserbasehq/stagehand` directly — it is a non-optional peer dependency, so it is already installed.
-- `StagehandLaunchContext.stagehandOptions` was removed. It never had any effect: the value was always overwritten by the `stagehandOptions` option on the crawler and on `stagehandBrowserPool()` / `remoteStagehandBrowserPool()`. Pass `stagehandOptions` at the top level instead.
+- `StagehandLaunchContext.stagehandOptions` was removed. It never had any effect: the value was always overwritten by the `stagehandOptions` option on the crawler and on `stagehandBrowserPool()`. Pass `stagehandOptions` at the top level instead.
 - `StagehandPlugin.stagehandOptions` is now private and `StagehandPlugin.getStagehandForBrowser()` is gone. Reach the `Stagehand` instance through the crawling context's `stagehand` property.
 
 ## Appendix: removed symbols
