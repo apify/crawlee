@@ -87,7 +87,7 @@ class SitemapXmlParser extends Transform {
     #url: Partial<SitemapUrl> = {};
 
     static async create(): Promise<SitemapXmlParser> {
-        const { SAXParser } = await import('sax');
+        const { SAXParser } = (await import('sax')).default;
         return new SitemapXmlParser(new SAXParser(true));
     }
 
