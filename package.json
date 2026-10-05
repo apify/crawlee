@@ -94,7 +94,7 @@
         "@types/inquirer": "^9.0.8",
         "@types/lodash.isequal": "^4.5.8",
         "@types/lodash.merge": "^4.6.9",
-        "@types/mime-types": "^2.1.4",
+        "@types/mime-types": "^3.0.0",
         "@types/node": "^24.0.0",
         "@types/proper-lockfile": "^4.1.4",
         "@types/ps-tree": "^1.1.6",
