@@ -258,7 +258,7 @@ export class PlaywrightCrawler<
     }
 
     #buildContextPipeline(): ContextPipeline<CrawlingContext, PlaywrightCrawlingContext> {
-        return this.buildContextPipeline().compose(this.enhanceContext.bind(this));
+        return this.buildContextPipeline().compose(this.#enhanceContext.bind(this));
     }
 
     protected override async navigationHandler(
@@ -268,7 +268,7 @@ export class PlaywrightCrawler<
         return gotoExtended(crawlingContext.page, crawlingContext.request, gotoOptions);
     }
 
-    private async enhanceContext(context: BrowserCrawlingContext<Page, Response, Dictionary>) {
+    async #enhanceContext(context: BrowserCrawlingContext<Page, Response, Dictionary>) {
         const waitForSelector = async (selector: string, timeoutMs = 5_000) => {
             const locator = context.page.locator(selector).first();
             await locator.waitFor({ timeout: timeoutMs, state: 'attached' });

@@ -14,38 +14,40 @@
 export class RequestDeduplicationCache {
     #keys: (string | undefined)[];
     #ids: (string | undefined)[];
+    readonly #size: number;
 
     // The slot count is the same for every queue, so it's a fixed default rather than a per-consumer option.
-    constructor(private readonly size = 1_000_000) {
+    constructor(size = 1_000_000) {
+        this.#size = size;
         this.#keys = new Array<string | undefined>(size);
         this.#ids = new Array<string | undefined>(size);
     }
 
     get(cacheKey: string): string | null {
-        const index = this.indexOf(cacheKey);
+        const index = this.#indexOf(cacheKey);
         return this.#keys[index] === cacheKey ? this.#ids[index]! : null;
     }
 
     add(cacheKey: string, requestId: string): void {
-        const index = this.indexOf(cacheKey);
+        const index = this.#indexOf(cacheKey);
         this.#keys[index] = cacheKey;
         this.#ids[index] = requestId;
     }
 
     clear(): void {
-        this.#keys = new Array<string | undefined>(this.size);
-        this.#ids = new Array<string | undefined>(this.size);
+        this.#keys = new Array<string | undefined>(this.#size);
+        this.#ids = new Array<string | undefined>(this.#size);
     }
 
     // A cheap FNV-1a hash of the cache key — avoids pulling in a dedicated hashing dependency.
-    private indexOf(cacheKey: string): number {
+    #indexOf(cacheKey: string): number {
         /* eslint-disable no-bitwise */
         let hash = 0x811c9dc5;
         for (let i = 0; i < cacheKey.length; i++) {
             hash ^= cacheKey.charCodeAt(i);
             hash = Math.imul(hash, 0x01000193);
         }
-        return (hash >>> 0) % this.size;
+        return (hash >>> 0) % this.#size;
         /* eslint-enable no-bitwise */
     }
 }
