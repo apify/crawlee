@@ -275,8 +275,8 @@ importers:
         specifier: 1.63.0
         version: 1.63.0
       '@types/content-type':
-        specifier: ^1.1.8
-        version: 1.1.9
+        specifier: ^2.0.0
+        version: 2.0.0
       '@types/deep-equal':
         specifier: ^1.0.4
         version: 1.0.4
@@ -850,8 +850,8 @@ importers:
         specifier: workspace:*
         version: link:../utils
       '@types/content-type':
-        specifier: ^1.1.8
-        version: 1.1.9
+        specifier: ^2.0.0
+        version: 2.0.0
       cheerio:
         specifier: ^1.0.0
         version: 1.2.0
@@ -5012,8 +5012,9 @@ packages:
   '@types/connect@3.4.38':
     resolution: {integrity: sha512-K6uROf1LD88uDQqJCktA4yzL1YYAK6NgfsI0v/mTgyPKWsX1CnJ0XPSDhViejru1GcRkLWb8RlzFYJRqGUbaug==}
 
-  '@types/content-type@1.1.9':
-    resolution: {integrity: sha512-Hq9IMnfekuOCsEmYl4QX2HBrT+XsfXiupfrLLY8Dcf3Puf4BkBOxSbWYTITSOQAhJoYPBez+b4MJRpIYL65z8A==}
+  '@types/content-type@2.0.0':
+    resolution: {integrity: sha512-wZQlLoRx3carjGy5yHA6GnCBGChd/9DDYTAOPbISfXGjhI4j70U6SU/tu5EEz7NpX2MxpUVgbbYFIgLqDItbVQ==}
+    deprecated: This is a stub types definition. content-type provides its own type definitions, so you do not need this installed.
 
   '@types/d3-array@3.2.2':
     resolution: {integrity: sha512-hOLWVbm7uRza0BYXpIIW5pxfrKe0W+D5lrFiAEYR+pb6w3N2SwSMaJbXdUfSEv+dT4MfHBLtn5js0LAWaO6otw==}
@@ -17984,7 +17985,9 @@ snapshots:
     dependencies:
       '@types/node': 24.12.2
 
-  '@types/content-type@1.1.9': {}
+  '@types/content-type@2.0.0':
+    dependencies:
+      content-type: 1.0.5
 
   '@types/d3-array@3.2.2': {}
 

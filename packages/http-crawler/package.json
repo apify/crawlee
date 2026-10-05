@@ -54,7 +54,7 @@
         "@crawlee/http-client": "workspace:*",
         "@crawlee/types": "workspace:*",
         "@crawlee/utils": "workspace:*",
-        "@types/content-type": "^1.1.8",
+        "@types/content-type": "^2.0.0",
         "cheerio": "^1.0.0",
         "content-type": "^1.0.5",
         "iconv-lite": "^0.7.2",
