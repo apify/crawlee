@@ -24,7 +24,9 @@
  */
 export * from './browser-pool.js';
 export * from './playwright/playwright-plugin.js';
+export * from './playwright/remote-playwright-plugin.js';
 export * from './puppeteer/puppeteer-plugin.js';
+export * from './puppeteer/remote-puppeteer-plugin.js';
 export * from './events.js';
 export type { FingerprintGeneratorOptions } from './fingerprinting/types.js';
 export { BrowserName, DeviceCategory, OperatingSystemsName } from './fingerprinting/types.js';
