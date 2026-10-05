@@ -44,17 +44,6 @@
 			"minimumReleaseAge": "0 days"
 		}
 	],
-	"customManagers": [
-		{
-			"description": "Renovate bumps `packageManager` but not `devEngines.packageManager`, and pnpm refuses to run when they differ",
-			"customType": "regex",
-			"managerFilePatterns": ["/^package\\.json$/"],
-			"matchStrings": [
-				"\"packageManager\":\\s*\\{\\s*\"name\":\\s*\"(?<depName>pnpm)\",\\s*\"version\":\\s*\"(?<currentValue>[^\"]+)\""
-			],
-			"datasourceTemplate": "npm"
-		}
-	],
 	"schedule": ["every weekday"],
 	"minimumReleaseAge": "1 day",
 	"internalChecksFilter": "strict",
