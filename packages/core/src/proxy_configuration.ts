@@ -56,7 +56,8 @@ export interface IProxyConfiguration {
      * Returns `undefined` when no proxy should be used.
      *
      * @param proxyInfo A previously created `ProxyInfo`, e.g. one restored with a persisted session. Implementations
-     *  should return an equivalent `ProxyInfo` that is usable in the current environment.
+     *  should return an equivalent `ProxyInfo` that is usable in the current environment, or the argument itself when
+     *  there is nothing to refresh.
      */
     newProxyInfo(proxyInfo?: ProxyInfo): Promise<ProxyInfo | undefined>;
 }
