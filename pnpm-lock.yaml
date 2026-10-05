@@ -179,6 +179,8 @@ overrides:
   apify>@crawlee/types: workspace:*
   apify>@crawlee/utils: workspace:*
   header-generator>ow: ^2.0.0
+  playwright: 1.61.1
+  playwright-core: 1.61.1
 
 patchedDependencies:
   '@docusaurus/core@3.10.2': 7e95e0e59f770d24c0e51e1e2635b0a25edf33b38938162fa8c69ab42d38b1fb
@@ -572,7 +574,7 @@ importers:
         specifier: workspace:*
         version: link:../utils
       playwright:
-        specifier: '*'
+        specifier: 1.61.1
         version: 1.61.1
       puppeteer:
         specifier: '*'
@@ -617,7 +619,7 @@ importers:
         specifier: ^6.2.0
         version: 6.2.0
       playwright:
-        specifier: '*'
+        specifier: 1.61.1
         version: 1.61.1
       proxy-chain:
         specifier: ^2.5.8
@@ -782,7 +784,7 @@ importers:
         specifier: ^3.2.0
         version: 3.2.0
       playwright:
-        specifier: '*'
+        specifier: 1.61.1
         version: 1.61.1
       puppeteer:
         specifier: '*'
@@ -951,7 +953,7 @@ importers:
         specifier: ^6.12.1
         version: 6.12.1
       playwright:
-        specifier: '*'
+        specifier: 1.61.1
         version: 1.61.1
       string-comparison:
         specifier: ^1.3.0
@@ -1036,7 +1038,7 @@ importers:
         specifier: 3.0.7
         version: 3.0.7(@cfworker/json-schema@4.1.1)(@opentelemetry/api@1.9.0)(@opentelemetry/exporter-trace-otlp-proto@0.217.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.10.0(@opentelemetry/api@1.9.0))(deepmerge@4.3.1)(dotenv@16.4.7)(encoding@0.1.13)(proxy-agent@8.0.2(supports-color@8.1.1))(supports-color@8.1.1)(zod@4.6.5)
       playwright:
-        specifier: ^1.60.0
+        specifier: 1.61.1
         version: 1.61.1
 
   packages/templates:
@@ -6273,7 +6275,7 @@ packages:
     engines: {node: '>= 22'}
     hasBin: true
     peerDependencies:
-      playwright-core: '*'
+      playwright-core: 1.61.1
 
   caniuse-api@3.0.0:
     resolution: {integrity: sha512-bsTwuIg/BZZK/vreVTYYbSWoe2F+71P7K5QGEX+pT250DZbfU1MQ5prOKpPR+LL6uWKK3KMwMCAS74QB3Um1uw==}
@@ -7889,7 +7891,7 @@ packages:
     resolution: {integrity: sha512-FN7W1wbhHk2PBCF6wpBEcFnmOdGUItZnbpVBtYVcQ1/iGM0skNUDqJyH1YOjmpQiqEl2Rhh7qWNXYsivjsT+tg==}
     engines: {node: '>=16.0.0'}
     peerDependencies:
-      playwright: ^1.22.2
+      playwright: 1.61.1
       puppeteer: '>= 9.x'
     peerDependenciesMeta:
       playwright:
@@ -10661,8 +10663,8 @@ packages:
     resolution: {integrity: sha512-q2rVtcE8V8K3vPVF1zny4pvwZveHLH8KBuVU2MoE3Jw4OKVoBWsHI9CH9zPydovHHOCDxjGN2Vg+2m644q3ijA==}
     engines: {node: '>=12'}
     peerDependencies:
-      playwright: '*'
-      playwright-core: '*'
+      playwright: 1.61.1
+      playwright-core: 1.61.1
     peerDependenciesMeta:
       playwright:
         optional: true
