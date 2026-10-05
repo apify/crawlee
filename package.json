@@ -131,7 +131,7 @@
         "proxy": "^2.2.0",
         "puppeteer": "25.12.0",
         "rimraf": "^6.0.1",
-        "tsx": "^4.19.4",
+        "tsx": "4.21.0",
         "turbo": "^2.10.11",
         "typescript": "^7.0.2",
         "typescript-v6": "npm:typescript@^6.0.0",
