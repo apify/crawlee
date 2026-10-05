@@ -42,8 +42,16 @@ describe('module hook delivery', () => {
         const output = join(outputDir, 'spans.json');
 
         await promisify(execFile)(
-            join(root, 'node_modules/.bin/tsx'),
-            ['--import', fixture('register-hook.ts'), '--import', fixture('otel-setup.ts'), fixture('crawler.ts')],
+            process.execPath,
+            [
+                '--import',
+                'tsx',
+                '--import',
+                fixture('register-hook.ts'),
+                '--import',
+                fixture('otel-setup.ts'),
+                fixture('crawler.ts'),
+            ],
             {
                 cwd: root,
                 env: {
