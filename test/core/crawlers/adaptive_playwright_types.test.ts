@@ -12,8 +12,9 @@ interface OrderUserData extends Dictionary {
 
 describe('AdaptivePlaywrightCrawler option types (#2063)', () => {
     test('request handler typed with custom user data stays assignable', () => {
-        const requestHandler = async ({ request }: AdaptivePlaywrightCrawlerContext<OrderUserData>) =>
+        const requestHandler = async ({ request }: AdaptivePlaywrightCrawlerContext<OrderUserData>) => {
             void request.userData.label;
+        };
 
         const options: AdaptivePlaywrightCrawlerOptions = { requestHandler };
 

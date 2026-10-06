@@ -161,7 +161,7 @@ export class CreateProjectCommand<T> implements CommandModule<T, CreateProjectAr
         if (!template) {
             template = await select({
                 message: 'Please select the template for your new Crawlee project',
-                default: choices[0],
+                default: choices[0]?.value,
                 choices,
             });
         }

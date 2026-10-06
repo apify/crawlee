@@ -11,7 +11,8 @@ export type SkippedRequestReason =
     | 'filters'
     | 'transform'
     | 'redirect'
-    | 'depth';
+    | 'depth'
+    | 'manual';
 
 export enum RequestState {
     UNPROCESSED,
@@ -61,7 +62,7 @@ export class CrawlingRequest<UserData extends Dictionary = Dictionary> extends R
         return super.fromSchema(schema) as CrawlingRequest<UserData>;
     }
 
-    private get crawleeData(): CrawlingRequestData {
+    get #crawleeData(): CrawlingRequestData {
         return ((this.userData as Dictionary).__crawlee ??= {});
     }
 
@@ -73,11 +74,11 @@ export class CrawlingRequest<UserData extends Dictionary = Dictionary> extends R
      * Accessing these properties will throw a {@apilink NavigationSkippedError} at runtime.
      */
     get skipNavigation(): boolean {
-        return this.crawleeData.skipNavigation ?? false;
+        return this.#crawleeData.skipNavigation ?? false;
     }
 
     set skipNavigation(value: boolean) {
-        this.crawleeData.skipNavigation = value;
+        this.#crawleeData.skipNavigation = value;
     }
 
     /**
@@ -85,43 +86,43 @@ export class CrawlingRequest<UserData extends Dictionary = Dictionary> extends R
      * Note that this is dependent on the crawler setup and might produce unexpected results when used with multiple crawlers.
      */
     get crawlDepth(): number {
-        return this.crawleeData.crawlDepth ?? 0;
+        return this.#crawleeData.crawlDepth ?? 0;
     }
 
     set crawlDepth(value: number) {
-        this.crawleeData.crawlDepth = value;
+        this.#crawleeData.crawlDepth = value;
     }
 
     /** ID of a session to use for this request. When set, the crawler will fetch this session from the session pool instead of creating a new one. */
     get sessionId(): string | undefined {
-        return this.crawleeData.sessionId;
+        return this.#crawleeData.sessionId;
     }
 
     set sessionId(value: string | undefined) {
-        this.crawleeData.sessionId = value;
+        this.#crawleeData.sessionId = value;
     }
 
     /** Maximum number of retries for this request. Allows to override the global `maxRequestRetries` option of `BasicCrawler`. */
     get maxRetries(): number | undefined {
-        return this.crawleeData.maxRetries;
+        return this.#crawleeData.maxRetries;
     }
 
     set maxRetries(value: number | undefined) {
-        this.crawleeData.maxRetries = value;
+        this.#crawleeData.maxRetries = value;
     }
 
     /** Describes the request's current lifecycle state. */
     get state(): RequestState {
-        return this.crawleeData.state ?? RequestState.UNPROCESSED;
+        return this.#crawleeData.state ?? RequestState.UNPROCESSED;
     }
 
     set state(value: RequestState) {
-        this.crawleeData.state = value;
+        this.#crawleeData.state = value;
     }
 
     /** The strategy the request was enqueued under, if it came from `enqueueLinks`. @internal */
     get enqueueStrategy(): EnqueueStrategyOption | undefined {
-        return this.crawleeData.enqueueStrategy;
+        return this.#crawleeData.enqueueStrategy;
     }
 
     /**

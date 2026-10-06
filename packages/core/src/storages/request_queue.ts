@@ -236,8 +236,8 @@ export class RequestQueue implements IStorage, IRequestManager {
         const { forefront } = parseArgument(options, operationOptionsSchema);
 
         if ('requestsFromUrl' in requestLike) {
-            const requests = await this.fetchRequestsFromUrl(requestLike as InternalSource);
-            const processedRequests = await this.addFetchedRequests(requestLike as InternalSource, requests, options);
+            const requests = await this.#fetchRequestsFromUrl(requestLike as InternalSource);
+            const processedRequests = await this.#addFetchedRequests(requestLike as InternalSource, requests, options);
 
             return { ...processedRequests[0], forefront };
         }
@@ -247,7 +247,7 @@ export class RequestQueue implements IStorage, IRequestManager {
         const request = requestLike instanceof Request ? requestLike : new Request(requestLike as RequestOptions);
 
         if (transaction?.policy.requestQueue === 'deferred') {
-            return this.addRequestDeferred(transaction, request, forefront);
+            return this.#addRequestDeferred(transaction, request, forefront);
         }
 
         const cacheKey = getRequestId(request.uniqueKey);
@@ -255,7 +255,7 @@ export class RequestQueue implements IStorage, IRequestManager {
 
         if (cachedInfo) {
             request.id = cachedInfo.id;
-            this.recordRequestJournalEntry(transaction, [request], forefront, true);
+            this.#recordRequestJournalEntry(transaction, [request], forefront, true);
             return {
                 wasAlreadyPresent: true,
                 // We may assume that if request is in local cache then also the information if the
@@ -269,14 +269,14 @@ export class RequestQueue implements IStorage, IRequestManager {
 
         this.#statsTracker.add('writeCount');
         const { processedRequests } = await this.backend.addBatchOfRequests([request], { forefront });
-        this.recordRequestJournalEntry(transaction, [request], forefront, true);
+        this.#recordRequestJournalEntry(transaction, [request], forefront, true);
         const queueOperationInfo = {
             ...processedRequests[0],
             uniqueKey: request.uniqueKey,
             forefront,
         } satisfies RequestQueueOperationInfo;
 
-        this.cacheRequest(cacheKey, queueOperationInfo);
+        this.#cacheRequest(cacheKey, queueOperationInfo);
         this.#requestSeenCache.add(cacheKey, request.id!);
 
         return queueOperationInfo;
@@ -286,7 +286,7 @@ export class RequestQueue implements IStorage, IRequestManager {
      * Journals an addition for introspection only; these entries are never replayed. A no-op unless the
      * transaction is open, so detached and outliving writers stay out of the journal.
      */
-    private recordRequestJournalEntry(
+    #recordRequestJournalEntry(
         transaction: StorageTransaction | undefined,
         requests: Request[],
         forefront: boolean,
@@ -311,7 +311,7 @@ export class RequestQueue implements IStorage, IRequestManager {
      * The requests buffered by the given transaction for this queue, keyed by `uniqueKey` — a dedup
      * index derived from the transaction journal.
      */
-    private bufferedRequests(transaction: StorageTransaction): Map<string, RequestSchema> {
+    #bufferedRequests(transaction: StorageTransaction): Map<string, RequestSchema> {
         const buffered = new Map<string, RequestSchema>();
 
         // Only `deferred` records snapshots, so scanning the journal under `writeThrough` never finds any.
@@ -332,15 +332,15 @@ export class RequestQueue implements IStorage, IRequestManager {
      * A new request's `requestId` is the local `uniqueKey` hash and is **provisional** — never write it
      * to `request.id` or the dedup caches. Dedup is cheapest-first: buffer, caches, then a backend probe.
      */
-    private async addRequestDeferred(
+    async #addRequestDeferred(
         transaction: StorageTransaction,
         request: Request,
         forefront: boolean,
-        buffered = this.bufferedRequests(transaction),
+        buffered = this.#bufferedRequests(transaction),
     ): Promise<RequestQueueOperationInfo> {
         // This transaction's own buffered adds; the shared caches never see them (provisional ids).
         if (buffered.has(request.uniqueKey)) {
-            this.recordRequestJournalEntry(transaction, [request], forefront, false);
+            this.#recordRequestJournalEntry(transaction, [request], forefront, false);
             return {
                 wasAlreadyPresent: true,
                 wasAlreadyHandled: false,
@@ -357,7 +357,7 @@ export class RequestQueue implements IStorage, IRequestManager {
         const knownRequestId = cachedInfo?.id ?? this.#requestSeenCache.get(cacheKey);
 
         if (knownRequestId) {
-            this.recordRequestJournalEntry(transaction, [request], forefront, false);
+            this.#recordRequestJournalEntry(transaction, [request], forefront, false);
             return {
                 wasAlreadyPresent: true,
                 // The dedup cache doesn't track the handled state; only the full record does.
@@ -372,7 +372,7 @@ export class RequestQueue implements IStorage, IRequestManager {
         const existing = await this.backend.getRequest(request.uniqueKey);
 
         if (existing) {
-            this.recordRequestJournalEntry(transaction, [request], forefront, false);
+            this.#recordRequestJournalEntry(transaction, [request], forefront, false);
             return {
                 wasAlreadyPresent: true,
                 wasAlreadyHandled: existing.handledAt != null,
@@ -440,7 +440,7 @@ export class RequestQueue implements IStorage, IRequestManager {
             // Only now, with the real backend-assigned ids, may the shared dedup caches be populated.
             for (const processed of processedRequests) {
                 const cacheKey = getRequestId(processed.uniqueKey);
-                this.cacheRequest(cacheKey, { ...processed, forefront });
+                this.#cacheRequest(cacheKey, { ...processed, forefront });
                 this.#requestSeenCache.add(cacheKey, processed.requestId);
             }
 
@@ -504,8 +504,8 @@ export class RequestQueue implements IStorage, IRequestManager {
             if (typeof requestLike === 'string') {
                 requests.push(new Request({ url: requestLike }));
             } else if ('requestsFromUrl' in requestLike) {
-                const fetchedRequests = await this.fetchRequestsFromUrl(requestLike as InternalSource);
-                await this.addFetchedRequests(requestLike as InternalSource, fetchedRequests, options);
+                const fetchedRequests = await this.#fetchRequestsFromUrl(requestLike as InternalSource);
+                await this.#addFetchedRequests(requestLike as InternalSource, fetchedRequests, options);
             } else {
                 requests.push(
                     requestLike instanceof Request ? requestLike : new Request(requestLike as RequestOptions),
@@ -514,18 +514,18 @@ export class RequestQueue implements IStorage, IRequestManager {
         }
 
         if (transaction?.policy.requestQueue === 'deferred') {
-            const buffered = this.bufferedRequests(transaction);
+            const buffered = this.#bufferedRequests(transaction);
 
             for (const request of requests) {
                 results.processedRequests.push(
-                    await this.addRequestDeferred(transaction, request, forefront, buffered),
+                    await this.#addRequestDeferred(transaction, request, forefront, buffered),
                 );
             }
 
             return results;
         }
 
-        this.recordRequestJournalEntry(transaction, requests, forefront, true);
+        this.#recordRequestJournalEntry(transaction, requests, forefront, true);
 
         const requestsToAdd = new Map<string, Request>();
 
@@ -568,7 +568,7 @@ export class RequestQueue implements IStorage, IRequestManager {
             const cacheKey = getCachedRequestId(newRequest.uniqueKey);
 
             if (cache) {
-                this.cacheRequest(cacheKey, { ...newRequest, forefront });
+                this.#cacheRequest(cacheKey, { ...newRequest, forefront });
             }
 
             // Unlike `requestCache`, populate this on every batch (including background ones).
@@ -685,7 +685,7 @@ export class RequestQueue implements IStorage, IRequestManager {
         parseArgument(uniqueKey, uniqueKeySchema);
 
         // Requests buffered by the active transaction (under the `deferred` write policy) are visible to it.
-        const buffered = transaction && this.bufferedRequests(transaction).get(uniqueKey);
+        const buffered = transaction && this.#bufferedRequests(transaction).get(uniqueKey);
         if (buffered) {
             return Request.fromSchema<T>(buffered);
         }
@@ -766,7 +766,7 @@ export class RequestQueue implements IStorage, IRequestManager {
             forefront,
         } satisfies RequestQueueOperationInfo;
 
-        this.cacheRequest(getRequestId(request.uniqueKey), queueOperationInfo);
+        this.#cacheRequest(getRequestId(request.uniqueKey), queueOperationInfo);
 
         return queueOperationInfo;
     }
@@ -804,7 +804,7 @@ export class RequestQueue implements IStorage, IRequestManager {
             uniqueKey: request.uniqueKey,
             forefront,
         } satisfies RequestQueueOperationInfo;
-        this.cacheRequest(getRequestId(request.uniqueKey), queueOperationInfo);
+        this.#cacheRequest(getRequestId(request.uniqueKey), queueOperationInfo);
 
         return queueOperationInfo;
     }
@@ -831,7 +831,7 @@ export class RequestQueue implements IStorage, IRequestManager {
         const transaction = activeStorageTransaction();
 
         // Requests buffered by the active transaction count as pending from its point of view.
-        if (transaction && this.bufferedRequests(transaction).size > 0) {
+        if (transaction && this.#bufferedRequests(transaction).size > 0) {
             return { status: 'ready' };
         }
 
@@ -883,7 +883,7 @@ export class RequestQueue implements IStorage, IRequestManager {
     /**
      * Caches information about request to beware of unneeded addRequest() calls.
      */
-    private cacheRequest(cacheKey: string, queueOperationInfo: RequestQueueOperationInfo): void {
+    #cacheRequest(cacheKey: string, queueOperationInfo: RequestQueueOperationInfo): void {
         // Remove the previous entry, as otherwise our cache will never update 👀
         this.#requestCache.remove(cacheKey);
 
@@ -977,7 +977,7 @@ export class RequestQueue implements IStorage, IRequestManager {
         const transaction = activeStorageTransaction();
 
         const metadata = await this.backend.getMetadata();
-        const bufferedCount = transaction ? this.bufferedRequests(transaction).size : 0;
+        const bufferedCount = transaction ? this.#bufferedRequests(transaction).size : 0;
 
         if (bufferedCount > 0) {
             return {
@@ -993,13 +993,13 @@ export class RequestQueue implements IStorage, IRequestManager {
     /**
      * Fetches URLs from requestsFromUrl and returns them in format of list of requests
      */
-    private async fetchRequestsFromUrl(source: InternalSource): Promise<RequestOptions[]> {
+    async #fetchRequestsFromUrl(source: InternalSource): Promise<RequestOptions[]> {
         const { requestsFromUrl, regex, ...sharedOpts } = source;
 
         // Download remote resource and parse URLs.
         let urlsArr;
         try {
-            urlsArr = await this.downloadListOfUrls({
+            urlsArr = await this.#downloadListOfUrls({
                 url: requestsFromUrl,
                 urlRegExp: regex,
                 proxyUrl: (await this.#proxyConfiguration?.newProxyInfo())?.url,
@@ -1020,7 +1020,7 @@ export class RequestQueue implements IStorage, IRequestManager {
     /**
      * Adds all fetched requests from a URL from a remote resource.
      */
-    private async addFetchedRequests(
+    async #addFetchedRequests(
         source: InternalSource,
         fetchedRequests: RequestOptions[],
         options: RequestQueueOperationOptions,
@@ -1043,11 +1043,7 @@ export class RequestQueue implements IStorage, IRequestManager {
     /**
      * @internal wraps public utility for mocking purposes
      */
-    private async downloadListOfUrls(options: {
-        url: string;
-        urlRegExp?: RegExp;
-        proxyUrl?: string;
-    }): Promise<string[]> {
+    async #downloadListOfUrls(options: { url: string; urlRegExp?: RegExp; proxyUrl?: string }): Promise<string[]> {
         return downloadListOfUrls({
             ...options,
             httpClient: this.#httpClient,

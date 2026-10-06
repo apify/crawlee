@@ -332,7 +332,9 @@ describe('AdaptivePlaywrightCrawler', () => {
                 [url.toString()],
             );
 
-            renderingTypePredictor.storeResult.mockImplementation(() => void crawler.stop());
+            renderingTypePredictor.storeResult.mockImplementation(() => {
+                void crawler.stop();
+            });
 
             return { crawler, renderingTypePredictor };
         };
@@ -847,7 +849,9 @@ describe('AdaptivePlaywrightCrawler', () => {
         }) => {
             const run = ++handlerRuns;
             await pushData({ run });
-            afterStorageCommit(() => void committed.push(run));
+            afterStorageCommit(() => {
+                committed.push(run);
+            });
         };
 
         const crawler = await makeOneshotCrawler(

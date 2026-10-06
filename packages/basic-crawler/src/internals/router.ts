@@ -317,7 +317,7 @@ export class Router<
     ): void;
 
     addHandler(label: string | symbol, handler: (ctx: any) => Awaitable<void>, options: RouteOptions = {}): void {
-        this.validate(label);
+        this.#validate(label);
         this.#routes.set(label, handler);
 
         if (options.requestHandlerTimeoutSecs !== undefined) {
@@ -336,7 +336,7 @@ export class Router<
     addDefaultHandler<
         UserData extends Dictionary = DefaultRouteUserData<Routes, GetUserDataFromRequest<Context['request']>>,
     >(handler: (ctx: RouterHandlerContext<Context, UserData, Routes>) => Awaitable<void>, options: RouteOptions = {}) {
-        this.validate(defaultRoute);
+        this.#validate(defaultRoute);
         this.#routes.set(defaultRoute, handler);
 
         if (options.requestHandlerTimeoutSecs !== undefined) {
@@ -423,7 +423,7 @@ export class Router<
      * Validates `request.userData` against the schema registered for its label (if any), replacing it with
      * the parsed value. Throws a {@apilink RequestValidationError} when validation fails.
      */
-    private async validateRequest(context: Context) {
+    async #validateRequest(context: Context) {
         const label = context.request.label;
         const schema = this.getSchema(label);
 
@@ -439,7 +439,7 @@ export class Router<
     /**
      * Throws when the label already exists in our registry.
      */
-    private validate(label: string | symbol) {
+    #validate(label: string | symbol) {
         if (this.#routes.has(label)) {
             const message =
                 label === defaultRoute
@@ -518,7 +518,7 @@ export class Router<
             const { url, loadedUrl, label } = context.request;
             context.log.debug('Page opened.', { label, url: loadedUrl ?? url });
 
-            await router.validateRequest(context);
+            await router.#validateRequest(context);
 
             for (const middleware of router.#middlewares) {
                 await middleware(context);

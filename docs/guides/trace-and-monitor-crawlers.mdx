@@ -270,7 +270,7 @@ import { BatchLogRecordProcessor } from '@opentelemetry/sdk-logs';
 export const sdk = new NodeSDK({
     // ... the trace configuration from above
     logRecordProcessors: [
-        new BatchLogRecordProcessor(new OTLPLogExporter({ url: 'http://localhost:4317' })),
+        new BatchLogRecordProcessor({ exporter: new OTLPLogExporter({ url: 'http://localhost:4317' }) }),
     ],
 });
 ```

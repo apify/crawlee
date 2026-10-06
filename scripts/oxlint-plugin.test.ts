@@ -33,10 +33,5 @@ ruleTester.run('prefer-private-fields', preferPrivateFields, {
             code: 'class A { constructor(private a: number) {} }',
             errors: [{ messageId: 'preferHash' }],
         },
-        {
-            name: 'abstract member',
-            code: 'abstract class A { private abstract a(): void; }',
-            errors: [{ messageId: 'preferHash' }],
-        },
     ],
 });

@@ -72,6 +72,12 @@ export class SessionError extends Error {
 }
 
 /**
+ * A {@apilink SessionError} for a session that finished without being blocked, e.g. by reaching its
+ * `maxUsageCount` or `maxAgeSecs`. A plain `SessionError` means the session was blocked.
+ */
+export class SessionRetiredError extends SessionError {}
+
+/**
  * Wraps the failure of a callback registered with {@apilink StorageTransaction.afterCommit|`afterCommit`}
  * that ran after the request's writes had already been committed.
  *

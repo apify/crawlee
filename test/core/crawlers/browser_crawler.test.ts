@@ -8,7 +8,13 @@ import {
     PuppeteerPlugin,
     RemoteBrowserPool,
 } from '@crawlee/browser-pool';
-import { BLOCKED_STATUS_CODES, type ConcurrencySystem, SessionPool } from '@crawlee/basic';
+import {
+    BLOCKED_STATUS_CODES,
+    type ConcurrencySystem,
+    SessionError,
+    SessionPool,
+    SessionRetiredError,
+} from '@crawlee/basic';
 import { bindMethodsToServiceLocator, MemoryStorageBackend, serviceLocator, ServiceLocator } from '@crawlee/core';
 import type { PuppeteerGoToOptions } from '@crawlee/puppeteer';
 import { EnqueueStrategy, ProxyConfiguration, Request, RequestList, RequestState, Session } from '@crawlee/puppeteer';
@@ -643,6 +649,52 @@ describe('BrowserCrawler', () => {
         expect(session).toBeDefined();
         const state = await sessionPool.getState();
         expect(state.sessions[0].maxUsageCount).toBe(1);
+    });
+
+    test('tells closePage whether the session was blocked or just used up', async () => {
+        const externalPool = new BrowserPoolClass({ browserPlugins: [new PuppeteerPlugin(puppeteer)] });
+        const closeErrors = new Map<string | null, Error | undefined>();
+        const originalClosePage = externalPool.closePage.bind(externalPool);
+        externalPool.closePage = async (page, options) => {
+            closeErrors.set(new URL(page.url()).searchParams.get('q'), options?.error);
+            return originalClosePage(page, options);
+        };
+        const blockError = new SessionError('blocked');
+
+        try {
+            const crawler = new BrowserCrawlerTest({
+                browserPool: externalPool,
+                // `maxUsageCount: 1` means `markBad()`/`retire()` also exhaust usage, so a block must win over that.
+                sessionPool: new SessionPool({ sessionOptions: { maxUsageCount: 1, maxErrorScore: 3 } }),
+                maxConcurrency: 1,
+                maxRequestRetries: 0,
+                requestHandler: async ({ request, session }) => {
+                    if (request.url.endsWith('blocked')) throw blockError;
+                    if (request.url.endsWith('markbad')) for (let i = 0; i < 3; i++) session.markBad();
+                    if (request.url.endsWith('retire')) {
+                        session.retire();
+                        throw new Error('captcha');
+                    }
+                },
+            });
+
+            await crawler.run([
+                `${serverAddress}/?q=blocked`,
+                `${serverAddress}/?q=ok`,
+                `${serverAddress}/?q=markbad`,
+                `${serverAddress}/?q=retire`,
+            ]);
+
+            expect(closeErrors.size).toBe(4);
+            expect(closeErrors.get('blocked')).toBe(blockError);
+            expect(closeErrors.get('ok')).toBeInstanceOf(SessionRetiredError);
+            for (const q of ['markbad', 'retire']) {
+                expect(closeErrors.get(q)).toBeInstanceOf(SessionError);
+                expect(closeErrors.get(q)).not.toBeInstanceOf(SessionRetiredError);
+            }
+        } finally {
+            await externalPool.destroy();
+        }
     });
 
     test.skip('should persist cookies per session', async () => {

@@ -70,7 +70,7 @@ Environment requirements, renamed options and behavior changes that nearly every
 
 Crawlee v4 is a native ESM package now. It can be still consumed from a CJS project, as long as you use TypeScript and Node.js version that supports `require(esm)`.
 
-### Node 22+ required
+### Node 22.13+ required
 
 Support for older node versions was dropped.
 
@@ -904,6 +904,18 @@ The `robotsTxtFile` / `respectRobotsTxtFile` per-call options are removed from `
 
 The callback now gets `{ request, reason }` instead of `{ url, reason }` — use `request.url` for the URL.
 
+### Skipping a request with `context.skipRequest()`
+
+In v3, skipping a request without it counting as a failure took a hack: set `request.noRetry`, throw, then decrement `requestsFailed` and silence the error log. Call `skipRequest(message?)` from the crawling context instead — in `extendContext`, a navigation hook, the request handler or the `errorHandler`. The request is marked as handled with `state` set to `RequestState.SKIPPED`, is neither retried nor passed to `failedRequestHandler`, and `onSkippedRequest` fires with the new `'manual'` reason. Storage writes made for the request before the skip are rolled back.
+
+See the [Skipping requests](../examples/skip-request) example.
+
+### robots.txt error responses follow RFC 9309
+
+v3 parsed the body of a robots.txt response regardless of its status code. v4 follows [RFC 9309](https://www.rfc-editor.org/rfc/rfc9309#section-2.3.1.3) instead: a `4xx` response allows everything and a `5xx` response disallows everything, whatever the body says.
+
+With `respectRobotsTxtFile` enabled, a site that answers `/robots.txt` with a `5xx` is therefore skipped entirely. The crawler caches robots.txt per origin for the whole run, so every request to that origin is skipped with the `robotsTxt` reason.
+
 ### Internal KVS keys renamed
 
 Several internal Crawlee keys were prefixed with the `SDK_` prefix for legacy reasons — these keys now start with `CRAWLEE_` instead. These are, e.g., `CRAWLEE_SESSION_POOL_STATE` or `CRAWLEE_CRAWLER_STATISTICS_{n}`.
@@ -1104,7 +1116,7 @@ const crawler = new BasicCrawler({
 });
 ```
 
-The crawler depends only on the `ISession` interface — `id`, `cookieJar`, `proxyInfo`, `fingerprint`, and the `isUsable()` / `markGood()` / `markBad()` / `retire()` methods — so a custom pool may hand out its own session implementation instead of instances of the built-in `Session` class. `Session` implements `ISession`, so returning `Session` instances (as above) is the shortest path; `crawlingContext.session` is typed as `ISession` either way.
+The crawler depends only on the `ISession` interface — `id`, `cookieJar`, `proxyInfo`, `fingerprint`, and the `isUsable()` / `isBlocked()` / `markGood()` / `markBad()` / `retire()` methods — so a custom pool may hand out its own session implementation instead of instances of the built-in `Session` class. `Session` implements `ISession`, so returning `Session` instances (as above) is the shortest path; `crawlingContext.session` is typed as `ISession` either way.
 
 Returning `undefined` means the pool has no usable session for the request. The crawler turns that into a `MissingSessionError` and retries the request like any other failure.
 
@@ -1202,7 +1214,7 @@ More complex routing (more tiers, weighted draws, sticky assignment, cooldowns) 
 
 #### `ProxyConfiguration.newUrl` / `newProxyInfo` signatures changed
 
-Because proxy tiers are gone, the leading `sessionId` positional argument was dropped from `ProxyConfiguration.newUrl()` and `ProxyConfiguration.newProxyInfo()`. Both now take no arguments instead of `(sessionId?, options?)`. The `ProxyConfigurationFunction` callback (the `newUrlFunction` option) was likewise simplified — it no longer receives any arguments, neither a `sessionId` nor a `{ request }` object. The proxy is resolved once per session, so to route specific requests through specific proxies, pin them to named sessions (see [Pinning a request to a specific session](../guides/session-management#pinning-a-request-to-a-specific-session)). The `TieredProxy` interface and the `TieredProxyOptions` type have been removed.
+Because proxy tiers are gone, the leading `sessionId` positional argument was dropped from `ProxyConfiguration.newUrl()` and `ProxyConfiguration.newProxyInfo()`. `newUrl()` now takes no arguments, and `newProxyInfo()` takes only an optional, previously created `ProxyInfo` (e.g. one restored with a persisted session) instead of `(sessionId?, options?)`. Custom `IProxyConfiguration` implementations should return that `ProxyInfo` (refreshed if it depends on the environment) rather than a new one, otherwise the crawler replaces the session's proxy. The `ProxyConfigurationFunction` callback (the `newUrlFunction` option) was likewise simplified — it no longer receives any arguments, neither a `sessionId` nor a `{ request }` object. The proxy is resolved once per session, so to route specific requests through specific proxies, pin them to named sessions (see [Pinning a request to a specific session](../guides/session-management#pinning-a-request-to-a-specific-session)). The `TieredProxy` interface and the `TieredProxyOptions` type have been removed.
 
 **Before:**
 ```typescript
@@ -1229,7 +1241,7 @@ Applies when you construct a `BrowserPool` yourself, reach for `browserControlle
 Browser crawlers now accept any object implementing the new `IBrowserPool` interface as their `browserPool` option, not just instances of the built-in `BrowserPool`. The interface follows the classic acquire/release pattern, plus a pair of helpers for moving state between the crawling session and the page:
 
 - **`newPage(options?)`** — opens a new page. An optional `session` can be passed as a best-effort hint — the pool may use it for proxy configuration, fingerprinting, etc., but nothing is guaranteed.
-- **`closePage(page, options?)`** — signals the pool that the caller is done with the page. If the optional `error` is a `SessionError`, the pool should purge all state associated with the session (e.g. retire the underlying browser).
+- **`closePage(page, options?)`** — signals the pool that the caller is done with the page. If the optional `error` is a `SessionError`, the session that served the page is finished. A plain `SessionError` means it was blocked, so the pool should purge all state associated with it (e.g. retire the underlying browser). The `SessionRetiredError` subclass means the session merely reached its `maxUsageCount` or `maxAgeSecs`, and a pool may keep a warm page instead.
 - **`extractPageState(page)`** — reads the relevant state (currently cookies) out of a page so the crawler can persist it back into the session.
 - **`injectPageState(page, state)`** — the counterpart to `extractPageState`; seeds a page with state (currently cookies) before navigation. Isolation between pages is best-effort and depends on the pool implementation.
 

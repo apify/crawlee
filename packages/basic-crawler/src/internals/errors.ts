@@ -1,5 +1,7 @@
 import { CriticalError, NonRetryableError } from '@crawlee/core';
 
+import type { SkippedRequestReason } from './crawling_request.js';
+
 /**
  * @ignore
  */
@@ -50,9 +52,17 @@ export class MissingSessionError extends Error {
     }
 }
 
+/**
+ * Settles the request as skipped rather than failed: no retry, no failure, and its storage writes are rolled back.
+ * Use {@apilink RestrictedCrawlingContext.skipRequest|`context.skipRequest()`} rather than throwing this directly.
+ * @internal
+ */
 export class ContextPipelineInterruptedError extends Error {
-    constructor(message?: string) {
-        super(`Request handling was interrupted during context initialization ${message ? ` - ${message}` : ''}`);
+    constructor(
+        readonly reason: SkippedRequestReason,
+        readonly skipMessage?: string,
+    ) {
+        super(skipMessage ?? 'Request was skipped');
     }
 }
 
@@ -62,6 +72,14 @@ export class ContextPipelineCleanupError extends CriticalError {
     }
 }
 
+/** Wraps a failure of a context pipeline middleware, telling it apart from a {@apilink RequestHandlerError}. */
+export class ContextPipelineInitializationError extends Error {
+    constructor(error: unknown, options?: ErrorOptions) {
+        super(undefined, { cause: error, ...options });
+    }
+}
+
+/** Wraps a failure of the context pipeline's final consumer (the request handler), telling it apart from a middleware failure. */
 export class RequestHandlerError extends Error {
     constructor(error: unknown, options?: ErrorOptions) {
         super(undefined, { cause: error, ...options });

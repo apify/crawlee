@@ -469,7 +469,7 @@ export class StagehandCrawler<
     }
 
     #buildContextPipeline(): ContextPipeline<CrawlingContext, StagehandCrawlingContext> {
-        return this.buildContextPipeline().compose(this.setUpStagehand.bind(this));
+        return this.buildContextPipeline().compose(this.#setUpStagehand.bind(this));
     }
 
     /**
@@ -481,7 +481,7 @@ export class StagehandCrawler<
      * instance bound to the page's browser, which is why it reaches past the
      * {@apilink IBrowserPool} abstraction here.
      */
-    private getBrowserControllerByPage(page: StagehandPage): StagehandController | undefined {
+    #getBrowserControllerByPage(page: StagehandPage): StagehandController | undefined {
         if ('getBrowserControllerByPage' in this.browserPool) {
             return (
                 this.browserPool as unknown as {
@@ -496,10 +496,8 @@ export class StagehandCrawler<
     /**
      * Enhance the page with Stagehand AI methods.
      */
-    private async setUpStagehand(crawlingContext: {
-        page: Page;
-    }): Promise<{ stagehand: Stagehand; page: StagehandPage }> {
-        const controller = this.getBrowserControllerByPage(crawlingContext.page as StagehandPage);
+    async #setUpStagehand(crawlingContext: { page: Page }): Promise<{ stagehand: Stagehand; page: StagehandPage }> {
+        const controller = this.#getBrowserControllerByPage(crawlingContext.page as StagehandPage);
 
         if (!controller) {
             throw new Error(

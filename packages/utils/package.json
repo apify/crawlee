@@ -3,7 +3,7 @@
     "version": "4.0.0",
     "description": "A set of shared utilities that can be used by crawlers",
     "engines": {
-        "node": ">=22.0.0"
+        "node": ">=22.13.0"
     },
     "type": "module",
     "exports": {
@@ -42,19 +42,18 @@
         "copy": "tsx ../../scripts/copy.ts"
     },
     "dependencies": {
-        "@apify/ps-tree": "^1.2.0",
         "@apify/validations": "^1.1.0",
         "@crawlee/http-client": "workspace:*",
         "@crawlee/types": "workspace:*",
         "@types/sax": "^1.2.7",
         "cheerio": "^1.0.0",
-        "domhandler": "^5.0.3",
+        "domhandler": "^6.0.0",
         "file-type": "^21.0.0",
         "robots-parser": "^3.0.1",
         "sax": "^1.4.1",
         "tldts": "^7.0.6",
         "tslib": "^2.8.1",
-        "whatwg-mimetype": "^4.0.0",
+        "whatwg-mimetype": "^5.0.0",
         "zod": "catalog:"
     }
 }

@@ -389,6 +389,21 @@ describe('SessionPool - testing session pool', () => {
         expect.assertions(1);
     });
 
+    test('should replace a retired session when adding a session with the same id', async () => {
+        await sessionPool.addSession({ id: 'test-session' });
+        const retiredSession = await sessionPool.getSession('test-session');
+        retiredSession!.retire();
+
+        await sessionPool.addSession({ id: 'test-session' });
+
+        const newSession = await sessionPool.getSession('test-session');
+        expect(newSession).toBeDefined();
+        expect(newSession).not.toBe(retiredSession);
+
+        const { sessions } = await sessionPool.getState();
+        expect(sessions.filter((session) => session.id === 'test-session')).toHaveLength(1);
+    });
+
     test('should be able to retrieve session with provided id', async () => {
         await sessionPool.addSession();
         await sessionPool.addSession({ id: 'test-session' });

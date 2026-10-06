@@ -10,8 +10,12 @@ import type { Dictionary } from '@crawlee/types';
  */
 describe('ErrorHandler option types (#3424)', () => {
     test('cheerio - explicitly typed handlers via CheerioErrorHandler', () => {
-        const requestHandler: CheerioRequestHandler = async ({ request }) => void request.url;
-        const failedRequestHandler: CheerioErrorHandler = async ({ request }, error) => void [request, error];
+        const requestHandler: CheerioRequestHandler = async ({ request }) => {
+            void request.url;
+        };
+        const failedRequestHandler: CheerioErrorHandler = async ({ request }, error) => {
+            void [request, error];
+        };
 
         const options: CheerioCrawlerOptions = {
             requestHandler,
@@ -46,7 +50,9 @@ describe('ErrorHandler option types (#3424)', () => {
     });
 
     test('http - explicitly typed handlers via HttpErrorHandler', () => {
-        const failedRequestHandler: HttpErrorHandler = async ({ request }, error) => void [request, error];
+        const failedRequestHandler: HttpErrorHandler = async ({ request }, error) => {
+            void [request, error];
+        };
 
         const options: HttpCrawlerOptions<HttpCrawlingContext> = {
             errorHandler: failedRequestHandler,
@@ -57,11 +63,15 @@ describe('ErrorHandler option types (#3424)', () => {
     });
 
     test('browser - explicitly typed handlers via ErrorHandler<PlaywrightCrawlingContext>', () => {
-        const requestHandler: RequestHandler<PlaywrightCrawlingContext> = async ({ request }) => void request.url;
+        const requestHandler: RequestHandler<PlaywrightCrawlingContext> = async ({ request }) => {
+            void request.url;
+        };
         const failedRequestHandler: ErrorHandler<CrawlingContext, PlaywrightCrawlingContext> = async (
             { request },
             error,
-        ) => void [request, error];
+        ) => {
+            void [request, error];
+        };
 
         const options: PlaywrightCrawlerOptions = {
             requestHandler,
@@ -76,7 +86,9 @@ describe('ErrorHandler option types (#3424)', () => {
         const failedRequestHandler: ErrorHandler<CrawlingContext, BrowserCrawlingContext> = async (
             { request },
             error,
-        ) => void [request, error];
+        ) => {
+            void [request, error];
+        };
 
         const options: BrowserCrawlerOptions = {
             errorHandler: failedRequestHandler,
