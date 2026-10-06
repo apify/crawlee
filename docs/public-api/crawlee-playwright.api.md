@@ -57,7 +57,7 @@ type AdaptiveHook<ContextExtension = Dictionary<never>> = BrowserHook<AdaptiveHo
 
 // Not exported by the entry point; reachable only as a referenced type.
 // @public (undocumented)
-interface AdaptiveHookContext extends Pick<AdaptivePlaywrightCrawlerContext, 'id' | 'session' | 'proxyInfo' | 'log'> {
+interface AdaptiveHookContext extends Pick<AdaptivePlaywrightCrawlerContext, 'id' | 'session' | 'proxyInfo' | 'log' | 'extendTimeout'> {
     // (undocumented)
     gotoOptions?: PlaywrightGotoOptions;
     // (undocumented)
@@ -98,6 +98,7 @@ export interface AdaptivePlaywrightCrawlerContext<UserData extends Dictionary = 
 
 // @public (undocumented)
 export interface AdaptivePlaywrightCrawlerOptions<ContextExtension = Dictionary<never>, ExtendedContext extends AdaptivePlaywrightCrawlerContext = AdaptivePlaywrightCrawlerContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest_2<AdaptivePlaywrightCrawlerContext['request']>>, StatisticStateExtension extends AdaptivePlaywrightCrawlerStatisticState = AdaptivePlaywrightCrawlerStatisticState> extends Omit<BasicCrawlerOptions<AdaptivePlaywrightCrawlerContext, ContextExtension, ExtendedContext, Routes, StatisticStateExtension>, 'preNavigationHooks' | 'postNavigationHooks' | 'contextPipelineBuilder'>, Pick<PlaywrightCrawlerOptions, 'launchContext' | 'headless' | 'browserPool' | 'remoteBrowser'> {
+    navigationTimeoutSecs?: number;
     postNavigationHooks?: AdaptivePostNavigationHook<ContextExtension>[];
     preNavigationHooks?: AdaptiveHook<ContextExtension>[];
     renderingTypeDetectionRatio?: number;

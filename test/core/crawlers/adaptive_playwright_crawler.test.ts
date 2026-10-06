@@ -87,6 +87,10 @@ describe('AdaptivePlaywrightCrawler', () => {
              `);
         });
 
+        app.get('/slow', (_req, res) => {
+            setTimeout(() => res.status(200).send('<html><body><h1>Heading</h1></body></html>'), 2000);
+        });
+
         app.get('/dynamic', (req, res) => {
             lastDynamicRequestUserAgent = req.headers['user-agent'];
             res.status(200);
@@ -1067,6 +1071,45 @@ describe('AdaptivePlaywrightCrawler', () => {
 
         await crawler.run();
         expect(warningCalled).toBe(true);
+    });
+
+    describe('navigation timeout of the HTTP-only attempt', () => {
+        const runSlowStaticRequest = async (options: Partial<AdaptivePlaywrightCrawlerOptions>) => {
+            const outcomes: string[] = [];
+            const crawler = await makeOneshotCrawler(
+                {
+                    navigationTimeoutSecs: 1,
+                    renderingTypePredictor: makeRiggedRenderingTypePredictor({
+                        renderingType: 'static',
+                        detectionProbabilityRecommendation: 0,
+                    }),
+                    // Surface the HTTP-only attempt's error instead of falling back to a browser.
+                    shouldPropagateError: () => true,
+                    requestHandler: async () => {
+                        outcomes.push('handled');
+                    },
+                    failedRequestHandler: async (_context, error) => {
+                        outcomes.push(error.message);
+                    },
+                    ...options,
+                },
+                [`http://${HOSTNAME}:${port}/slow`],
+            );
+            await crawler.run();
+            return outcomes;
+        };
+
+        test('honors navigationTimeoutSecs', async () => {
+            expect(await runSlowStaticRequest({})).toEqual(['Navigation timed out after 1 seconds.']);
+        });
+
+        test('can be extended from a pre-navigation hook', async () => {
+            const outcomes = await runSlowStaticRequest({
+                preNavigationHooks: [async ({ extendTimeout }) => extendTimeout(5)],
+            });
+
+            expect(outcomes).toEqual(['handled']);
+        });
     });
 
     test('forwards browser options to the inner PlaywrightCrawler', () => {
