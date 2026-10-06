@@ -419,8 +419,8 @@ importers:
         specifier: npm:typescript@^6.0.0
         version: typescript@6.0.3
       vite-tsconfig-paths:
-        specifier: ^5.1.4
-        version: 5.1.4(supports-color@7.2.0)(typescript@7.0.2)(vite@8.3.2(@types/node@24.19.1)(esbuild@0.27.7)(jiti@2.6.1)(terser@5.51.2)(tsx@4.21.0)(yaml@2.9.1))
+        specifier: ^6.0.0
+        version: 6.1.1(supports-color@7.2.0)(typescript@7.0.2)(vite@8.3.2(@types/node@24.19.1)(esbuild@0.27.7)(jiti@2.6.1)(terser@5.51.2)(tsx@4.21.0)(yaml@2.9.1))
       vitest:
         specifier: ^4.1.0-beta.6
         version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@24.19.1)(@vitest/coverage-v8@4.1.11)(vite@8.3.2(@types/node@24.19.1)(esbuild@0.27.7)(jiti@2.6.1)(terser@5.51.2)(tsx@4.21.0)(yaml@2.9.1))
@@ -12912,13 +12912,10 @@ packages:
   vfile@6.0.3:
     resolution: {integrity: sha512-KzIbH/9tXat2u30jf+smMwFCsno4wHVdNmzFyL+T/L3UGqqk6JKfVqOFOZEpZSHADH1k40ab6NUIXZq422ov3Q==}
 
-  vite-tsconfig-paths@5.1.4:
-    resolution: {integrity: sha512-cYj0LRuLV2c2sMqhqhGpaO3LretdtMn/BVX4cPLanIZuwwrkVl+lK84E/miEXkCHWXuq65rhNN4rXsBcOB3S4w==}
+  vite-tsconfig-paths@6.1.1:
+    resolution: {integrity: sha512-2cihq7zliibCCZ8P9cKJrQBkfgdvcFkOOc3Y02o3GWUDLgqjWsZudaoiuOwO/gzTzy17cS5F7ZPo4bsnS4DGkg==}
     peerDependencies:
       vite: '*'
-    peerDependenciesMeta:
-      vite:
-        optional: true
 
   vite@8.3.2:
     resolution: {integrity: sha512-SQr1x6W5vVSbROg7vsyXIaxK9b0G7zsT68acdWWRmnBUsgDieLCRG+Rep9WdZgcposvv/GSnr4GUUBqB3vXq6w==}
@@ -28157,12 +28154,11 @@ snapshots:
       '@types/unist': 3.0.3
       vfile-message: 4.0.3
 
-  vite-tsconfig-paths@5.1.4(supports-color@7.2.0)(typescript@7.0.2)(vite@8.3.2(@types/node@24.19.1)(esbuild@0.27.7)(jiti@2.6.1)(terser@5.51.2)(tsx@4.21.0)(yaml@2.9.1)):
+  vite-tsconfig-paths@6.1.1(supports-color@7.2.0)(typescript@7.0.2)(vite@8.3.2(@types/node@24.19.1)(esbuild@0.27.7)(jiti@2.6.1)(terser@5.51.2)(tsx@4.21.0)(yaml@2.9.1)):
     dependencies:
       debug: 4.4.3(supports-color@7.2.0)
       globrex: 0.1.2
       tsconfck: 3.1.6(typescript@7.0.2)
-    optionalDependencies:
       vite: 8.3.2(@types/node@24.19.1)(esbuild@0.27.7)(jiti@2.6.1)(terser@5.51.2)(tsx@4.21.0)(yaml@2.9.1)
     transitivePeerDependencies:
       - supports-color

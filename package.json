@@ -134,7 +134,7 @@
         "turbo": "^2.10.11",
         "typescript": "^7.0.2",
         "typescript-v6": "npm:typescript@^6.0.0",
-        "vite-tsconfig-paths": "^5.1.4",
+        "vite-tsconfig-paths": "^6.0.0",
         "vitest": "^4.1.0-beta.6",
         "zod": "catalog:"
     },
