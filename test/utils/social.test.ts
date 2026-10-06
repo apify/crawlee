@@ -376,33 +376,33 @@ describe('utils.social', () => {
             discords: [],
         };
 
-        test('handles invalid arg', () => {
+        test('handles invalid arg', async () => {
             // @ts-expect-error invalid input type
-            expect(parseHandlesFromHtml()).resolves.toEqual(EMPTY_RESULT);
+            await expect(parseHandlesFromHtml()).resolves.toEqual(EMPTY_RESULT);
             // @ts-expect-error invalid input type
-            expect(parseHandlesFromHtml(undefined)).resolves.toEqual(EMPTY_RESULT);
+            await expect(parseHandlesFromHtml(undefined)).resolves.toEqual(EMPTY_RESULT);
             // @ts-expect-error invalid input type
-            expect(parseHandlesFromHtml(null)).resolves.toEqual(EMPTY_RESULT);
+            await expect(parseHandlesFromHtml(null)).resolves.toEqual(EMPTY_RESULT);
             // @ts-expect-error invalid input type
-            expect(parseHandlesFromHtml({})).resolves.toEqual(EMPTY_RESULT);
+            await expect(parseHandlesFromHtml({})).resolves.toEqual(EMPTY_RESULT);
             // @ts-expect-error invalid input type
-            expect(parseHandlesFromHtml(1234)).resolves.toEqual(EMPTY_RESULT);
+            await expect(parseHandlesFromHtml(1234)).resolves.toEqual(EMPTY_RESULT);
         });
 
-        test('works', () => {
-            expect(parseHandlesFromHtml('')).resolves.toEqual(EMPTY_RESULT);
-            expect(parseHandlesFromHtml('         ')).resolves.toEqual(EMPTY_RESULT);
+        test('works', async () => {
+            await expect(parseHandlesFromHtml('')).resolves.toEqual(EMPTY_RESULT);
+            await expect(parseHandlesFromHtml('         ')).resolves.toEqual(EMPTY_RESULT);
             const html =
                 'use the data in this [YouTube Video](https://www.youtube.com/watch?v=BsidLZKdYWQ).\\n\\n## Sample result\\n' +
                 'use the data in this [YouTube Video](https://www.youtube.com/watch?v=BsidLZKd123).\\\\n\\\\n## Sample result\\\\n';
-            expect(parseHandlesFromHtml(html)).resolves.toMatchObject({
+            await expect(parseHandlesFromHtml(html)).resolves.toMatchObject({
                 youtubes: [
                     'https://www.youtube.com/watch?v=BsidLZKd123',
                     'https://www.youtube.com/watch?v=BsidLZKdYWQ',
                 ],
             });
 
-            expect(
+            await expect(
                 parseHandlesFromHtml(`
                 <html>
                     <head>
