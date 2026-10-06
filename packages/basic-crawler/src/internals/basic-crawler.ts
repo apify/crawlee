@@ -106,6 +106,7 @@ import { createSendRequest } from './send-request.js';
 import type { GetUserDataFromRequest, RouterHandler, RouterRoutes } from './router.js';
 import { Router, validateUserData } from './router.js';
 import { BLOCKED_STATUS_CODES } from './session_pool/consts.js';
+import { createDefaultSessionFingerprint } from './session_pool/fingerprint.js';
 import { Session } from './session_pool/session.js';
 import { SessionPool } from './session_pool/session_pool.js';
 import { ThrottlingRequestManager } from './throttling_request_manager.js';
@@ -2562,7 +2563,14 @@ export class BasicCrawler<
                 return cachedRobotsTxtFile;
             }
 
-            const robotsTxtFile = await RobotsTxtFile.find(url, { logger: this.log });
+            // Fetch robots.txt the way pages are fetched, through the crawler's HTTP client and impersonating a
+            // browser. Sites with bot protection answer a bare request with 4xx or 5xx, and that status alone
+            // would then decide whether everything is allowed or disallowed.
+            const robotsTxtFile = await RobotsTxtFile.find(url, {
+                httpClient: this.httpClient,
+                session: new Session({ fingerprint: createDefaultSessionFingerprint() }),
+                logger: this.log,
+            });
             this.#robotsTxtFileCache.add(origin, robotsTxtFile);
 
             return robotsTxtFile;
