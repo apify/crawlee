@@ -70,7 +70,7 @@ jobs:
 
             - name: Commit changes
               if: inputs.dist-tag != 'prod'
-              uses: EndBug/add-and-commit@645ecc0dd0a57f4d86d26c0aa5fc42c0a856fbca # v11.0.0
+              uses: EndBug/add-and-commit@cc9c08ba6c8df3b93a8f2db63e89b98368ae2ae8 # v11.1.1
               id: commit
               with:
                 author_name: Apify Release Bot

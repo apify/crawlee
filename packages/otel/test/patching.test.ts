@@ -178,7 +178,7 @@ describe('log instrumentation', () => {
     beforeAll(() => {
         logExporter = new InMemoryLogRecordExporter();
         loggerProvider = new LoggerProvider({
-            processors: [new SimpleLogRecordProcessor(logExporter)],
+            processors: [new SimpleLogRecordProcessor({ exporter: logExporter })],
         });
     });
 
@@ -353,7 +353,9 @@ describe('telemetry failures are contained', () => {
 
     test('a message that cannot be stringified does not swallow the application log call', () => {
         const { logger, calls } = patchLogger(
-            new LoggerProvider({ processors: [new SimpleLogRecordProcessor(new InMemoryLogRecordExporter())] }),
+            new LoggerProvider({
+                processors: [new SimpleLogRecordProcessor({ exporter: new InMemoryLogRecordExporter() })],
+            }),
         );
         const hostile = {
             toString() {

@@ -338,6 +338,12 @@ test('invalid content type defaults to octet-stream', async () => {
     ]);
 });
 
+test('rejects an unparseable mime type in additionalMimeTypes', () => {
+    expect(() => new HttpCrawler({ additionalMimeTypes: ['not a mime type'], requestHandler: async () => {} })).toThrow(
+        'Can not parse mime type not a mime type from "options.additionalMimeTypes".',
+    );
+});
+
 test('decodes charset from http-equiv meta tag when absent in HTTP header', async () => {
     const results: string[] = [];
 

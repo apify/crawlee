@@ -70,7 +70,7 @@ Environment requirements, renamed options and behavior changes that nearly every
 
 Crawlee v4 is a native ESM package now. It can be still consumed from a CJS project, as long as you use TypeScript and Node.js version that supports `require(esm)`.
 
-### Node 22+ required
+### Node 22.13+ required
 
 Support for older node versions was dropped.
 
@@ -910,6 +910,12 @@ In v3, skipping a request without it counting as a failure took a hack: set `req
 
 See the [Skipping requests](../examples/skip-request) example.
 
+### robots.txt error responses follow RFC 9309
+
+v3 parsed the body of a robots.txt response regardless of its status code. v4 follows [RFC 9309](https://www.rfc-editor.org/rfc/rfc9309#section-2.3.1.3) instead: a `4xx` response allows everything and a `5xx` response disallows everything, whatever the body says.
+
+With `respectRobotsTxtFile` enabled, a site that answers `/robots.txt` with a `5xx` is therefore skipped entirely. The crawler caches robots.txt per origin for the whole run, so every request to that origin is skipped with the `robotsTxt` reason.
+
 ### Internal KVS keys renamed
 
 Several internal Crawlee keys were prefixed with the `SDK_` prefix for legacy reasons — these keys now start with `CRAWLEE_` instead. These are, e.g., `CRAWLEE_SESSION_POOL_STATE` or `CRAWLEE_CRAWLER_STATISTICS_{n}`.
@@ -1208,7 +1214,7 @@ More complex routing (more tiers, weighted draws, sticky assignment, cooldowns) 
 
 #### `ProxyConfiguration.newUrl` / `newProxyInfo` signatures changed
 
-Because proxy tiers are gone, the leading `sessionId` positional argument was dropped from `ProxyConfiguration.newUrl()` and `ProxyConfiguration.newProxyInfo()`. Both now take no arguments instead of `(sessionId?, options?)`. The `ProxyConfigurationFunction` callback (the `newUrlFunction` option) was likewise simplified — it no longer receives any arguments, neither a `sessionId` nor a `{ request }` object. The proxy is resolved once per session, so to route specific requests through specific proxies, pin them to named sessions (see [Pinning a request to a specific session](../guides/session-management#pinning-a-request-to-a-specific-session)). The `TieredProxy` interface and the `TieredProxyOptions` type have been removed.
+Because proxy tiers are gone, the leading `sessionId` positional argument was dropped from `ProxyConfiguration.newUrl()` and `ProxyConfiguration.newProxyInfo()`. `newUrl()` now takes no arguments, and `newProxyInfo()` takes only an optional, previously created `ProxyInfo` (e.g. one restored with a persisted session) instead of `(sessionId?, options?)`. Custom `IProxyConfiguration` implementations should return that `ProxyInfo` (refreshed if it depends on the environment) rather than a new one, otherwise the crawler replaces the session's proxy. The `ProxyConfigurationFunction` callback (the `newUrlFunction` option) was likewise simplified — it no longer receives any arguments, neither a `sessionId` nor a `{ request }` object. The proxy is resolved once per session, so to route specific requests through specific proxies, pin them to named sessions (see [Pinning a request to a specific session](../guides/session-management#pinning-a-request-to-a-specific-session)). The `TieredProxy` interface and the `TieredProxyOptions` type have been removed.
 
 **Before:**
 ```typescript

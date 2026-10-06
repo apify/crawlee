@@ -2753,6 +2753,45 @@ describe('BasicCrawler', () => {
             }
             expect(sessions[0].usageCount).toBe(3);
         });
+
+        describe('restored sessions', () => {
+            const persistedProxyInfo: ProxyInfo = {
+                url: 'http://user:pass@10.0.0.1:8011',
+                username: 'user',
+                password: 'pass',
+                hostname: '10.0.0.1',
+                port: '8011',
+            };
+
+            async function restoreSession(proxyConfiguration: BasicCrawlerOptions['proxyConfiguration']) {
+                const crawler = new BasicCrawler({ proxyConfiguration, requestHandler: async () => {} });
+                const sessionPool = crawler.sessionPool as SessionPool;
+
+                const previousRun = new SessionPool({
+                    persistStateKey: `CRAWLEE_SESSION_POOL_STATE_${sessionPool.id}`,
+                });
+                await previousRun.addSession({ id: 'restored', proxyInfo: persistedProxyInfo });
+                await previousRun.teardown();
+
+                return sessionPool.getSession('restored');
+            }
+
+            it('passes the persisted proxyInfo to newProxyInfo and uses the result', async () => {
+                const refreshedProxyInfo = { ...persistedProxyInfo, url: 'http://user:pass@10.0.0.2:8011' };
+                const newProxyInfo = vitest.fn(async () => refreshedProxyInfo);
+
+                const session = await restoreSession({ newProxyInfo });
+
+                expect(newProxyInfo).toHaveBeenCalledWith(persistedProxyInfo);
+                expect(session?.proxyInfo).toEqual(refreshedProxyInfo);
+            });
+
+            it('drops the persisted proxyInfo when newProxyInfo returns undefined', async () => {
+                const session = await restoreSession({ newProxyInfo: async () => undefined });
+
+                expect(session?.proxyInfo).toBeUndefined();
+            });
+        });
     });
 
     test('extendContext', async () => {

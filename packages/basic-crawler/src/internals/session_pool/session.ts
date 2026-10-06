@@ -261,7 +261,7 @@ export class Session implements ISession {
             this.#errorScore -= this.#errorScoreDecrement;
         }
 
-        this.maybeSelfRetire();
+        this.#maybeSelfRetire();
     }
 
     /**
@@ -309,7 +309,7 @@ export class Session implements ISession {
         this.#errorScore += 1;
         this.#usageCount += 1;
 
-        this.maybeSelfRetire();
+        this.#maybeSelfRetire();
     }
 
     /**
@@ -337,7 +337,7 @@ export class Session implements ISession {
      * Makes an unusable session's state terminal. Unlike `retire()`, this leaves the error score alone so that
      * `isBlocked()` keeps telling a burned identity from one that merely ran out of uses.
      */
-    private maybeSelfRetire(): void {
+    #maybeSelfRetire(): void {
         if (!this.isUsable()) {
             this.#retired = true;
         }

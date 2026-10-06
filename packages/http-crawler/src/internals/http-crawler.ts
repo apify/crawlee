@@ -33,8 +33,7 @@ import { ResponseWithUrl } from '@crawlee/http-client';
 import type { Awaitable, Dictionary, ISession } from '@crawlee/types';
 import { parseArgument, RETRY_CSS_SELECTORS, schemas } from '@crawlee/utils/internal';
 import type { CheerioAPI } from 'cheerio';
-import type { RequestLike, ResponseLike } from 'content-type';
-import contentTypeParser from 'content-type';
+import { isTypeValid, parse as parseContentType } from 'content-type';
 import iconv from 'iconv-lite';
 import type { JsonValue } from 'type-fest';
 import { z } from 'zod';
@@ -412,7 +411,7 @@ export class HttpCrawler<
         });
 
         this.#supportedMimeTypes = new Set([...HTML_AND_XML_MIME_TYPES, APPLICATION_JSON_MIME_TYPE]);
-        if (additionalMimeTypes.length) this.extendSupportedMimeTypes(additionalMimeTypes);
+        if (additionalMimeTypes.length) this.#extendSupportedMimeTypes(additionalMimeTypes);
 
         if (suggestResponseEncoding && forceResponseEncoding) {
             this.log.warning(
@@ -429,7 +428,7 @@ export class HttpCrawler<
         // members `extendContext` added at runtime.
         this.#preNavigationHooks = preNavigationHooks as InternalHttpHook<CrawlingContext>[];
         this.#postNavigationHooks = [
-            ({ request, response }) => this.abortDownloadOfBody(request, response!),
+            ({ request, response }) => this.#abortDownloadOfBody(request, response!),
             ...(postNavigationHooks as InternalHttpHook<CrawlingContextWithResponse>[]),
         ];
 
@@ -474,7 +473,7 @@ export class HttpCrawler<
                 return addTimeoutToPromise(async () => step(ctx), remaining, navigationTimedOut);
             });
 
-        let pipeline = ContextPipeline.create<CrawlingContext>().compose(this.prepareHttpRequest.bind(this));
+        let pipeline = ContextPipeline.create<CrawlingContext>().compose(this.#prepareHttpRequest.bind(this));
 
         for (const hook of this.#preNavigationHooks) {
             pipeline = pipeline.compose(windowGuard(hook));
@@ -487,24 +486,27 @@ export class HttpCrawler<
         }
 
         return pipelineWithNavigation
-            .compose(this.processHttpResponse.bind(this))
-            .compose(this.handleBlockedRequestByContent.bind(this));
+            .compose(this.#processHttpResponse.bind(this))
+            .compose(this.#handleBlockedRequestByContent.bind(this));
     }
 
-    private async prepareHttpRequest(crawlingContext: CrawlingContext): Promise<Partial<CrawlingContextWithResponse>> {
+    async #prepareHttpRequest(crawlingContext: CrawlingContext): Promise<Partial<CrawlingContextWithResponse>> {
         const { request } = crawlingContext;
 
         if (request.skipNavigation) {
             return {
                 request: new Proxy(request, {
-                    get(target, propertyName, receiver) {
+                    get(target, propertyName) {
                         if (propertyName === 'loadedUrl') {
                             throw new NavigationSkippedError(
                                 'The `request.loadedUrl` property is not available - `skipNavigation` was used',
                             );
                         }
-                        return Reflect.get(target, propertyName, receiver);
+                        // `target` as receiver and bound methods, or `#` members throw on the proxy
+                        const value = Reflect.get(target, propertyName, target);
+                        return typeof value === 'function' ? value.bind(target) : value;
                     },
+                    set: (target, propertyName, value) => Reflect.set(target, propertyName, value, target),
                 }) as LoadedRequest<CrawlingRequest>,
                 get response(): InternalHttpCrawlingContext['response'] {
                     throw new NavigationSkippedError(
@@ -531,7 +533,7 @@ export class HttpCrawler<
         // have already spent part of it), so it produces a clean navigation-timeout error rather than the raw
         // client abort.
         const httpResponse = await addTimeoutToPromise(
-            async () => this.requestFunction({ request, session, proxyUrl }),
+            async () => this.#requestFunction({ request, session, proxyUrl }),
             Math.max(1, remainingNavigationWindowMillis(crawlingContext, this.#navigationTimeoutMillis)),
             `Navigation timed out after ${this.#navigationTimeoutMillis / 1000} seconds.`,
         );
@@ -543,7 +545,7 @@ export class HttpCrawler<
         return { request: request as LoadedRequest<CrawlingRequest>, response: httpResponse };
     }
 
-    private async processHttpResponse(
+    async #processHttpResponse(
         crawlingContext: CrawlingContextWithResponse,
     ): Promise<
         Omit<InternalHttpCrawlingContext, keyof CrawlingContextWithResponse> & Partial<InternalHttpCrawlingContext>
@@ -600,7 +602,7 @@ export class HttpCrawler<
             throw new TimeoutError(`Navigation timed out after ${this.#navigationTimeoutMillis / 1000} seconds.`);
         }
         const parsed = await addTimeoutToPromise(
-            async () => this.parseResponse(crawlingContext.request, crawlingContext.response),
+            async () => this.#parseResponse(crawlingContext.request, crawlingContext.response),
             remaining,
             `Navigation timed out after ${this.#navigationTimeoutMillis / 1000} seconds.`,
         );
@@ -662,7 +664,7 @@ export class HttpCrawler<
         };
     }
 
-    private async handleBlockedRequestByContent(crawlingContext: InternalHttpCrawlingContext): Promise<{}> {
+    async #handleBlockedRequestByContent(crawlingContext: InternalHttpCrawlingContext): Promise<{}> {
         if (this.retryOnBlocked) {
             const error = await this.#isRequestBlocked(crawlingContext);
             if (error) throw new SessionError(error);
@@ -693,14 +695,14 @@ export class HttpCrawler<
      * on the request such as only downloading the request body if the
      * received content type matches text/html, application/xml, application/xhtml+xml.
      */
-    private async requestFunction({ request, session, proxyUrl }: RequestFunctionOptions): Promise<Response> {
-        const opts = this.getRequestOptions(request, proxyUrl);
+    async #requestFunction({ request, session, proxyUrl }: RequestFunctionOptions): Promise<Response> {
+        const opts = this.#getRequestOptions(request, proxyUrl);
 
         try {
-            return await this.requestAsBrowser(opts, session);
+            return await this.#requestAsBrowser(opts, session);
         } catch (e) {
             if (e instanceof Error && e.constructor.name === 'TimeoutError') {
-                this.handleRequestTimeout(session);
+                this.#handleRequestTimeout(session);
                 return new Response(); // this will never happen, as handleRequestTimeout always throws
             }
 
@@ -715,7 +717,7 @@ export class HttpCrawler<
     /**
      * Encodes and parses response according to the provided content type
      */
-    private async parseResponse(request: CrawlingRequest, response: Response) {
+    async #parseResponse(request: CrawlingRequest, response: Response) {
         const { status } = response;
         const { type, charset } = parseContentTypeFromResponse(response);
 
@@ -724,7 +726,7 @@ export class HttpCrawler<
         }
 
         if (this.isErrorStatusCode(status)) {
-            const { response: decoded } = this.encodeResponse(request, response, charset);
+            const { response: decoded } = this.#encodeResponse(request, response, charset);
             const body = await decoded.text(); // TODO - this always uses UTF-8 (see https://developer.mozilla.org/en-US/docs/Web/API/Request/text)
 
             // Errors are often sent as JSON, so attempt to parse them,
@@ -756,7 +758,7 @@ export class HttpCrawler<
             return { response, contentType: { type, encoding: 'utf-8' as BufferEncoding }, body };
         }
 
-        const { response: reencodedResponse, encoding } = this.encodeResponse(request, response, charset);
+        const { response: reencodedResponse, encoding } = this.#encodeResponse(request, response, charset);
         const contentType = { type, encoding };
 
         if (HTML_AND_XML_MIME_TYPES.includes(type)) {
@@ -773,7 +775,7 @@ export class HttpCrawler<
     /**
      * Combines the provided `requestOptions` with mandatory (non-overridable) values.
      */
-    private getRequestOptions(request: CrawlingRequest, proxyUrl?: string) {
+    #getRequestOptions(request: CrawlingRequest, proxyUrl?: string) {
         const requestOptions = {
             url: request.url,
             method: request.method,
@@ -793,7 +795,7 @@ export class HttpCrawler<
         return requestOptions;
     }
 
-    private encodeResponse(
+    #encodeResponse(
         request: CrawlingRequest,
         response: Response,
         encoding: BufferEncoding,
@@ -843,31 +845,31 @@ export class HttpCrawler<
     /**
      * Checks and extends supported mime types
      */
-    private extendSupportedMimeTypes(additionalMimeTypes: (string | RequestLike | ResponseLike)[]) {
+    #extendSupportedMimeTypes(additionalMimeTypes: string[]) {
         for (const mimeType of additionalMimeTypes) {
             if (mimeType === '*/*') {
                 this.#supportedMimeTypes.add(mimeType);
                 continue;
             }
 
-            try {
-                const parsedType = contentTypeParser.parse(mimeType);
-                this.#supportedMimeTypes.add(parsedType.type);
-            } catch (err) {
+            const parsedType = parseContentType(mimeType);
+            if (!isTypeValid(parsedType.type)) {
                 throw new Error(`Can not parse mime type ${mimeType} from "options.additionalMimeTypes".`);
             }
+
+            this.#supportedMimeTypes.add(parsedType.type);
         }
     }
 
     /**
      * Handles timeout request
      */
-    private handleRequestTimeout(session: ISession) {
+    #handleRequestTimeout(session: ISession) {
         session.markBad();
         throw new Error(`Request timed out after ${this.#navigationTimeoutMillis / 1000} seconds.`);
     }
 
-    private abortDownloadOfBody(request: CrawlingRequest, response: Response) {
+    #abortDownloadOfBody(request: CrawlingRequest, response: Response) {
         const { status } = response;
         const { type } = parseContentTypeFromResponse(response);
 
@@ -885,7 +887,7 @@ export class HttpCrawler<
     /**
      * @internal wraps public utility for mocking purposes
      */
-    private requestAsBrowser = async (options: Dictionary<any>, session: ISession) => {
+    #requestAsBrowser = async (options: Dictionary<any>, session: ISession) => {
         const opts = processHttpRequestOptions({
             ...(options as any),
             responseType: 'text',

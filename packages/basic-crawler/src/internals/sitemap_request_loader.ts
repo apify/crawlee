@@ -251,7 +251,7 @@ export class SitemapRequestLoader implements IRequestLoader {
         this.#proxyUrl = proxyUrl;
         this.#enqueueStrategy = enqueueStrategy;
 
-        this.#urlQueueStream = this.createNewStream(maxBufferSize);
+        this.#urlQueueStream = this.#createNewStream(maxBufferSize);
 
         this.#sitemapParsingProgress.pendingSitemapUrls = new Set(sitemapUrls);
         this.#events = serviceLocator.getEventManager();
@@ -264,7 +264,7 @@ export class SitemapRequestLoader implements IRequestLoader {
      * @param highWaterMark High water mark for the stream (the maximum number of objects the stream will buffer).
      * @returns A new object stream.
      */
-    private createNewStream(highWaterMark: number): Transform {
+    #createNewStream(highWaterMark: number): Transform {
         return new Transform({
             objectMode: true,
             highWaterMark,
@@ -276,7 +276,7 @@ export class SitemapRequestLoader implements IRequestLoader {
      * @param url URL to be checked.
      * @returns A matcher function that checks whether the pattern matches the closure URL.
      */
-    private matchesUrl(url: string): (patternObject: UrlPatternObject) => boolean {
+    #matchesUrl(url: string): (patternObject: UrlPatternObject) => boolean {
         return (patternObject) => {
             const { regexp, glob } = patternObject;
 
@@ -292,10 +292,10 @@ export class SitemapRequestLoader implements IRequestLoader {
      * @param url URL to be checked.
      * @returns `true` if the URL matches the patterns, `false` otherwise.
      */
-    private isUrlMatchingPatterns(url: string): boolean {
+    #isUrlMatchingPatterns(url: string): boolean {
         return (
-            !this.#urlExcludePatternObjects.some(this.matchesUrl(url)) &&
-            (this.#urlPatternObjects.length === 0 || this.#urlPatternObjects.some(this.matchesUrl(url)))
+            !this.#urlExcludePatternObjects.some(this.#matchesUrl(url)) &&
+            (this.#urlPatternObjects.length === 0 || this.#urlPatternObjects.some(this.#matchesUrl(url)))
         );
     }
 
@@ -304,9 +304,9 @@ export class SitemapRequestLoader implements IRequestLoader {
      *
      * Blocks if the stream is full until it is drained.
      */
-    private async pushNextUrl(url: string | null) {
+    async #pushNextUrl(url: string | null) {
         return new Promise<void>((resolve) => {
-            if (this.#closed || (url && !this.isUrlMatchingPatterns(url))) {
+            if (this.#closed || (url && !this.#isUrlMatchingPatterns(url))) {
                 resolve();
                 return;
             }
@@ -328,7 +328,7 @@ export class SitemapRequestLoader implements IRequestLoader {
      * If the stream is empty, blocks until a new URL is pushed.
      * @returns The next URL from the queue or `null` if we have read all URLs.
      */
-    private async readNextUrl(): Promise<string | null> {
+    async #readNextUrl(): Promise<string | null> {
         return new Promise((resolve) => {
             if (this.#closed) {
                 resolve(null);
@@ -366,7 +366,7 @@ export class SitemapRequestLoader implements IRequestLoader {
      *
      * Resolves once all the sitemaps URLs have been fully loaded (sets `isSitemapFullyLoaded` to `true`).
      */
-    private async load({
+    async #load({
         parseSitemapOptions,
     }: {
         parseSitemapOptions?: SitemapRequestLoaderOptions['parseSitemapOptions'];
@@ -390,7 +390,7 @@ export class SitemapRequestLoader implements IRequestLoader {
                     }
 
                     if (!this.#sitemapParsingProgress.inProgressEntries.has(item.loc)) {
-                        await this.pushNextUrl(item.loc);
+                        await this.#pushNextUrl(item.loc);
                         this.#sitemapParsingProgress.inProgressEntries.add(item.loc);
                     }
                 }
@@ -420,8 +420,8 @@ export class SitemapRequestLoader implements IRequestLoader {
             ...restOptions,
             persistStateKey: options.persistStateKey ?? STATE_PERSISTENCE_KEY,
         });
-        await requestList.restoreState();
-        void requestList.load({
+        await requestList.#restoreState();
+        void requestList.#load({
             parseSitemapOptions: { logger: serviceLocator.getLogger(), ...options.parseSitemapOptions, httpClient },
         });
 
@@ -514,7 +514,7 @@ export class SitemapRequestLoader implements IRequestLoader {
         // Create a new stream, as we have read all the URLs from the current one.
         // Pushing the urls back to the original stream might not be possible if it has been ended.
         const previousStream = this.#urlQueueStream;
-        const newStream = this.createNewStream(previousStream.readableHighWaterMark);
+        const newStream = this.#createNewStream(previousStream.readableHighWaterMark);
 
         for (const url of urlQueue) {
             newStream.push(url);
@@ -547,7 +547,7 @@ export class SitemapRequestLoader implements IRequestLoader {
         } satisfies SitemapRequestLoaderState);
     }
 
-    private async restoreState(): Promise<void> {
+    async #restoreState(): Promise<void> {
         await purgeDefaultStorages({ onlyPurgeOnce: true });
 
         if (this.#persistStateKey === undefined) {
@@ -581,7 +581,7 @@ export class SitemapRequestLoader implements IRequestLoader {
      * @inheritDoc
      */
     async fetchNextRequest(): Promise<Request | null> {
-        const nextUrl = await this.readNextUrl();
+        const nextUrl = await this.#readNextUrl();
         if (!nextUrl) {
             return null;
         }
@@ -626,12 +626,12 @@ export class SitemapRequestLoader implements IRequestLoader {
      */
     async markRequestAsHandled(request: Request): Promise<void> {
         this.#handledUrlCount += 1;
-        this.ensureInProgress(request.url);
+        this.#ensureInProgress(request.url);
         this.inProgress.delete(request.url);
         this.#requestData.delete(request.url);
     }
 
-    private ensureInProgress(url: string): void {
+    #ensureInProgress(url: string): void {
         if (!this.inProgress.has(url)) {
             throw new Error(`The request is not being processed (url: ${url})`);
         }

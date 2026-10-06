@@ -370,7 +370,7 @@ interface Intervals {
 
 // @public
 export interface IProxyConfiguration {
-    newProxyInfo(): Promise<ProxyInfo | undefined>;
+    newProxyInfo(proxyInfo?: ProxyInfo): Promise<ProxyInfo | undefined>;
 }
 
 // @public
@@ -562,7 +562,7 @@ export class ProxyConfiguration implements IProxyConfiguration {
     constructor(options?: ProxyConfigurationOptions);
     // (undocumented)
     readonly isManInTheMiddle = false;
-    newProxyInfo(): Promise<ProxyInfo | undefined>;
+    newProxyInfo(proxyInfo?: ProxyInfo): Promise<ProxyInfo | undefined>;
     newUrl(): Promise<string | undefined>;
 }
 

@@ -9,7 +9,7 @@ import type { BaseHttpClient } from '@crawlee/http-client';
 import type { CrawleeLogger } from '@crawlee/types';
 // Imported as a type only so `sax` (a fairly heavy parser) isn't loaded eagerly with @crawlee/utils.
 import type * as sax from 'sax';
-import MIMEType from 'whatwg-mimetype';
+import { MIMEType } from 'whatwg-mimetype';
 
 import { mergeAsyncIterables } from './iterables.js';
 import { RobotsTxtFile } from './robots.js';
@@ -42,17 +42,17 @@ class SitemapTxtParser extends Transform {
         super({
             readableObjectMode: true,
             transform: (chunk, _encoding, callback) => {
-                this.processBuffer(this.#decoder.write(chunk), false);
+                this.#processBuffer(this.#decoder.write(chunk), false);
                 callback();
             },
             flush: (callback) => {
-                this.processBuffer(this.#decoder.end(), true);
+                this.#processBuffer(this.#decoder.end(), true);
                 callback();
             },
         });
     }
 
-    private processBuffer(input: string, finalize: boolean): void {
+    #processBuffer(input: string, finalize: boolean): void {
         this.#buffer += input;
 
         if (finalize || this.#buffer.includes('\n')) {
@@ -87,7 +87,7 @@ class SitemapXmlParser extends Transform {
     #url: Partial<SitemapUrl> = {};
 
     static async create(): Promise<SitemapXmlParser> {
-        const { SAXParser } = await import('sax');
+        const { SAXParser } = (await import('sax')).default;
         return new SitemapXmlParser(new SAXParser(true));
     }
 
@@ -110,16 +110,16 @@ class SitemapXmlParser extends Transform {
         });
 
         this.#parser = parser;
-        this.#parser.onopentag = this.onOpenTag.bind(this);
-        this.#parser.onclosetag = this.onCloseTag.bind(this);
+        this.#parser.onopentag = this.#onOpenTag.bind(this);
+        this.#parser.onclosetag = this.#onCloseTag.bind(this);
 
-        this.#parser.ontext = this.onText.bind(this);
-        this.#parser.oncdata = this.onText.bind(this);
+        this.#parser.ontext = this.#onText.bind(this);
+        this.#parser.oncdata = this.#onText.bind(this);
 
         this.#parser.onerror = this.destroy.bind(this);
     }
 
-    private onOpenTag(node: sax.Tag | sax.QualifiedTag) {
+    #onOpenTag(node: sax.Tag | sax.QualifiedTag) {
         if (this.#rootTagName !== undefined) {
             if (
                 node.name === 'loc' ||
@@ -138,7 +138,7 @@ class SitemapXmlParser extends Transform {
         }
     }
 
-    private onCloseTag(name: string) {
+    #onCloseTag(name: string) {
         if (name === 'loc' || name === 'lastmod' || name === 'priority' || name === 'changefreq') {
             this.#currentTag = undefined;
         }
@@ -151,7 +151,7 @@ class SitemapXmlParser extends Transform {
         }
     }
 
-    private onText(text: string) {
+    #onText(text: string) {
         if (this.#currentTag === 'loc') {
             if (this.#rootTagName === 'sitemapindex') {
                 this.push({ type: 'sitemapUrl', url: text.trim() } satisfies SitemapItem);
@@ -487,7 +487,7 @@ export class Sitemap {
         proxyUrl?: string,
         parseSitemapOptions?: ParseSitemapOptions,
     ): Promise<Sitemap> {
-        return await this.parse(
+        return await this.#parse(
             (Array.isArray(urls) ? urls : [urls]).map((url) => ({ type: 'url', url })),
             proxyUrl,
             parseSitemapOptions,
@@ -504,10 +504,10 @@ export class Sitemap {
         proxyUrl?: string,
         parseSitemapOptions?: ParseSitemapOptions,
     ): Promise<Sitemap> {
-        return await this.parse([{ type: 'raw', content }], proxyUrl, parseSitemapOptions);
+        return await this.#parse([{ type: 'raw', content }], proxyUrl, parseSitemapOptions);
     }
 
-    private static async parse(
+    static async #parse(
         sources: SitemapSource[],
         proxyUrl?: string,
         parseSitemapOptions?: ParseSitemapOptions,

@@ -265,7 +265,7 @@ export class StorageTransaction implements StorageTransactionView {
             // handler that succeeded. Hence a fresh timeout context, which also provides the time bound.
             await timeoutStorage.exit(async () =>
                 addTimeoutToPromise(
-                    async () => this.flush(),
+                    async () => this.#flush(),
                     this.#commitTimeoutMillis,
                     `Committing the storage transaction timed out after ${this.#commitTimeoutMillis / 1000} seconds.`,
                 ),
@@ -299,7 +299,7 @@ export class StorageTransaction implements StorageTransactionView {
         });
     }
 
-    private async flush(): Promise<void> {
+    async #flush(): Promise<void> {
         // Each participating frontend replays all of its buffered entries in one call. Frontends are
         // ordered by storage type: key-value stores and request queues first (idempotent under retry),
         // datasets last (not idempotent), minimizing the blast radius of a partial commit failure.
