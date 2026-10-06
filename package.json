@@ -102,7 +102,7 @@
         "@types/semver": "^7.7.0",
         "@types/whatwg-mimetype": "^5.0.0",
         "@types/yargs": "^17.0.33",
-        "@vitest/coverage-v8": "^4.0.16",
+        "@vitest/coverage-v8": "^5.0.0",
         "apify": "*",
         "apify-node-curl-impersonate": "^1.0.23",
         "basic-auth-parser": "^0.0.2",
@@ -135,7 +135,7 @@
         "typescript": "^7.0.2",
         "typescript-v6": "npm:typescript@^6.0.0",
         "vite-tsconfig-paths": "^5.1.4",
-        "vitest": "^4.1.0-beta.6",
+        "vitest": "^5.0.0",
         "zod": "catalog:"
     },
     "lint-staged": {
