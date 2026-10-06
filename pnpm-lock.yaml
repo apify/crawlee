@@ -416,8 +416,8 @@ importers:
         specifier: ^7.0.2
         version: 7.0.2
       typescript-v6:
-        specifier: npm:typescript@^6.0.0
-        version: typescript@6.0.3
+        specifier: npm:typescript@^7.0.0
+        version: typescript@7.0.2
       vite-tsconfig-paths:
         specifier: ^5.1.4
         version: 5.1.4(supports-color@7.2.0)(typescript@7.0.2)(vite@8.3.2(@types/node@24.19.1)(esbuild@0.27.7)(jiti@2.6.1)(terser@5.51.2)(tsx@4.21.0)(yaml@2.9.1))
