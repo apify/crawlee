@@ -8,9 +8,11 @@ import ApiLink from '@site/src/components/ApiLink';
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 import RunnableCodeBlock from '@site/src/components/RunnableCodeBlock';
+import CodeBlock from '@theme/CodeBlock';
 
 import CheerioGotScrapingExample from '!!raw-loader!roa-loader!./http-clients/cheerio-got-scraping-example.ts';
 import CheerioImpitExample from '!!raw-loader!roa-loader!./http-clients/cheerio-impit-example.ts';
+import CheerioBrowserFetchExample from '!!raw-loader!./http-clients/cheerio-browser-fetch-example.ts';
 
 HTTP clients are utilized by HTTP-based crawlers (e.g., <ApiLink to="cheerio-crawler/class/CheerioCrawler">`CheerioCrawler`</ApiLink>) to communicate with web servers. They use external HTTP libraries for communication rather than a browser. Examples of such libraries include [`impit`](https://apify.github.io/impit/) or [`got-scraping`](https://github.com/apify/got-scraping/). After retrieving page content, an HTML parsing library is typically used to facilitate data extraction. Examples of such libraries include [Cheerio](https://cheerio.js.org/), [`jsdom`](https://github.com/jsdom/jsdom) or [`linkedom`](https://github.com/WebReflection/linkedom). These crawlers are faster than browser-based crawlers but generally cannot execute client-side JavaScript.
 
@@ -75,6 +77,19 @@ For <ApiLink to="impit-client/class/ImpitHttpClient">`ImpitHttpClient`</ApiLink>
 ```sh
 npm i @crawlee/impit-client
 ```
+
+## Sending requests from a logged-in browser
+
+Some sites only serve content to a browser that has logged in or passed an anti-bot check, and block HTTP clients because of their TLS fingerprint or missing cookies. <ApiLink to="playwright-crawler/class/BrowserFetchHttpClient">`BrowserFetchHttpClient`</ApiLink> sends each request with `fetch()` from a Playwright browser context you have already set up, so an HTTP-based crawler gets the browser's session while keeping its request queue, retries and statistics.
+
+<CodeBlock language="ts">{CheerioBrowserFetchExample}</CodeBlock>
+
+The client opens one page per origin on an empty document of that origin, without loading the site, so URLs of any origin can be fetched with the cookies of the context. It keeps up to `maxOpenPages` of them open (20 by default) and closes the least recently used idle ones. With the default `blockedStatusCodes`, a `401` response fails the request, and `errorHandler` runs before it is retried, so log in again there, in a new page of the context. Keep in mind that:
+
+- redirects to another origin fail, as the browser treats them as cross-origin requests,
+- the browser uses its own cookies and hides the `Cookie` and `Set-Cookie` headers, so the session's cookie jar is not used,
+- the `proxyUrl`, `fingerprint` and `ignoreTlsErrors` options are ignored, as the browser context decides them,
+- the browser sends only a few HTTP/1.1 requests to one host at a time (6 in Chromium), and the others wait in the browser, counting towards the navigation timeout.
 
 ## Creating custom HTTP clients
 
