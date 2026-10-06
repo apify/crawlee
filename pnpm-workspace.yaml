@@ -18,15 +18,8 @@ minimumReleaseAgeExclude:
   - "got-scraping"
 
 overrides:
-  # lerna 9.x's bundled code (`__toESM(require('minimatch')).default(...)`) only
-  # works with v3, whose CJS export *is* the function — pin lerna's nested copy
-  # there; the old blanket `minimatch: ^9.0.0` dedupe (everywhere else) was
-  # dropped since it now holds direct v10 consumers (e.g. @crawlee/basic) below
-  # their declared range with no remaining benefit.
   "@puppeteer/browsers": "^3.0.4"
   tar: "^7.5.16"
-  "lerna>js-yaml": "^4.2.0"
-  "lerna>minimatch": "^3.1.4"
   # The e2e tests run the `apify` SDK against the local 4.x workspace packages.
   # The default `latest`/`next` tags are the 3.x SDK, which is not runtime
   # compatible with `@crawlee/core@4` (e.g. `Configuration.INTEGER_VARS` was
