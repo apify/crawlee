@@ -3883,6 +3883,37 @@ describe('BasicCrawler', () => {
             expect(stats).toMatchObject({ requestsFailed: 1 });
         });
 
+        test(
+            'a timed out onSkippedRequest uses up the retry budget instead of looping',
+            { timeout: 5_000 },
+            async () => {
+                serviceLocator.reset();
+                serviceLocator.setStorageBackend(new MemoryStorageBackend());
+                serviceLocator.setConfiguration(new Configuration({ internalTimeoutMillis: 100 }));
+
+                const requestHandler = vitest.fn(async ({ skipRequest }) => skipRequest());
+                const failedRequestHandler = vitest.fn();
+
+                // never settles, so every attempt times out
+                const onSkippedRequest = vitest.fn(() => new Promise<never>(() => {}));
+
+                const crawler = new BasicCrawler({
+                    maxRequestRetries: 2,
+                    requestHandlerTimeoutSecs: 1,
+                    requestHandler,
+                    failedRequestHandler,
+                    onSkippedRequest,
+                });
+
+                const stats = await crawler.run(['https://example.com/skipped']);
+
+                expect(requestHandler).toHaveBeenCalledTimes(3);
+                expect(onSkippedRequest).toHaveBeenCalledTimes(3);
+                expect(failedRequestHandler).toHaveBeenCalledOnce();
+                expect(stats).toMatchObject({ requestsFailed: 1 });
+            },
+        );
+
         test('marking a skipped request as handled is retried', async () => {
             const url = 'https://example.com/skipped';
             const requestManager = await RequestQueue.open();

@@ -2645,10 +2645,31 @@ export class BasicCrawler<
         // because the transaction is already closed. A no-op when the commit in `handleRequest` succeeded.
         currentStorageTransaction()?.rollback();
 
-        const err = this.unwrapError(rawError);
-        const context = crawlingContext as CrawlingContext;
-        const retryCountBefore = request.retryCount;
         const resumeRequestTimeout = crawlingContext[suspendTimeoutKey]?.();
+
+        try {
+            const unwrappedError = this.unwrapError(rawError);
+            // A failing or timed out `onSkippedRequest` makes this an ordinary failure, so the request gets retried.
+            const err =
+                unwrappedError instanceof ContextPipelineInterruptedError
+                    ? await this.#trySkipRequest(unwrappedError, request, requestSource)
+                    : unwrappedError;
+
+            if (err) {
+                await this.#runErrorHandler(err, crawlingContext as CrawlingContext, requestSource, request);
+            }
+        } finally {
+            resumeRequestTimeout?.();
+        }
+    }
+
+    async #runErrorHandler(
+        err: Error,
+        context: CrawlingContext,
+        requestSource: IRequestManager,
+        request: CrawlingRequest,
+    ) {
+        const retryCountBefore = request.retryCount;
 
         try {
             request.state = RequestState.ERROR_HANDLER;
@@ -2672,7 +2693,7 @@ export class BasicCrawler<
                 // Not worth crashing the crawler over. The request's state is unknown, so it gets retried - and the
                 // retry is counted, so that an error handler that always times out does not retry it forever.
                 this.log.warning(unwrappedSecondaryError.message);
-                if (!(err instanceof ContextPipelineInterruptedError) && request.retryCount === retryCountBefore) {
+                if (request.retryCount === retryCountBefore) {
                     request.retryCount++;
                 }
             } else if (!(unwrappedSecondaryError instanceof CriticalError)) {
@@ -2702,8 +2723,6 @@ export class BasicCrawler<
             if (!timedOut) {
                 throw unwrappedSecondaryError;
             }
-        } finally {
-            resumeRequestTimeout?.();
         }
 
         // decrease the session score if the request fails (but the error handler did not throw);
@@ -2804,16 +2823,6 @@ export class BasicCrawler<
         request: CrawlingRequest,
         source: IRequestManager,
     ): Promise<void> {
-        if (error instanceof ContextPipelineInterruptedError) {
-            try {
-                await this.#settleSkippedRequest(error, request, source);
-                return;
-            } catch (callbackError) {
-                // A failing `onSkippedRequest` makes this an ordinary failure, so the request gets retried.
-                error = this.unwrapError(callbackError);
-            }
-        }
-
         if (error instanceof RequestThrottledError) {
             // The domain told us to come back later, so the request was never really attempted. Put it back where
             // it was, without recording a failure - it costs neither a retry nor session reputation.
@@ -2842,16 +2851,15 @@ export class BasicCrawler<
                 );
             } catch (handlerError) {
                 if (handlerError instanceof ContextPipelineInterruptedError) {
-                    try {
-                        await this.#settleSkippedRequest(handlerError, request, source);
+                    const skipError = await this.#trySkipRequest(handlerError, request, source);
+                    if (!skipError) {
                         return;
-                    } catch (callbackError) {
-                        // Retry for the original error. Routing `callbackError` through `errorHandler` again
-                        // would loop forever with a handler that always skips.
-                        this.log.warning(`Skipping request ${request.url} failed, retrying it instead.`, {
-                            error: this.unwrapError(callbackError).message,
-                        });
                     }
+                    // Retry for the original error. Routing `skipError` through `errorHandler` again
+                    // would loop forever with a handler that always skips.
+                    this.log.warning(`Skipping request ${request.url} failed, retrying it instead.`, {
+                        error: skipError.message,
+                    });
                 } else {
                     throw handlerError;
                 }
@@ -2903,23 +2911,32 @@ export class BasicCrawler<
         await this.handleFailedRequestHandler(crawlingContext, error); // This function prints an error message.
     }
 
-    /** Settles a skipped request. If `onSkippedRequest` throws, the request is left untouched. */
-    async #settleSkippedRequest(
+    /** Settles a skipped request. Returns the error that prevented that, leaving the request untouched if `onSkippedRequest` failed. */
+    async #trySkipRequest(
         error: ContextPipelineInterruptedError,
         request: CrawlingRequest,
         source: IRequestManager,
-    ): Promise<void> {
-        await this.#handleSkippedRequest({ request, reason: error.reason, message: error.skipMessage });
-        request.state = RequestState.SKIPPED;
-        request.noRetry = true;
-        await this.timeoutAndRetry(
-            async () => source.markRequestAsHandled(request),
-            this.internalTimeoutMillis,
-            `Marking request ${request.url} (${request.id}) as handled timed out after ${
-                this.internalTimeoutMillis / 1e3
-            } seconds.`,
-        );
-        this.statistics.discardRequestRecord(request.id || request.uniqueKey);
+    ): Promise<Error | undefined> {
+        try {
+            await addTimeoutToPromise(
+                async () => this.#handleSkippedRequest({ request, reason: error.reason, message: error.skipMessage }),
+                this.internalTimeoutMillis,
+                `onSkippedRequest for ${request.url} (${request.id}) timed out after ${this.internalTimeoutMillis / 1e3} seconds.`,
+            );
+            request.state = RequestState.SKIPPED;
+            request.noRetry = true;
+            await this.timeoutAndRetry(
+                async () => source.markRequestAsHandled(request),
+                this.internalTimeoutMillis,
+                `Marking request ${request.url} (${request.id}) as handled timed out after ${
+                    this.internalTimeoutMillis / 1e3
+                } seconds.`,
+            );
+            this.statistics.discardRequestRecord(request.id || request.uniqueKey);
+            return undefined;
+        } catch (settleError) {
+            return this.unwrapError(settleError);
+        }
     }
 
     // oxlint-disable-next-line crawlee/prefer-private-fields -- patched by @crawlee/otel
