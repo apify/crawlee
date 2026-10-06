@@ -162,6 +162,29 @@ export interface RestrictedCrawlingContext<UserData extends Dictionary = Diction
      * A preconfigured logger for the request handler.
      */
     log: CrawleeLogger;
+
+    /**
+     * Stops processing the current request and marks it as handled without counting it as a failure: no retry, no
+     * `failedRequestHandler`, and no error log. The request's `state` becomes {@apilink RequestState.SKIPPED|`SKIPPED`}
+     * and {@apilink BasicCrawlerOptions.onSkippedRequest|`onSkippedRequest`} fires with the `'manual'` reason.
+     *
+     * Storage writes made for the request so far are rolled back, as with a failure, unless
+     * {@apilink BasicCrawlerOptions.transactionalStorage|`transactionalStorage`} is disabled.
+     *
+     * Works in `errorHandler` too, skipping a request that would otherwise be retried. In `failedRequestHandler` it
+     * has no effect, since the request has already failed.
+     *
+     * ```ts
+     * preNavigationHooks: [
+     *     async ({ request, skipRequest }) => {
+     *         if (await alreadyScraped(request.url)) skipRequest('already scraped');
+     *     },
+     * ],
+     * ```
+     *
+     * @param message Passed to `onSkippedRequest`.
+     */
+    skipRequest(message?: string): never;
 }
 
 export interface CrawlingContext<UserData extends Dictionary = Dictionary> extends RestrictedCrawlingContext<UserData> {

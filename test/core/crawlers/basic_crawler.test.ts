@@ -2172,16 +2172,15 @@ describe('BasicCrawler', () => {
             // the request is never handled, so the queue never finishes; `stop()` lets the in-flight request wind down
             extendContext: () => {
                 crawler.stop();
-                throw new ContextPipelineInterruptedError('skipped by the test');
+                throw new ContextPipelineInterruptedError('manual', 'skipped by the test');
             },
             requestHandler: async () => {},
         });
         const warningSpy = vitest.spyOn(crawler.log, 'warning');
 
         await expect(crawler.run(['https://example.com'])).resolves.toBeDefined();
-        // anchored, so that the `timeoutAndRetry` retry warnings ("... (retrying 1/3)") do not count
         expect(warningSpy).toHaveBeenCalledWith(
-            expect.stringMatching(/^Marking request .* as handled timed out after 0\.1 seconds\.$/),
+            expect.stringMatching(/^Handling request failure of .* timed out after 0\.1 seconds\.$/),
         );
     });
 
@@ -3779,6 +3778,198 @@ describe('BasicCrawler', () => {
                     { url: 'http://example.com/3', reason: 'limit' },
                 ]);
             }
+        });
+    });
+
+    describe('skipRequest()', () => {
+        test.each(['extendContext', 'requestHandler'] as const)(
+            'called from %s settles the request as skipped, not failed',
+            async (caller) => {
+                const url = 'https://example.com/skipped';
+                const onSkippedRequest = vitest.fn();
+                const failedRequestHandler = vitest.fn();
+                let attempts = 0;
+                const requestManager = await RequestQueue.open();
+
+                const crawler = new BasicCrawler({
+                    requestManager,
+                    maxRequestRetries: 3,
+                    extendContext: ({ skipRequest }) => {
+                        if (caller === 'extendContext') {
+                            attempts++;
+                            skipRequest('not interesting');
+                        }
+                        return {};
+                    },
+                    requestHandler: async ({ skipRequest }) => {
+                        attempts++;
+                        skipRequest('not interesting');
+                    },
+                    failedRequestHandler,
+                    onSkippedRequest,
+                });
+
+                const stats = await crawler.run([url]);
+
+                expect(attempts).toBe(1);
+                expect(failedRequestHandler).not.toHaveBeenCalled();
+                expect(stats).toMatchObject({ requestsFailed: 0, requestsSucceeded: 0 });
+                expect(onSkippedRequest).toHaveBeenCalledExactlyOnceWith(
+                    expect.objectContaining({ reason: 'manual', message: 'not interesting' }),
+                );
+
+                const stored = await requestManager.getRequest(url);
+                expect(stored?.handledAt).toBeDefined();
+                expect(CrawlingRequest.fromSchema(stored!).state).toBe(RequestState.SKIPPED);
+            },
+        );
+
+        test('called from errorHandler settles the request as skipped', async () => {
+            const url = 'https://example.com/skipped';
+            const onSkippedRequest = vitest.fn();
+            const failedRequestHandler = vitest.fn();
+            const requestHandler = vitest.fn(async () => {
+                throw new Error('404');
+            });
+            const requestManager = await RequestQueue.open();
+            let inMemoryRequest: CrawlingRequest | undefined;
+
+            const crawler = new BasicCrawler({
+                requestManager,
+                maxRequestRetries: 3,
+                requestHandler,
+                errorHandler: ({ request, skipRequest }) => {
+                    inMemoryRequest = request;
+                    skipRequest('gone');
+                },
+                failedRequestHandler,
+                onSkippedRequest,
+            });
+
+            const stats = await crawler.run([url]);
+
+            expect(requestHandler).toHaveBeenCalledOnce();
+            expect(failedRequestHandler).not.toHaveBeenCalled();
+            expect(stats).toMatchObject({ requestsFailed: 0, requestsSucceeded: 0 });
+            expect(onSkippedRequest).toHaveBeenCalledExactlyOnceWith(
+                expect.objectContaining({ reason: 'manual', message: 'gone' }),
+            );
+
+            const stored = await requestManager.getRequest(url);
+            expect(stored?.handledAt).toBeDefined();
+            expect(CrawlingRequest.fromSchema(stored!).state).toBe(RequestState.SKIPPED);
+            expect(inMemoryRequest?.state).toBe(RequestState.SKIPPED);
+        });
+
+        test('called from failedRequestHandler leaves the request failed and does not crash the crawler', async () => {
+            const onSkippedRequest = vitest.fn();
+
+            const crawler = new BasicCrawler({
+                maxRequestRetries: 0,
+                requestHandler: async () => {
+                    throw new Error('404');
+                },
+                failedRequestHandler: ({ skipRequest }) => skipRequest('gone'),
+                onSkippedRequest,
+            });
+            const warningSpy = vitest.spyOn(crawler.log, 'warning');
+
+            const stats = await crawler.run(['https://example.com/failed']);
+
+            expect(stats).toMatchObject({ requestsFailed: 1 });
+            expect(onSkippedRequest).not.toHaveBeenCalled();
+            expect(warningSpy).toHaveBeenCalledWith(expect.stringContaining('skipRequest()'));
+        });
+
+        test('a throwing onSkippedRequest retries the request instead of crashing the crawler', async () => {
+            const url = 'https://example.com/skipped';
+            const requestHandler = vitest.fn(async ({ skipRequest }) => skipRequest());
+            const onSkippedRequest = vitest
+                .fn()
+                .mockRejectedValueOnce(new Error('webhook down'))
+                .mockResolvedValue(undefined);
+            const requestManager = await RequestQueue.open();
+
+            const crawler = new BasicCrawler({ requestManager, requestHandler, onSkippedRequest });
+            const stats = await crawler.run([url]);
+
+            expect(requestHandler).toHaveBeenCalledTimes(2);
+            expect(onSkippedRequest).toHaveBeenCalledTimes(2);
+            expect(stats).toMatchObject({ requestsFailed: 0 });
+            const stored = await requestManager.getRequest(url);
+            expect(CrawlingRequest.fromSchema(stored!).state).toBe(RequestState.SKIPPED);
+        });
+
+        test('a throwing onSkippedRequest does not loop with an errorHandler that always skips', async () => {
+            const requestHandler = vitest.fn(async () => {
+                throw new Error('404');
+            });
+            const failedRequestHandler = vitest.fn();
+
+            const crawler = new BasicCrawler({
+                maxRequestRetries: 2,
+                requestHandler,
+                errorHandler: ({ skipRequest }) => skipRequest(),
+                failedRequestHandler,
+                onSkippedRequest: async () => {
+                    throw new Error('webhook down');
+                },
+            });
+            const stats = await crawler.run(['https://example.com/skipped']);
+
+            expect(requestHandler).toHaveBeenCalledTimes(3);
+            expect(failedRequestHandler).toHaveBeenCalledOnce();
+            expect(stats).toMatchObject({ requestsFailed: 1 });
+        });
+
+        test(
+            'a timed out onSkippedRequest uses up the retry budget instead of looping',
+            { timeout: 5_000 },
+            async () => {
+                serviceLocator.reset();
+                serviceLocator.setStorageBackend(new MemoryStorageBackend());
+                serviceLocator.setConfiguration(new Configuration({ internalTimeoutMillis: 100 }));
+
+                const requestHandler = vitest.fn(async ({ skipRequest }) => skipRequest());
+                const failedRequestHandler = vitest.fn();
+
+                // never settles, so every attempt times out
+                const onSkippedRequest = vitest.fn(() => new Promise<never>(() => {}));
+
+                const crawler = new BasicCrawler({
+                    maxRequestRetries: 2,
+                    requestHandlerTimeoutSecs: 1,
+                    requestHandler,
+                    failedRequestHandler,
+                    onSkippedRequest,
+                });
+
+                const stats = await crawler.run(['https://example.com/skipped']);
+
+                expect(requestHandler).toHaveBeenCalledTimes(3);
+                expect(onSkippedRequest).toHaveBeenCalledTimes(3);
+                expect(failedRequestHandler).toHaveBeenCalledOnce();
+                expect(stats).toMatchObject({ requestsFailed: 1 });
+            },
+        );
+
+        test('marking a skipped request as handled is retried', async () => {
+            const url = 'https://example.com/skipped';
+            const requestManager = await RequestQueue.open();
+            const markRequestAsHandled = requestManager.markRequestAsHandled.bind(requestManager);
+            vitest
+                .spyOn(requestManager, 'markRequestAsHandled')
+                .mockRejectedValueOnce(new Error('storage hiccup'))
+                .mockImplementation(markRequestAsHandled);
+
+            const crawler = new BasicCrawler({
+                requestManager,
+                requestHandler: async ({ skipRequest }) => skipRequest(),
+            });
+            await crawler.run([url]);
+
+            const stored = await requestManager.getRequest(url);
+            expect(stored?.handledAt).toBeDefined();
         });
     });
 

@@ -623,6 +623,32 @@ test('extendContext is visible to pre/post-navigation hooks and the request hand
     expect(seenIn.requestHandler).toBe('from-extend-context');
 });
 
+test('skipRequest() in a navigation hook skips the request and rolls back its storage writes', async () => {
+    const onSkippedRequest = vitest.fn();
+    const requestHandler = vitest.fn();
+
+    const crawler = new HttpCrawler({
+        maxRequestRetries: 3,
+        preNavigationHooks: [
+            async ({ pushData, skipRequest }) => {
+                await pushData({ written: 'before the skip' });
+                skipRequest('already scraped');
+            },
+        ],
+        requestHandler,
+        onSkippedRequest,
+    });
+
+    const stats = await crawler.run([url]);
+
+    expect(requestHandler).not.toHaveBeenCalled();
+    expect(stats).toMatchObject({ requestsFailed: 0, requestsSucceeded: 0 });
+    expect(onSkippedRequest).toHaveBeenCalledExactlyOnceWith(
+        expect.objectContaining({ reason: 'manual', message: 'already scraped' }),
+    );
+    await expect(crawler.getData()).resolves.toMatchObject({ items: [] });
+});
+
 test('works with a custom HttpClient', async () => {
     const results: string[] = [];
 

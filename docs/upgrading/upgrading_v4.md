@@ -904,6 +904,12 @@ The `robotsTxtFile` / `respectRobotsTxtFile` per-call options are removed from `
 
 The callback now gets `{ request, reason }` instead of `{ url, reason }` — use `request.url` for the URL.
 
+### Skipping a request with `context.skipRequest()`
+
+In v3, skipping a request without it counting as a failure took a hack: set `request.noRetry`, throw, then decrement `requestsFailed` and silence the error log. Call `skipRequest(message?)` from the crawling context instead — in `extendContext`, a navigation hook, the request handler or the `errorHandler`. The request is marked as handled with `state` set to `RequestState.SKIPPED`, is neither retried nor passed to `failedRequestHandler`, and `onSkippedRequest` fires with the new `'manual'` reason. Storage writes made for the request before the skip are rolled back.
+
+See the [Skipping requests](../examples/skip-request) example.
+
 ### robots.txt error responses follow RFC 9309
 
 v3 parsed the body of a robots.txt response regardless of its status code. v4 follows [RFC 9309](https://www.rfc-editor.org/rfc/rfc9309#section-2.3.1.3) instead: a `4xx` response allows everything and a `5xx` response disallows everything, whatever the body says.
