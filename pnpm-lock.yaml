@@ -171,8 +171,6 @@ catalogs:
 overrides:
   '@puppeteer/browsers': ^3.0.4
   tar: ^7.5.16
-  lerna>js-yaml: ^4.2.0
-  lerna>minimatch: ^3.1.4
   apify: ^4.0.0-beta.46
   apify>@crawlee/core: workspace:*
   apify>@crawlee/fs-storage: workspace:*
@@ -9053,6 +9051,10 @@ packages:
   js-tokens@4.0.0:
     resolution: {integrity: sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ==}
 
+  js-yaml@4.3.0:
+    resolution: {integrity: sha512-1td788aAnnZ5qs7V2QIRl1owjtYpbKt749Y3xauqQgwIIGF/xXWz1wMTEBx5O3LK3lXLVuqXPdPxj2BoFHaW9Q==}
+    hasBin: true
+
   js-yaml@4.3.2:
     resolution: {integrity: sha512-SFNOvSJ+Dgf/9An904Yx+CgSlIPCkIpao4qo51lpee25TIRejdH3rhR4EZMGoNx3/TP3O+wzWuiTFl4sqbltzA==}
     hasBin: true
@@ -9795,6 +9797,9 @@ packages:
   minimatch@10.2.6:
     resolution: {integrity: sha512-vpLQEs+VLCr1nU0BXS07maYoFwlDAH0gngQuuttxIwutDFEMHq2blX+8vpgxDdK3J1PwjCJiep77OitTZ4Ll1A==}
     engines: {node: 18 || 20 || >=22}
+
+  minimatch@3.1.4:
+    resolution: {integrity: sha512-twmL+S8+7yIsE9wsqgzU3E8/LumN3M3QELrBZ20OdmQ9jB2JvW5oZtBEmft84k/Gs5CG9mqtWc6Y9vW+JEzGxw==}
 
   minimatch@3.1.5:
     resolution: {integrity: sha512-VgjWUsnnT6n+NUk6eZq77zeFdpW2LWDzP6zFGrCbHXiYNul5Dzqk2HHQ5uFH2DNW5Xbp8+jVzaeNt94ssEEl4w==}
@@ -23010,6 +23015,10 @@ snapshots:
 
   js-tokens@4.0.0: {}
 
+  js-yaml@4.3.0:
+    dependencies:
+      argparse: 2.0.1
+
   js-yaml@4.3.2:
     dependencies:
       argparse: 2.0.1
@@ -23176,12 +23185,12 @@ snapshots:
       ini: 1.3.8
       init-package-json: 8.2.2
       inquirer: 12.9.6(@types/node@24.19.1)
-      js-yaml: 4.3.2
+      js-yaml: 4.3.0
       libnpmaccess: 10.0.3(supports-color@7.2.0)
       libnpmpublish: 11.1.2(supports-color@7.2.0)
       load-json-file: 6.2.0
       make-fetch-happen: 15.0.2(supports-color@7.2.0)
-      minimatch: 3.1.5
+      minimatch: 3.1.4
       npm-package-arg: 13.0.1
       npm-packlist: 10.0.3
       npm-registry-fetch: 19.1.0(supports-color@7.2.0)
@@ -24120,6 +24129,10 @@ snapshots:
   minimatch@10.2.6:
     dependencies:
       brace-expansion: 5.0.12
+
+  minimatch@3.1.4:
+    dependencies:
+      brace-expansion: 1.1.21
 
   minimatch@3.1.5:
     dependencies:
