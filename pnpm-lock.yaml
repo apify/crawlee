@@ -172,7 +172,7 @@ overrides:
   '@puppeteer/browsers': ^3.0.4
   tar: ^7.5.16
   lerna>js-yaml: ^4.2.0
-  lerna>minimatch: ^3.1.4
+  lerna>minimatch: ^10.0.0
   apify: ^4.0.0-beta.46
   apify>@crawlee/core: workspace:*
   apify>@crawlee/fs-storage: workspace:*
@@ -23582,7 +23582,7 @@ snapshots:
       libnpmpublish: 11.1.2(supports-color@7.2.0)
       load-json-file: 6.2.0
       make-fetch-happen: 15.0.2(supports-color@7.2.0)
-      minimatch: 3.1.5
+      minimatch: 10.2.6
       npm-package-arg: 13.0.1
       npm-packlist: 10.0.3
       npm-registry-fetch: 19.1.0(supports-color@7.2.0)
