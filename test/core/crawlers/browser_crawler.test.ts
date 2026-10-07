@@ -19,9 +19,7 @@ import { bindMethodsToServiceLocator, MemoryStorageBackend, serviceLocator, Serv
 import type { PuppeteerGoToOptions } from '@crawlee/puppeteer';
 import { EnqueueStrategy, ProxyConfiguration, Request, RequestList, RequestState, Session } from '@crawlee/puppeteer';
 import { sleep } from '@crawlee/utils';
-// @ts-ignore This only throws when compiled against puppeteer 25+ (ESM only), we only import types, so its alllll gooooood
 import type { HTTPResponse } from 'puppeteer';
-// @ts-ignore This only throws when compiled against puppeteer 25+ (ESM only), vitest executes tests as ESM, so its alllll gooooood
 import puppeteer from 'puppeteer';
 import { runExampleComServer } from '../../shared/_helper.js';
 

@@ -2,7 +2,6 @@ import type { BrowserLaunchContext } from '@crawlee/browser';
 import { BrowserLauncher, Configuration } from '@crawlee/browser';
 import { PuppeteerPlugin, RemotePuppeteerPlugin } from '@crawlee/browser-pool';
 import { parseArgument, schemas } from '@crawlee/utils/internal';
-// @ts-ignore This only throws when compiled against puppeteer 25+ (ESM only), we only import types, so its alllll gooooood
 import type { Browser } from 'puppeteer';
 import { z } from 'zod';
 

@@ -1,6 +1,5 @@
 import type { Configuration, CrawlerRemoteBrowserOptions } from '@crawlee/browser';
 import type { BrowserPool, BrowserPoolHooks, BrowserPoolOptions, PuppeteerPlugin } from '@crawlee/browser-pool';
-// @ts-ignore This only throws when compiled against puppeteer 25+ (ESM only), we only import types, so its alllll gooooood
 import type { Page } from 'puppeteer';
 
 import type { PuppeteerLaunchContext } from './puppeteer-launcher.js';
