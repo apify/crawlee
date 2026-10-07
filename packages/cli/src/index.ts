@@ -7,6 +7,8 @@ import { InstallPlaywrightBrowsersCommand } from './commands/install-playwright-
 
 import { RunProjectCommand } from './commands/run-project-command.js';
 
+import { UpgradeToV4Command } from './commands/UpgradeToV4Command.js';
+
 import { createRequire } from 'node:module';
 import yargs from 'yargs';
 
@@ -35,6 +37,7 @@ const cli = yargs()
     .command(new CreateProjectCommand())
     .command(new RunProjectCommand())
     .command(new InstallPlaywrightBrowsersCommand())
+    .command(new UpgradeToV4Command())
     .recommendCommands()
     .showHelpOnFail(true)
     .demandCommand(1, '')
