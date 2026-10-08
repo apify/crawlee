@@ -4,8 +4,7 @@ import merge from 'lodash.merge';
 
 import type { LaunchContextOptions } from '../launch-context.js';
 import { LaunchContext } from '../launch-context.js';
-import type { RemoteConnection, RemoteConnectionParameters } from '../remote-browser-pool.js';
-import { sanitizeEndpointForLog, type UnwrapPromise } from '../utils.js';
+import type { UnwrapPromise } from '../utils.js';
 import type { BrowserController } from './browser-controller.js';
 
 /**
@@ -123,18 +122,6 @@ export abstract class BrowserPlugin<
 
     readonly ignoreProxyCertificate?: boolean;
 
-    /**
-     * Set by {@apilink RemoteBrowserPool} when this plugin connects to a remote browser service instead of
-     * launching locally. Holds the bridge the plugin uses to resolve endpoints and release sessions; all
-     * remote-session policy lives in the pool, not here.
-     *
-     * @internal
-     */
-    remoteConnection?: RemoteConnection;
-
-    /** Static connect() parameters for a remote connection (protocol, headers, …). @internal */
-    remoteConnectionParameters?: RemoteConnectionParameters;
-
     constructor(library: Library, options: BrowserPluginOptions<LibraryOptions> = {}) {
         const {
             launchOptions = {} as LibraryOptions,
@@ -156,54 +143,6 @@ export abstract class BrowserPlugin<
     }
 
     /**
-     * Configures this plugin to connect to a remote browser using the given {@apilink RemoteConnection}.
-     * Called by {@apilink RemoteBrowserPool}; subclasses may override to apply library-specific defaults
-     * (e.g. forcing incognito pages).
-     *
-     * @internal
-     */
-    useRemoteConnection(connection: RemoteConnection, parameters: RemoteConnectionParameters = {}): void {
-        this.remoteConnection = connection;
-        this.remoteConnectionParameters = parameters;
-    }
-
-    /**
-     * Resolves a remote endpoint via the injected {@apilink RemoteConnection}, stores the session token on
-     * the launch context (so the controller can release it on close), and runs the library-specific `connect`.
-     * On failure the session is released and the error is wrapped in a {@apilink BrowserLaunchError}.
-     *
-     * Subclasses implement only the `connect` callback — the resolve / token / release / error-wrap scaffolding
-     * lives here so it stays identical across plugins.
-     */
-    protected async connectToRemoteBrowser(
-        launchContext: LaunchContext<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>,
-        connect: (url: string) => Promise<LaunchResult>,
-    ): Promise<LaunchResult> {
-        const connection = this.remoteConnection!;
-
-        let url: string;
-        let token: number;
-        try {
-            ({ url, token } = await connection.resolve({ proxyUrl: launchContext.proxyUrl }));
-        } catch (cause) {
-            throw new BrowserLaunchError('Failed to resolve the remote browser endpoint.', { cause });
-        }
-
-        launchContext.remoteToken = token;
-
-        try {
-            return await connect(url);
-        } catch (cause) {
-            await connection.release(token);
-            throw new BrowserLaunchError(
-                `Failed to connect to remote browser at "${sanitizeEndpointForLog(url)}". ` +
-                    'Check that the endpoint is reachable and accepts the configured protocol.',
-                { cause },
-            );
-        }
-    }
-
-    /**
      * Creates a `LaunchContext` with all the information needed
      * to launch a browser. Aside from library specific launch options,
      * it also includes internal properties used by `BrowserPool` for
@@ -220,7 +159,7 @@ export abstract class BrowserPlugin<
             userDataDir = this.userDataDir,
             browserPerProxy = this.browserPerProxy,
             ignoreProxyCertificate = this.ignoreProxyCertificate,
-            isRemote = !!this.remoteConnection,
+            isRemote,
         } = options;
 
         return new LaunchContext({
@@ -256,16 +195,15 @@ export abstract class BrowserPlugin<
             NewPageResult
         > = this.createLaunchContext(),
     ): Promise<LaunchResult> {
-        // launchOptions is only used by the local launch path below — remote connections ignore it.
         launchContext.launchOptions ??= {} as LibraryOptions;
 
         const { proxyUrl, launchOptions } = launchContext;
 
-        if (proxyUrl && !launchContext.isRemote) {
+        if (proxyUrl) {
             await this.addProxyToLaunchOptions(launchContext);
         }
 
-        if (!launchContext.isRemote && this.isChromiumBasedBrowser(launchContext)) {
+        if (this.isChromiumBasedBrowser(launchContext)) {
             // This will set the args for chromium based browsers to hide the webdriver.
             (launchOptions as Dictionary).args = this.#mergeArgsToHideWebdriver(launchOptions!.args);
             // When User-Agent is not set, and we're using Chromium in headless mode,
@@ -275,10 +213,6 @@ export abstract class BrowserPlugin<
             if (launchOptions!.headless && !launchContext.fingerprint && !userAgent) {
                 launchOptions!.args.push(`--user-agent=${DEFAULT_USER_AGENT}`);
             }
-        }
-
-        if (launchContext.isRemote) {
-            this.log.info('Connecting to remote browser (skipping local proxy and webdriver stealth configuration).');
         }
 
         return this._launch(launchContext);

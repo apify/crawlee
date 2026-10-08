@@ -32,7 +32,7 @@ import {
     toughCookieToBrowserPoolCookie,
     validators,
 } from '@crawlee/basic';
-import type { CommonPage, CrawlerRemoteBrowserOptions } from '@crawlee/browser-pool';
+import type { CommonPage } from '@crawlee/browser-pool';
 import type { Awaitable, Cookie as CookieObject, Dictionary, IBrowserPool } from '@crawlee/types';
 import {
     assertBrowserPoolNotConfigured,
@@ -46,6 +46,8 @@ import { sleep } from '@crawlee/utils';
 import { z } from 'zod';
 
 import { addTimeoutToPromise, TimeoutError, tryCancel } from '@apify/timeout';
+
+import type { CrawlerRemoteBrowserOptions } from './browser-launcher.js';
 
 interface BaseResponse {
     status(): number;
@@ -143,14 +145,13 @@ export interface BrowserCrawlerOptions<
     /**
      * Connect to a remote browser service (Browserbase, Browserless, Steel, …) instead of launching locally.
      *
-     * The crawler builds a {@apilink RemoteBrowserPool} around its own browser plugin, so the connection is
-     * always for the right browser — there is no plugin to construct and no way to mismatch the pool with the
-     * crawler. Supply the connection details only: a static `endpoint` URL, a function returning one per launch,
-     * or a {@apilink RemoteBrowserProvider}.
+     * The crawler builds its pool around a remote variant of its own browser plugin, so the connection is always
+     * for the right browser. Supply the connection details only: a static `endpoint` URL, a function returning one
+     * per launch, or a {@apilink RemoteBrowserProvider}.
      *
-     * Cannot be combined with `browserPool`. To tune the pool wrapping the remote connection, or to share it
-     * across crawlers, build it with the remote factory for your crawler ({@apilink remotePlaywrightBrowserPool},
-     * {@apilink remotePuppeteerBrowserPool}, {@apilink remoteStagehandBrowserPool}) and pass it as `browserPool`.
+     * Cannot be combined with `browserPool`. To tune the pool, or to share it across crawlers, pass the same
+     * `remoteBrowser` to the pool factory for your crawler ({@apilink playwrightBrowserPool},
+     * {@apilink puppeteerBrowserPool}) and pass the result as `browserPool`.
      */
     remoteBrowser?: CrawlerRemoteBrowserOptions;
 
