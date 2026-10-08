@@ -512,11 +512,6 @@ export class BrowserPool<
             throw new Error('Provided browserPlugin is not one of the plugins used by BrowserPool.');
         }
 
-        // Wait outside the limiter so a saturated pool doesn't block page creation on existing browsers.
-        while (!this.hasFreeBrowserSlot() && !this.hasActiveBrowserWithFreeCapacity()) {
-            await this.#nextCapacityChange();
-        }
-
         // Bind the limiter callback to the current async-hooks context. p-limit
         // otherwise resumes queued callbacks in the previous task's
         // AsyncLocalStorage context, leaking aborted cancelTasks across unrelated
@@ -532,12 +527,13 @@ export class BrowserPool<
             AsyncResource.bind(async () => {
                 let browserController = this.#pickBrowserWithFreeCapacity(browserPlugin, { proxyUrl });
 
-                if (!browserController)
-                    browserController = await this.#launchBrowser(id, {
-                        browserPlugin,
-                        proxyUrl,
-                        ignoreTlsErrors,
-                    });
+                // Checked under the limiter so concurrent waiters can't all pass on the same freed slot.
+                while (!browserController && !this.hasFreeBrowserSlot()) {
+                    await this.#nextCapacityChange();
+                    browserController = this.#pickBrowserWithFreeCapacity(browserPlugin, { proxyUrl });
+                }
+
+                browserController ??= await this.#launchBrowser(id, { browserPlugin, proxyUrl, ignoreTlsErrors });
                 tryCancel();
 
                 return await this.#createPageForBrowser(id, browserController, pageOptions, proxyUrl, ignoreTlsErrors);
@@ -1064,18 +1060,6 @@ export class BrowserPool<
             this.activeBrowserControllers.size +
             this.retiredBrowserControllers.size;
         return total < this.#maxOpenBrowsers;
-    }
-
-    /**
-     * Returns `true` if any active browser has room for another page.
-     *
-     * @internal
-     */
-    hasActiveBrowserWithFreeCapacity(): boolean {
-        for (const controller of this.activeBrowserControllers) {
-            if (controller.activePages < this.#maxOpenPagesPerBrowser) return true;
-        }
-        return false;
     }
 
     /**

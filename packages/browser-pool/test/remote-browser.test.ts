@@ -263,15 +263,17 @@ describe('RemotePuppeteerPlugin', () => {
 });
 
 describe('BrowserPool maxOpenBrowsers', () => {
-    it('newPage waits while at capacity, then launches once a browser is retired', async () => {
+    /** Short-circuits the launch so tests only observe *when* the pool tries to launch. */
+    function createPool() {
         const plugin = new PlaywrightPlugin(createMockPlaywrightLibrary() as any);
-        // Short-circuits the launch so the test only observes *when* the pool tries to launch.
         const launch = vi.spyOn(plugin, 'launch').mockRejectedValue(new Error('stop here'));
-        const pool = new BrowserPool({ browserPlugins: [plugin], maxOpenBrowsers: 1 });
+        return { pool: new BrowserPool({ browserPlugins: [plugin], maxOpenBrowsers: 1 }), launch };
+    }
 
+    it('newPage waits while at capacity, then launches once a browser is retired', async () => {
+        const { pool, launch } = createPool();
         let atCapacity = true;
         pool.hasFreeBrowserSlot = vi.fn(() => !atCapacity);
-        pool.hasActiveBrowserWithFreeCapacity = vi.fn(() => false);
 
         const pagePromise = pool.newPage();
         await flush();
@@ -282,6 +284,26 @@ describe('BrowserPool maxOpenBrowsers', () => {
 
         await expect(pagePromise).rejects.toThrow('stop here');
         expect(launch).toHaveBeenCalledOnce();
+        await pool.destroy();
+    });
+
+    it('a single freed slot lets exactly one waiter launch', async () => {
+        const { pool, launch } = createPool();
+        let freeSlots = 0;
+        pool.hasFreeBrowserSlot = vi.fn(() => freeSlots-- > 0);
+
+        const first = pool.newPage();
+        const second = pool.newPage();
+        await flush();
+
+        freeSlots = 1;
+        pool.emit(BROWSER_POOL_EVENTS.BROWSER_RETIRED, {} as any);
+
+        await expect(first).rejects.toThrow('stop here');
+        await flush();
+        expect(launch).toHaveBeenCalledOnce();
+
+        second.catch(() => {});
         await pool.destroy();
     });
 });
