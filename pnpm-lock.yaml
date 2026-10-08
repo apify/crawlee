@@ -348,8 +348,8 @@ importers:
         specifier: ^17.0.0
         version: 17.6.0
       nock:
-        specifier: ^14.0.10
-        version: 14.0.17
+        specifier: ^15.0.0
+        version: 15.0.1(supports-color@7.2.0)
       oxfmt:
         specifier: ^0.72.0
         version: 0.72.0
@@ -3423,9 +3423,9 @@ packages:
   '@module-federation/webpack-bundler-runtime@0.22.0':
     resolution: {integrity: sha512-aM8gCqXu+/4wBmJtVeMeeMN5guw3chf+2i6HajKtQv7SJfxV/f4IyNQJUeUQu9HfiAZHjqtMV5Lvq/Lvh8LdyA==}
 
-  '@mswjs/interceptors@0.41.9':
-    resolution: {integrity: sha512-VVPPgHyQ6ShqnrmDWuxjmUIsO9gWyOZFmuOfLd9LfBGQJwZfy0gvv9pbHSJuoFNIYC7ZDX9aoFwowjcdSC4E8w==}
-    engines: {node: '>=18'}
+  '@mswjs/interceptors@0.44.0':
+    resolution: {integrity: sha512-IYHevRStF4ijM20GI9c9Ndhw483NSAjCydQhUr4/zIB0BNLsTVw3vFAxTo6TlvX4QnV60wEHttUa9539TTAq+A==}
+    engines: {node: '>=22'}
 
   '@napi-rs/wasm-runtime@0.2.4':
     resolution: {integrity: sha512-9zESzOO5aDByvhIAsOy9TbpZ0Ur2AJbUI7UT73kcUTS2mxAMHOBaa1st/jAymNoCtvrit99kkzT1FZuXVcgfIQ==}
@@ -3661,14 +3661,8 @@ packages:
   '@octokit/types@13.10.0':
     resolution: {integrity: sha512-ifLaO34EbbPj0Xgro4G5lP5asESjwHracYJvVaPIyXMuiuXLlhic3S47cBdTb+jfODkTE5YtGCLt3Ay3+J97sA==}
 
-  '@open-draft/deferred-promise@2.2.0':
-    resolution: {integrity: sha512-CecwLWx3rhxVQF6V4bAgPS5t+So2sTbPgAzafKkVizyi7tlwpcFpdFqq+wqF2OwNBmqFuu6tOyouTuxgpMfzmA==}
-
-  '@open-draft/logger@0.3.0':
-    resolution: {integrity: sha512-X2g45fzhxH238HKO4xbSr7+wBS8Fvw6ixhTDuvLd5mqh6bJJCFAPwU9mPDxbcrRtfxv4u5IHCEH77BmxvXmmxQ==}
-
-  '@open-draft/until@2.1.0':
-    resolution: {integrity: sha512-U69T3ItWHvLwGg5eJ0n3I62nWuE6ilHlmz7zM0npLBRvPRd7e6NYmg54vvRtP5mZG7kZqZCFVdsTWo7BPtBujg==}
+  '@open-draft/until@3.0.1':
+    resolution: {integrity: sha512-s7/9ELP4aP9YZtW7RJaa0Xf3RISaRH9+EFN18FtykJYRHGNrl8f9ymvoNXzjhrjmftFvkQudtuDU9RYhk0xs3A==}
 
   '@opentelemetry/api-logs@0.222.0':
     resolution: {integrity: sha512-9mb1If+IF6u0ZVXkHQ6ogEae5HwA6ajIVUgpSDQyRASxft6BSXHvBvPooRle3yFN/fKnCdSOnuu0OC3PLcF6+g==}
@@ -8758,9 +8752,6 @@ packages:
   json-stringify-nice@1.1.4:
     resolution: {integrity: sha512-5Z5RFW63yxReJ7vANgW6eZFGWaQvnPE3WNmZoOJrSkGju2etKA2L5rrOa1sm877TVTFt57A80BH1bArcmlLfPw==}
 
-  json-stringify-safe@5.0.1:
-    resolution: {integrity: sha512-ZClg6AaYvamvYEE82d3Iyd3vSSIjQ+odgjaTzRuO3s7toCdFKczob2i0zCh7JE8kWn17yvAWhUVxvqGwUalsRA==}
-
   json5@1.0.2:
     resolution: {integrity: sha512-g1MWMLBiz8FKi1e4w0UyVL3w+iJceWAFBAaBnnGKOpNa5f8TLktkbre1+s6oICydWAm+HRUGTmI+//xv2hvXYA==}
     hasBin: true
@@ -9651,9 +9642,9 @@ packages:
   no-case@3.0.4:
     resolution: {integrity: sha512-fgAN3jGAh+RoxUGZHTSOLJIqUc2wmoBwGR4tbpNAKmmovFoWq0OdRkb0VkldReO2a2iBT/OEulG9XSUc10r3zg==}
 
-  nock@14.0.17:
-    resolution: {integrity: sha512-EjRr1weMa4ALQX35AgZTEnP+weJJjlW1KGDiNM2IQC2069YDHas4f4B4UUYR+TTLyKWxJvOz2wObDKQs/LNreA==}
-    engines: {node: '>=18.20.0 <20 || >=20.12.1'}
+  nock@15.0.1:
+    resolution: {integrity: sha512-Mjx5Xl4t9vP13eUZPWqwwpjjXNjvhUTo1qTdryVM3+7t6Z2w6WHZ9GVZk/zQ8Ym1vbmloWaglye3cloyHAJ8FA==}
+    engines: {node: '>=20.12.1'}
 
   node-addon-api@8.9.2:
     resolution: {integrity: sha512-VijLXbi3UACN69I0JVXJsX4tjACjNoQDgv2gTF6sx2wWEi8tkSg2eX8p5gSIFi8z2+DL3oHmY6OyKce38SDolg==}
@@ -10689,10 +10680,6 @@ packages:
   prop-types@15.8.1:
     resolution: {integrity: sha512-oj87CgZICdulUohogVAR7AjlC0327U4el4L6eAvOqCeudMDVU0NThNaV+b9Df4dXgSP1gXMTnPdhfe/2qDH5cg==}
 
-  propagate@2.0.1:
-    resolution: {integrity: sha512-vGrhOavPSTz4QVNuBNdcNXePNdNMaO1xj9yBeH1ScQPjk/rhg9sSlCXPhMkFuaNNW/syTvYqsnbIJxMBfRbbag==}
-    engines: {node: '>= 8'}
-
   property-information@7.2.0:
     resolution: {integrity: sha512-IAtzIB6sUiWaJYrX9smp3V46pBGbBeLFRGdh25kg1334VcBlD8HzhPeNIWQH9zhGmo2itIe25EHt9dQP7G5hmg==}
 
@@ -11151,6 +11138,9 @@ packages:
     resolution: {integrity: sha512-XQBQ3I8W1Cge0Seh+6gjj03LbmRFWuoszgK9ooCpwYIrhhoO80pfq4cUkU5DkknwfOfFteRwlZ56PYOGYyFWdg==}
     engines: {node: '>= 4'}
 
+  rettime@0.11.12:
+    resolution: {integrity: sha512-5ExtR1ppiDBQkVoPw5NAqdbfH4Iq2VOmQKHMtUoaFxA9bo2krzFYBtyq6K40xxbYp+2w/YOr6D+1ToF6tTN53A==}
+
   reusify@1.1.0:
     resolution: {integrity: sha512-g6QUff04oZpHs0eG5p83rFLhHeV00ug/Yf9nZM6fLeUrPguBTkTQOdpAWWspMh55TZfVQDPaN3NQJfbVRAxdIw==}
     engines: {iojs: '>=1.0.0', node: '>=0.10.0'}
@@ -11551,9 +11541,6 @@ packages:
 
   stream-json@3.7.0:
     resolution: {integrity: sha512-rCSBdcBP/bPk6T8QFcxAj1MSzAuc5i49cYW6IE7sYObNEPccBJIUiL6fU9c9BWt40aJK0siVynLX7lWaW8alXw==}
-
-  strict-event-emitter@0.5.1:
-    resolution: {integrity: sha512-vMgjE/GGEPEFnhFub6pa4FmJBRBVOLpIII2hvCZ8Kzb7K0hlHo7mQv6xYrBvCL2LtAIBwFUK8wvuJgTVSQ5MFQ==}
 
   string-argv@0.3.2:
     resolution: {integrity: sha512-aqD2Q0144Z+/RqG52NeHEkZauTAUWJO8c6yTftGJKO3Tja5tUgIfmIl6kExvhtxSDP7fXB6DvzkfMpCd/F3G+Q==}
@@ -16169,14 +16156,16 @@ snapshots:
       '@module-federation/runtime': 0.22.0
       '@module-federation/sdk': 0.22.0
 
-  '@mswjs/interceptors@0.41.9':
+  '@mswjs/interceptors@0.44.0(supports-color@7.2.0)':
     dependencies:
-      '@open-draft/deferred-promise': 2.2.0
-      '@open-draft/logger': 0.3.0
-      '@open-draft/until': 2.1.0
+      '@open-draft/until': 3.0.1
+      '@types/debug': 4.1.13
+      debug: 4.4.3(supports-color@7.2.0)
       is-node-process: 1.2.0
       outvariant: 1.4.3
-      strict-event-emitter: 0.5.1
+      rettime: 0.11.12
+    transitivePeerDependencies:
+      - supports-color
 
   '@napi-rs/wasm-runtime@0.2.4':
     dependencies:
@@ -16466,14 +16455,7 @@ snapshots:
     dependencies:
       '@octokit/openapi-types': 24.2.0
 
-  '@open-draft/deferred-promise@2.2.0': {}
-
-  '@open-draft/logger@0.3.0':
-    dependencies:
-      is-node-process: 1.2.0
-      outvariant: 1.4.3
-
-  '@open-draft/until@2.1.0': {}
+  '@open-draft/until@3.0.1': {}
 
   '@opentelemetry/api-logs@0.222.0':
     dependencies:
@@ -22183,8 +22165,6 @@ snapshots:
 
   json-stringify-nice@1.1.4: {}
 
-  json-stringify-safe@5.0.1: {}
-
   json5@1.0.2:
     dependencies:
       minimist: 1.2.8
@@ -23405,11 +23385,11 @@ snapshots:
       lower-case: 2.0.2
       tslib: 2.8.1
 
-  nock@14.0.17:
+  nock@15.0.1(supports-color@7.2.0):
     dependencies:
-      '@mswjs/interceptors': 0.41.9
-      json-stringify-safe: 5.0.1
-      propagate: 2.0.1
+      '@mswjs/interceptors': 0.44.0(supports-color@7.2.0)
+    transitivePeerDependencies:
+      - supports-color
 
   node-addon-api@8.9.2: {}
 
@@ -24788,8 +24768,6 @@ snapshots:
       object-assign: 4.1.1
       react-is: 16.13.1
 
-  propagate@2.0.1: {}
-
   property-information@7.2.0: {}
 
   proto-list@1.2.4: {}
@@ -25426,6 +25404,8 @@ snapshots:
 
   retry@0.13.1: {}
 
+  rettime@0.11.12: {}
+
   reusify@1.1.0: {}
 
   rimraf@3.0.2:
@@ -25967,8 +25947,6 @@ snapshots:
   stream-json@3.7.0:
     dependencies:
       stream-chain: 4.2.6
-
-  strict-event-emitter@0.5.1: {}
 
   string-argv@0.3.2: {}
 

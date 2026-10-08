@@ -111,7 +111,7 @@
         "iconv-lite": "^0.7.2",
         "lerna": "^10.0.0",
         "lint-staged": "^17.0.0",
-        "nock": "^14.0.10",
+        "nock": "^15.0.0",
         "oxfmt": "^0.72.0",
         "oxlint": "^1.86.0",
         "oxlint-tsgolint": "^7.0.2003",
