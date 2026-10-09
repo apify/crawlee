@@ -126,16 +126,19 @@ describe('upgrade', () => {
         await checkPrompt(result.stdout, join(bundledSkills, 'crawlee-upgrade-v4'));
     });
 
-    it.each(['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies'])(
-        'detects scoped Crawlee packages in %s from a nested working directory',
-        async (section) => {
-            const cwd = await project({ [section]: { '@crawlee/cheerio': '~3.15.0' } });
-            await mkdir(join(cwd, 'src'));
-            const result = runUpgrade({}, join(cwd, 'src'));
-            expect(result.status, result.stderr).toBe(0);
-            expect(result.stdout).toContain('# Crawlee upgrade plan: v3 to v4');
-        },
-    );
+    it.each([
+        ['dependencies', '@crawlee/cheerio'],
+        ['devDependencies', '@crawlee/cheerio'],
+        ['optionalDependencies', '@crawlee/cheerio'],
+        ['peerDependencies', '@crawlee/cheerio'],
+        ['dependencies', '@crawlee/browser-pool'],
+    ])('detects scoped Crawlee packages in %s (%s) from a nested working directory', async (section, name) => {
+        const cwd = await project({ [section]: { [name]: '~3.15.0' } });
+        await mkdir(join(cwd, 'src'));
+        const result = runUpgrade({}, join(cwd, 'src'));
+        expect(result.status, result.stderr).toBe(0);
+        expect(result.stdout).toContain('# Crawlee upgrade plan: v3 to v4');
+    });
 
     it('uses the installed project version for a range spanning several majors', async () => {
         const cwd = await project({ dependencies: { crawlee: '>=3 <5' } });
