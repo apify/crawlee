@@ -1,6 +1,6 @@
-import { readFile, readdir } from 'node:fs/promises';
+import { cp, readFile, readdir } from 'node:fs/promises';
 import { createRequire } from 'node:module';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import semver from 'semver';
@@ -9,6 +9,7 @@ import type { ArgumentsCamelCase, Argv, CommandModule } from 'yargs';
 interface UpgradeArgs {
     from?: number;
     to?: number;
+    export?: string;
 }
 
 const runtimePackages = new Set([
@@ -122,6 +123,10 @@ export class UpgradeCommand<T> implements CommandModule<T, UpgradeArgs> {
             .option('to', {
                 type: 'number',
                 describe: 'Target major version; defaults to the newest bundled migration',
+            })
+            .option('export', {
+                type: 'string',
+                describe: 'Copy the migration guides into this directory and link the prompt to that copy',
             });
 
     async handler(args: ArgumentsCamelCase<UpgradeArgs>) {
@@ -155,7 +160,13 @@ export class UpgradeCommand<T> implements CommandModule<T, UpgradeArgs> {
                 throw new Error(
                     `No bundled migration from v${major - 1} to v${major}. Choose a supported --to version or use a CLI with that guide.`,
                 );
-            const skillRoot = fileURLToPath(skillUrl).replace(/\\/g, '/').replace(/\/$/, '');
+            let skillPath = fileURLToPath(skillUrl);
+            if (args.export !== undefined) {
+                const target = join(resolve(args.export), `crawlee-upgrade-v${major}`);
+                await cp(skillPath, target, { recursive: true });
+                skillPath = target;
+            }
+            const skillRoot = skillPath.replace(/\\/g, '/').replace(/\/$/, '');
             const prompt = await readFile(new URL('SKILL.md', skillUrl), 'utf8');
             steps.push(`${steps.length + 1}. Upgrade v${major - 1} to v${major}, then verify before continuing.`);
             guides.push(body(prompt).replaceAll('{SKILL_ROOT}', () => skillRoot));
