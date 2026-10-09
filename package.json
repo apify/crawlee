@@ -33,8 +33,8 @@
     "scripts": {
         "prepublishOnly": "turbo run copy --filter=./packages/*",
         "clean": "turbo run clean --filter=./packages/* && rimraf .turbo packages/*/.turbo packages/*/*.tsbuildinfo",
-        "build": "turbo run build --filter=./packages/* && node ./scripts/typescript_fixes.mjs",
-        "ci:build": "turbo run build --filter=./packages/* --cache-dir=\".turbo\" && node ./scripts/typescript_fixes.mjs",
+        "build": "turbo run build --filter=./packages/* && node ./scripts/typescript-fixes.mjs",
+        "ci:build": "turbo run build --filter=./packages/* --cache-dir=\".turbo\" && node ./scripts/typescript-fixes.mjs",
         "test": "vitest run --silent",
         "test:e2e": "node test/e2e/run.mjs",
         "test:integration": "cross-env CRAWLEE_DIFFICULT_TESTS=1 vitest run --silent=true test/integration",

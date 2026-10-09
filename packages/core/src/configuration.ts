@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { z } from 'zod';
 
 import { log, LogLevel } from './log.js';
-import { serviceLocator } from './service_locator.js';
+import { serviceLocator } from './service-locator.js';
 
 // Crawlee attaches many listeners to shared EventEmitters (one per crawler/session/autoscaled pool),
 // which can exceed Node's default limit of 10 and trigger spurious MaxListenersExceededWarning logs.

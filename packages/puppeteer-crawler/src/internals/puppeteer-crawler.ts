@@ -20,7 +20,7 @@ import { z } from 'zod';
 import type { EnqueueLinksByClickingElementsOptions } from './enqueue-links/click-elements.js';
 import { puppeteerBrowserPool } from './puppeteer-browser-pool.js';
 import type { PuppeteerLaunchContext } from './puppeteer-launcher.js';
-import type { InterceptHandler } from './utils/puppeteer_request_interception.js';
+import type { InterceptHandler } from './utils/puppeteer-request-interception.js';
 import type {
     BlockRequestsOptions,
     DirectNavigationOptions,
@@ -28,8 +28,8 @@ import type {
     InjectFileOptions,
     PuppeteerContextUtils,
     SaveSnapshotOptions,
-} from './utils/puppeteer_utils.js';
-import * as puppeteerUtils from './utils/puppeteer_utils.js';
+} from './utils/puppeteer-utils.js';
+import * as puppeteerUtils from './utils/puppeteer-utils.js';
 
 export type PuppeteerGoToOptions = NonNullable<Parameters<Page['goto']>[1]>;
 

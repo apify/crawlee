@@ -60,16 +60,16 @@ import { LruCache } from '@apify/datastructures';
 import { addTimeoutToPromise, extendTimeout, storage as timeoutStorage, TimeoutError, tryCancel } from '@apify/timeout';
 import { cryptoRandomObjectId } from '@apify/utilities';
 
-import type { AutoscaledPoolOptions, TaskLoopOptions } from './autoscaling/autoscaled_pool.js';
-import type { ConcurrencySystemOptions, IConcurrencySystem } from './autoscaling/concurrency_system.js';
-import { ConcurrencySystem } from './autoscaling/concurrency_system.js';
-import type { FinalStatistics } from './autoscaling/system_status.js';
-import { mergeCookies } from './cookie_utils.js';
-import type { CleanupRegistrar } from './crawlers/context_pipeline.js';
-import { ContextPipeline } from './crawlers/context_pipeline.js';
-import type { CrawlingContext, TypedRequestsLike } from './crawlers/crawler_commons.js';
-import type { CrawlingRequestData, SkippedRequestReason } from './crawling_request.js';
-import { CrawlingRequest, RequestState } from './crawling_request.js';
+import type { AutoscaledPoolOptions, TaskLoopOptions } from './autoscaling/autoscaled-pool.js';
+import type { ConcurrencySystemOptions, IConcurrencySystem } from './autoscaling/concurrency-system.js';
+import { ConcurrencySystem } from './autoscaling/concurrency-system.js';
+import type { FinalStatistics } from './autoscaling/system-status.js';
+import { mergeCookies } from './cookie-utils.js';
+import type { CleanupRegistrar } from './crawlers/context-pipeline.js';
+import { ContextPipeline } from './crawlers/context-pipeline.js';
+import type { CrawlingContext, TypedRequestsLike } from './crawlers/crawler-commons.js';
+import type { CrawlingRequestData, SkippedRequestReason } from './crawling-request.js';
+import { CrawlingRequest, RequestState } from './crawling-request.js';
 import {
     ContextPipelineCleanupError,
     ContextPipelineInterruptedError,
@@ -83,7 +83,7 @@ import {
 } from './errors.js';
 import type { IStatistics, StatisticState } from './crawlers/statistics.js';
 import { Statistics } from './crawlers/statistics.js';
-import type { EnqueueUrlsOptions, SkippedRequestCallback } from './enqueue_links/index.js';
+import type { EnqueueUrlsOptions, SkippedRequestCallback } from './enqueue-links/index.js';
 import {
     applyRequestTransform,
     buildEnqueueStrategyPatterns,
@@ -91,7 +91,7 @@ import {
     createRequestOptions,
     createSkippedRequestArgs,
     filterRequestOptionsByPatterns,
-} from './enqueue_links/index.js';
+} from './enqueue-links/index.js';
 import { parseRetryAfterHeader } from './http.js';
 import { CrawlerRun } from './crawler-run.js';
 import {
@@ -105,10 +105,10 @@ import {
 import { createSendRequest } from './send-request.js';
 import type { GetUserDataFromRequest, RouterHandler, RouterRoutes } from './router.js';
 import { Router, validateUserData } from './router.js';
-import { BLOCKED_STATUS_CODES } from './session_pool/consts.js';
-import { Session } from './session_pool/session.js';
-import { SessionPool } from './session_pool/session_pool.js';
-import { ThrottlingRequestManager } from './throttling_request_manager.js';
+import { BLOCKED_STATUS_CODES } from './session-pool/consts.js';
+import { Session } from './session-pool/session.js';
+import { SessionPool } from './session-pool/session-pool.js';
+import { ThrottlingRequestManager } from './throttling-request-manager.js';
 
 class LazyDefaultHttpClient extends BaseHttpClient {
     readonly #delegatePromise: Promise<BaseHttpClient>;
@@ -1325,7 +1325,7 @@ export class BasicCrawler<
                         return true;
                     }
 
-                    // `maybeFinish()` calls this only once nothing is in flight (`autoscaled_pool.ts`) - the point
+                    // `maybeFinish()` calls this only once nothing is in flight (`autoscaled-pool.ts`) - the point
                     // where a crawl that cannot progress becomes distinguishable from one that is merely waiting,
                     // and the only place where throwing does not abandon requests mid-processing.
                     const state = await this.requestManager?.checkReadiness();
