@@ -3092,6 +3092,37 @@ describe('BasicCrawler', () => {
             expect(addRequestsBatchedSpy).toHaveBeenCalledOnce();
         });
 
+        test('fetches robots.txt with browser-like headers through the crawler http client', async () => {
+            // Bot protection: only browser-like clients get the real robots.txt, others get a 403.
+            const server = http.createServer((req, res) => {
+                if (req.url !== '/robots.txt') {
+                    res.writeHead(200).end();
+                } else if (req.headers['user-agent']?.includes('Mozilla')) {
+                    res.end('User-agent: *\nDisallow: /private\n');
+                } else {
+                    res.writeHead(403).end();
+                }
+            });
+            await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+            const { port } = server.address() as AddressInfo;
+
+            const handled: string[] = [];
+            const crawler = new BasicCrawler({
+                respectRobotsTxtFile: true,
+                requestHandler: async ({ request }) => {
+                    handled.push(new URL(request.url).pathname);
+                },
+            });
+
+            try {
+                await crawler.run([`http://127.0.0.1:${port}/public`, `http://127.0.0.1:${port}/private`]);
+            } finally {
+                server.close();
+            }
+
+            expect(handled).toEqual(['/public']);
+        });
+
         describe('robots.txt crawl-delay', () => {
             const crawlerWithCrawlDelay = (options: Partial<BasicCrawlerOptions>) =>
                 new (class MockedRobotsTxtCrawler extends BasicCrawler {
