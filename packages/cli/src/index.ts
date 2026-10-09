@@ -39,7 +39,16 @@ const cli = yargs()
     .command(new InstallPlaywrightBrowsersCommand())
     .command(new UpgradeCommand())
     .recommendCommands()
-    .showHelpOnFail(true)
+    .showHelpOnFail(false)
+    .fail((message, error, instance) => {
+        if (error) {
+            console.error(error.message);
+        } else {
+            instance.showHelp();
+            console.error(`\n${message}`);
+        }
+        process.exit(1);
+    })
     .demandCommand(1, '')
     .strict();
 
