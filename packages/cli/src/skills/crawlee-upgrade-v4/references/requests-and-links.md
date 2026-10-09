@@ -2,7 +2,7 @@
 
 ## Link filtering
 
-Combine `globs` and `regexps` into `include`. Translate `pseudoUrls` to equivalent anchored regular expressions or globs; `PseudoUrl` is removed. Literal portions of a pseudo-URL must remain escaped, while bracketed patterns retain their regex meaning.
+Combine `globs` and `regexps` into `include` on `enqueueLinks()`, `enqueueLinksByClickingElements()` and `SitemapRequestLoader`. Translate `pseudoUrls` to equivalent anchored regular expressions or globs; `PseudoUrl` is removed. Literal portions of a pseudo-URL must remain escaped, while bracketed patterns retain their regex meaning.
 
 `strategy` now always applies alongside `include` using AND logic. `enqueueLinks()` defaults to `same-hostname`, so patterns matching subdomains may need `same-domain`, and deliberate cross-domain crawling may need `all`. `addRequests()` has no implicit current page and defaults to `all`.
 
