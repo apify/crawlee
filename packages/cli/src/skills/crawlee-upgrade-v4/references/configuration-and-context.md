@@ -29,7 +29,7 @@ Rename Crawlee `config` options/properties to `configuration`: storage opening, 
 
 `CRAWLEE_INTERNAL_TIMEOUT` overrides the whole-request timeout in milliseconds; values below phase timeouts are ignored. Per-route limits use the third `router.addHandler()` argument: `{ requestHandlerTimeoutSecs }`.
 
-HTTP hooks mutate context/request fields instead of receiving `gotOptions`. Browser hooks mutate `context.gotoOptions`. Read errors from the second `errorHandler` / `failedRequestHandler` argument. Replace `context.crawler` with a closure or `extendContext: () => ({ crawler })`. Extensions run before navigation; page/response-dependent logic belongs in post-hooks or handlers.
+HTTP hooks mutate context/request fields instead of receiving `gotOptions`. Browser hooks mutate `context.gotoOptions`. Read errors from the second `errorHandler` / `failedRequestHandler` argument. Replace `context.crawler` with a closure or `extendContext: () => ({ crawler })`. Extensions run before navigation; page/response-dependent logic belongs in post-hooks or handlers. The context type is strict: reads of undeclared properties such as `context.foo` fail to compile. Declare them through `extendContext` or typed `userData` instead of casting.
 
 `closeCookieModals` and `idcac-playwright` are removed. Preserve consent handling through an explicit integration, such as `@duckduckgo/autoconsent` in a pre-hook.
 
