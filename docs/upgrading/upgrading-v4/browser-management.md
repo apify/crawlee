@@ -49,7 +49,7 @@ The meta-package used to `export *` from `@crawlee/browser-pool`, which made `Br
 +import { BrowserPool, PlaywrightPlugin } from '@crawlee/browser-pool';
 ```
 
-The crawler-facing surface is unaffected: `playwrightBrowserPool()`, `puppeteerBrowserPool()` and their `remote*` counterparts still come from `crawlee` (and from `@crawlee/playwright` / `@crawlee/puppeteer`), so the common case of building a pool for a crawler needs no extra dependency.
+The crawler-facing factories `playwrightBrowserPool()` and `puppeteerBrowserPool()` still come from `crawlee` and their respective crawler packages. For a remote connection, pass `remoteBrowser` to the regular factory; there are no separate `remote*BrowserPool()` functions. Building a pool this way needs no extra dependency.
 
 ## `BrowserCrawlingContext.browserController` has been removed
 
