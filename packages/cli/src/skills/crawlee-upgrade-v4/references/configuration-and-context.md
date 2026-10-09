@@ -35,6 +35,6 @@ HTTP hooks mutate context/request fields instead of receiving `gotOptions`. Brow
 
 ## Validation and logging
 
-`ArgumentValidationError` replaces ow's `ArgumentError`; structured details are in `error.issues` and `error.cause`. Update error-message assertions. Class-valued options such as `httpClient`, `configuration` and `eventManager` require instances, including in mocks. Crawlee's zod 4.1+ dependency can coexist with application zod 3.
+`ArgumentValidationError` replaces ow's `ArgumentError`; structured details are in `error.issues` and `error.cause`. Update error-message assertions. Class-valued options such as `httpClient`, `configuration` and `eventManager` require instances, including in mocks. Crawlee's zod 4 dependency can coexist with application zod 3.
 
 Rename crawler `log` to `logger`. Wrap custom `@apify/log` instances with `new ApifyLogAdapter(log)`. Exposed loggers use `CrawleeLogger`; replace explicit `Log` annotations and call `setLevel()` on the underlying logger, not `crawler.log` or `context.log`.
