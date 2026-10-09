@@ -35,7 +35,15 @@ FileSystemStorageBackend needs no explicit initialization; its async factories o
 
 Remove `writeMetadata`; filesystem storage always writes metadata sidecars. In-memory queues have no expiring cross-process request locks; requests stay in progress until handled or reclaimed, and expected-processing-time configuration does nothing there. Disk queues retain expiring locks.
 
-Hand-placed KVS files remain readable through logical keys or filenames, but extensionless files return application/octet-stream. Malformed bare JSON now raises a parse error. Listing bare files exposes their real filename, such as INPUT.json; tracked records take precedence over corresponding bare files.
+## Input and existing KVS files
+
+`KeyValueStore.getInput()`, `Configuration.inputKey` and `CRAWLEE_INPUT_KEY` are removed. In Actor projects use `Actor.getInput()` from `apify`, which handles the platform input key, secrets and schema defaults. Plain Crawlee has no reserved input key and purges the entire default KVS on start, including `INPUT`. Preserve required local input explicitly; do not assume that moving a call to `getValue('INPUT')` preserves the old behavior.
+
+Keys are literal: `aaa` and `aaa.json` are distinct. On opening a filesystem store, files without metadata sidecars are adopted as records under their filenames. A bare `aaa.json` is read as `getValue('aaa.json')`, not `getValue('aaa')`. Dotfiles are skipped. Adoption writes metadata without changing the value bytes. JSON files get `application/json; charset=utf-8`; other files get `application/octet-stream`. Malformed JSON raises a parse error when read.
+
+The Apify SDK's `ApifyFileSystemStorageBackend` supplies the platform-specific exception: in the default store it adopts bare `INPUT` or `INPUT.json` under the key `INPUT`, and does the same for `ACTOR_INPUT_KEY`. It preserves that input during purge. If both bare files exist, opening fails rather than choosing one. `INPUT.txt` and `INPUT.bin` are ordinary records now; rename legacy Actor input to `INPUT.json` or extensionless `INPUT`. Outside the default store, even `INPUT.json` keeps its filename as the key.
+
+Custom filesystem backends can control adoption through `keyValueStoreAdoptionCandidates` and input preservation through `purgeKeyValueStore`. Plain Crawlee does neither. Inspect existing files and their consumers before changing keys or purge settings.
 
 ## Custom backend contract
 
@@ -55,10 +63,14 @@ Hand-placed KVS files remain readable through logical keys or filenames, but ext
 | Queue `updateRequest()` | `markRequestAsHandled()` / `reclaimRequest()` |
 | Queue `listHead()` | `fetchNextRequest()` |
 
-Implement `purge()` and queue backend `isEmpty()` / `isFinished()`. Lock acquisition, prolonging and deletion are backend internals; frontend distributed-lock methods and `deleteRequest()` disappear. Frontend queue `requestLockSecs`, `internalTimeoutMillis`, `clientKey` and `timeoutSecs` disappear. Outside a crawler, use `setExpectedRequestProcessingTimeSecs()` when processing may exceed the disk queue's default three-minute lock.
+Implement `purge()` and queue backend `isEmpty()` / `isFinished()`. `isEmpty()` means nothing is fetchable now; `isFinished()` also requires no in-progress requests, including those locked by other clients. Methods with no result return `undefined`, not `null`: this includes `fetchNextRequest()` and no-op `markRequestAsHandled()` / `reclaimRequest()` calls.
+
+Lock acquisition and deletion are backend internals; frontend distributed-lock methods and `deleteRequest()` disappear. A locking backend can implement `extendRequestProcessingTimeSecs(requestId, secs)` for per-request extensions from `context.extendTimeout()`. Frontend queue `requestLockSecs`, `internalTimeoutMillis`, `clientKey` and `timeoutSecs` disappear. Outside a crawler, use `setExpectedRequestProcessingTimeSecs()` when processing may exceed the disk queue's default three-minute lock. Remove the obsolete `experiments: { requestLocking: ... }` crawler option and `CrawlerExperiments` type.
 
 Dataset backend iteration/export helpers and KVS backend iteration helpers move to storage frontends. KVS `listKeys()` returns a `KeyValueStoreListKeysResult` page. Backends transport bytes; serialization lives in KVS frontend `serializeValue` / `parseValue`, replacing `maybeStringify`, `checkAndSerialize` and `chunkBySize`.
 
 Storage frontends receive `{ metadata, backend }` internally; applications should open them with `.open()`. Backend metadata drops platform fields `actId`, `actRunId`, `userId`, queue `expireAt` / `hadMultipleClients`, and storage `stats`. Read platform metadata and enumerate all storages through the Apify API client if still needed.
+
+`DatasetOptions`, `KeyValueStoreOptions` and `RequestQueueOptions` are internal constructor types. `Dataset.backend` is private, `id` and `name` are readonly, and `Dataset.log` is removed. Use frontend methods and your own logger.
 
 Collection interfaces and data types disappear. The old client-update, record-get/options, queue-head, locking and storage-stats types disappear too. `KeyValueStoreClientListOptions` becomes `KeyValueStoreListKeysOptions`; `Create*BackendOptions` aliases become `StorageIdentifier`. Check the implemented v4 backend interfaces when compiler errors identify one of these types.
