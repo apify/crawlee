@@ -10,6 +10,19 @@ Crawlee has several result storage types that are useful for specific tasks. The
 
 By default, Crawlee storage is managed by the <ApiLink to="fs-storage/class/FileSystemStorageBackend">`FileSystemStorageBackend`</ApiLink> class, which stores all information as local files in the respective storage type folders.
 
+To keep everything in memory and never touch the disk - handy in tests or short-lived scripts - pass a <ApiLink to="core/class/MemoryStorageBackend">`MemoryStorageBackend`</ApiLink> instead. Both backends are exported from `crawlee`:
+
+```js
+import { CheerioCrawler, MemoryStorageBackend } from 'crawlee';
+
+const crawler = new CheerioCrawler({
+    storageBackend: new MemoryStorageBackend(),
+    // ...
+});
+```
+
+Setting `CRAWLEE_PERSIST_STORAGE=false` has the same effect globally, without touching the code.
+
 ## Key-value store
 
 The key-value store is used for saving and reading data records or files. Each data record is represented by a unique key and associated with a MIME content type. Key-value stores are ideal for saving screenshots of web pages, PDFs or to persist the state of crawlers.
