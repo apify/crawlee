@@ -1,81 +1,56 @@
 # Browser management
 
-## Pool options and ownership
+## Pools and ownership
 
-`browserPoolOptions` is removed. Use the factory matching the crawler: `playwrightBrowserPool()`, `puppeteerBrowserPool()` or `stagehandBrowserPool()`. Move pool settings and crawler `launchContext`, `headless` and supported `remoteBrowser` configuration into that factory. Supplying those crawler options alongside `browserPool` now throws. Remote connections use `RemotePlaywrightPlugin` or `RemotePuppeteerPlugin` inside `BrowserPool`; there is no `RemoteBrowserPool` or separate remote factory. `BrowserPool` accepts `maxOpenBrowsers`. Stagehand rejects `remoteBrowser`; use its `stagehandOptions.env` instead.
+Replace `browserPoolOptions` with `playwrightBrowserPool()`, `puppeteerBrowserPool()` or `stagehandBrowserPool()`, passed as `browserPool`. Move `launchContext`, `headless` and supported `remoteBrowser` settings into the factory; combining them with crawler `browserPool` throws.
+
+Remote connections use the regular factory or `RemotePlaywrightPlugin` / `RemotePuppeteerPlugin`. There is no separate remote factory or `RemoteBrowserPool`; `BrowserPool` accepts `maxOpenBrowsers`. Stagehand uses `stagehandOptions.env` and rejects `remoteBrowser`. Puppeteer's `'new'` / `'old'` headless values are Puppeteer-only.
+
+You must `destroy()` supplied pools, preferably in `finally`. `crawler.browserPool` is read-only. `crawler.teardown()` releases per-run resources and keeps its own pool reusable; `destroy()` or async disposal releases resources spanning runs.
+
+Custom `IBrowserPool` implementations provide `newPage`, `closePage`, `extractPageState` and `injectPageState`. The session passed to `newPage` is a best-effort hint. In `closePage`, a plain `SessionError` signals a block; discard session state. `SessionRetiredError` signals usage/age expiry. The built-in pool retires the controller for either error; a custom pool retaining a warm page must prevent state leaking into another session.
+
+## Imports and options
+
+Import `BrowserPool`, plugins, controllers, `LaunchContext`, fingerprint enums and pool interfaces from `@crawlee/browser-pool`; `crawlee` no longer re-exports them. Crawler-specific factories remain available through `crawlee`.
+
+Replace `PlaywrightLauncher` with `launchPlaywright(launchContext, configuration)` or `playwrightBrowserPool()`. `PlaywrightLaunchContext` remains public. Replace reads of removed `crawler.launchContext` with your own options reference.
+
+Playwright's top-level `launcher` and `launchContext.launchContextOptions` now fail validation. Use `launchContext.launcher` and `launchContext.launchOptions`.
+
+## Context, cookies and hooks
+
+Replace `context.browserController` proxy access with `session.proxyInfo`. If a raw controller is necessary, supply a built-in pool and use `pool.getBrowserControllerByPage(page)`.
+
+Browser hooks use `context.gotoOptions`. TLS handling comes from `session.proxyInfo.ignoreTlsErrors`; other certificate overrides use Playwright `launchOptions.ignoreHTTPSErrors` or Puppeteer `acceptInsecureCerts`.
+
+Replace removed `blockResources` / `cacheResponses` context and utility helpers with `puppeteerUtils.blockRequests(page, options)` and the browser cache. For removed `closeCookieModals`, see the configuration/context reference.
+
+Puppeteer cookies now use `page.browserContext().cookies()` / `setCookie()`. Reads and writes cover the whole context, affecting shared-context isolation. Direct calls must supply cookie `url` or `domain`. Handler-created cookies persist to sessions when `saveResponseCookies` is enabled.
+
+Cloudflare post-hooks must return the solved response. Prefer `postNavigationHooks: [handleCloudflareChallengeHook()]`, or:
 
 ```ts
-const pool = playwrightBrowserPool({
-    useFingerprints: false,
-    launchContext: { launcher: firefox },
-});
-const crawler = new PlaywrightCrawler({ browserPool: pool, requestHandler });
-try {
-    await crawler.run(urls);
-} finally {
-    await pool.destroy();
+async ({ handleCloudflareChallenge }) => {
+    const response = await handleCloudflareChallenge();
+    return response && { response };
 }
 ```
 
-A supplied pool is borrowed and never destroyed by the crawler. `crawler.browserPool` is read-only. `remoteBrowser` alone still works when no custom pool is passed. `headless` is declared on concrete crawlers; Puppeteer's `'new'` and `'old'` values do not apply to other crawlers.
-
-Custom pools implement `IBrowserPool`: `newPage`, `closePage`, `extractPageState`, and `injectPageState`. Passing a session to `newPage` is a best-effort hint. A plain `SessionError` passed to `closePage` signals a block and should discard associated session state. Its `SessionRetiredError` subclass signals normal usage or age expiry, so a pool may keep a warm page. The caller owns custom lifecycle methods.
-
-The built-in `BrowserPool` closes the page and retires its controller for either error. A custom pool retaining a warm page must keep the finished session's cookies and other state from leaking into another session.
-
-`crawler.teardown()` releases only per-run resources and leaves a crawler-owned browser pool reusable for the next `run()`. `crawler.destroy()` or async disposal releases resources that outlive a run. A finished run leaves no browsers or timers keeping the process alive, so disposal is optional. Borrowed pools still require their owner's cleanup.
-
-## Imports and constructor options
-
-`crawlee` no longer re-exports `@crawlee/browser-pool`. Add that dependency and import `BrowserPool`, plugins, controllers, `LaunchContext`, fingerprint enums and pool interfaces directly from it. The crawler-specific factory functions remain exported by `crawlee` and their crawler packages.
-
-`PlaywrightLauncher` is no longer exported. Use `launchPlaywright(launchContext, configuration)` for a browser or `playwrightBrowserPool()` for a pool. `PlaywrightLaunchContext` remains public. `crawler.launchContext` is removed; keep your own reference to the constructor option if needed.
-
-Playwright's ignored top-level `launcher` and `launchContext.launchContextOptions` now fail validation. Put the browser type in `launchContext.launcher` and persistent-context options in `launchContext.launchOptions`.
-
-## Context and hooks
-
-`context.browserController` is removed. Use `session.proxyInfo` for proxy information. For a required raw controller, construct the built-in pool yourself and call `pool.getBrowserControllerByPage(page)`. Custom pools may not expose controllers.
-
-Browser pre- and post-navigation hooks receive only context. Mutate `context.gotoOptions` for navigation options. The pool reads TLS handling from `session.proxyInfo.ignoreTlsErrors`. For other certificate handling, use browser `launchOptions.ignoreHTTPSErrors` for Playwright or `acceptInsecureCerts` for Puppeteer.
-
-`context.blockResources`, `context.cacheResponses` and their `puppeteerUtils` functions are removed. Use `puppeteerUtils.blockRequests(page, options)` for URL-pattern blocking and the browser's cache for caching. `closeCookieModals` is removed entirely; see the configuration/context reference for consent handling.
-
-## Cookies
-
-Puppeteer cookie synchronization uses `page.browserContext().cookies()` and `setCookie()` instead of removed page-level APIs. Reads include all context cookies; writes affect the whole context. Inspect projects sharing browser contexts. Direct browser-context cookie calls must provide `url` or `domain`; Crawlee's internal injection fills missing values from the page URL.
-
-With `saveResponseCookies` enabled, handler-created cookies now persist to the session. Check assumptions about cookie isolation across requests.
+Returning `{ response: undefined }` would overwrite an unchallenged response. The standalone helper loses its session argument: `handleCloudflareChallenge(page, url, options)`.
 
 ## Adaptive rendering
 
-`AdaptivePlaywrightCrawler` now extends `BasicCrawler`. `renderingTypePredictor` accepts `IRenderingTypePredictor` with `predict` and `storeResult`. A supplied built-in `RenderingTypePredictor` must be `initialize()`d by its owner before the crawl, and cleaned up by its owner afterward. A crawler-created default is initialized automatically.
+`AdaptivePlaywrightCrawler` extends `BasicCrawler`. Supplied `RenderingTypePredictor` instances require owner-managed `initialize()` and cleanup. Custom predictors implement `IRenderingTypePredictor.predict` / `storeResult`; teardown drains pending `storeResult()` promises.
 
-Async `predict()` is awaited; `storeResult()` promises are drained at teardown. `drainRenderingDetections()` allows an explicit drain. Do not bypass teardown when pending detections must persist.
+Remove `preventDirectStorageAccess` and `commitResult`. Result callbacks receive `StorageTransactionView` instead of `RequestHandlerResult`, retaining `datasetItems`, `enqueuedUrls` and `keyValueStoreChanges`. `calls` / `enqueuedUrlLists` disappear. Use `afterStorageCommit()` for effects tied to winning writes. Transactions cannot be disabled.
 
-`preventDirectStorageAccess` and `commitResult` are removed. Adaptive result callbacks receive `StorageTransactionView` instead of `RequestHandlerResult`, retaining `datasetItems`, `enqueuedUrls`, and `keyValueStoreChanges`. `calls` and `enqueuedUrlLists` disappear. Use `afterStorageCommit()` for effects that depend on the winning attempt's committed writes. Transactions cannot be disabled for this crawler.
+## Stagehand and internals
 
-## Cloudflare and Stagehand
+Remove `experimentalContainers`, Stagehand `ignoreShadowRoots` / `ignoreIframes`, and extra dictionary keys in `StagehandGotoOptions`.
 
-A solved Cloudflare challenge must replace the original response, or the crawler still treats the original 403 as blocked. Prefer `postNavigationHooks: [handleCloudflareChallengeHook()]`. For manual hooks:
+Replace `StagehandRequestHandler` with `RequestHandler<StagehandCrawlingContext>`. Remove `stagehandUtils`; import `AgentResult` from `@browserbasehq/stagehand`. Move `launchContext.stagehandOptions` to the crawler/factory's top-level option. Replace `StagehandPlugin.getStagehandForBrowser()` and access to private `stagehandOptions` with `context.stagehand`.
 
-```ts
-postNavigationHooks: [
-    async ({ handleCloudflareChallenge }) => {
-        const response = await handleCloudflareChallenge();
-        return response && { response };
-    },
-]
-```
+Pool maps, counters, option mirrors and hook arrays are private. Supply options/hooks at construction; use `getPage()`, `getPageId()`, `getBrowserControllerByPage()` and lifecycle events. Replace `BROWSER_POOL_EVENTS.BROWSER_CLOSED` with the controller event `BROWSER_CONTROLLER_EVENTS.BROWSER_CLOSED`.
 
-Do not return `{ response: undefined }` when there was no challenge. The standalone Playwright helper loses the session argument, becoming `handleCloudflareChallenge(page, url, options)`.
-
-Remove `experimentalContainers`. Stagehand loses `ignoreShadowRoots` and `ignoreIframes`. `StagehandGotoOptions` no longer accepts arbitrary dictionary keys. `failedRequestHandler` still works through inherited options.
-
-`StagehandRequestHandler` becomes `RequestHandler<StagehandCrawlingContext>`. Remove the unused `stagehandUtils` namespace and import `AgentResult` from `@browserbasehq/stagehand`. Move `launchContext.stagehandOptions` to the crawler or pool factory's top-level `stagehandOptions`. `StagehandPlugin.stagehandOptions` is private and `getStagehandForBrowser()` is removed; use `context.stagehand`.
-
-## Pool internals
-
-Pool page/controller maps, counters, option mirrors and hook arrays are private. Pass options and hooks at construction, use `getPage()`, `getPageId()` or `getBrowserControllerByPage()` for lookup, and observe lifecycle events. Use `BROWSER_CONTROLLER_EVENTS.BROWSER_CLOSED` on a controller; the removed `BROWSER_POOL_EVENTS.BROWSER_CLOSED` was never emitted.
-
-`BrowserSpecification`, `GetFingerprintReturn` and browser-pool's `FingerprintGenerator` interface are removed. Use types from `fingerprint-generator` when needed. Controller/plugin loggers are outside the public API; obtain your own logger from `serviceLocator.getLogger()`. Fingerprint caches/injectors, controller bookkeeping and the `PlaywrightBrowser` constructor are internal. The controller `_close`, `_kill`, `_newPage`, `_getCookies`, `_setCookies` and plugin `_launch`, `addProxyToLaunchOptions`, `isChromiumBasedBrowser` hooks remain subclass extension points.
+Replace removed `BrowserSpecification`, `GetFingerprintReturn` and browser-pool `FingerprintGenerator` types with applicable `fingerprint-generator` types. Obtain your own logger via `serviceLocator.getLogger()`. Fingerprint caches/injectors, controller bookkeeping and `PlaywrightBrowser` construction are internal. Supported subclass hooks are listed in the crawler-internals reference.

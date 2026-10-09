@@ -1,45 +1,44 @@
 # Concurrency
 
-Top-level crawler `minConcurrency`, `maxConcurrency` and `maxRequestsPerMinute` still work. Preserve them for ordinary limits. `autoscaledPoolOptions` becomes `taskLoopOptions`, narrowed to `isFinishedFunction` and `isTaskReadyFunction`. Scaling options belong in `ConcurrencySystem`; do not just rename the old options bag.
+Keep crawler `minConcurrency`, `maxConcurrency` and `maxRequestsPerMinute` for ordinary limits. Rename `autoscaledPoolOptions` to `taskLoopOptions`, retaining only `isFinishedFunction` / `isTaskReadyFunction`. Move scaling settings into `ConcurrencySystem`.
 
-## Owned concurrency systems
+## Lifecycle and controls
 
-A supplied system must be started by its owner, and cannot be combined with crawler concurrency shortcuts. Its configuration replaces the default wholesale. Preserve HTTP tuning by spreading `HTTP_OPTIMIZED_CONCURRENCY_SYSTEM_OPTIONS` where needed:
+A supplied system replaces the default, rejects crawler concurrency shortcuts, and requires owner-managed `start()` / `stop()`. Preserve HTTP tuning when needed:
 
 ```ts
-const concurrencySystem = new ConcurrencySystem({
+const system = new ConcurrencySystem({
     ...HTTP_OPTIMIZED_CONCURRENCY_SYSTEM_OPTIONS,
     maxConcurrency: 50,
 });
-await concurrencySystem.start();
-const crawler = new CheerioCrawler({ concurrencySystem, requestHandler });
+await system.start();
 try {
-    await crawler.run(urls);
+    await new CheerioCrawler({ concurrencySystem: system, requestHandler }).run(urls);
 } finally {
-    await concurrencySystem.stop();
+    await system.stop();
 }
 ```
 
-The system accepts scaling options formerly in AutoscaledPool, including `desiredConcurrency`, `desiredConcurrencyRatio`, scale-up/down step ratios, logging/autoscale intervals and `maxTasksPerMinute`. Task-loop `maybeRunIntervalSecs`, `taskTimeoutSecs` and `log` have no replacement.
+Move `desiredConcurrency`, `desiredConcurrencyRatio`, scaling ratios, logging/autoscale intervals and `maxTasksPerMinute` to the system. Task-loop `maybeRunIntervalSecs`, `taskTimeoutSecs` and `log` have no replacement.
 
-`crawler.concurrencySystem` is a read-only `IConcurrencySystem`, undefined before the run resolves it. Crawler-owned defaults are rebuilt each run; do not cache them across runs. To tune during a run, keep a reference to a system you constructed. Multiple crawlers can share one combined budget.
+Replace private `crawler.autoscaledPool` access with `crawler.pause(secs)`, `resume()`, `teardown()` or graceful `stop()`. Read concurrency through `crawler.concurrencySystem`, which is undefined outside a run and typed as read-only `IConcurrencySystem`. To retune it, retain your constructed instance. Do not cache crawler-owned systems across runs.
 
-## Crawler controls
+Pause drains requests but leaves `run()` pending and autoscaling active. Stop ends the run. If you stop an owned system during a pause, restart it before resuming.
 
-`crawler.autoscaledPool` is private. Use `crawler.pause(secs)`, `resume()`, `teardown()` or graceful `stop()`, and read concurrency through `crawler.concurrencySystem`. Pausing waits for in-flight requests and leaves run pending; stopping ends the run. A paused crawler's shared system keeps evaluating and logging. Only the owner should stop it, and must restart before resuming.
-
-`AutoscaledPool` remains exported but is internal, as are `Snapshotter` and `SystemStatus`. Use ConcurrencySystem for load monitoring, or ordinary bounded parallelism tools for non-crawler tasks. If maintaining a direct internal pool temporarily, it now needs both `concurrencySystem` and `consumer: { id }`; lifecycle still belongs to the system owner.
+`AutoscaledPool`, `Snapshotter` and `SystemStatus` remain exported but are internal. Use `ConcurrencySystem` for load monitoring. Direct internal pools now require `concurrencySystem` and `consumer: { id }`.
 
 ## Load signals
 
-Merge old snapshotter/system-status options into `ConcurrencySystemOptions.loadSignals`:
+Move snapshotter/system-status options into `ConcurrencySystemOptions.loadSignals`:
 
-- `memory`: `maxUsedRatio`, `overloadedRatio` and sampling options.
-- `eventLoop`: `snapshotIntervalSecs`, `maxBlockedMillis`, `overloadedRatio`.
-- `cpu`: its sampling options and `overloadedRatio`.
-- `storageBackend`: old client signal settings, including `maxErrors` and `overloadedRatio`.
-- `custom`: the old custom load-signal array.
+| Signal | Settings |
+| --- | --- |
+| `memory` | `maxUsedRatio`, `overloadedRatio`, sampling options |
+| `eventLoop` | `snapshotIntervalSecs`, `maxBlockedMillis`, `overloadedRatio` |
+| `cpu` | Sampling options, `overloadedRatio` |
+| `storageBackend` | Former client settings: `maxErrors`, sampling options, `overloadedRatio` |
+| `custom` | Former custom signal array |
 
-`snapshotHistorySecs` and `currentHistorySecs` are top-level system options, not per-signal options. `ClientInfo` becomes `LoadSignalInfo`; `SystemInfo.clientInfo` becomes `storageBackendInfo`, and the corresponding class becomes `StorageBackendLoadSignal`. Duplicate signal names throw; disable a built-in with `false` before supplying its replacement.
+Keep `snapshotHistorySecs` / `currentHistorySecs` at system level. Rename `ClientInfo` to `LoadSignalInfo`, `SystemInfo.clientInfo` to `storageBackendInfo`, and the client signal class to `StorageBackendLoadSignal`. Duplicate names throw; disable a built-in with `false` before replacing it.
 
-Both evaluation windows are requested explicitly. Custom signals should honor `getSample(sampleDurationMillis)` and use `start()`'s `maxSampleWindowMillis` for retention. `SnapshotStore` loses its constructor window and `fromInterval` / `fromEvent` factories; call `useSampleWindow(maxSampleWindowMillis)` and `clear()` from start. Old per-signal `snapshotHistoryMillis` is removed. Concrete built-in snapshot types are internal; use the public `LoadSnapshot` contract and `ConcurrencySystem.getCurrentStatus()`.
+Custom signals must honor `getSample(sampleDurationMillis)`. In `start()`, use `maxSampleWindowMillis` with `SnapshotStore.useSampleWindow()` and `clear()`. Remove per-signal `snapshotHistoryMillis`, the store's constructor window and `fromInterval` / `fromEvent` factories. Use public `LoadSnapshot` and `ConcurrencySystem.getCurrentStatus()` instead of internal concrete snapshots.
