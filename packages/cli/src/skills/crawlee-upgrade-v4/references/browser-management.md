@@ -43,7 +43,7 @@ Returning `{ response: undefined }` would overwrite an unchallenged response. Th
 
 `AdaptivePlaywrightCrawler` extends `BasicCrawler`. Supplied `RenderingTypePredictor` instances require owner-managed `initialize()` and cleanup. Custom predictors implement `IRenderingTypePredictor.predict` / `storeResult`; teardown drains pending `storeResult()` promises.
 
-Remove `preventDirectStorageAccess` and `commitResult`. Result callbacks receive `StorageTransactionView` instead of `RequestHandlerResult`, retaining `datasetItems`, `enqueuedUrls` and `keyValueStoreChanges`. `calls` / `enqueuedUrlLists` disappear. Use `afterStorageCommit()` for effects tied to winning writes. Transactions cannot be disabled.
+Remove `preventDirectStorageAccess` and `commitResult`. Result callbacks receive `StorageTransactionView` instead of `RequestHandlerResult`, retaining `datasetItems`, `enqueuedUrls` and `keyValueStoreChanges`. `calls` / `enqueuedUrlLists` disappear. Use `afterStorageCommit()` for effects tied to winning writes. Unlike other crawlers, the adaptive crawler rejects `transactionalStorage: false`.
 
 ## Stagehand and internals
 
