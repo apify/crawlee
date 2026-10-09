@@ -25,7 +25,7 @@ Rename Crawlee `config` options/properties to `configuration`: storage opening, 
 
 ## Hooks and context
 
-`requestHandlerTimeoutSecs` covers only the handler, default 60 seconds. `navigationTimeoutSecs` covers pre-hooks, navigation and post-hooks together, default 30 seconds for HTTP and 60 for browsers. Remove `navigationHooksTimeoutSecs`. Slow hooks may need a larger navigation budget or `context.extendTimeout(seconds)`.
+`requestHandlerTimeoutSecs` covers only the handler, default 60 seconds. `navigationTimeoutSecs` covers pre-hooks, navigation and post-hooks together, default 30 seconds for HTTP and 60 for browsers. Slow hooks may need a larger navigation budget or `context.extendTimeout(seconds)`.
 
 `CRAWLEE_INTERNAL_TIMEOUT` overrides the whole-request timeout in milliseconds; values below phase timeouts are ignored. Per-route limits use the third `router.addHandler()` argument: `{ requestHandlerTimeoutSecs }`.
 
