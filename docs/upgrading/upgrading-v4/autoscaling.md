@@ -45,7 +45,7 @@ On Node.js 24, `await using` replaces the `try`/`finally` — see [collaborators
 
 `AutoscaledPool` is `@internal` in v4, along with `AutoscaledPoolOptions`. It is still exported from `@crawlee/basic` (and re-exported by `crawlee`), so nothing breaks at import time — but with all the configuration moved to the `ConcurrencySystem`, what remains is a bare parallel task runner. It can change without a major bump, so avoid depending on it; if you only wanted bounded parallelism, a `p-limit`-style helper is a better fit than an internal Crawlee class.
 
-The crawler's `autoscaledPool` property is **private** as a result. Everything it was reached for has a crawler-level counterpart:
+The crawler's `autoscaledPool` property is **removed** as a result. Everything it was reached for has a crawler-level counterpart:
 
 | Before | After |
 |---|---|
