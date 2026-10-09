@@ -2,7 +2,7 @@
 
 ## Node.js images
 
-Crawlee v4 requires Node.js 22+. Inspect every Dockerfile and every Node-based build or runtime stage, including images selected through `ARG`, Compose or CI variables. Bump older versions in both stages. Keep already compatible versions unless another migration change requires a bump. `await using` requires Node.js 24+.
+Crawlee v4 requires Node.js 22.13+. Inspect every Dockerfile and every Node-based build or runtime stage, including images selected through `ARG`, Compose or CI variables. Bump older versions in both stages, including Node 22 images pinned below 22.13. Keep already compatible versions unless another migration change requires a bump. `await using` requires Node.js 24+.
 
 Preserve the existing image family, distribution variant and browser tooling. For example, a Node 20 Debian slim image can move to its Node 22 counterpart. An Apify Playwright or Puppeteer image needs a compatible version of that browser image, rather than a generic Node image. Check that the chosen tag exists and has the required Node and browser versions. Update pinned digests to match the chosen image instead of retaining an old image digest with a new tag.
 

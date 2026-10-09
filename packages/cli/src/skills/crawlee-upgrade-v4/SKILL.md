@@ -5,7 +5,7 @@ description: Inspect and migrate a JavaScript or TypeScript Crawlee project from
 
 # Upgrade Crawlee from v3 to v4
 
-Inspect this project, explain the applicable changes, then migrate it to Crawlee v4 and verify the result. These instructions come from `crawlee upgrade-to-v4`. The supporting files are bundled at `{SKILL_ROOT}` and describe the v4 migration, based on the [Crawlee upgrade guide](https://github.com/apify/crawlee/blob/master/docs/upgrading/upgrading_v4.md).
+Inspect this project, explain the applicable changes, then migrate it to Crawlee v4 and verify the result. These instructions come from `crawlee upgrade-to-v4`. The supporting files are bundled at `{SKILL_ROOT}` and describe the v4 migration, based on the [Crawlee upgrade guide](https://github.com/apify/crawlee/blob/master/docs/upgrading/upgrading_v4/upgrading_v4.md) and its linked topic pages.
 
 ## Inspect and plan
 
@@ -23,7 +23,7 @@ If approved, create the branch and migrate one coherent step at a time. Review t
 
 ## Common changes
 
-- Require Node.js 22+ and TypeScript 5.8+ for checking Crawlee's declarations. Crawlee is native ESM; compatible Node and TypeScript versions can still consume it from CommonJS through `require(esm)`. Check runtime images, CI and compiler settings. Stable Cheerio v1 uses `parse5`, so verify parsing-sensitive extraction.
+- Require Node.js 22.13+ and TypeScript 5.8+ for checking Crawlee's declarations. Crawlee is native ESM; compatible Node and TypeScript versions can still consume it from CommonJS through `require(esm)`. Check runtime images, CI and compiler settings. Stable Cheerio v1 uses `parse5`, so verify parsing-sensitive extraction.
 - Rename removed handler options: `handleRequestFunction` and `handlePageFunction` to `requestHandler`, `handleRequestTimeoutSecs` to `requestHandlerTimeoutSecs`, and `handleFailedRequestFunction` to `failedRequestHandler`. Rename `persistCookiesPerSession` to `saveResponseCookies`, `ignoreSslErrors` to `ignoreTlsErrors`, `crawler.stats` to `crawler.statistics`, and successful-request `*Finished*` counters to `*Succeeded*`. Keep `crawlerFinishedAt` unchanged.
 - `Configuration` is immutable. Replace `get()` with property reads and `set()` with constructor options. Constructor values now override environment variables. Pass crawler configuration in its `configuration` option instead of a second constructor argument. Services move to `serviceLocator`; details are in [configuration and context](<{SKILL_ROOT}/references/configuration-and-context.md>).
 - Navigation and the handler have separate timeout budgets. Navigation hooks share the navigation budget. HTTP hooks lose their second `gotOptions` argument; browser hooks use `context.gotoOptions`. Contexts are strict, `context.error` moves to the handler's second argument, and `context.crawler` is removed. Use a closure or `extendContext`; the latter runs before navigation and cannot read `page`, `$`, `body` or `response` yet.
@@ -35,7 +35,7 @@ If approved, create the branch and migrate one coherent step at a time. Review t
 
 ## Dockerfiles and installation
 
-Inspect every Dockerfile, including build and runtime stages, image tags selected through build arguments, and Apify Actor or browser images. Bump Node.js versions below 22 to a compatible image while preserving the image family and required browser support. Use Node.js 24+ if introducing `await using`. Check the Node version in the final image, not just the build stage.
+Inspect every Dockerfile, including build and runtime stages, image tags selected through build arguments, and Apify Actor or browser images. Bump Node.js versions below 22.13 to a compatible image while preserving the image family and required browser support. Use Node.js 24+ if introducing `await using`. Check the Node version in the final image, not just the build stage.
 
 Remove flags and configuration that skip optional dependencies from Docker install or prune commands, package scripts and CI, regardless of package manager. Crawlee's native HTTP and filesystem binaries depend on them. Preserve production-only development-dependency omission and frozen-lockfile behavior. Update the project's Crawlee dependencies together and refresh its existing lockfile. Read [Docker and installation](<{SKILL_ROOT}/references/docker-and-installation.md>) for package-manager equivalents and verification.
 
