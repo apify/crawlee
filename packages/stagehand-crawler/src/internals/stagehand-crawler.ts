@@ -31,10 +31,10 @@ import { assertBrowserPoolNotConfigured, parseArgument, schemas } from '@crawlee
 import type { Page, Response } from 'playwright';
 import { z } from 'zod';
 
-import { stagehandBrowserPool } from './stagehand-browser-pool';
+import { stagehandBrowserPool } from './stagehand-browser-pool.js';
 import type { StagehandController } from './stagehand-controller';
 import type { StagehandLaunchContext } from './stagehand-launcher';
-import { enhancePageWithStagehand } from './utils/stagehand-utils';
+import { enhancePageWithStagehand } from './utils/stagehand-utils.js';
 
 /**
  * Stagehand-specific configuration options.

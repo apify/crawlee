@@ -4,7 +4,7 @@ import type { Page } from 'playwright';
 
 import type { StagehandOptions } from './stagehand-crawler';
 import type { StagehandLaunchContext } from './stagehand-launcher';
-import { StagehandLauncher } from './stagehand-launcher';
+import { StagehandLauncher } from './stagehand-launcher.js';
 import type { StagehandPlugin } from './stagehand-plugin';
 
 /** A {@apilink BrowserPool} of Stagehand browsers, as built by {@apilink stagehandBrowserPool}. */

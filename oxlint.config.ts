@@ -28,6 +28,7 @@ export default defineConfig({
         afterEach: 'readonly',
     },
     rules: {
+        'import/extensions': ['error', 'always', { ignorePackages: true }],
         'no-undef': 'off',
         'no-console': 'off',
         'no-throw-literal': 'error',
