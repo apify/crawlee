@@ -29,7 +29,7 @@ Custom pools implement `ISessionPool.getSession(sessionId?)`. Their sessions imp
 
 HTTP cookie precedence is sendRequest overrides, request Cookie header, then the session jar. Explicit cookie names override matching jar entries. A custom `cookieJar` replaces the jar for a `sendRequest` call. `mergeCookies` warns and skips malformed fragments instead of throwing.
 
-`Session.getCookies`, `setCookies` and `setCookiesFromResponse` are removed. Use `session.cookieJar` directly, such as `await session.cookieJar.setCookie('foo=bar', url)`, or `Session.getCookieString(url)` when working with a concrete built-in Session. Context sessions expose `ISession`; use its jar.
+`Session.getCookies`, `setCookies` and `setCookiesFromResponse` are removed. Use `session.cookieJar` directly, such as `await session.cookieJar.setCookie('foo=bar', url)`, or the async `Session.getCookieString(url)` when working with a concrete built-in Session. Context sessions expose `ISession`; use its jar.
 
 ## Proxies
 
