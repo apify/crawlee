@@ -102,6 +102,69 @@ router.set('/meta-charset-html5', (req, res) => {
     res.end(iconv.encode(html, 'windows-1250'));
 });
 
+// the AWS WAF challenge interstitial, as served in October 2026: a `202` with an empty title and no content
+router.set('/awsWafChallenge', (req, res) => {
+    res.statusCode = 202;
+    res.setHeader('content-type', 'text/html; charset=UTF-8');
+    res.setHeader('x-amzn-waf-action', 'challenge');
+    res.end(`<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title></title>
+    <script type="text/javascript">
+    window.awsWafCookieDomainList = ['example.com'];
+    window.gokuProps = { "key": "AQIDAHjcYu", "iv": "CgAGUjJldAAABiGQ", "context": "loYdKdld00dlbxeUxL9OCW1a9K3GDRIu" };
+    </script>
+    <script src="https://fb423e1ef94f.6277d64d.us-east-1.token.awswaf.com/fb423e1ef94f/c3382d439950/916d943f6a58/challenge.js"></script>
+</head>
+<body>
+    <div id="challenge-container"></div>
+    <noscript>
+        <h1>JavaScript is disabled</h1>
+        In order to continue, we need to verify that you're not a robot.
+    </noscript>
+</body>
+</html>`);
+});
+
+// the CAPTCHA a failed AWS WAF challenge escalates to, served with a `405`
+router.set('/awsWafCaptcha', (req, res) => {
+    res.statusCode = 405;
+    res.setHeader('content-type', 'text/html; charset=UTF-8');
+    res.setHeader('x-amzn-waf-action', 'captcha');
+    res.end(`<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Human Verification</title>
+    <script src="https://fb423e1ef94f.6277d64d.us-east-1.token.awswaf.com/fb423e1ef94f/c3382d439950/916d943f6a58/challenge.js"></script>
+    <script src="https://fb423e1ef94f.6277d64d.us-east-1.captcha.awswaf.com/fb423e1ef94f/c3382d439950/916d943f6a58/captcha.js"></script>
+</head>
+<body>
+    <div id="captcha-container"></div>
+</body>
+</html>`);
+});
+
+// a regular page of a site that loads the AWS WAF integration scripts and embeds the CAPTCHA into its own form
+router.set('/awsWafIntegration', (req, res) => {
+    res.setHeader('content-type', 'text/html; charset=UTF-8');
+    res.end(`<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Example Domain</title>
+    <script src="https://fb423e1ef94f.us-east-1.sdk.awswaf.com/fb423e1ef94f/c3382d439950/challenge.js" defer></script>
+    <script src="https://fb423e1ef94f.us-east-1.captcha.awswaf.com/fb423e1ef94f/c3382d439950/captcha.js" defer></script>
+</head>
+<body>
+    <div id="content">
+        <form><div id="captcha-container"></div><div id="challenge-container"></div></form>
+    </div>
+</body>
+</html>`);
+});
+
 let server: http.Server;
 let url: string;
 
@@ -561,6 +624,54 @@ test('should retry on 403 even with disallowed content-type', async () => {
 
     expect(succeeded).toHaveLength(1);
     expect(succeeded[0].retryCount).toBe(1);
+});
+
+test.each([
+    ['challenge served with a 202 status', '/awsWafChallenge', '#challenge-container'],
+    ['CAPTCHA served with a 405 status', '/awsWafCaptcha', '#captcha-container'],
+])('retryOnBlocked detects the AWS WAF %s', async (_name, path, container) => {
+    const succeeded: any[] = [];
+    const errorMessages: string[] = [];
+
+    const crawler = new HttpCrawler({
+        maxConcurrency: 1,
+        maxRequestRetries: 1,
+        retryOnBlocked: true,
+        requestHandler: async ({ request }) => {
+            succeeded.push(request);
+        },
+        failedRequestHandler: async ({ request }) => {
+            errorMessages.push(...request.errorMessages);
+        },
+    });
+
+    await crawler.run([`${url}${path}`]);
+
+    expect(succeeded).toHaveLength(0);
+    expect(errorMessages).toHaveLength(2);
+    expect(errorMessages.every((x) => x.includes('Found selectors') && x.includes(container))).toBe(true);
+});
+
+test('retryOnBlocked lets through a regular page that loads the AWS WAF integration scripts', async () => {
+    const succeeded: any[] = [];
+    const failed: any[] = [];
+
+    const crawler = new HttpCrawler({
+        maxConcurrency: 1,
+        maxRequestRetries: 0,
+        retryOnBlocked: true,
+        requestHandler: async ({ request }) => {
+            succeeded.push(request);
+        },
+        failedRequestHandler: async ({ request }) => {
+            failed.push(request);
+        },
+    });
+
+    await crawler.run([`${url}/awsWafIntegration`]);
+
+    expect(succeeded).toHaveLength(1);
+    expect(failed).toHaveLength(0);
 });
 
 test('navigation hooks can override context members via return value', async () => {

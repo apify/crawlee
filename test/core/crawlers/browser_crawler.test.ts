@@ -869,6 +869,66 @@ describe('BrowserCrawler', () => {
         expect(processed).toBe(false);
     });
 
+    test.concurrent('retryOnBlocked should retry on an AWS WAF challenge that ends in a CAPTCHA', async () => {
+        const puppeteerPlugin = new PuppeteerPlugin(puppeteer);
+
+        const urls = [new URL('/special/awsWafChallengeFailed', serverAddress).href];
+        const maxRequestRetries = 1;
+
+        let processed = false;
+        const errorMessages: string[] = [];
+
+        const crawler = new BrowserCrawlerTest({
+            browserPoolOptions: {
+                browserPlugins: [puppeteerPlugin],
+            },
+            retryOnBlocked: true,
+            maxRequestRetries,
+            requestHandler: async () => {
+                processed = true;
+            },
+            failedRequestHandler: async ({ request }) => {
+                errorMessages.push(...request.errorMessages);
+            },
+        });
+
+        await crawler.run(urls);
+
+        expect(errorMessages).toHaveLength(urls.length * (maxRequestRetries + 1));
+        expect(
+            errorMessages.every((x) => x.includes('AWS WAF challenge failed') && x.includes('#captcha-container')),
+        ).toBe(true);
+        expect(processed).toBe(false);
+    });
+
+    test.concurrent('retryOnBlocked should wait for an AWS WAF challenge to resolve', async () => {
+        const puppeteerPlugin = new PuppeteerPlugin(puppeteer);
+
+        const urls = [new URL('/special/awsWafChallengePassed', serverAddress).href];
+
+        const titles: string[] = [];
+        const errorMessages: string[] = [];
+
+        const crawler = new BrowserCrawlerTest({
+            browserPoolOptions: {
+                browserPlugins: [puppeteerPlugin],
+            },
+            retryOnBlocked: true,
+            maxRequestRetries: 0,
+            requestHandler: async ({ page }) => {
+                titles.push(await page.title());
+            },
+            failedRequestHandler: async ({ request }) => {
+                errorMessages.push(...request.errorMessages);
+            },
+        });
+
+        await crawler.run(urls);
+
+        expect(errorMessages).toHaveLength(0);
+        expect(titles).toStrictEqual(['Example Domain']);
+    });
+
     test.concurrent('retryOnBlocked throws on "blocked" status codes', async () => {
         const puppeteerPlugin = new PuppeteerPlugin(puppeteer);
 
