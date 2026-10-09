@@ -1,6 +1,6 @@
 # Public API surface maps
 
-Each `*.api.md` file here is a generated map of the public, type-level interface of one `@crawlee/*` package. Being in a report is the backwards-compatibility promise; being absent means no promise, not that the symbol is unreachable. See the [Public API guide](../guides/public_api.mdx) for what that means for users.
+Each `*.api.md` file here is a generated map of the public, type-level interface of one `@crawlee/*` package. Being in a report is the backwards-compatibility promise; being absent means no promise, not that the symbol is unreachable. See the [Public API guide](../guides/public-api.mdx) for what that means for users.
 
 - **Untagged** members are promised. The codebase does not use explicit `@public` tags.
 - **`@internal`** (and the legacy `@ignore`) members are trimmed from the report but stay exported and present in the `.d.ts`. Use `#private` / `private` when something should be unreachable, `@internal` when it should be reachable but unsupported.
