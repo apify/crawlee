@@ -24,9 +24,9 @@ beforeAll(async () => {
     await writeFile(join(localPackage, 'package.json'), JSON.stringify({ name: 'crawlee', version: '3.15.0' }));
     await writeFile(join(localPackage, 'cli.js'), "console.log('project-local CLI');\n");
 
-    const require = createRequire(new URL('../../crawlee/package.json', import.meta.url));
+    const require = createRequire(new URL('../../packages/crawlee/package.json', import.meta.url));
     await symlink(dirname(require.resolve('import-local')), join(packageRoot, 'node_modules/import-local'), 'junction');
-    const source = await readFile(new URL('../../crawlee/src/cli.ts', import.meta.url), 'utf8');
+    const source = await readFile(new URL('../../packages/crawlee/src/cli.ts', import.meta.url), 'utf8');
     const ts = await import('typescript-v6');
     const { outputText } = ts.transpileModule(source, {
         compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },

@@ -7,8 +7,8 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-const cliRoot = fileURLToPath(new URL('../', import.meta.url));
-const projectRoot = resolve(cliRoot, '../..');
+const projectRoot = fileURLToPath(new URL('../../', import.meta.url));
+const cliRoot = resolve(projectRoot, 'packages/cli');
 const sourceSkill = join(cliRoot, 'src/skills/crawlee-upgrade-v4');
 let temporaryRoot: string;
 let commandPath: string;
@@ -25,12 +25,12 @@ beforeAll(async () => {
     await rm(join(packageRoot, 'src'), { recursive: true });
     bundledSkills = join(packageRoot, 'dist/skills');
 
-    const command = await readFile(join(cliRoot, 'src/commands/UpgradeCommand.ts'), 'utf8');
+    const command = await readFile(join(cliRoot, 'src/commands/upgrade-command.ts'), 'utf8');
     const ts = await import('typescript-v6');
     const { outputText } = ts.transpileModule(command, {
         compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
     });
-    commandPath = join(packageRoot, 'dist/commands/UpgradeCommand.mjs');
+    commandPath = join(packageRoot, 'dist/commands/upgrade-command.mjs');
     await mkdir(join(packageRoot, 'dist/commands'), { recursive: true });
     await writeFile(commandPath, outputText);
 });
