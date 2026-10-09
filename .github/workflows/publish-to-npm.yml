@@ -58,7 +58,7 @@ jobs:
                   restore-keys: |
                       turbo-${{ github.job }}-${{ github.ref_name }}-
 
-            - uses: apify/workflows/pnpm-install@main
+            - uses: apify/actions/pnpm-install@1.0.0
 
             - name: Build packages
               run: pnpm ci:build
