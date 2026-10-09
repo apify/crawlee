@@ -564,7 +564,7 @@ The protected `HttpCrawler._applyCookies` method is removed. If you were overrid
 
 #### `Session.getCookies`, `setCookies` and `setCookiesFromResponse` are removed
 
-The public cookie helper methods on `Session` — `getCookies(url)`, `setCookies(cookies, url)`, and `setCookiesFromResponse(response)` — have been removed as part of centralizing cookie assembly in `BaseHttpClient`. Work with the session's `cookieJar` directly, or use the new `Session.getCookieString(url)` to read the assembled `Cookie` header value.
+The public cookie helper methods on `Session` — `getCookies(url)`, `setCookies(cookies, url)`, and `setCookiesFromResponse(response)` — have been removed as part of centralizing cookie assembly in `BaseHttpClient`. Work with the session's `cookieJar` directly, or use the new async `Session.getCookieString(url)` to read the assembled `Cookie` header value.
 
 **Before:**
 ```typescript
@@ -576,7 +576,7 @@ session.setCookiesFromResponse(response);
 **After:**
 ```typescript
 // Read the Cookie header string for a URL:
-const cookieHeader = session.getCookieString(url);
+const cookieHeader = await session.getCookieString(url);
 
 // Set / read cookies via the jar directly:
 await session.cookieJar.setCookie('foo=bar', url);
