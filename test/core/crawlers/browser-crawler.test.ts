@@ -30,6 +30,9 @@ import type { TestCrawlingContext } from './basic-browser-crawler.js';
 import { BrowserCrawlerTest } from './basic-browser-crawler.js';
 import { ISession } from '@crawlee/types';
 
+// clearing/restoring mocks before each test would wipe the mocks of still-running concurrent tests
+vitest.setConfig({ clearMocks: false, restoreMocks: false });
+
 describe('BrowserCrawler', () => {
     let prevEnvHeadless: string;
     let logLevel: number;

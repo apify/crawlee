@@ -2,8 +2,8 @@ import { FetchHttpClient } from '@crawlee/http-client';
 import nock from 'nock';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import type { SitemapUrl } from '../src/internals/sitemap.js';
-import { discoverValidSitemaps, parseSitemap, Sitemap } from '../src/internals/sitemap.js';
+import type { SitemapUrl } from '../../packages/utils/src/internals/sitemap.js';
+import { discoverValidSitemaps, parseSitemap, Sitemap } from '../../packages/utils/src/internals/sitemap.js';
 
 describe('Sitemap', () => {
     beforeEach(() => {

@@ -1,6 +1,6 @@
 import { CrawleeInstrumentation } from '@crawlee/otel';
 import { SeverityNumber } from '@opentelemetry/api-logs';
-import type { LogRecord } from '@opentelemetry/sdk-logs';
+import type { ReadableLogRecord } from '@opentelemetry/sdk-logs';
 import { InMemoryLogRecordExporter, LoggerProvider, SimpleLogRecordProcessor } from '@opentelemetry/sdk-logs';
 import type { ReadableSpan } from '@opentelemetry/sdk-trace-base';
 import { InMemorySpanExporter, SimpleSpanProcessor } from '@opentelemetry/sdk-trace-base';
@@ -282,7 +282,7 @@ describe('log instrumentation', () => {
         const error = new TypeError('boom');
         new moduleExports.BaseCrawleeLogger().exception(error, 'failed');
 
-        const record = logExporter.getFinishedLogRecords()[0] as LogRecord;
+        const record = logExporter.getFinishedLogRecords()[0] as ReadableLogRecord;
         expect(record.severityNumber).toBe(SeverityNumber.ERROR);
         expect(record.attributes[ATTR_EXCEPTION_TYPE]).toBe('TypeError');
         expect(record.attributes[ATTR_EXCEPTION_MESSAGE]).toBe('boom');

@@ -1,5 +1,5 @@
-import type { CrawleeLogger, CrawleeLoggerOptions } from '../../src/log.js';
-import { BaseCrawleeLogger, LogLevel } from '../../src/log.js';
+import type { CrawleeLogger, CrawleeLoggerOptions } from '../../../packages/core/src/log.js';
+import { BaseCrawleeLogger, LogLevel } from '../../../packages/core/src/log.js';
 
 /** Minimal concrete implementation for testing. */
 class TestLogger extends BaseCrawleeLogger {

@@ -8,7 +8,6 @@ import { defaultExclude, defineConfig, mergeConfig } from 'vitest/config';
 // They get their own project so `maxWorkers` can be capped independently, and `sequence.groupOrder`
 // keeps them from running next to the cheap tests.
 const browserTests = [
-    'packages/browser-pool/test/**/*.test.ts',
     'test/browser-pool/**/*.test.ts',
     'test/core/autoscaling/memory-info-v2.test.ts',
     'test/core/browser-launchers/*.test.ts',
