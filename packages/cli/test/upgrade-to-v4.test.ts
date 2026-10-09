@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { cp, mkdir, mkdtemp, readFile, readdir, realpath, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdir, mkdtemp, readFile, readdir, realpath, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -33,6 +33,34 @@ async function checkPrompt(output: string, skillRoot: string) {
 }
 
 describe('upgrade-to-v4', () => {
+    it('forwards release flags to the metadata copy script while bundling skill assets', async () => {
+        const workspaceRoot = join(temporaryRoot, 'release');
+        const packageRoot = join(workspaceRoot, 'packages/cli');
+        await mkdir(join(workspaceRoot, 'scripts'), { recursive: true });
+        await mkdir(packageRoot, { recursive: true });
+        await cp(join(projectRoot, 'scripts/copy.ts'), join(workspaceRoot, 'scripts/copy.ts'));
+        await cp(join(cliRoot, 'package.json'), join(packageRoot, 'package.json'));
+        await cp(join(cliRoot, 'scripts'), join(packageRoot, 'scripts'), { recursive: true });
+        await cp(join(cliRoot, 'src/skills'), join(packageRoot, 'src/skills'), { recursive: true });
+        await symlink(join(projectRoot, 'node_modules'), join(workspaceRoot, 'node_modules'), 'junction');
+        await writeFile(join(workspaceRoot, 'package.json'), JSON.stringify({ type: 'module' }));
+        await writeFile(join(workspaceRoot, 'lerna.json'), JSON.stringify({ version: '4.0.0' }));
+        await writeFile(
+            join(workspaceRoot, 'pnpm-workspace.yaml'),
+            'packages:\n  - packages/*\nverifyDepsBeforeRun: false\n',
+        );
+        await writeFile(join(workspaceRoot, 'README.md'), 'Fixture');
+        await writeFile(join(workspaceRoot, 'LICENSE.md'), 'Fixture');
+
+        execFileSync('pnpm', ['run', 'copy', '--pin-versions'], { cwd: packageRoot, encoding: 'utf8' });
+
+        const manifest = JSON.parse(await readFile(join(packageRoot, 'dist/package.json'), 'utf8'));
+        expect(manifest.dependencies['@crawlee/templates']).toBe('4.0.0');
+        expect(await readFile(join(packageRoot, 'dist/skills/crawlee-upgrade-v4/SKILL.md'), 'utf8')).toBe(
+            await readFile(join(sourceSkill, 'SKILL.md'), 'utf8'),
+        );
+    });
+
     it('prints the source skill with readable absolute references from another working directory', async () => {
         const output = execFileSync(
             process.execPath,
