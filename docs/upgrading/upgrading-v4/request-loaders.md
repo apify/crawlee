@@ -216,18 +216,20 @@ const queue = await crawler.getRequestQueue();
 const manager = await crawler.getRequestManager();
 ```
 
-### `enqueueLinks` `requestQueue` option renamed to `requestManager`
+### Standalone `enqueueLinks()` removed; `enqueueLinksByClickingElements` takes `requestManager`
 
-The standalone `enqueueLinks()` function and the click-elements enqueue helpers (`enqueueLinksByClickingElements` in `@crawlee/puppeteer` and `@crawlee/playwright`) now take a `requestManager` option instead of `requestQueue`:
+The standalone `enqueueLinks()` function is gone. Call `context.enqueueLinks()` inside a request handler, or add known URLs with `context.addRequests()` / `requestManager.addRequests()`.
+
+The click-elements enqueue helpers (`enqueueLinksByClickingElements` in `@crawlee/puppeteer` and `@crawlee/playwright`) now take a `requestManager` option instead of `requestQueue`:
 
 **Before:**
 ```typescript
-await enqueueLinks({ urls, requestQueue });
+await enqueueLinksByClickingElements({ page, selector, requestQueue });
 ```
 
 **After:**
 ```typescript
-await enqueueLinks({ urls, requestManager });
+await enqueueLinksByClickingElements({ page, selector, requestManager });
 ```
 
 ### Removed `UrlList` type alias

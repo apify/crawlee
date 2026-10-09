@@ -72,7 +72,8 @@ The purely mechanical renames, collected in one place. Where a row links to a se
 | `requestList.isEmpty()` / `requestList.isFinished()` | `await checkReadiness()` ([details](./request-loaders.md#isempty--isfinished-replaced-by-checkreadiness)) |
 | `Dataset.listItems()` | `Dataset.getData()` / `Dataset.values()` ([details](./storage-backends.md#datasetlistitems-replaced-by-datasetgetdata-and-datasetvalues)) |
 | crawler options `requestList` / `requestQueue` | `requestManager` ([details](./request-loaders.md#crawler-requestlist--requestqueue-options-deprecated-in-favor-of-requestmanager)) |
-| `enqueueLinks({ requestQueue })` | `enqueueLinks({ requestManager })` |
+| standalone `enqueueLinks({ urls, requestQueue })` | removed; `context.enqueueLinks()` or `addRequests()` ([details](./request-loaders.md#standalone-enqueuelinks-removed-enqueuelinksbyclickingelements-takes-requestmanager)) |
+| `enqueueLinksByClickingElements({ requestQueue })` | `enqueueLinksByClickingElements({ requestManager })` |
 | `enqueueLinks({ globs, regexps, pseudoUrls })` | `enqueueLinks({ include })` ([details](#globs-regexps-and-pseudourls-replaced-by-include)) |
 | `(await enqueueLinks()).processedRequests` | `(await enqueueLinks()).addedRequests` ([details](#enqueuelinks-return-value-reshaped-addrequestsbatchedresult-instead-of-batchaddrequestsresult)) |
 | `autoscaledPoolOptions` | `taskLoopOptions` ([narrowed](./autoscaling.md#autoscaledpooloptions-is-now-taskloopoptions-and-no-longer-carries-concurrency-config)) |
@@ -209,7 +210,7 @@ log.setLevel(LogLevel.DEBUG);
 
 ### The `utils` bag is removed from the `crawlee` meta-package
 
-The `crawlee` meta-package exported a `utils` object — the last remnant of v2's `Apify.utils` namespace — bundling `utils.puppeteer`, `utils.playwright`, `utils.log`, `utils.enqueueLinks`, `utils.social`, `utils.sleep`, `utils.downloadListOfUrls` and `utils.parseOpenGraph`. It is gone. Every member was already exported from `crawlee` under its own name, so the fix is to import that name directly:
+The `crawlee` meta-package exported a `utils` object — the last remnant of v2's `Apify.utils` namespace — bundling `utils.puppeteer`, `utils.playwright`, `utils.log`, `utils.enqueueLinks`, `utils.social`, `utils.sleep`, `utils.downloadListOfUrls` and `utils.parseOpenGraph`. It is gone. Every member except `utils.enqueueLinks` was already exported from `crawlee` under its own name, so the fix is to import that name directly. The standalone `enqueueLinks()` is removed too; use `context.enqueueLinks()` in a request handler or `addRequests()` for known URLs:
 
 **Before:**
 ```typescript
