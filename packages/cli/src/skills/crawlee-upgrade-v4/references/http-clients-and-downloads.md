@@ -18,7 +18,7 @@ Session fingerprints drive impit's impersonation and override the browser hint o
 
 ## Custom clients
 
-`BaseHttpClient`, `FetchHttpClient`, `ResponseWithUrl`, `IResponseWithUrl` and `CustomFetchOptions` live in `@crawlee/http-client`. A client extends `BaseHttpClient` and implements `protected fetch(input: Request, init?: RequestInit & CustomFetchOptions): Promise<Response>`. The base implements `sendRequest(request, options?)`; there is no `stream()` method. Return a real native Response, and read its `body` for streaming.
+`BaseHttpClient`, `FetchHttpClient`, `ResponseWithUrl` and `CustomFetchOptions` live in `@crawlee/http-client`. There is no exported `IResponseWithUrl`; use native `Response` for the response contract. A client extends `BaseHttpClient` and implements `protected fetch(input: Request, init?: RequestInit & CustomFetchOptions): Promise<Response>`. The base implements `sendRequest(request, options?)`; there is no `stream()` method. Return a real native Response, and read its `body` for streaming.
 
 The old `HttpResponse`, `HttpResponseWithoutBody`, `StreamingHttpResponse`, `ResponseTypes`, `BaseHttpResponseData`, `SimpleHeaders` and `processHttpRequestOptions` are removed. HTTP-related types still owned by `@crawlee/types` must be imported there; do not assume every old core export moved to the client package.
 
