@@ -20,20 +20,20 @@ This page summarizes the breaking changes in Crawlee v4. There are many, so the 
 Run the v4 CLI from your project directory to print a migration prompt:
 
 ```sh
-npx crawlee@v4 upgrade
+npx crawlee@4 upgrade
 ```
 
-Use the explicit `v4` release tag while v4 is in prerelease. A bare `crawlee` command in a v3 project runs its local v3 CLI, which does not have this command. The invoked v4 CLI keeps control of `upgrade` even when a v3 installation exists locally.
+A bare `crawlee` command in a v3 project runs its local v3 CLI, which does not have this command. The invoked v4 CLI keeps control of `upgrade` even when a v3 installation exists locally.
 
-Paste the output into an AI coding tool that can read your project and the local files linked in the prompt. The command only prints instructions. They ask the tool to inspect, plan, migrate and verify, and to ask once before creating a Git branch and making incremental commits.
+Paste the output into an AI coding tool that can read your project and the local files linked in the prompt. The links point into the npx cache; if your tool can only read files inside the project, pass `--export <dir>` to copy the guides into a directory of your choice and have the prompt link that copy. The command only prints instructions. They ask the tool to inspect, plan, migrate and verify, and to ask once before creating a Git branch and making incremental commits.
 
-`upgrade` detects the current major from Crawlee runtime dependencies in the nearest `package.json`. It uses installed versions that match the declared ranges, or an unambiguous single-major range when dependencies are not installed. In a workspace, run it from the package being migrated. If detection is ambiguous, specify the starting major:
+`upgrade` detects the current major from Crawlee runtime dependencies in the nearest `package.json`. It uses installed versions that match the declared ranges, or an unambiguous single-major range when dependencies are not installed. A non-semver specifier such as `latest` uses the installed version, and an installed version outside the declared range is ignored. In a workspace, run it from the package being migrated. If detection is ambiguous, specify the starting major:
 
 ```sh
-npx crawlee@v4 upgrade --from 3 --to 4
+npx crawlee@4 upgrade --from 3
 ```
 
-`--to` defaults to the newest bundled migration. Only v3 to v4 is bundled initially. As guides for later majors are added, the command builds a sequence that completes and verifies each major before starting the next. It rejects a path with a missing guide rather than skipping a major. To revisit migration work in a project already using v4, use `--from 3 --to 4`.
+`--to` defaults to the newest bundled migration. Only v3 to v4 is bundled initially. As guides for later majors are added, the command builds a sequence that completes and verifies each major before starting the next. It rejects a path with a missing guide rather than skipping a major. To revisit migration work in a project already using v4, use `--from 3`.
 
 ## What v4 does better
 
