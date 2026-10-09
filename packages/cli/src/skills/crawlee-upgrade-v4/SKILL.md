@@ -9,7 +9,7 @@ Inspect, plan, migrate and verify this project. These bundled references summari
 
 ## Inspect and plan
 
-Inspect manifests, lockfiles, crawler code, tests, runtime versions, CI and Dockerfiles. Inventory `crawlee`, `@crawlee/*`, `apify`, `apify-*` and `@apify/*` across workspace dependency sections. Use the [package map](<{SKILL_ROOT}/references/packages.md>) to identify roles and compatible versions; Apify packages have independent version numbers.
+Inspect manifests, lockfiles, crawler code, tests, runtime versions, CI and Dockerfiles. Inventory `crawlee`, `@crawlee/*`, `apify`, `apify-*` and `@apify/*` across workspace dependency sections. Use the [package map](<{SKILL_ROOT}/references/packages.md>) to identify roles and compatible versions. Actor projects also move to `apify@4`; other Apify packages have independent version numbers.
 
 Search for the triggers below and load only applicable references. Plan the changes around the project's crawler types, custom collaborators, storage persistence and queue reuse. Ask about behavior the code does not establish. If already on v4, address remaining migration gaps.
 

@@ -51,6 +51,8 @@ Preserve supported imports. Keep Crawlee packages on compatible v4 releases and 
 | `@apify/pseudo_url` | Legacy pseudo-URLs, removed from Crawlee v4; translate to globs/regexps. |
 | `apify-node-curl-impersonate` | curl-impersonate HTTP wrapper; separate from Crawlee's impit client. |
 
-Apify packages version independently: do not install `apify@4` or bump every helper to v4. Check SDK dependency/peer compatibility, especially for cloud storage. Preserve Actor lifecycle and platform integration; retain Actor storage methods.
+Actor projects need the Apify SDK v4 line: Apify SDK 3.x does not run on `@crawlee/core@4`, so install `apify@4` together with Crawlee v4. The SDK has its own breaking changes; review them after the bump. Preserve Actor lifecycle and platform integration; retain Actor storage methods.
+
+The other Apify packages version independently: do not bump every helper to v4. Check their dependency/peer compatibility, especially for cloud storage.
 
 Update Apify packages only for compatibility or affected APIs. Do not promote transitive helpers to direct dependencies.
