@@ -21,7 +21,7 @@ If approved, verify and commit each coherent step before continuing. Stage only 
 
 ## Common changes
 
-- Require Node.js 22.13+ and TypeScript 5.8+ for declaration checking. Native ESM still supports compatible CommonJS consumers through `require(esm)`; preserve the project's module format. Cheerio moves to stable v1 and `parse5`; check parsing-sensitive extraction.
+- Require Node.js 22.13+ and TypeScript 5.8+ for declaration checking. Native ESM still supports compatible CommonJS consumers through `require(esm)`; preserve the project's module format. Cheerio moves to stable v1; `CheerioCrawler` and `htmlToText` keep `htmlparser2` via `cheerio/slim`, while `parseWithCheerio` on other crawlers uses full cheerio with `parse5`. Check parsing-sensitive extraction.
 - Rename `handleRequestFunction` / `handlePageFunction` to `requestHandler`, `handleRequestTimeoutSecs` to `requestHandlerTimeoutSecs`, `handleFailedRequestFunction` to `failedRequestHandler`, `persistCookiesPerSession` to `saveResponseCookies`, and `ignoreSslErrors` to `ignoreTlsErrors`.
 - `Configuration` is immutable: property reads replace `get()`, constructor options replace `set()` and now override environment variables. Pass crawler configuration via its `configuration` option. Service access moves to `serviceLocator`.
 - Navigation and handlers have separate timeouts; hooks share the navigation budget. HTTP hooks lose `gotOptions`; browser hooks use `context.gotoOptions`. Errors move to the second error-handler argument. Replace `context.crawler` with a closure or `extendContext`; the latter runs before `page`, `$`, `body` and `response` exist.
