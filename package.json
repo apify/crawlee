@@ -118,7 +118,7 @@
         "playwright": "catalog:",
         "portastic": "^1.0.1",
         "proxy": "^2.2.0",
-        "puppeteer": "25.12.0",
+        "puppeteer": "25.13.0",
         "rimraf": "^6.0.1",
         "tsx": "4.21.0",
         "turbo": "^2.10.11",
