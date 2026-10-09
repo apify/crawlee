@@ -50,7 +50,7 @@ Remove flags and configuration that skip optional dependencies from Docker insta
 | `SessionPool`, `Session`, cookie helpers, proxy tiers, `createSessionFunction` | [Sessions and proxies](<{SKILL_ROOT}/references/sessions-and-proxies.md>) |
 | Browser hooks, `browserPoolOptions`, `browserController`, predictor, Cloudflare, Stagehand | [Browser management](<{SKILL_ROOT}/references/browser-management.md>) |
 | Native responses, `gotScraping`, `BaseHttpClient`, `FileDownload` | [HTTP clients and downloads](<{SKILL_ROOT}/references/http-clients-and-downloads.md>) |
-| URL filters, enqueue results, queue reuse, request lists, readiness, throttling | [Requests and links](<{SKILL_ROOT}/references/requests-and-links.md>) |
+| URL filters, enqueue results, queue reuse, request lists, custom managers, `Request`, robots.txt, skipping, throttling | [Requests and links](<{SKILL_ROOT}/references/requests-and-links.md>) |
 | Storage writes, local input files, `getInput`, `MemoryStorage`, `StorageClient`, custom backends, `listItems` | [Storage](<{SKILL_ROOT}/references/storage.md>) |
 | `statisticsOptions`, custom `Statistics`, persisted counters | [Statistics](<{SKILL_ROOT}/references/statistics.md>) |
 | `autoscaledPoolOptions`, `crawler.autoscaledPool`, snapshotting or load signals | [Concurrency](<{SKILL_ROOT}/references/concurrency.md>) |

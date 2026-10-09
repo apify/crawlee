@@ -14,6 +14,10 @@ Standalone `enqueueLinks` and click-element helpers rename `requestQueue` to `re
 
 `BasicCrawler` and its context lose `enqueueLinks`; use `addRequests()` for known URLs. Crawlers with web content retain `enqueueLinks()` and gain `extractLinks()` for URL extraction without enqueueing.
 
+For request-skipping code that previously set `noRetry`, threw and adjusted failure counters, use `context.skipRequest(message?)`. It is available in `extendContext`, hooks, the handler and `errorHandler`. It marks the request handled with `RequestState.SKIPPED`, rolls back buffered writes, skips retries and `failedRequestHandler`, and calls `onSkippedRequest` with reason `'manual'`.
+
+With `respectRobotsTxtFile`, robots.txt HTTP 4xx responses allow all URLs and 5xx responses disallow all URLs regardless of body. The result is cached per origin for the run, so a robots.txt 5xx skips all requests to that origin with reason `'robotsTxt'`. Check crawls that previously parsed error response bodies.
+
 ## Queue sharing and repeated runs
 
 Only the first crawler uses the default queue. Later crawlers get distinct default queues unless passed an explicit manager. Make previously intended sharing explicit. Repeated `run()` calls keep the same manager and handled requests, including failed ones. `purgeRequestQueue` is removed from run options.
@@ -36,11 +40,19 @@ For deliberate in-place clearing, `purge()` exists on local stores and optionall
 
 Readiness is `{ status: 'ready' }`, `'waiting'` with optional `readyAt`, `'stalled'` with `reason`, or `'finished'`. Rewrite predicates according to their intent, not by renaming calls. Combined sources prioritize ready, stalled, waiting, finished; waiting uses the earlier readiness time. Storage backends retain `isEmpty()` and `isFinished()`.
 
-Read-only loaders lose `reclaimRequest` and `inProgress` from their interface. Persistence becomes optional; `getPendingCount()` and optional `toTandem()` are added.
+Read-only loaders lose `reclaimRequest`, `inProgress` and `persistState` from their interface. Stateful implementations persist themselves; `RequestList` and `SitemapRequestLoader` retain public `persistState()` methods. `getPendingCount()` and optional `toTandem()` are added.
 
 Crawler constructor `requestList` and `requestQueue` options are deprecated but still accepted. Prefer `requestManager`; combine list and queue with `await requestList.toTandem(queue)` or `new RequestManagerTandem(list, queue)`. A lone list now runs through a tandem with a queue, changing retries and request-limit accounting. Crawler instance `requestList` and `requestQueue` fields are removed. `getRequestQueue()` remains deprecated but may return any manager; use `getRequestManager()`.
 
 `RequestList` persisted state wins over the explicit `state` option. `nextIndex` must be a nonnegative integer and `inProgress` unique keys. Its built-in record shape remains compatible. The sitemap default key changes from `SITEMAP_REQUEST_LIST_STATE` to `SITEMAP_REQUEST_LOADER_STATE`; preserve an explicit old key or finish the crawl before upgrading if restart is unacceptable.
+
+## Stored requests and crawler requests
+
+Core `Request` holds the stored record. `CrawlingRequest` from `@crawlee/basic` adds `skipNavigation`, `crawlDepth`, `sessionId`, `maxRetries`, `state` and `pushErrorMessage()`. `RequestState` moves from core to basic too. Handler and hook requests already use `CrawlingRequest`; when reading a request directly from a manager, use `CrawlingRequest.fromSchema(request)` if those crawler properties are needed. Existing request options still record those settings.
+
+`RequestOptions` no longer accepts `id` or `handledAt`; the constructor ignores `retryCount`, `errorMessages` and `loadedUrl`. Rebuild stored records with `Request.fromSchema(record)`. `RequestOptions.skippedReason` and `Request.skippedReason` are removed.
+
+Custom managers receive the crawler's rebuilt copy in `reclaimRequest()` and `markRequestAsHandled()`. Match requests by `uniqueKey` or `id`, not object identity. The protected `crawler.requestManager` getter is read-only; inject managers through constructor options and access them through `getRequestManager()`.
 
 ## Pacing
 
