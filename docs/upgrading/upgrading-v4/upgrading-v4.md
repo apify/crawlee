@@ -623,7 +623,7 @@ const crawler = new PlaywrightCrawler({
 });
 ```
 
-Building the pool outside the crawler has one consequence worth knowing: a pool passed as `browserPool` is borrowed, so the crawler never destroys it, and the options that would have configured a pool of the crawler's own — `launchContext`, `headless` and `remoteBrowser` — are now **rejected** instead of silently ignored. Move them into the factory call.
+Building the pool outside the crawler has one consequence worth knowing: a pool passed as `browserPool` is borrowed, so the crawler never destroys it, and the options that would have configured a pool of the crawler's own — `launchContext`, `headless`, `remoteBrowser` and, for `StagehandCrawler`, `stagehandOptions` — are now **rejected** instead of silently ignored. Move them into the factory call.
 
 `remoteBrowser` keeps working on its own for the terse case; pass the same `remoteBrowser` to the factory when you also want to tune the pool, or to share one remote pool between crawlers. Remote connections are owned by the `RemotePlaywrightPlugin` / `RemotePuppeteerPlugin` classes from `@crawlee/browser-pool` — there is no separate `RemoteBrowserPool`; `BrowserPool` itself accepts `maxOpenBrowsers`. `StagehandCrawler` does not support `remoteBrowser` (it throws) — Stagehand manages its own browser via `stagehandOptions.env`.
 
@@ -1244,7 +1244,7 @@ A few Stagehand-specific option types were tightened:
 - The `StagehandRequestHandler` type was removed. It was never referenced by `StagehandCrawlerOptions.requestHandler`, which uses `RequestHandler<StagehandCrawlingContext>` — use that instead.
 - The `stagehandUtils` namespace was removed. Its only member was internal glue that was never part of the documented surface.
 - The `AgentResult` re-export was removed. Import it from `@browserbasehq/stagehand` directly — it is a non-optional peer dependency, so it is already installed.
-- `StagehandLaunchContext.stagehandOptions` was removed. It never had any effect: the value was always overwritten by the `stagehandOptions` option on the crawler and on `stagehandBrowserPool()`. Pass `stagehandOptions` at the top level instead.
+- `StagehandLaunchContext.stagehandOptions` was removed. It never had any effect: the value was always overwritten by the `stagehandOptions` option on the crawler and on `stagehandBrowserPool()`. Pass `stagehandOptions` at the top level of the crawler instead, or of `stagehandBrowserPool()` when you supply a `browserPool`.
 - `StagehandPlugin.stagehandOptions` is now private and `StagehandPlugin.getStagehandForBrowser()` is gone. Reach the `Stagehand` instance through the crawling context's `stagehand` property.
 
 ## Appendix: removed symbols
