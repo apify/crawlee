@@ -7,7 +7,7 @@ import { InstallPlaywrightBrowsersCommand } from './commands/install-playwright-
 
 import { RunProjectCommand } from './commands/run-project-command.js';
 
-import { UpgradeCommand } from './commands/UpgradeCommand.js';
+import { UpgradeCommand } from './commands/upgrade-command.js';
 
 import { createRequire } from 'node:module';
 import yargs from 'yargs';
