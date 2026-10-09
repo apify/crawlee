@@ -73,4 +73,4 @@ Storage frontends receive `{ metadata, backend }` internally; applications shoul
 
 `DatasetOptions`, `KeyValueStoreOptions` and `RequestQueueOptions` are internal constructor types. `Dataset.backend` is private, `id` and `name` are readonly, and `Dataset.log` is removed. Use frontend methods and your own logger.
 
-Collection interfaces and data types disappear. The old client-update, record-get/options, queue-head, locking and storage-stats types disappear too. `KeyValueStoreClientListOptions` becomes `KeyValueStoreListKeysOptions`; `Create*BackendOptions` aliases become `StorageIdentifier`. Check the implemented v4 backend interfaces when compiler errors identify one of these types.
+Collection interfaces and data types disappear. The old client-update, record-get/options, queue-head, locking and storage-stats types disappear too. `KeyValueStoreClientListOptions` becomes `KeyValueStoreListKeysOptions`. Check the implemented v4 backend interfaces when compiler errors identify one of these types.
