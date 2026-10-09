@@ -12,7 +12,9 @@
 
 ## Utility changes
 
-`RobotsFile` becomes `RobotsTxtFile`. `RobotsTxtFile.find(url, proxyUrl, options)` becomes `find(url, { proxyUrl, ...options })`, also supporting httpClient and logger. `getSitemaps`, `parseSitemaps` and `parseUrlsFromSitemaps` lose RobotsTxtFileSitemapsOptions. ParseSitemapOptions loses enqueueStrategy and networkTimeouts.
+The `utils` object exported by `crawlee` is removed. Replace `utils.puppeteer` and `utils.playwright` with direct `puppeteerUtils` and `playwrightUtils` imports. Import `log`, `enqueueLinks`, `social`, `sleep`, `downloadListOfUrls` and `parseOpenGraph` directly for the other members. Page-bound helpers may already be available on the crawling context.
+
+`RobotsFile` becomes `RobotsTxtFile`. `RobotsTxtFile.find(url, proxyUrl, options)` becomes `find(url, { proxyUrl, ...options })`, also supporting httpClient and logger. `getSitemaps`, `parseSitemaps` and `parseUrlsFromSitemaps` still accept `RobotsTxtFileSitemapsOptions`. Their `enqueueStrategy` defaults to `'same-hostname'`; use `'all'` when cross-host sitemap URLs are intentional. Non-HTTP(S) sitemap URLs are always excluded. Replace `ParseSitemapOptions.networkTimeouts` with the single `timeoutMillis` option.
 
 `htmlToText`, `parseHandlesFromHtml` and `parseOpenGraph` are now async; await their results and update callers' return types.
 
@@ -21,6 +23,8 @@
 Removed filterUrl, matchesEnqueueStrategy, UNSUPPORTED_SCHEME_MESSAGE and core filterRequestsByPatterns have no public replacement. Filtering belongs in enqueueLinks/addRequests.
 
 Utils separates public helpers from `@crawlee/utils/internal`. Internal regex, blocked-detection, iterable and URL helpers move there, including URL_NO_COMMAS_REGEX, URL_WITH_COMMAS_REGEX, extractUrlsFromCheerio and tryAbsoluteURL. Core no longer re-exports parseArgument, schemas or tryAbsoluteURL. Prefer supported public helpers; internal imports have no semver guarantees. ArgumentValidationError stays exported by core.
+
+`parseSitemap`, `SitemapUrl` and `expandShadowRoots` also move to `@crawlee/utils/internal` and disappear from `crawlee`. Prefer public `Sitemap.load()`, `Sitemap.fromXmlString()`, `Sitemap.tryCommonNames()` or `discoverValidSitemaps()` for sitemap parsing. `expandShadowRoots` is intended to run inside a browser page.
 
 ## Removed-member lookup
 
@@ -51,5 +55,24 @@ Search this list when a compiler or runtime error identifies an old symbol. Read
 | `IRequestList`, `SitemapRequestList`, `RequestQueueV1`, `RequestQueueV2`, `RequestProvider` | Loader/manager changes; requests reference |
 | `StorageClient`, collection-client and lock types | StorageBackend contract; storage reference |
 | `EVENT_SESSION_RETIRED`, `TieredProxy`, `TieredProxyOptions` | Session cleanup and proxy rotation; sessions reference |
+| `KeyValueStore.getInput`, `Configuration.inputKey`, `CRAWLEE_INPUT_KEY` | `Actor.getInput()` for Actor projects; input and purge behavior in storage reference |
+| `Configuration.defaultDatasetId`, `defaultKeyValueStoreId`, `defaultRequestQueueId`, `CRAWLEE_DEFAULT_*_ID` | Open and pass specific storages explicitly |
+| `CreateContextOptions` | ContextPipeline-driven context construction |
+| `ResponseLike`, `BrowserLikeResponse`, `RedirectHandler` | Native Response and the HTTP client contract |
+| `UrlPatternObject` | Use `UrlPatternInput`, `GlobInput`, `RegExpInput`; infer compiled pattern types |
+| `PERSIST_STATE_KEY`, `MAX_POOL_SIZE` | SessionPool `persistStateKey` / `maxPoolSize` options; the old pool-size default is 1000 |
+| `WithRequired` | Define the utility type locally if needed |
+| `ErrorSnapshotter`, `SnapshotResult`, `ErrorTracker.errorSnapshotter`, `ErrorTracker.captureSnapshot` | Enable `saveErrorSnapshots` on Statistics or ErrorTracker; `addAsync()` captures the first occurrence, with URLs on `errorTracker.result` |
+| `MinimumSpeedStream`, `ByteCounterStream` | Handler-owned transforms around response streams; HTTP/download reference |
+| `HttpHook`, `CheerioHook`, `JSDOMHook`, `LinkeDOMHook`, `FileDownloadHook` | Infer hook types from crawler options; crawler internals reference |
+| `UrlList` | Inline `(string \| null)[]` |
+| `PlaywrightLauncher`, `BrowserCrawler.launchContext` | `launchPlaywright()` / pool factories and caller-owned options; browser reference |
+| `StagehandRequestHandler`, `stagehandUtils`, `AgentResult`, `StagehandLaunchContext.stagehandOptions`, `StagehandPlugin.getStagehandForBrowser` | Stagehand replacements in browser reference |
+| `BrowserSpecification`, `GetFingerprintReturn`, browser-pool `FingerprintGenerator`, `BROWSER_POOL_EVENTS.BROWSER_CLOSED` | Fingerprint types and controller events; browser reference |
+| `puppeteerClickElements` | `puppeteerUtils.enqueueLinksByClickingElements()` or the context helper; its options type remains exported |
+| `puppeteerRequestInterception` | `puppeteerUtils.addInterceptRequestHandler` / `removeInterceptRequestHandler`; `InterceptHandler` remains exported |
+| Puppeteer top-level `BlockRequestsOptions`, `InjectFileOptions`, `InfiniteScrollOptions`, `SaveSnapshotOptions`, `CompiledScriptParams`, `CompiledScriptFunction` | Types remain under `puppeteerUtils`, such as `puppeteerUtils.SaveSnapshotOptions` |
+
+`RequestState` moves from core to basic, and `Request` splits from `CrawlingRequest`; read the requests reference for construction, stored records and custom-manager identity changes.
 
 An unchanged import may still be internal or have a changed signature. In particular AutoscaledPool, Snapshotter and SystemStatus remain exported as internals; read the concurrency reference before retaining them.
