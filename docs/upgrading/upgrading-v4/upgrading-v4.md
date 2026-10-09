@@ -120,7 +120,7 @@ Support for older TypeScript versions was dropped. Crawlee ships compiled JavaSc
 
 ### Cheerio v1
 
-Previously, we kept the dependency on cheerio locked to the latest RC version, since there were many breaking changes introduced in v1.0. This release bumps cheerio to the stable v1. Also, we now use the default `parse5` internally.
+Previously, we kept the dependency on cheerio locked to the latest RC version, since there were many breaking changes introduced in v1.0. This release bumps cheerio to the stable v1. `CheerioCrawler` and `htmlToText` keep parsing with `htmlparser2` through `cheerio/slim`; the `parseWithCheerio` helper on the other crawlers loads full cheerio, which parses with `parse5`.
 
 ### Argument validation errors use zod
 
