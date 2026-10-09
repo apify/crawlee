@@ -2,14 +2,9 @@
 
 ## Configuration and services
 
-`Configuration.get()` and `set()` are removed. Read properties directly and create a new immutable configuration for changes. Assigning a property throws. Precedence is constructor options, environment variables, `crawlee.json`, then defaults.
+Replace `Configuration.get()` with property reads and `set()` with constructor options. Instances are immutable. Precedence is constructor options, environment variables, `crawlee.json`, then defaults.
 
-```ts
-const configuration = new Configuration({ headless: false, persistStateIntervalMillis: 10_000 });
-const crawler = new PlaywrightCrawler({ configuration, requestHandler });
-```
-
-The second configuration argument is removed from crawler constructors, but stays on `PuppeteerLauncher`. `PlaywrightLauncher` is no longer exported; use `launchPlaywright(launchContext, configuration)` or a browser-pool factory.
+Pass `configuration` in crawler options instead of a second constructor argument. `PuppeteerLauncher` retains that argument; replace the removed `PlaywrightLauncher` export with `launchPlaywright(launchContext, configuration)` or a pool factory.
 
 | v3 | v4 |
 | --- | --- |
@@ -22,28 +17,24 @@ The second configuration argument is removed from crawler constructors, but stay
 | `Configuration.resetGlobalState()` | `serviceLocator.reset()` |
 | `config.storageManagers` | `serviceLocator.getStorageInstanceManager()` |
 
-Prefer `serviceLocator.getConfiguration()` for the active configuration. `getGlobalConfiguration()` also follows the active service locator, despite its name. Pass `configuration`, `storageBackend` and `eventManager` in crawler options for per-crawler isolation. Event-manager constructors take an options object; `LocalEventManager.fromConfiguration()` derives intervals from a configuration.
+Use `serviceLocator.getConfiguration()` for the active configuration. Pass `configuration`, `storageBackend` and `eventManager` as crawler options for isolation. Event-manager constructors now take options; `LocalEventManager.fromConfiguration()` derives intervals from configuration. The locator's `reset()` and `getStorageInstanceManager()` are internal; use public storage `.open()` methods in application code.
 
-`serviceLocator.reset()` and `getStorageInstanceManager()` are internal and have no semver guarantees. Use `reset()` for test cleanup when needed; application code should open storages through their public `.open()` methods.
+Remove `defaultDatasetId`, `defaultKeyValueStoreId`, `defaultRequestQueueId` and `CRAWLEE_DEFAULT_*_ID`; open and pass specific storages explicitly. For removed `inputKey` / `CRAWLEE_INPUT_KEY`, follow the storage reference.
 
-`Configuration.defaultDatasetId`, `defaultKeyValueStoreId`, `defaultRequestQueueId` and their `CRAWLEE_DEFAULT_*_ID` environment variables are removed. Default storages use a reserved alias. Open and pass a specific storage explicitly when the project requires one. `Configuration.inputKey` and `CRAWLEE_INPUT_KEY` also disappear; read the storage reference before replacing input access or handling default-store purge.
-
-Rename Crawlee's `config` options and properties to `configuration`, including storage opening, `useState`, `purgeDefaultStorages`, snapshot helpers, `RecoverableState`, request-list and load-signal options. Do not rename unrelated application variables merely because they are called `config`.
+Rename Crawlee `config` options/properties to `configuration`: storage opening, `useState`, `purgeDefaultStorages`, snapshots, `RecoverableState`, request lists and load signals.
 
 ## Hooks and context
 
-`requestHandlerTimeoutSecs` covers the handler only. `navigationTimeoutSecs` covers pre-hooks, navigation and post-hooks together, with defaults of 30 seconds for HTTP and 60 for browser crawlers. `navigationHooksTimeoutSecs` is removed. The default handler timeout is 60 seconds. Slow hooks may need a larger navigation budget or `context.extendTimeout(seconds)`.
+`requestHandlerTimeoutSecs` covers only the handler, default 60 seconds. `navigationTimeoutSecs` covers pre-hooks, navigation and post-hooks together, default 30 seconds for HTTP and 60 for browsers. Remove `navigationHooksTimeoutSecs`. Slow hooks may need a larger navigation budget or `context.extendTimeout(seconds)`.
 
-An internal whole-request timeout also covers other phases. `CRAWLEE_INTERNAL_TIMEOUT` overrides it in milliseconds, but values below phase timeouts are ignored with a warning. Router handlers may receive a third options argument with `requestHandlerTimeoutSecs` for per-route limits.
+`CRAWLEE_INTERNAL_TIMEOUT` overrides the whole-request timeout in milliseconds; values below phase timeouts are ignored. Per-route limits use the third `router.addHandler()` argument: `{ requestHandlerTimeoutSecs }`.
 
-HTTP pre-hooks mutate the crawling context, such as `request.headers`, instead of a second `gotOptions` argument. Browser hooks mutate `context.gotoOptions` instead of receiving it separately.
+HTTP hooks mutate context/request fields instead of receiving `gotOptions`. Browser hooks mutate `context.gotoOptions`. Read errors from the second `errorHandler` / `failedRequestHandler` argument. Replace `context.crawler` with a closure or `extendContext: () => ({ crawler })`. Extensions run before navigation; page/response-dependent logic belongs in post-hooks or handlers.
 
-Use the second callback argument of `errorHandler` and `failedRequestHandler` for the error. For removed `context.crawler`, use a closure or add it through `extendContext: () => ({ crawler })`. Context additions should have inferred or declared types. `extendContext` runs before navigation; logic requiring a page or parsed response belongs in a post-hook or handler.
-
-`closeCookieModals` is removed from contexts and both utility namespaces, along with the `idcac-playwright` peer dependency. Migrate any required consent handling explicitly, for example using `@duckduckgo/autoconsent` in a pre-hook. Do not silently drop consent behavior.
+`closeCookieModals` and `idcac-playwright` are removed. Preserve consent handling through an explicit integration, such as `@duckduckgo/autoconsent` in a pre-hook.
 
 ## Validation and logging
 
-Argument validation uses zod. `ArgumentValidationError` replaces ow's `ArgumentError`; inspect `error.issues` for structured issues and `error.cause` for the `ZodError`. Update tests expecting old error text. Class-valued options such as `httpClient`, `configuration` and `eventManager` require actual instances rather than object-literal mocks. Crawlee depends on zod 4.1+ itself; an application's own zod 3 dependency can coexist.
+`ArgumentValidationError` replaces ow's `ArgumentError`; structured details are in `error.issues` and `error.cause`. Update error-message assertions. Class-valued options such as `httpClient`, `configuration` and `eventManager` require instances, including in mocks. Crawlee's zod 4.1+ dependency can coexist with application zod 3.
 
-The crawler `log` option becomes `logger`. Wrap an `@apify/log` instance with `new ApifyLogAdapter(log.child({ prefix: 'MyCrawler' }))`. `crawler.log`, `context.log` and other exposed loggers use `CrawleeLogger`; keep ordinary `info`, `debug` and `child` calls. Set log levels on the underlying logging library, since `CrawleeLogger` has no `setLevel()`.
+Rename crawler `log` to `logger`. Wrap custom `@apify/log` instances with `new ApifyLogAdapter(log)`. Exposed loggers use `CrawleeLogger`; replace explicit `Log` annotations and call `setLevel()` on the underlying logger, not `crawler.log` or `context.log`.
