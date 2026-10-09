@@ -96,6 +96,10 @@ Crawlee v4 is a native ESM package now. It can be still consumed from a CJS proj
 
 Support for older node versions was dropped.
 
+### Actor projects need Apify SDK v4
+
+Apify SDK 3.x does not run on `@crawlee/core@4`. Projects that depend on `apify` upgrade to `apify@4` together with Crawlee. The SDK has its own breaking changes to go through after the bump.
+
 ### Collaborators you own are disposable
 
 A crawler never tears down an instance it did not build, so anything you construct and pass in — `SessionPool`, `ConcurrencySystem`, `BrowserPool`, `RenderingTypePredictor` — is yours to shut down. All of them implement `Symbol.asyncDispose`, so `await using` does it for you:
