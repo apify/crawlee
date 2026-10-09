@@ -127,7 +127,7 @@ try {
 
 ### `autoscaledPoolOptions` is now `taskLoopOptions`, and no longer carries concurrency config
 
-The crawler option was renamed — it was named after a class that is now internal — and narrowed to **only** the task-loop predicates `isFinishedFunction` and `isTaskReadyFunction`. Its type changed from `AutoscaledPoolOptions` to `TaskLoopPredicates`. Concurrency configuration goes through either the `minConcurrency` / `maxConcurrency` / `maxRequestsPerMinute` shortcuts (which configure the crawler's default `ConcurrencySystem`), or — for anything finer — a supplied `concurrencySystem`.
+The crawler option was renamed — it was named after a class that is now internal — and narrowed to **only** the task-loop predicates `isFinishedFunction` and `isTaskReadyFunction`. Its type changed from `AutoscaledPoolOptions` to `TaskLoopPredicates`. Concurrency configuration goes through either the `minConcurrency` / `maxConcurrency` / `initialConcurrency` / `maxRequestsPerMinute` shortcuts (which configure the crawler's default `ConcurrencySystem`), or — for anything finer — a supplied `concurrencySystem`. The new `initialConcurrency` shortcut replaces `autoscaledPoolOptions.desiredConcurrency` and defaults to `minConcurrency`.
 
 Three options that used to live here — `maybeRunIntervalSecs`, `taskTimeoutSecs` and `log` — did *not* move to the `ConcurrencySystem` and have no replacement: the crawler's task-loop cadence is no longer configurable.
 
@@ -160,6 +160,7 @@ The shortcuts cannot be combined with a supplied `concurrencySystem` — they co
 const crawler = new CheerioCrawler({
     minConcurrency: 5,
     maxConcurrency: 50,
+    initialConcurrency: 10,
     maxRequestsPerMinute: 120,
     requestHandler,
 });
