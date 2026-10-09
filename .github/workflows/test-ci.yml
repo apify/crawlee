@@ -51,7 +51,7 @@ jobs:
                     restore-keys: |
                         turbo-${{ github.job }}-${{ matrix.node-version }}-${{ github.ref_name }}-
 
-            -   uses: apify/workflows/pnpm-install@main
+            -   uses: apify/actions/pnpm-install@v1.6.2
 
             -   name: Install Playwright browsers
                 run: pnpm exec playwright install --with-deps
@@ -95,7 +95,7 @@ jobs:
                     restore-keys: |
                         turbo-${{ github.job }}-${{ github.ref_name }}-
 
-            -   uses: apify/workflows/pnpm-install@main
+            -   uses: apify/actions/pnpm-install@v1.6.2
 
             -   name: Build
                 run: pnpm ci:build
@@ -126,7 +126,7 @@ jobs:
                     restore-keys: |
                         turbo-${{ github.job }}-${{ github.ref_name }}-
 
-            -   uses: apify/workflows/pnpm-install@main
+            -   uses: apify/actions/pnpm-install@v1.6.2
 
             -   name: Build & deploy docs
                 run: |
@@ -256,7 +256,7 @@ jobs:
                     restore-keys: |
                         turbo-${{ github.job }}-${{ github.ref_name }}-
 
-            -   uses: apify/workflows/pnpm-install@main
+            -   uses: apify/actions/pnpm-install@v1.6.2
 
             -   name: Oxlint
                 run: pnpm lint
@@ -292,7 +292,7 @@ jobs:
                     restore-keys: |
                         turbo-${{ github.job }}-${{ github.ref_name }}-
 
-            -   uses: apify/workflows/pnpm-install@main
+            -   uses: apify/actions/pnpm-install@v1.6.2
 
             -   name: Build
                 run: pnpm ci:build
