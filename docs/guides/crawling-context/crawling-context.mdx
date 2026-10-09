@@ -88,7 +88,7 @@ When the behavior should be reusable, with its own options, its own context type
 
 The subclass passes `BasicCrawler` a <ApiLink to="basic-crawler/interface/BasicCrawlerOptions#contextPipelineBuilder">`contextPipelineBuilder`</ApiLink>, a function that builds the crawler-specific part of the pipeline. `BasicCrawler` runs it after `extendContext`, as in the diagram above. The option is required whenever the `Context` type parameter is narrower than the default `CrawlingContext`, since without a pipeline nothing would produce the extra members the type promises.
 
-To add typed members on top of an existing crawler, extend a class that takes a `Context` type parameter (`HttpCrawler`, `BrowserCrawler`), override `buildContextPipeline()` and compose onto the parent's pipeline. In simplified form, `DOMCrawler` extends `HttpCrawler` like this:
+To add typed members on top of an existing crawler, extend `HttpCrawler`, override `buildContextPipeline()` and compose onto the parent's pipeline. In simplified form, `DOMCrawler` does this:
 
 ```typescript
 protected override buildContextPipeline() {
@@ -99,7 +99,7 @@ protected override buildContextPipeline() {
 }
 ```
 
-`PlaywrightCrawler` and `PuppeteerCrawler` compose onto `BrowserCrawler.buildContextPipeline()` the same way, but there the result runs right after the page opens and before navigation, because `BrowserCrawler` adds the navigation steps after it. A step added this way has `page` but no `response`. Use a `postNavigationHook` for anything that needs the loaded page.
+`PlaywrightCrawler` and `PuppeteerCrawler` have a `buildContextPipeline()` too, and a subclass can override it the same way. There the result runs right after the page opens and before navigation, because `BrowserCrawler` adds the navigation steps after it. A step added this way has `page` but no `response`. Use a `postNavigationHook` for anything that needs the loaded page.
 
 ### Best practices
 
@@ -108,4 +108,4 @@ protected override buildContextPipeline() {
 - **Keep the step methods private, not protected.** Overriding a step in a subclass and composing onto the pipeline are two ways to change the same thing. Allow only the pipeline, so there is one place to look. (Passing a method to `compose` detaches it from `this`, so pass `this.#step.bind(this)` or an arrow function.)
 - **Return new members, don't mutate.** Build the extension as an object and return it. The returned type is what makes the next middleware and the handler type-check.
 
-If you are migrating from the `CrawlerExtension` class and `crawler.use()` of earlier versions, both were removed in v4 in favor of the mechanisms above. See the [upgrading guide](../upgrading/upgrading-to-v4).
+If you are migrating from the `CrawlerExtension` class and `crawler.use()` of earlier versions, both were removed in v4 in favor of the mechanisms above. See the [removed symbols](../upgrading/upgrading-to-v4/removed-symbols) list in the upgrading guide.
