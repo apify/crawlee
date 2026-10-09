@@ -33,10 +33,10 @@ Move snapshotter/system-status options into `ConcurrencySystemOptions.loadSignal
 
 | Signal | Settings |
 | --- | --- |
-| `memory` | `maxUsedRatio`, `overloadedRatio`, sampling options |
+| `memory` | `maxUsedRatio`, `overloadedRatio` |
 | `eventLoop` | `snapshotIntervalSecs`, `maxBlockedMillis`, `overloadedRatio` |
-| `cpu` | Sampling options, `overloadedRatio` |
-| `storageBackend` | Former client settings: `maxErrors`, sampling options, `overloadedRatio` |
+| `cpu` | `overloadedRatio` |
+| `storageBackend` | Former client settings: `snapshotIntervalSecs`, `maxErrors`, `overloadedRatio` |
 | `custom` | Former custom signal array |
 
 Keep `snapshotHistorySecs` / `currentHistorySecs` at system level. Rename `ClientInfo` to `LoadSignalInfo`, `SystemInfo.clientInfo` to `storageBackendInfo`, and the client signal class to `StorageBackendLoadSignal`. Duplicate names throw; disable a built-in with `false` before replacing it.
