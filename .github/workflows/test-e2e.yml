@@ -50,7 +50,7 @@ jobs:
             -   name: Add Apify secrets for E2E tests
                 run: apify secrets add anthropicApiKey ${{ secrets.ANTHROPIC_API_KEY }}
 
-            -   uses: apify/actions/pnpm-install@1.0.0
+            -   uses: apify/actions/pnpm-install@v1.0.0
 
             -   name: Cache Playwright browsers
                 if: (matrix.storage != 'PLATFORM')
