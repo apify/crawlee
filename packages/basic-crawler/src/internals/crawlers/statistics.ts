@@ -46,7 +46,7 @@ const errorTrackerConfig = {
  * order here *is* the record's field order (guarded by a test).
  *
  * JSON has no infinity, so the three fields that are `Infinity` until the first request settles are written as
- * `null`. Both {@apilink Statistics.serializeState} and {@apilink Statistics.deserializeState} run through this,
+ * `null`. Both the private serialize and deserialize steps of `Statistics` run through this,
  * which is what keeps them describing the same record.
  *
  * Nothing is optional on purpose: the record has always carried every field, so one missing a field is not one of

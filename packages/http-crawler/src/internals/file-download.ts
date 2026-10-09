@@ -45,7 +45,7 @@ export type FileDownloadRequestHandler<
  * However, it doesn't parse the content - if you need to e.g. extract data from the downloaded files,
  * you might need to use {@apilink CheerioCrawler}, {@apilink PuppeteerCrawler} or {@apilink PlaywrightCrawler} instead.
  *
- * `FileCrawler` downloads each URL using a plain HTTP request and then invokes the user-provided {@apilink BasicCrawlerOptions.requestHandler} where the user can specify what to do with the downloaded data.
+ * `FileDownload` downloads each URL using a plain HTTP request and then invokes the user-provided {@apilink BasicCrawlerOptions.requestHandler} where the user can specify what to do with the downloaded data.
  *
  * The source URLs are represented using {@apilink Request} objects that are fed from the {@apilink IRequestManager|request manager} provided via the {@apilink BasicCrawlerOptions.requestManager|`requestManager`} constructor option (a {@apilink RequestQueue} is itself a request manager). To read from a read-only source such as a {@apilink RequestList} while still being able to enqueue new requests, combine it with a queue into a {@apilink RequestManagerTandem} via {@apilink IRequestLoader.toTandem|`requestLoader.toTandem()`} and pass the result as `requestManager`.
  *
@@ -53,14 +53,14 @@ export type FileDownloadRequestHandler<
  *
  * The crawler finishes when there are no more {@apilink Request} objects to crawl.
  *
- * New requests are only dispatched when there is enough free CPU and memory available, as judged by the crawler's {@apilink ConcurrencySystem}. Concurrency is tuned via the `minConcurrency`, `maxConcurrency` and `maxRequestsPerMinute` options of the `FileCrawler` constructor, or, for finer control, by injecting a pre-configured {@apilink ConcurrencySystem|`concurrencySystem`}.
+ * New requests are only dispatched when there is enough free CPU and memory available, as judged by the crawler's {@apilink ConcurrencySystem}. Concurrency is tuned via the `minConcurrency`, `maxConcurrency` and `maxRequestsPerMinute` options of the `FileDownload` constructor, or, for finer control, by injecting a pre-configured {@apilink ConcurrencySystem|`concurrencySystem`}.
  *
  * ## Example usage
  *
  * ```ts
- * const crawler = new FileDownloader({
- *     requestHandler({ body, request }) {
- *         writeFileSync(request.url.replace(/[^a-z0-9\.]/gi, '_'), body);
+ * const crawler = new FileDownload({
+ *     async requestHandler({ response, request }) {
+ *         await writeFile(request.url.replace(/[^a-z0-9\.]/gi, '_'), Buffer.from(await response.arrayBuffer()));
  *     },
  * });
  *
