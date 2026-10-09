@@ -66,7 +66,7 @@ async function project(manifest: object) {
     return directory;
 }
 
-function runUpgrade(options: { from?: number; to?: number } = {}, cwd = temporaryRoot) {
+function runUpgrade(options: { from?: number; to?: number; export?: string } = {}, cwd = temporaryRoot) {
     return spawnSync(
         process.execPath,
         [
@@ -140,6 +140,29 @@ describe('upgrade', () => {
         expect(result.stdout).toContain('# Crawlee upgrade plan: v3 to v4');
     });
 
+    it('copies the guides to --export and links the prompt to that copy', async () => {
+        const exportDirectory = join(await mkdtemp(join(temporaryRoot, 'export-')), 'guides');
+        const result = runUpgrade({ from: 3, export: exportDirectory });
+        expect(result.status, result.stderr).toBe(0);
+        await checkPrompt(result.stdout, join(exportDirectory, 'crawlee-upgrade-v4'));
+        expect(result.stdout).not.toContain(bundledSkills.replace(/\\/g, '/'));
+    });
+
+    it.each([
+        ['a non-semver specifier', 'latest', '3.18.2'],
+        ['an installed version outside the declared range', '^3.15.0', '4.0.0'],
+    ])('resolves %s from what is declared and installed', async (_, specifier, installed) => {
+        const cwd = await project({ dependencies: { crawlee: specifier } });
+        await mkdir(join(cwd, 'node_modules/crawlee'), { recursive: true });
+        await writeFile(
+            join(cwd, 'node_modules/crawlee/package.json'),
+            JSON.stringify({ name: 'crawlee', version: installed }),
+        );
+        const result = runUpgrade({}, cwd);
+        expect(result.status, result.stderr).toBe(0);
+        expect(result.stdout).toContain('# Crawlee upgrade plan: v3 to v4');
+    });
+
     it('uses the installed project version for a range spanning several majors', async () => {
         const cwd = await project({ dependencies: { crawlee: '>=3 <5' } });
         await mkdir(join(cwd, 'node_modules/crawlee'), { recursive: true });
@@ -162,6 +185,30 @@ describe('upgrade', () => {
         expect(result.status).not.toBe(0);
         expect(result.stdout).toBe('');
         expect(result.stderr).toContain(message);
+    });
+
+    it.each([
+        { from: 4, to: 4 },
+        { from: 4, to: 3 },
+    ])('rejects an explicit target that is not newer: %j', (options) => {
+        const result = runUpgrade(options);
+        expect(result.status).not.toBe(0);
+        expect(result.stdout).toBe('');
+        expect(result.stderr).toContain('already on Crawlee v4');
+    });
+
+    it('prints only the error message when detection fails through the CLI entry', async () => {
+        const cwd = await project({ devDependencies: { '@crawlee/cli': '^4' } });
+        const result = spawnSync(
+            process.execPath,
+            ['--import', require.resolve('tsx'), join(cliRoot, 'src/index.ts'), 'upgrade'],
+            { cwd, encoding: 'utf8' },
+        );
+        expect(result.status).not.toBe(0);
+        expect(result.stdout).toBe('');
+        expect(result.stderr).toContain('No Crawlee runtime dependency');
+        expect(result.stderr).not.toContain('Usage:');
+        expect(result.stderr).not.toContain('    at ');
     });
 
     it('lets --from override ambiguous project metadata', async () => {
