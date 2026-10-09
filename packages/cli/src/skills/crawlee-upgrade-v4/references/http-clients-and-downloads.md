@@ -6,6 +6,8 @@ HTTP clients, `context.response` and `sendRequest()` return standard `Response` 
 
 HTTP pre-navigation hooks lose the second `gotOptions` argument. Set request fields on context and configure the chosen client for client-specific options. `ignoreSslErrors` becomes `ignoreTlsErrors`; the fetch fallback cannot disable TLS verification and warns if requested.
 
+`HttpRequest` loses `headerGenerator`, `headerGeneratorOptions`, `useHeaderGenerator` and `sessionToken`; fingerprinting and headers belong to the client and the session passed through `SendRequestOptions.session`. Remove `insecureHTTPParser`, which has no fetch-client equivalent. Replace `throwHttpErrors` with crawler `additionalHttpErrorStatusCodes` / `ignoreHttpErrorStatusCodes` or explicit `response.status` checks. Per-request `maxRedirects` is removed; `BaseHttpClient.sendRequest()` caps redirects at 10.
+
 ## Client selection
 
 The default HTTP client is `ImpitHttpClient` from optional `@crawlee/impit-client`. Without that package, the fetch fallback warns and provides neither proxies nor impersonation. Do not remove optional dependencies from installs when those capabilities are needed.
@@ -20,6 +22,8 @@ Session fingerprints drive impit's impersonation and override the browser hint o
 
 The old `HttpResponse`, `HttpResponseWithoutBody`, `StreamingHttpResponse`, `ResponseTypes`, `BaseHttpResponseData`, `SimpleHeaders` and `processHttpRequestOptions` are removed. HTTP-related types still owned by `@crawlee/types` must be imported there; do not assume every old core export moved to the client package.
 
+`RedirectHandler` is removed with `stream()`. `BrowserLikeResponse` is removed too; read native `response.url` and `response.headers` instead of calling got-style methods.
+
 Client options require actual `BaseHttpClient` instances. Replace duck-typed test doubles with subclasses. Pass logging through the constructor's `logger` option instead of accessing private `this.log`. Honor `ignoreTlsErrors` from fetch options if the implementation supports it.
 
 ## FileDownload
@@ -27,3 +31,5 @@ Client options require actual `BaseHttpClient` instances. Replace duck-typed tes
 `FileDownload` extends `BasicCrawler` and takes `BasicCrawlerOptions<FileDownloadCrawlingContext>`. It no longer accepts HTTP-crawler options such as `navigationTimeoutSecs`, `additionalMimeTypes`, encoding overrides or got-style hooks. Configure its `httpClient` or request instead.
 
 `FileDownloadOptions` and `StreamHandlerContext` are removed. The context loses `body` and `stream`; use `response` methods or `response.body`. `FileDownloadCrawlingContext` loses its extra type parameter. `streamHandler` is gone; perform streaming in `requestHandler`. When storing a stream inside a handler, read the storage reference for `withDirectStorageAccess()`.
+
+`MinimumSpeedStream` and `ByteCounterStream` are removed. Compose any needed `Transform` around `response.body` in the handler.
