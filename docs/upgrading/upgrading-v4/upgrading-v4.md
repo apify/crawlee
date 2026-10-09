@@ -9,10 +9,31 @@ import ApiLink from '@site/src/components/ApiLink';
 This page summarizes the breaking changes in Crawlee v4. There are many, so the guide is organized to let you stop reading as early as possible:
 
 - [What v4 does better](#what-v4-does-better) — why the migration is worth the trouble.
+- [Upgrade with an AI coding tool](#upgrade-with-an-ai-coding-tool) — generate a migration prompt for your project.
 - [Rename cheat sheet](#rename-cheat-sheet) — the purely mechanical renames, in one table.
 - [Changes most users will hit](#changes-most-users-will-hit) — read this part in full.
 - The **Only if you…** sections — each applies only if you use what its title says. Skim the titles and skip what doesn't concern you. The longer ones only summarize the changes here and link to a separate page with the details.
 - [Appendix: removed symbols](./removed-symbols.md) — for when the compiler hands you a missing name and you want to know where it went.
+
+## Upgrade with an AI coding tool
+
+Run the v4 CLI from your project directory to print a migration prompt:
+
+```sh
+npx crawlee@v4 upgrade
+```
+
+Use the explicit `v4` release tag while v4 is in prerelease. A bare `crawlee` command in a v3 project runs its local v3 CLI, which does not have this command. The invoked v4 CLI keeps control of `upgrade` even when a v3 installation exists locally.
+
+Paste the output into an AI coding tool that can read your project and the local files linked in the prompt. The command only prints instructions. They ask the tool to inspect, plan, migrate and verify, and to ask once before creating a Git branch and making incremental commits.
+
+`upgrade` detects the current major from Crawlee runtime dependencies in the nearest `package.json`. It uses installed versions that match the declared ranges, or an unambiguous single-major range when dependencies are not installed. In a workspace, run it from the package being migrated. If detection is ambiguous, specify the starting major:
+
+```sh
+npx crawlee@v4 upgrade --from 3 --to 4
+```
+
+`--to` defaults to the newest bundled migration. Only v3 to v4 is bundled initially. As guides for later majors are added, the command builds a sequence that completes and verifies each major before starting the next. It rejects a path with a missing guide rather than skipping a major. To revisit migration work in a project already using v4, use `--from 3 --to 4`.
 
 ## What v4 does better
 
