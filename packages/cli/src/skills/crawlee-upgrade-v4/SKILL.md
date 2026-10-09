@@ -5,7 +5,7 @@ description: Migrate a JavaScript or TypeScript Crawlee project from v3 to v4 wh
 
 # Upgrade Crawlee from v3 to v4
 
-Inspect, plan, migrate and verify this project. These bundled references summarize the [v4 upgrade guide](https://github.com/apify/crawlee/blob/master/docs/upgrading/upgrading_v4/upgrading_v4.md).
+Inspect, plan, migrate and verify this project. These bundled references summarize the [v4 upgrade guide](https://crawlee.dev/js/docs/next/upgrading/upgrading-to-v4) and its sub-pages.
 
 ## Inspect and plan
 
