@@ -21,7 +21,7 @@ try {
 
 Move `desiredConcurrency`, `desiredConcurrencyRatio`, scaling ratios, logging/autoscale intervals and `maxTasksPerMinute` to the system. Task-loop `maybeRunIntervalSecs`, `taskTimeoutSecs` and `log` have no replacement.
 
-Replace private `crawler.autoscaledPool` access with `crawler.pause(secs)`, `resume()`, `teardown()` or graceful `stop()`. Read concurrency through `crawler.concurrencySystem`, which is undefined outside a run and typed as read-only `IConcurrencySystem`. To retune it, retain your constructed instance. Do not cache crawler-owned systems across runs.
+Replace removed `crawler.autoscaledPool` access with `crawler.pause(secs)`, `resume()`, `teardown()` or graceful `stop()`. Read concurrency through `crawler.concurrencySystem`, which is undefined outside a run and typed as read-only `IConcurrencySystem`. To retune it, retain your constructed instance. Do not cache crawler-owned systems across runs.
 
 Pause drains requests but leaves `run()` pending and autoscaling active. Stop ends the run. If you stop an owned system during a pause, restart it before resuming.
 
