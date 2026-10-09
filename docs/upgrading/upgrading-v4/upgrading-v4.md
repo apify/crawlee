@@ -833,12 +833,13 @@ The `await using` syntax needs Node.js 24 or later. On Node.js 22 call <ApiLink 
 
 `Dataset.open()`, `KeyValueStore.open()`, and `RequestQueue.open()` previously accepted a single `idOrName?: string` parameter. This was ambiguous — callers couldn't express whether they were opening a storage by its ID or by name.
 
-The first parameter now also accepts a `StorageIdentifier` object with separate `id` and `name` fields:
+The first parameter now also accepts a `StorageIdentifier` object with separate `id`, `name` and `alias` fields (at most one of them):
 
 ```typescript
 interface StorageIdentifier {
     id?: string;
     name?: string;
+    alias?: string; // run-scoped, purged on start; see the request queue section
 }
 ```
 
