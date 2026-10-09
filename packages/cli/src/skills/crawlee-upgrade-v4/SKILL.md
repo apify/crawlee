@@ -5,7 +5,7 @@ description: Inspect and migrate a JavaScript or TypeScript Crawlee project from
 
 # Upgrade Crawlee from v3 to v4
 
-Inspect this project, explain the applicable changes, then migrate it to Crawlee v4 and verify the result. These instructions come from `crawlee upgrade-to-v4`. The supporting files are bundled at `{SKILL_ROOT}` and describe the v4 migration, based on the [Crawlee upgrade guide](https://github.com/apify/crawlee/blob/master/docs/upgrading/upgrading_v4/upgrading_v4.md) and its linked topic pages.
+Inspect this project, explain the applicable changes, then migrate it to Crawlee v4 and verify the result. These instructions come from `crawlee upgrade`. The supporting files are bundled at `{SKILL_ROOT}` and describe the v4 migration, based on the [Crawlee upgrade guide](https://github.com/apify/crawlee/blob/master/docs/upgrading/upgrading_v4/upgrading_v4.md) and its linked topic pages.
 
 ## Inspect and plan
 
