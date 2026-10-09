@@ -28,6 +28,6 @@ Replace `HttpResponse`, `HttpResponseWithoutBody`, `StreamingHttpResponse`, `Res
 
 ## FileDownload
 
-`FileDownload` extends `BasicCrawler` and takes `BasicCrawlerOptions<FileDownloadCrawlingContext>`. Remove HTTP-only options: `navigationTimeoutSecs`, `additionalMimeTypes`, encoding overrides and navigation hooks. Configure the client or request instead. `FileDownload` now verifies TLS certificates; keep the v3 behavior with `httpClient: new ImpitHttpClient({ ignoreTlsErrors: true })`.
+`FileDownload` extends `BasicCrawler` and takes `BasicCrawlerOptions<FileDownloadCrawlingContext>` minus `contextPipelineBuilder`. Remove HTTP-only options: `navigationTimeoutSecs`, `additionalMimeTypes`, encoding overrides and navigation hooks. Configure the client or request instead. `FileDownload` now verifies TLS certificates; keep the v3 behavior with `httpClient: new ImpitHttpClient({ ignoreTlsErrors: true })`.
 
 Remove `FileDownloadOptions`, `StreamHandlerContext` and the extra `FileDownloadCrawlingContext` type parameter. Replace context `body` / `stream` with response methods / `response.body`; move `streamHandler` work into `requestHandler`. Replace `MinimumSpeedStream` / `ByteCounterStream` with your own transforms. Storing streams inside a handler requires `withDirectStorageAccess()`; see the storage reference.
