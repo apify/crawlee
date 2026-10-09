@@ -1118,7 +1118,7 @@ const urls = await extractLinks({ selector: '.product-link' });
 
 `context.addRequests()` also now returns an `AddRequestsBatchedResult` (previously it resolved to `void`).
 
-`BasicCrawler` (and its `BasicCrawlingContext`) no longer has an `enqueueLinks()` method — `BasicCrawler` has no concept of a page to extract links from. `enqueueLinks()` remains available on crawlers with web content (`CheerioCrawler`, `HttpCrawler`-derived crawlers, `PlaywrightCrawler`, `PuppeteerCrawler`, etc.), now implemented in terms of `extractLinks()` + `addRequests()`.
+`BasicCrawler` (and its `BasicCrawlingContext`) no longer has an `enqueueLinks()` method — `BasicCrawler` has no concept of a page to extract links from. `enqueueLinks()` remains available on crawlers with web content (`CheerioCrawler` and the other DOM crawlers, `PlaywrightCrawler`, `PuppeteerCrawler`, etc.; plain `HttpCrawler` has none), now implemented in terms of `extractLinks()` + `addRequests()`.
 
 The `robotsTxtFile` / `respectRobotsTxtFile` per-call options are removed from `enqueueLinks()` — robots.txt filtering is applied by the crawler consistently via `BasicCrawlerOptions.respectRobotsTxtFile`.
 
