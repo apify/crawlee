@@ -160,7 +160,7 @@ A lone `requestList` now runs through a tandem over an auto-opened queue (rather
 
 ### HTTP 429 can now back off per domain instead of retiring the session
 
-`blockedStatusCodes` still defaults to `[401, 403, 429]`, so out of the box a 429 retires the session and retries immediately, as in v3. New in v4 is the opt-in `ThrottlingRequestManager`, which handles rate limits at the scheduling layer instead:
+`blockedStatusCodes` still defaults to `[401, 403, 429]`, so out of the box a 429 retires the session and retries immediately, as in v3. New is a one-time warning per domain when a 429 arrives and no request manager paces that domain; it points at `sameDomainDelaySecs` or a `ThrottlingRequestManager` and changes nothing else. New in v4 is the opt-in `ThrottlingRequestManager`, which handles rate limits at the scheduling layer instead:
 
 ```typescript
 const crawler = new CheerioCrawler({
