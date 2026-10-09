@@ -22,7 +22,7 @@ Use `RequestQueue.open()` rather than its internal constructor, which loses its 
 
 Explicit crawler subclasses may need the new context-extension generic parameters and a `contextPipelineBuilder`; preserve inference elsewhere.
 
-`RequestHandler` and `ErrorHandler` no longer wrap context with LoadedContext. ErrorHandler takes base and extended context types and receives base context plus a partial extension. `RestrictedCrawlingContext` and `LoadedContext` are no longer exported from `@crawlee/basic`. Browser hook types become generic type aliases over userData; replace interface extension with intersection types.
+`RequestHandler` and `ErrorHandler` no longer wrap context with LoadedContext. ErrorHandler takes base and extended context types and receives base context plus a partial extension. `LoadedContext` is internal and no longer part of the public API; `RestrictedCrawlingContext` stays exported from `@crawlee/basic`. Browser hook types become generic type aliases over userData; replace interface extension with intersection types.
 
 `BrowserCrawler` drops its third `LaunchOptions` type argument along with the instance `launchContext` field. Remove that argument from subclasses and adjust explicit generics. See the statistics reference for its extension parameter.
 
