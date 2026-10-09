@@ -5,7 +5,7 @@ description: Plan and perform a Crawlee upgrade using the bundled migration guid
 
 # Crawlee upgrade plan: v{FROM_MAJOR} to v{TO_MAJOR}
 
-Inspect this project and confirm its Crawlee versions before changing files. The guides below link local files; if they are unreadable from here, run `npx crawlee@4 upgrade --export <dir>` with a readable directory and use the prompt it prints instead. The CLI selected v{FROM_MAJOR} as the starting major from the project or an explicit `--from` override. If that does not match the code and dependencies, resolve the discrepancy with the user.
+Inspect this project and confirm its Crawlee versions before changing files. The guides below link local files; if they are unreadable from here, run `npx crawlee@{TO_MAJOR} upgrade --export <dir>` with a readable directory and use the prompt it prints instead. The CLI selected v{FROM_MAJOR} as the starting major from the project or an explicit `--from` override. If that does not match the code and dependencies, resolve the discrepancy with the user.
 
 ## Migration sequence
 
