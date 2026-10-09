@@ -2,7 +2,7 @@
 
 ## Package moves
 
-- Imports of crawler-only exports from `@crawlee/core` move to `@crawlee/basic`: sessions, Router, Statistics, error tracking, ContextPipeline and context types, concurrency/load signals, SitemapRequestLoader, ThrottlingRequestManager, enqueue option/pattern types, cookie helpers, and crawler-specific errors. Imports through `crawlee` or crawler packages generally remain available. Check individual symbols rather than replacing all core imports.
+- Imports of crawler-only exports from `@crawlee/core` move to `@crawlee/basic`: sessions, Router, Statistics, error tracking, context types, autoscaling, enqueue option/pattern types, cookie helpers, and crawler-specific errors. The renamed `SitemapRequestLoader` also lives in basic. Imports through `crawlee` or crawler packages generally remain available. Check individual symbols rather than replacing all core imports. `ContextPipeline`, `ConcurrencySystem` and `ThrottlingRequestManager` are new v4 APIs from basic, not v3 exports to relocate.
 - General utility types such as Dictionary, Awaitable, Constructor, Cookie, QueueOperationInfo and AllowedHttpMethods need direct imports and a dependency on `@crawlee/types`. SearchParams moves there too. StorageBackend and StorageIdentifier remain reachable from core; IBrowserPool and NewPageOptions remain reachable from browser-pool.
 - `EnqueueStrategy` moves from utils to `@crawlee/core`, also available through `crawlee`.
 - JSDOMCrawler and LinkeDOMCrawler require explicit `@crawlee/jsdom` and `@crawlee/linkedom` dependencies and imports. They are no longer exported by `crawlee`.
