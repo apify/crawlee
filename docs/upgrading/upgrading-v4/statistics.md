@@ -43,7 +43,7 @@ A persisted record is also validated on load now. One that does not match the ex
 
 ## Subclassing `Statistics` to track extra fields is replaced by the `stateExtension` option
 
-`persistStateKey`, `toJSON()` and `_maybeLoadStatistics()` were `protected` and are now private. Declare extra fields via the new `stateExtension` option instead — `{ defaultState, deserialize, serialize }`, the same trio `RecoverableState` takes, scoped to the custom fields. See the [Custom statistics fields](../../guides/custom_statistics.mdx) guide.
+`persistStateKey`, `toJSON()` and `_maybeLoadStatistics()` were `protected` and are now private. Declare extra fields via the new `stateExtension` option instead — `{ defaultState, deserialize, serialize }`, the same trio `RecoverableState` takes, scoped to the custom fields. See the [Custom statistics fields](../../guides/custom-statistics.mdx) guide.
 
 The persisted record is now validated strictly, and keys that are neither built-in nor declared in `stateExtension` are dropped rather than written back. `calculate()` is still public and still an override point.
 
