@@ -122,7 +122,7 @@ export default defineConfig({
     },
     overrides: [
         {
-            files: ['test/**/*', 'packages/*/test/**/*'],
+            files: ['test/**/*'],
             rules: {
                 'no-underscore-dangle': 'off',
                 'typescript/consistent-type-imports': 'off',

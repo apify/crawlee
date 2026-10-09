@@ -3,7 +3,7 @@ import { ATTR_HTTP_REQUEST_METHOD, ATTR_URL_FULL } from '@opentelemetry/semantic
 import { isWrapped } from '@opentelemetry/instrumentation';
 import { satisfies } from 'semver';
 
-import { baseConfig, requestHandlingInstrumentationMethods } from '../src/constants';
+import { baseConfig, requestHandlingInstrumentationMethods } from '../../packages/otel/src/constants.js';
 
 describe('CrawleeInstrumentation', () => {
     describe('constructor and configuration', () => {

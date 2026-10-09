@@ -1,6 +1,6 @@
 import { SeverityNumber } from '@opentelemetry/api-logs';
 
-import { apifyLogLevelMap, apifyLogLevelNameMap, loggerMethods } from '../src/constants';
+import { apifyLogLevelMap, apifyLogLevelNameMap, loggerMethods } from '../../packages/otel/src/constants.js';
 
 /**
  * The mapping itself is a decision worth pinning down - `SOFT_FAIL` and `WARNING` collapse onto one OpenTelemetry

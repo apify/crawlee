@@ -1,7 +1,7 @@
 import type { ClassMethodToInstrument } from '@crawlee/otel';
 import { diag } from '@opentelemetry/api';
 
-import { buildModuleDefinitions } from '../src/utilities';
+import { buildModuleDefinitions } from '../../packages/otel/src/utilities.js';
 
 describe('buildModuleDefinitions', () => {
     let diagWarnSpy: ReturnType<typeof vi.spyOn>;

@@ -22,8 +22,8 @@ describe('FileSystemStorageBackend extendRequestProcessingTimeSecs', () => {
         const locked = await queue.fetchNextRequest();
         expect(locked).toBeDefined();
 
-        expect(await queue.extendRequestProcessingTimeSecs(locked!.id!, 30)).toBe(true);
-        expect(await queue.extendRequestProcessingTimeSecs('no-such-request', 30)).toBe(false);
+        expect(await queue.extendRequestProcessingTimeSecs!(locked!.id!, 30)).toBe(true);
+        expect(await queue.extendRequestProcessingTimeSecs!('no-such-request', 30)).toBe(false);
 
         await queue.drop();
     });

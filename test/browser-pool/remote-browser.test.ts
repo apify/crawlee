@@ -5,13 +5,16 @@ import { vi } from 'vitest';
 import { serviceLocator } from '@crawlee/core';
 import type { CrawleeLogger } from '@crawlee/core';
 
-import { BrowserPool } from '../src/browser-pool.js';
-import { BROWSER_POOL_EVENTS } from '../src/events.js';
-import { PlaywrightPlugin } from '../src/playwright/playwright-plugin.js';
-import { RemotePlaywrightPlugin } from '../src/playwright/remote-playwright-plugin.js';
-import { RemotePuppeteerPlugin } from '../src/puppeteer/remote-puppeteer-plugin.js';
-import type { RemoteBrowserEndpoint, ResolvedRemoteEndpoint } from '../src/remote-browser-plugin.js';
-import { RemoteBrowserProvider } from '../src/remote-browser-provider.js';
+import { BrowserPool } from '../../packages/browser-pool/src/browser-pool.js';
+import { BROWSER_POOL_EVENTS } from '../../packages/browser-pool/src/events.js';
+import { PlaywrightPlugin } from '../../packages/browser-pool/src/playwright/playwright-plugin.js';
+import { RemotePlaywrightPlugin } from '../../packages/browser-pool/src/playwright/remote-playwright-plugin.js';
+import { RemotePuppeteerPlugin } from '../../packages/browser-pool/src/puppeteer/remote-puppeteer-plugin.js';
+import type {
+    RemoteBrowserEndpoint,
+    ResolvedRemoteEndpoint,
+} from '../../packages/browser-pool/src/remote-browser-plugin.js';
+import { RemoteBrowserProvider } from '../../packages/browser-pool/src/remote-browser-provider.js';
 
 // ---------------------------------------------------------------------------
 // Mock helpers

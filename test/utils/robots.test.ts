@@ -2,7 +2,7 @@ import { FetchHttpClient } from '@crawlee/http-client';
 import nock from 'nock';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { RobotsTxtFile } from '../src/internals/robots.js';
+import { RobotsTxtFile } from '../../packages/utils/src/internals/robots.js';
 
 const httpClient = new FetchHttpClient();
 

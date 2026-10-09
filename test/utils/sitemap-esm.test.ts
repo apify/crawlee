@@ -6,7 +6,7 @@ import { expect, it } from 'vitest';
 
 it('parses XML sitemaps with the native Node ESM loader', async () => {
     // Vitest synthesizes CJS named exports; a child process loads `sax` the way Node does for users.
-    const root = resolve(__dirname, '../../..');
+    const root = resolve(__dirname, '../..');
     const { stdout } = await promisify(execFile)(
         process.execPath,
         [

@@ -37,6 +37,6 @@ describe('KeyValueStore round-trips a large binary value', () => {
         const record = await store.getValue('owo.zip');
         expect(Buffer.isBuffer(record?.value)).toBe(true);
         expect((record!.value as Buffer).length).toBe(size);
-        expect(record!.value.equals(zip)).toBe(true);
+        expect((record!.value as Buffer).equals(zip)).toBe(true);
     });
 });

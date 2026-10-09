@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { filterUrl, matchesEnqueueStrategy } from '../src/internals/url';
+import { filterUrl, matchesEnqueueStrategy } from '../../packages/utils/src/internals/url.js';
 
 describe('matchesEnqueueStrategy', () => {
     const match = (strategy: Parameters<typeof matchesEnqueueStrategy>[0], target: string, origin: string) =>
