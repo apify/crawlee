@@ -104,7 +104,7 @@ If you previously subscribed to `sessionRetired` on the pool to clean up resourc
 
 The `tieredProxyUrls` option has been removed, together with the `proxyTier` field on `ProxyInfo` and the `proxyTier` plumbing in `BrowserPool`. In v4 the `Session` is the main rotation unit — a session already carries its own proxy, cookies and error score, so the pool rotates the whole fingerprint when a session gets retired on a block.
 
-If you used tiers to escalate from a cheap proxy pool to a pricier one on blocks, you can achieve the same behavior by pre-populating a `SessionPool` with named sessions — one per proxy tier — and flipping `request.sessionId` in an `errorHandler` to reassign the retry to the next tier. Skip the `proxyConfiguration` option on the crawler — the session already carries its own proxy.
+If you used tiers to escalate from a cheap proxy pool to a pricier one on blocks, you can achieve the same behavior by pre-populating a `SessionPool` with named sessions — one per proxy tier — and flipping `request.sessionId` in an `errorHandler` to reassign the retry to the next tier. Do not pass `proxyConfiguration` to the crawler: whenever a `sessionPool` is supplied, the crawler ignores `proxyConfiguration` with a warning and every pooled session keeps the `proxyInfo` it was created with. Configure proxies on the pool instead, through `addSession({ proxyInfo })` or a custom `createSessionFunction`.
 
 ```typescript
 import { BasicCrawler, SessionPool } from '@crawlee/basic';
