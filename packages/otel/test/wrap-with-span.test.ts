@@ -3,7 +3,7 @@ import type { ReadableSpan } from '@opentelemetry/sdk-trace-base';
 import { InMemorySpanExporter, SimpleSpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 
-import { setSharedTracer, wrapWithSpan } from '../src/wrapWithSpan';
+import { setSharedTracer, wrapWithSpan } from '../src/wrap-with-span';
 
 describe('wrapWithSpan', () => {
     let provider: NodeTracerProvider;

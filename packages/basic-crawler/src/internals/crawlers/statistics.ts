@@ -3,7 +3,7 @@ import { convertStateSync, KeyValueStore, RecoverableState, serviceLocator, vali
 import { parseArgument, schemas } from '@crawlee/utils/internal';
 import { z } from 'zod';
 
-import { ErrorTracker } from './error_tracker.js';
+import { ErrorTracker } from './error-tracker.js';
 
 /**
  * @ignore

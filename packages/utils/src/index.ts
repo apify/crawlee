@@ -5,7 +5,7 @@ export type { DownloadListOfUrlsOptions, ExtractUrlsOptions } from './internals/
 export { sleep } from './internals/general.js';
 export * as social from './internals/social.js';
 export * from './internals/extract-microdata.js';
-export * from './internals/open_graph_parser.js';
+export * from './internals/open-graph-parser.js';
 export * from './internals/robots.js';
 export { discoverValidSitemaps, Sitemap } from './internals/sitemap.js';
 export type { ParseSitemapOptions } from './internals/sitemap.js';

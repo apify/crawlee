@@ -7,7 +7,7 @@ import { z } from 'zod';
 
 import { cryptoRandomObjectId, normalizeUrl } from '@apify/utilities';
 
-import { serviceLocator } from './service_locator.js';
+import { serviceLocator } from './service-locator.js';
 import { parseArgument, schemas } from './validators.js';
 
 /** The `strategy` option accepted by {@apilink ExtractLinksOptions} and {@apilink EnqueueUrlsOptions}. */

@@ -22,7 +22,7 @@ import { parseArgument, schemas } from '@crawlee/utils/internal';
 import type { ClickOptions, Frame, HTTPRequest as PuppeteerRequest, Page, Target } from 'puppeteer';
 import { z } from 'zod';
 
-import { addInterceptRequestHandler, removeInterceptRequestHandler } from '../utils/puppeteer_request_interception.js';
+import { addInterceptRequestHandler, removeInterceptRequestHandler } from '../utils/puppeteer-request-interception.js';
 
 const STARTING_Z_INDEX = 2147400000;
 const getLog = () => serviceLocator.getChildLog('Puppeteer Click Elements');

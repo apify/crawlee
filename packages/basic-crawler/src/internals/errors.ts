@@ -1,6 +1,6 @@
 import { CriticalError, NonRetryableError } from '@crawlee/core';
 
-import type { SkippedRequestReason } from './crawling_request.js';
+import type { SkippedRequestReason } from './crawling-request.js';
 
 /**
  * @ignore

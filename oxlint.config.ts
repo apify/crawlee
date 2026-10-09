@@ -110,6 +110,7 @@ export default defineConfig({
         'import/no-default-export': 'off',
 
         'unicorn/no-empty-file': 'off',
+        'unicorn/filename-case': ['error', { case: 'kebabCase' }],
 
         // Rules pulled in by `@apify/oxlint-config` that the codebase does not
         // currently satisfy. Disabled here to keep this migration scoped to a
