@@ -8,6 +8,7 @@
 - JSDOMCrawler and LinkeDOMCrawler require explicit `@crawlee/jsdom` and `@crawlee/linkedom` dependencies and imports. They are no longer exported by `crawlee`.
 - CheerioRoot is removed. Import CheerioAPI or Cheerio from `cheerio` and Element from `domhandler`, with direct dependencies where used. Crawlee packages no longer re-export those types.
 - HTTP client classes move to `@crawlee/http-client` and `@crawlee/got-scraping-client`; read the HTTP reference for the changed contract.
+- BrowserPool, its plugins, controllers and types are no longer re-exported by `crawlee`. Import them from `@crawlee/browser-pool`; crawler-specific factory functions remain available through `crawlee`.
 
 ## Utility changes
 
@@ -38,7 +39,7 @@ Search this list when a compiler or runtime error identifies an old symbol. Read
 | `Snapshotter._snapshotMemory`, `_memoryOverloadWarning`, `_snapshotEventLoop`, `_snapshotCpu`, `_snapshotClient`, `_pruneSnapshots` | ConcurrencySystem and load signals |
 | `FileDownloadOptions`, `StreamHandlerContext`, `FileDownloadOptions.streamHandler` | BasicCrawler options and handler response body; HTTP/download reference |
 | `playwrightUtils.registerUtilsToContext`, `puppeteerUtils.registerUtilsToContext` | ContextPipeline |
-| `context.blockResources`, `context.cacheResponses` | Deprecated Puppeteer functions with explicit page; browser reference |
+| `context.blockResources`, `context.cacheResponses`, `puppeteerUtils.blockResources`, `puppeteerUtils.cacheResponses` | `puppeteerUtils.blockRequests(page, options)` and the browser cache; browser reference |
 | `context.closeCookieModals`, `playwrightUtils.closeCookieModals`, `puppeteerUtils.closeCookieModals` | Explicit consent integration; configuration/context reference |
 | `Configuration.systemInfoV2`, `CRAWLEE_SYSTEM_INFO_V2` | Remove; resource detection default |
 | `checkAndSerialize`, `chunkBySize`, `maybeStringify` | KVS serialization with serializeValue/parseValue; storage reference |
