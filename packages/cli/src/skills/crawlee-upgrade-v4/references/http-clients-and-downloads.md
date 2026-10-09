@@ -1,35 +1,33 @@
 # HTTP clients and downloads
 
-## Native responses
+## Responses and request options
 
-HTTP clients, `context.response` and `sendRequest()` return standard `Response` objects. Replace old `statusCode` reads with `status`, header indexing with `headers.get(name)`, and response-body reads with the appropriate async `text()`, `json()`, `arrayBuffer()` or body stream. Preserve the expected decoding and data type. A response body is consumable once; avoid reading it a second time if already consumed. Crawler-provided parsed `body` or `$` can still be the right source in a handler.
+HTTP clients, `context.response` and `sendRequest()` return native `Response`. Replace `statusCode` with `status`, header indexing with `headers.get(name)`, and body access with async `text()`, `json()`, `arrayBuffer()` or `body`. Bodies are consumable once; use crawler-parsed `body` / `$` when already consumed.
 
-HTTP pre-navigation hooks lose the second `gotOptions` argument. Set request fields on context and configure the chosen client for client-specific options. `ignoreSslErrors` becomes `ignoreTlsErrors`; the fetch fallback cannot disable TLS verification and warns if requested.
+HTTP hooks lose `gotOptions`; set context/request fields or configure the client. Rename `ignoreSslErrors` to `ignoreTlsErrors`. The fetch fallback cannot disable TLS verification.
 
-`HttpRequest` loses `headerGenerator`, `headerGeneratorOptions`, `useHeaderGenerator` and `sessionToken`; fingerprinting and headers belong to the client and the session passed through `SendRequestOptions.session`. Remove `insecureHTTPParser`, which has no fetch-client equivalent. Replace `throwHttpErrors` with crawler `additionalHttpErrorStatusCodes` / `ignoreHttpErrorStatusCodes` or explicit `response.status` checks. Per-request `maxRedirects` is removed; `BaseHttpClient.sendRequest()` caps redirects at 10.
+Remove `HttpRequest.headerGenerator`, `headerGeneratorOptions`, `useHeaderGenerator` and `sessionToken`; configure fingerprinting through the client and `SendRequestOptions.session`. `insecureHTTPParser` has no replacement. Replace `throwHttpErrors` with crawler `additionalHttpErrorStatusCodes` / `ignoreHttpErrorStatusCodes` or status checks. `maxRedirects` is removed; the limit is 10.
 
 ## Client selection
 
-The default HTTP client is `ImpitHttpClient` from optional `@crawlee/impit-client`. Without that package, the fetch fallback warns and provides neither proxies nor impersonation. Do not remove optional dependencies from installs when those capabilities are needed.
+The default is `ImpitHttpClient` from `@crawlee/impit-client`; without it, fetch provides no proxies or impersonation. To retain got-scraping behavior, install `@crawlee/got-scraping-client` and pass `httpClient: new GotScrapingHttpClient()`. Replace standalone `gotScraping` imports from utils with direct `got-scraping` imports.
 
-To keep got-scraping behavior, add `@crawlee/got-scraping-client` and pass `httpClient: new GotScrapingHttpClient()`. `gotScraping` is no longer exported by `@crawlee/utils`. For standalone one-off calls, depend on `got-scraping` directly.
-
-Session fingerprints drive impit's impersonation and override the browser hint on the client. To force a browser family, set a compatible fingerprint when constructing sessions, preserving their merged session options.
+Session fingerprints override impit's browser hint. Pin the session fingerprint to require a browser family, preserving merged session options.
 
 ## Custom clients
 
-`BaseHttpClient`, `FetchHttpClient`, `ResponseWithUrl` and `CustomFetchOptions` live in `@crawlee/http-client`. There is no exported `IResponseWithUrl`; use native `Response` for the response contract. A client extends `BaseHttpClient` and implements `protected fetch(input: Request, init?: RequestInit & CustomFetchOptions): Promise<Response>`. The base implements `sendRequest(request, options?)`; there is no `stream()` method. Return a real native Response, and read its `body` for streaming.
+Import `BaseHttpClient`, `FetchHttpClient`, `ResponseWithUrl` and `CustomFetchOptions` from `@crawlee/http-client`. Extend `BaseHttpClient` and implement:
 
-The old `HttpResponse`, `HttpResponseWithoutBody`, `StreamingHttpResponse`, `ResponseTypes`, `BaseHttpResponseData`, `SimpleHeaders` and `processHttpRequestOptions` are removed. HTTP-related types still owned by `@crawlee/types` must be imported there; do not assume every old core export moved to the client package.
+```ts
+protected fetch(input: Request, init?: RequestInit & CustomFetchOptions): Promise<Response>
+```
 
-`RedirectHandler` is removed with `stream()`. `BrowserLikeResponse` is removed too; read native `response.url` and `response.headers` instead of calling got-style methods.
+The base provides `sendRequest(request, options?)`; replace `stream()` with response-body streaming. Client options and mocks require actual instances. Pass a constructor `logger` instead of reading private `this.log`. Honor `ignoreTlsErrors` when supported.
 
-Client options require actual `BaseHttpClient` instances. Replace duck-typed test doubles with subclasses. Pass logging through the constructor's `logger` option instead of accessing private `this.log`. Honor `ignoreTlsErrors` from fetch options if the implementation supports it.
+Replace `HttpResponse`, `HttpResponseWithoutBody`, `StreamingHttpResponse`, `ResponseTypes`, `BaseHttpResponseData`, `SimpleHeaders`, `processHttpRequestOptions`, `RedirectHandler` and `BrowserLikeResponse` with the native response contract. Import remaining types owned by `@crawlee/types` directly.
 
 ## FileDownload
 
-`FileDownload` extends `BasicCrawler` and takes `BasicCrawlerOptions<FileDownloadCrawlingContext>`. It no longer accepts HTTP-crawler options such as `navigationTimeoutSecs`, `additionalMimeTypes`, encoding overrides or got-style hooks. Configure its `httpClient` or request instead.
+`FileDownload` extends `BasicCrawler` and takes `BasicCrawlerOptions<FileDownloadCrawlingContext>`. Remove HTTP-only options: `navigationTimeoutSecs`, `additionalMimeTypes`, encoding overrides and navigation hooks. Configure the client or request instead.
 
-`FileDownloadOptions` and `StreamHandlerContext` are removed. The context loses `body` and `stream`; use `response` methods or `response.body`. `FileDownloadCrawlingContext` loses its extra type parameter. `streamHandler` is gone; perform streaming in `requestHandler`. When storing a stream inside a handler, read the storage reference for `withDirectStorageAccess()`.
-
-`MinimumSpeedStream` and `ByteCounterStream` are removed. Compose any needed `Transform` around `response.body` in the handler.
+Remove `FileDownloadOptions`, `StreamHandlerContext` and the extra `FileDownloadCrawlingContext` type parameter. Replace context `body` / `stream` with response methods / `response.body`; move `streamHandler` work into `requestHandler`. Replace `MinimumSpeedStream` / `ByteCounterStream` with your own transforms. Storing streams inside a handler requires `withDirectStorageAccess()`; see the storage reference.
