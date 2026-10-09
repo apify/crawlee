@@ -158,9 +158,9 @@ try {
 
 One behavioral change: options validated against class interfaces (`httpClient`, `configuration`, `eventManager`) now require actual instances (`instanceof BaseHttpClient`, …) rather than duck-typed plain objects — extend the class (or `Object.create(BaseHttpClient.prototype)` in tests) instead of passing an object literal.
 
-### Zod 4.1+ required
+### Zod 4 required
 
-`@crawlee/core` used to accept zod 3 as well; it now needs 4.1 or newer, for the codecs it validates persisted state with. Zod is an ordinary dependency rather than a peer, so a project pinned to zod 3 keeps working — it just ends up with both versions installed.
+`@crawlee/core` used to accept zod 3 as well; it now needs zod 4, for the codecs it validates persisted state with. Zod is an ordinary dependency rather than a peer, so a project pinned to zod 3 keeps working — it just ends up with both versions installed.
 
 ### Installing with `--omit=optional` breaks native dependencies
 
