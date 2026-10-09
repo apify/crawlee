@@ -21,7 +21,7 @@ Use `serviceLocator.getConfiguration()` for the active configuration. Pass `conf
 
 Remove `defaultDatasetId`, `defaultKeyValueStoreId`, `defaultRequestQueueId` and `CRAWLEE_DEFAULT_*_ID`; open and pass specific storages explicitly. For removed `inputKey` / `CRAWLEE_INPUT_KEY`, follow the storage reference.
 
-Rename Crawlee `config` options/properties to `configuration`: storage opening, `useState`, `purgeDefaultStorages`, snapshots, `RecoverableState`, request lists and load signals.
+Rename Crawlee `config` options/properties to `configuration`: storage opening, `useState`, `purgeDefaultStorages`, snapshots, `RecoverableState`, request lists, load signals, and the instance property on `Dataset`, `KeyValueStore` and `BrowserLauncher`.
 
 ## Hooks and context
 
