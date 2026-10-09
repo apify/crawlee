@@ -9,7 +9,7 @@ const configuration = new Configuration({ headless: false, persistStateIntervalM
 const crawler = new PlaywrightCrawler({ configuration, requestHandler });
 ```
 
-The second configuration argument is removed from crawler constructors, but stays on `PlaywrightLauncher` and `PuppeteerLauncher`.
+The second configuration argument is removed from crawler constructors, but stays on `PuppeteerLauncher`. `PlaywrightLauncher` is no longer exported; use `launchPlaywright(launchContext, configuration)` or a browser-pool factory.
 
 | v3 | v4 |
 | --- | --- |
