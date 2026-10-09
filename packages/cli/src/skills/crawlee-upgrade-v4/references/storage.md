@@ -18,7 +18,7 @@ await withDirectStorageAccess(async () => {
 
 `checkStorageAccess` and `withCheckedStorageAccess` are removed. `transactionalStorage: false` disables buffering except in AdaptivePlaywrightCrawler. Do not disable transactions globally merely to hide a migration error. KVS iteration inside a handler lists buffered keys first.
 
-`storageObject` is removed; access `id` and `name` directly, or dataset metadata through `getInfo()`. `KeyValueStore.getPublicUrl()` is async. Storage `.open()` accepts a string as before, or `{ id?, name? }` to disambiguate. Context identifiers also accept objects.
+`storageObject` is removed; access `id` and `name` directly, or dataset metadata through `getInfo()`. `KeyValueStore.getPublicUrl()` is async. Storage `.open()` accepts a string as before, or `{ id?, name? }` to disambiguate; `{ alias }` opens a run-scoped storage that is purged on start. Context identifiers also accept objects.
 
 `Dataset.listItems()` becomes `getData()` for one paginated page, or `values()` for all items. `for await` iterates `values()` incrementally; awaiting it collects an array. Dataset `entries()` gives index/item tuples. KVS `keys`, `values` and `entries` work likewise. KVS iterator options lose `exclusiveStartKey` and `collection`, leaving `prefix`. `RecordOptions` retains only `contentType`.
 
@@ -47,7 +47,7 @@ Custom filesystem backends can control adoption through `keyValueStoreAdoptionCa
 
 ## Custom backend contract
 
-`StorageClient` becomes `StorageBackend`. Replace collection clients and synchronous getters with three async factories taking `StorageIdentifier`: `createDatasetBackend`, `createKeyValueStoreBackend`, `createRequestQueueBackend`.
+`StorageClient` becomes `StorageBackend`. Replace collection clients and synchronous getters with three async factories taking `StorageIdentifier` (`{ id?, name?, alias? }`): `createDatasetBackend`, `createKeyValueStoreBackend`, `createRequestQueueBackend`.
 
 | v3 backend/client method | v4 |
 | --- | --- |
@@ -67,7 +67,7 @@ Implement `purge()` and queue backend `isEmpty()` / `isFinished()`. `isEmpty()` 
 
 Lock acquisition and deletion are backend internals; frontend distributed-lock methods and `deleteRequest()` disappear. A locking backend can implement `extendRequestProcessingTimeSecs(requestId, secs)` for per-request extensions from `context.extendTimeout()`. Frontend queue `requestLockSecs`, `internalTimeoutMillis`, `clientKey` and `timeoutSecs` disappear. Standalone processing beyond the default three-minute disk lock needs `setExpectedRequestProcessingTimeSecs()`. Remove the obsolete `experiments: { requestLocking: ... }` crawler option and `CrawlerExperiments` type.
 
-Dataset backend iteration/export helpers and KVS backend iteration helpers move to storage frontends. KVS `listKeys()` returns a `KeyValueStoreListKeysResult` page. Backends transport bytes; serialization lives in KVS frontend `serializeValue` / `parseValue`, replacing `maybeStringify`, `checkAndSerialize` and `chunkBySize`.
+Dataset backend `listEntries()` and KVS backend iteration helpers move to storage frontends; backend `downloadItems()` is removed, while frontend `exportTo*()` helpers stay. KVS `listKeys()` returns a `KeyValueStoreListKeysResult` page. Backends transport bytes; serialization lives in KVS frontend `serializeValue` / `parseValue`, replacing `maybeStringify`, `checkAndSerialize` and `chunkBySize`.
 
 Storage frontends receive `{ metadata, backend }` internally; applications should open them with `.open()`. Backend metadata drops platform fields `actId`, `actRunId`, `userId`, queue `expireAt` / `hadMultipleClients`, and storage `stats`. Read platform metadata and enumerate all storages through the Apify API client if still needed.
 
