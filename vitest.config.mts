@@ -10,17 +10,17 @@ import { defaultExclude, defineConfig, mergeConfig } from 'vitest/config';
 const browserTests = [
     'packages/browser-pool/test/**/*.test.ts',
     'test/browser-pool/**/*.test.ts',
-    'test/core/autoscaling/memory-infoV2.test.ts',
-    'test/core/browser_launchers/*.test.ts',
-    'test/core/crawlers/adaptive_playwright_crawler.test.ts',
-    'test/core/crawlers/browser_crawler.test.ts',
-    'test/core/crawlers/playwright_crawler.test.ts',
-    'test/core/crawlers/puppeteer_crawler.test.ts',
-    'test/core/enqueue_links/click_elements.test.ts',
-    'test/core/enqueue_links/enqueue_links.test.ts',
-    'test/core/playwright_utils.test.ts',
-    'test/core/puppeteer_request_interception.test.ts',
-    'test/core/puppeteer_utils.test.ts',
+    'test/core/autoscaling/memory-info-v2.test.ts',
+    'test/core/browser-launchers/*.test.ts',
+    'test/core/crawlers/adaptive-playwright-crawler.test.ts',
+    'test/core/crawlers/browser-crawler.test.ts',
+    'test/core/crawlers/playwright-crawler.test.ts',
+    'test/core/crawlers/puppeteer-crawler.test.ts',
+    'test/core/enqueue-links/click-elements.test.ts',
+    'test/core/enqueue-links/enqueue-links.test.ts',
+    'test/core/playwright-utils.test.ts',
+    'test/core/puppeteer-request-interception.test.ts',
+    'test/core/puppeteer-utils.test.ts',
 ];
 
 // vitest's default of one worker per core (minus one) is fine for cheap tests but not for tests

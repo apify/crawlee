@@ -4,16 +4,16 @@ import { z } from 'zod';
 import { tryCancel } from '@apify/timeout';
 
 import { Configuration } from '../configuration.js';
-import { serviceLocator } from '../service_locator.js';
+import { serviceLocator } from '../service-locator.js';
 import { parseArgument, schemas, validators } from '../validators.js';
 import type { DatasetJournalEntry, JournalEntry } from './transaction.js';
 import { activeStorageTransaction, rejectOperationInTransaction, snapshotValue } from './transaction.js';
-import { KeyValueStore } from './key_value_store.js';
-import type { DatasetStats } from './storage_stats.js';
-import { StorageStatsTracker } from './storage_stats.js';
+import { KeyValueStore } from './key-value-store.js';
+import type { DatasetStats } from './storage-stats.js';
+import { StorageStatsTracker } from './storage-stats.js';
 import type { StorageOpenOptions } from './utils.js';
-import type { StorageIdentifier } from './storage_instance_manager.js';
-import { resolveStorageIdentifier } from './storage_instance_manager.js';
+import type { StorageIdentifier } from './storage-instance-manager.js';
+import { resolveStorageIdentifier } from './storage-instance-manager.js';
 import { createDualIterable, purgeDefaultStorages } from './utils.js';
 
 const openOptionsSchema = z.strictObject({

@@ -1,12 +1,12 @@
-import type { CpuLoadSignalOptions } from './cpu_load_signal.js';
-import { CpuLoadSignal } from './cpu_load_signal.js';
-import type { EventLoopLoadSignalOptions } from './event_loop_load_signal.js';
-import { EventLoopLoadSignal } from './event_loop_load_signal.js';
-import type { LoadSignal, LoadSignalStartContext } from './load_signal.js';
-import type { MemoryLoadSignalOptions } from './memory_load_signal.js';
-import { MemoryLoadSignal } from './memory_load_signal.js';
-import type { StorageBackendLoadSignalOptions } from './storage_backend_load_signal.js';
-import { StorageBackendLoadSignal } from './storage_backend_load_signal.js';
+import type { CpuLoadSignalOptions } from './cpu-load-signal.js';
+import { CpuLoadSignal } from './cpu-load-signal.js';
+import type { EventLoopLoadSignalOptions } from './event-loop-load-signal.js';
+import { EventLoopLoadSignal } from './event-loop-load-signal.js';
+import type { LoadSignal, LoadSignalStartContext } from './load-signal.js';
+import type { MemoryLoadSignalOptions } from './memory-load-signal.js';
+import { MemoryLoadSignal } from './memory-load-signal.js';
+import type { StorageBackendLoadSignalOptions } from './storage-backend-load-signal.js';
+import { StorageBackendLoadSignal } from './storage-backend-load-signal.js';
 
 /**
  * The load signals a {@apilink ConcurrencySystem} watches to decide whether the machine is overloaded.

@@ -1,4 +1,4 @@
-import type { CrawlingRequest } from './crawling_request.js';
+import type { CrawlingRequest } from './crawling-request.js';
 import { RequestValidationError } from '@crawlee/core';
 import type { Awaitable, Dictionary } from '@crawlee/types';
 import type { StandardSchemaV1 } from '@standard-schema/spec';
@@ -10,7 +10,7 @@ import type {
     RestrictedCrawlingContext,
     TypedContextAddRequests,
     TypedContextEnqueueLinks,
-} from './crawlers/crawler_commons.js';
+} from './crawlers/crawler-commons.js';
 
 /**
  * The key of the default route — the fallback handler registered via {@apilink Router.addDefaultHandler}.

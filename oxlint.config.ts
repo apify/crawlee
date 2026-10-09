@@ -145,6 +145,13 @@ export default defineConfig({
             },
         },
         {
+            // docs are not migrated to kebab-case yet (#3113)
+            files: ['packages/**/*', 'test/**/*', 'scripts/**/*'],
+            rules: {
+                'unicorn/filename-case': ['error', { case: 'kebabCase' }],
+            },
+        },
+        {
             files: ['packages/templates/**/*'],
             rules: {
                 'typescript/no-unused-vars': 'off',
