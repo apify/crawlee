@@ -493,7 +493,7 @@ const crawler = new BasicCrawler({
     // useSessionPool: true,
     // sessionPoolOptions: { maxUsageCount: 5 },
     sessionPool: new SessionPool({
-        maxUsageCount: 5,
+        sessionOptions: { maxUsageCount: 5 },
     }),
 });
 ```
