@@ -6,7 +6,7 @@ import {
     BrowserPool as BrowserPoolClass,
     OperatingSystemsName,
     PuppeteerPlugin,
-    RemoteBrowserPool,
+    RemotePuppeteerPlugin,
 } from '@crawlee/browser-pool';
 import {
     BLOCKED_STATUS_CODES,
@@ -19,9 +19,7 @@ import { bindMethodsToServiceLocator, MemoryStorageBackend, serviceLocator, Serv
 import type { PuppeteerGoToOptions } from '@crawlee/puppeteer';
 import { EnqueueStrategy, ProxyConfiguration, Request, RequestList, RequestState, Session } from '@crawlee/puppeteer';
 import { sleep } from '@crawlee/utils';
-// @ts-ignore This only throws when compiled against puppeteer 25+ (ESM only), we only import types, so its alllll gooooood
 import type { HTTPResponse } from 'puppeteer';
-// @ts-ignore This only throws when compiled against puppeteer 25+ (ESM only), vitest executes tests as ESM, so its alllll gooooood
 import puppeteer from 'puppeteer';
 import { runExampleComServer } from '../../shared/_helper.js';
 
@@ -204,17 +202,16 @@ describe('BrowserCrawler', () => {
         }
     });
 
-    test.concurrent('builds and owns a RemoteBrowserPool from the remoteBrowser option', async () => {
+    test.concurrent('builds and owns a remote browser pool from the remoteBrowser option', async () => {
         const crawler = new BrowserCrawlerTest({
-            remoteBrowser: { endpoint: 'ws://remote:9222', maxOpenBrowsers: 2 },
-            browserPoolOptions: { browserPlugins: [new PuppeteerPlugin(puppeteer)] },
+            remoteBrowser: { endpoint: 'ws://remote:9222' },
             requestHandler: async () => {},
         });
 
-        expect(crawler.browserPool).toBeInstanceOf(RemoteBrowserPool);
-        expect((crawler.browserPool as RemoteBrowserPool).maxOpenBrowsers).toBe(2);
+        const pool = crawler.browserPool as BrowserPool;
+        expect(pool.browserPlugins[0]).toBeInstanceOf(RemotePuppeteerPlugin);
 
-        await (crawler.browserPool as RemoteBrowserPool).destroy();
+        await pool.destroy();
     });
 
     test.concurrent('rejects remoteBrowser when a browserPool is passed in', async () => {

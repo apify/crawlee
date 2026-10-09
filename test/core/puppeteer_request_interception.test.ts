@@ -2,7 +2,6 @@ import type { Server } from 'node:http';
 
 import { sleep } from '@crawlee/utils';
 import { launchPuppeteer, puppeteerUtils } from 'crawlee';
-// @ts-ignore This only throws when compiled against puppeteer 25+ (ESM only), we only import types, so its alllll gooooood
 import type { HTTPRequest } from 'puppeteer';
 
 import { runExampleComServer } from '../shared/_helper.js';

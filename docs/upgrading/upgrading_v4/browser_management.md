@@ -132,7 +132,7 @@ This experimental option relied on an outdated manifest version for browser exte
 
 ## `PlaywrightLauncher` is no longer exported
 
-`PlaywrightLauncher` was an implementation detail of `launchPlaywright()` and the Playwright browser pools, and it is no longer part of `@crawlee/playwright`'s (or `crawlee`'s) public exports. Use `launchPlaywright(launchContext, configuration)` to get a `Browser`, or `playwrightBrowserPool()` / `remotePlaywrightBrowserPool()` when you need a pool. `PlaywrightLaunchContext` is still exported, so the options object can still be typed.
+`PlaywrightLauncher` was an implementation detail of `launchPlaywright()` and the Playwright browser pools, and it is no longer part of `@crawlee/playwright`'s (or `crawlee`'s) public exports. Use `launchPlaywright(launchContext, configuration)` to get a `Browser`, or `playwrightBrowserPool()` when you need a pool. `PlaywrightLaunchContext` is still exported, so the options object can still be typed.
 
 ## `BrowserCrawler.launchContext` was removed
 

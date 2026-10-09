@@ -12,7 +12,6 @@ import {
     serviceLocator,
 } from 'crawlee';
 import type { Browser as PWBrowser, Page as PWPage } from 'playwright';
-// @ts-ignore This only throws when compiled against puppeteer 25+ (ESM only), we only import types, so its alllll gooooood
 import type { Browser as PPBrowser, Page as PPPage, Target } from 'puppeteer';
 // `clickElements` and `clickElementsAndInterceptNavigationRequests` are internals of @crawlee/puppeteer
 // and are deliberately not part of its public surface, so reach them through the source module.

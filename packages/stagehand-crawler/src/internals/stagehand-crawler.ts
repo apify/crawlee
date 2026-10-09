@@ -31,7 +31,7 @@ import { assertBrowserPoolNotConfigured, parseArgument, schemas } from '@crawlee
 import type { Page, Response } from 'playwright';
 import { z } from 'zod';
 
-import { remoteStagehandBrowserPool, stagehandBrowserPool } from './stagehand-browser-pool';
+import { stagehandBrowserPool } from './stagehand-browser-pool';
 import type { StagehandController } from './stagehand-controller';
 import type { StagehandLaunchContext } from './stagehand-launcher';
 import { enhancePageWithStagehand } from './utils/stagehand-utils';
@@ -449,21 +449,22 @@ export class StagehandCrawler<
             configuration,
             // The pool serves plain Playwright pages - a page only becomes a `StagehandPage` further down the
             // pipeline, once `setUpStagehand` enhances it - so its page type is narrower than the crawler's.
-            browserPoolBuilder: (remoteBrowser) =>
-                (remoteBrowser
-                    ? remoteStagehandBrowserPool({
-                          ...remoteBrowser,
-                          launchContext,
-                          stagehandOptions,
-                          headless,
-                          configuration,
-                      })
-                    : stagehandBrowserPool({
-                          launchContext,
-                          stagehandOptions,
-                          headless,
-                          configuration,
-                      })) as unknown as OwnedBrowserPool<StagehandPage>,
+            browserPoolBuilder: (remoteBrowser) => {
+                // Stagehand manages its own browser (local or Browserbase), so a Crawlee-level remote connection
+                // would be silently ignored.
+                if (remoteBrowser) {
+                    throw new Error(
+                        'StagehandCrawler does not support `remoteBrowser`. Use `stagehandOptions.env: "BROWSERBASE"` instead.',
+                    );
+                }
+
+                return stagehandBrowserPool({
+                    launchContext,
+                    stagehandOptions,
+                    headless,
+                    configuration,
+                }) as unknown as OwnedBrowserPool<StagehandPage>;
+            },
             contextPipelineBuilder: () => this.#buildContextPipeline(),
         });
     }

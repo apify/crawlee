@@ -29,7 +29,6 @@ import type { CheerioAPI } from 'cheerio';
 import { sleep } from '@crawlee/utils';
 import { expandShadowRoots, parseArgument, schemas } from '@crawlee/utils/internal';
 import type { ProtocolMapping } from 'devtools-protocol/types/protocol-mapping.js';
-// @ts-ignore This only throws when compiled against puppeteer 25+ (ESM only), we only import types, so its alllll gooooood
 import type { HTTPRequest as PuppeteerRequest, HTTPResponse, Page } from 'puppeteer';
 import { z } from 'zod';
 

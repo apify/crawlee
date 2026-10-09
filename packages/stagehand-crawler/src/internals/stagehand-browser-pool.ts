@@ -1,11 +1,5 @@
 import type { Configuration } from '@crawlee/browser';
-import type {
-    BrowserPool,
-    BrowserPoolHooks,
-    BrowserPoolOptions,
-    RemoteBrowserPool,
-    RemoteBrowserPoolOptions,
-} from '@crawlee/browser-pool';
+import type { BrowserPool, BrowserPoolHooks, BrowserPoolOptions } from '@crawlee/browser-pool';
 import type { Page } from 'playwright';
 
 import type { StagehandOptions } from './stagehand-crawler';
@@ -40,11 +34,6 @@ export interface StagehandBrowserPoolOptions
     configuration?: Configuration;
 }
 
-export interface RemoteStagehandBrowserPoolOptions
-    extends
-        Pick<StagehandBrowserPoolOptions, 'launchContext' | 'stagehandOptions' | 'headless' | 'configuration'>,
-        Omit<RemoteBrowserPoolOptions, 'browserPlugins'> {}
-
 /**
  * Builds a {@apilink BrowserPool} of Stagehand browsers to pass to a {@apilink StagehandCrawler} as its
  * {@apilink BrowserCrawlerOptions.browserPool|`browserPool`}.
@@ -74,24 +63,6 @@ export function stagehandBrowserPool(options: StagehandBrowserPoolOptions = {}):
     const { launchContext, stagehandOptions, headless, configuration, ...poolOptions } = options;
 
     return stagehandLauncher(launchContext, stagehandOptions, headless, configuration).createBrowserPool(poolOptions);
-}
-
-/**
- * The {@apilink RemoteBrowserPool} counterpart of {@apilink stagehandBrowserPool}: connects to a remote browser
- * service with a Stagehand plugin derived from `launchContext` and `stagehandOptions`.
- *
- * A {@apilink StagehandCrawler} accepts the same connection details directly via
- * {@apilink BrowserCrawlerOptions.remoteBrowser|`remoteBrowser`}; reach for this factory when you also need to
- * tune the wrapping pool, or to share one remote pool between crawlers.
- *
- * @category Browser management
- */
-export function remoteStagehandBrowserPool(options: RemoteStagehandBrowserPoolOptions): RemoteBrowserPool<Page> {
-    const { launchContext, stagehandOptions, headless, configuration, ...remoteOptions } = options;
-
-    return stagehandLauncher(launchContext, stagehandOptions, headless, configuration).createRemoteBrowserPool<Page>(
-        remoteOptions,
-    );
 }
 
 function stagehandLauncher(

@@ -1,19 +1,24 @@
-name: Update new issue
+name: Update new issue or PR
 
 on:
     issues:
         types:
             - opened
+    # pull_request_target so the token has write access for PRs from forks; no code is checked out here
+    pull_request_target:
+        types:
+            - opened
 
 jobs:
     label_issues:
-        name: Label issues
+        name: Label issues and PRs
         runs-on: ubuntu-22.04
         permissions:
             issues: write
+            pull-requests: write
 
         steps:
-            # Add the "t-tooling" label to all new issues
+            # Add the "t-tooling" label to all new issues and PRs
             -   uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
                 with:
                     script: |

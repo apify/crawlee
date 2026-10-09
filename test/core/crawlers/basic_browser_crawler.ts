@@ -1,5 +1,5 @@
-import type { BrowserPlugin, BrowserPoolHooks, BrowserPoolOptions, PuppeteerPlugin } from '@crawlee/browser-pool';
-import { BrowserPool, RemoteBrowserPool } from '@crawlee/browser-pool';
+import type { BrowserPoolHooks, BrowserPoolOptions, PuppeteerPlugin } from '@crawlee/browser-pool';
+import { BrowserPool, RemotePuppeteerPlugin } from '@crawlee/browser-pool';
 import type {
     BrowserCrawlerOptions,
     BrowserCrawlingContext,
@@ -8,8 +8,7 @@ import type {
 } from '@crawlee/puppeteer';
 import { BrowserCrawler } from '@crawlee/puppeteer';
 import type { Dictionary } from '@crawlee/types';
-// @ts-ignore This only throws when compiled against puppeteer 25+ (ESM only), we only import types, so its alllll gooooood
-import type { HTTPResponse, Page } from 'puppeteer';
+import puppeteer, { type HTTPResponse, type Page } from 'puppeteer';
 
 export type TestCrawlingContext = BrowserCrawlingContext<Page, HTTPResponse, Dictionary>;
 
@@ -36,9 +35,9 @@ export class BrowserCrawlerTest extends BrowserCrawler<Page, HTTPResponse, TestC
             ...browserCrawlerOptions,
             browserPoolBuilder: (remoteBrowser) =>
                 remoteBrowser
-                    ? new RemoteBrowserPool<Page>({
-                          ...remoteBrowser,
-                          browserPlugins: browserPoolOptions!.browserPlugins as unknown as BrowserPlugin[],
+                    ? new BrowserPool({
+                          maxOpenBrowsers: remoteBrowser.maxOpenBrowsers,
+                          browserPlugins: [new RemotePuppeteerPlugin(puppeteer, remoteBrowser)],
                       })
                     : new BrowserPool(browserPoolOptions!),
             contextPipelineBuilder: () => this.buildContextPipeline(),
