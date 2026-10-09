@@ -4,7 +4,7 @@
 
 - Imports of crawler-only exports from `@crawlee/core` move to `@crawlee/basic`: sessions, Router, Statistics, error tracking, context types, autoscaling, enqueue option/pattern types, cookie helpers, and crawler-specific errors. The renamed `SitemapRequestLoader` also lives in basic. Check symbols individually; existing `crawlee`/crawler imports generally work. ContextPipeline, ConcurrencySystem and ThrottlingRequestManager are new APIs, not relocated v3 exports.
 - Dictionary, Awaitable, Constructor, Cookie, QueueOperationInfo, AllowedHttpMethods and SearchParams need direct `@crawlee/types` imports/dependency. StorageBackend and StorageIdentifier remain reachable from core; IBrowserPool and NewPageOptions remain reachable from browser-pool.
-- `EnqueueStrategy` moves from utils to `@crawlee/core`, also available through `crawlee`.
+- `EnqueueStrategy` stays exported from `@crawlee/utils` and is re-exported by `@crawlee/core` and `crawlee`.
 - JSDOMCrawler and LinkeDOMCrawler require explicit `@crawlee/jsdom` and `@crawlee/linkedom` dependencies and imports. They are no longer exported by `crawlee`.
 - Replace removed CheerioRoot with CheerioAPI/Cheerio from `cheerio`, Element from `domhandler`; declare direct dependencies.
 - HTTP client classes move to `@crawlee/http-client` and `@crawlee/got-scraping-client`; read the HTTP reference for the changed contract.
@@ -18,9 +18,9 @@ The `utils` object exported by `crawlee` is removed. Replace `utils.puppeteer` a
 
 `htmlToText`, `parseHandlesFromHtml` and `parseOpenGraph` are now async; await their results and update callers' return types.
 
-`systemInfoV2` and `CRAWLEE_SYSTEM_INFO_V2` disappear; the new resource detection is the default. Utils no longer exports getMemoryInfo/MemoryInfo, isContainerized, isDocker, isLambda or getCgroupsVersion. For direct application use, read equivalent OS or cgroup values explicitly.
+`systemInfoV2` and `CRAWLEE_SYSTEM_INFO_V2` disappear; the new resource detection is the default. Utils no longer exports getMemoryInfo/MemoryInfo, isContainerized, isDocker, isLambda or getCgroupsVersion; they live on `@crawlee/core/internal` without semver guarantees. For direct application use, prefer reading equivalent OS or cgroup values explicitly.
 
-Removed filterUrl, matchesEnqueueStrategy, UNSUPPORTED_SCHEME_MESSAGE and core filterRequestsByPatterns have no public replacement. Filtering belongs in enqueueLinks/addRequests.
+filterUrl, matchesEnqueueStrategy and UNSUPPORTED_SCHEME_MESSAGE move to `@crawlee/utils/internal`; core filterRequestsByPatterns is removed. None has a public replacement; filtering belongs in enqueueLinks/addRequests.
 
 Utils separates public helpers from `@crawlee/utils/internal`. Internal regex, blocked-detection, iterable and URL helpers move there, including URL_NO_COMMAS_REGEX, URL_WITH_COMMAS_REGEX, extractUrlsFromCheerio and tryAbsoluteURL. Core no longer re-exports parseArgument, schemas or tryAbsoluteURL. Prefer supported public helpers; internal imports have no semver guarantees. ArgumentValidationError stays exported by core.
 
