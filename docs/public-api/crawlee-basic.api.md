@@ -1016,7 +1016,7 @@ export interface TaskLoopPredicates {
 export class ThrottlingRequestManager<T extends IRequestManager = IRequestManager> implements IRequestManager {
     // (undocumented)
     [Symbol.asyncIterator](): AsyncGenerator<Request_2<Dictionary>, void, unknown>;
-    constructor(options: ThrottlingRequestManagerOptions<T>, config?: Configuration);
+    constructor(options: ThrottlingRequestManagerOptions<T>, configuration?: Configuration);
     // (undocumented)
     addRequest(requestLike: Source, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo>;
     addRequestsBatched(requests: RequestsLike, options?: AddRequestsBatchedOptions): Promise<AddRequestsBatchedResult>;
