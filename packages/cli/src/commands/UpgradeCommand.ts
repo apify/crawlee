@@ -16,6 +16,7 @@ const runtimePackages = new Set([
     ...[
         'basic',
         'browser',
+        'browser-pool',
         'cheerio',
         'core',
         'fs-storage',
