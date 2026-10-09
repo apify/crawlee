@@ -125,6 +125,7 @@ interface SitemapParsingProgress {
     inProgressSitemapUrl: string | null;
     inProgressEntries: Set<string>;
     pendingSitemapUrls: Set<string>;
+    processedSitemapUrls: Set<string>;
 }
 
 interface SitemapRequestLoaderState {
@@ -170,6 +171,10 @@ export class SitemapRequestLoader implements IRequestLoader {
          * Set of sitemap URLs that have not been parsed yet. If the set is empty and `inProgressSitemapUrl` is `null`, the sitemap loading is finished.
          */
         pendingSitemapUrls: new Set<string>(),
+        /**
+         * Set of sitemap URLs that have already been parsed. Keeps sitemap indexes that reference each other from being loaded again.
+         */
+        processedSitemapUrls: new Set<string>(),
     };
 
     /**
@@ -385,7 +390,9 @@ export class SitemapRequestLoader implements IRequestLoader {
                 })) {
                     if (!item.originSitemapUrl) {
                         // This is a nested sitemap
-                        this.#sitemapParsingProgress.pendingSitemapUrls.add(item.loc);
+                        if (!this.#sitemapParsingProgress.processedSitemapUrls.has(item.loc)) {
+                            this.#sitemapParsingProgress.pendingSitemapUrls.add(item.loc);
+                        }
                         continue;
                     }
 
@@ -399,6 +406,7 @@ export class SitemapRequestLoader implements IRequestLoader {
             }
 
             this.#sitemapParsingProgress.pendingSitemapUrls.delete(sitemapUrl);
+            this.#sitemapParsingProgress.processedSitemapUrls.add(sitemapUrl);
             this.#sitemapParsingProgress.inProgressEntries.clear();
             this.#sitemapParsingProgress.inProgressSitemapUrl = null;
         }
@@ -538,6 +546,7 @@ export class SitemapRequestLoader implements IRequestLoader {
                 pendingSitemapUrls: Array.from(this.#sitemapParsingProgress.pendingSitemapUrls),
                 inProgressSitemapUrl: this.#sitemapParsingProgress.inProgressSitemapUrl,
                 inProgressEntries: Array.from(this.#sitemapParsingProgress.inProgressEntries),
+                processedSitemapUrls: Array.from(this.#sitemapParsingProgress.processedSitemapUrls),
             },
             // Re-queue in-progress requests to the front so they are retried if the state is restored.
             urlQueue: [...this.inProgress, ...urlQueue],
@@ -565,6 +574,7 @@ export class SitemapRequestLoader implements IRequestLoader {
             pendingSitemapUrls: new Set(state.sitemapParsingProgress.pendingSitemapUrls),
             inProgressSitemapUrl: state.sitemapParsingProgress.inProgressSitemapUrl,
             inProgressEntries: new Set(state.sitemapParsingProgress.inProgressEntries),
+            processedSitemapUrls: new Set(state.sitemapParsingProgress.processedSitemapUrls ?? []),
         };
 
         this.#requestData = new Map(state.requestData ?? []);
