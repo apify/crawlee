@@ -176,7 +176,7 @@ overrides:
   apify>@crawlee/fs-storage: workspace:*
   apify>@crawlee/types: workspace:*
   apify>@crawlee/utils: workspace:*
-  header-generator>ow: ^2.0.0
+  header-generator>ow: ^3.0.0
   playwright: 1.64.0
   playwright-core: 1.64.0
 
@@ -4543,10 +4543,6 @@ packages:
     resolution: {integrity: sha512-TV7t8GKYaJWsn00tFDqBw8+Uqmr8A0fRU1tvTQhyZzGv0sJCGRQL3JGMI3ucuKo3XIZdUP+Lx7/gh2t3lewy7g==}
     engines: {node: '>=14.16'}
 
-  '@sindresorhus/is@6.3.1':
-    resolution: {integrity: sha512-FX4MfcifwJyFOI2lPoX7PQxCqx8BG1HCho7WdiXwpEQx1Ycij0JxkfYtGK7yqNScrZGSlt6RE6sw8QYoH7eKnQ==}
-    engines: {node: '>=16'}
-
   '@sindresorhus/is@7.2.0':
     resolution: {integrity: sha512-P1Cz1dWaFfR4IR+U13mqqiGsLFf1KbayybWwdd2vfctdV6hDpUkgCY0nKOLLTMSoRd/jJNjtbqzf13K8DCCXQw==}
     engines: {node: '>=18'}
@@ -7048,6 +7044,10 @@ packages:
   dot-case@3.0.4:
     resolution: {integrity: sha512-Kv5nKlh6yRrdrGvxeJ2e5y2eRUpkUosIW4A2AS38zwSz27zu7ufDwQPi5Jhs3XAlGNetl3bmnGhQsMtkKJnj3w==}
 
+  dot-prop@10.2.0:
+    resolution: {integrity: sha512-BTJ9aZYL3vCfZlZOBLy9v8TUqWGQ0pzFnygKwFZt5udj6viBoFIBviKPUoZLDCPn1FoXffv6McQFDenrm5Krfw==}
+    engines: {node: '>=20'}
+
   dot-prop@6.0.1:
     resolution: {integrity: sha512-tE7ztYzXHIeyvc7N+hR3oi7FIbf/NIjVP9hmAt3yMXzrQ072/fpjGLx2GxNxGxUl5V73MEqYzioOMoVhGMJ5cA==}
     engines: {node: '>=10'}
@@ -7055,10 +7055,6 @@ packages:
   dot-prop@7.2.0:
     resolution: {integrity: sha512-Ol/IPXUARn9CSbkrdV4VJo7uCy1I3VuSiWCaFSg+8BdUOzF9n3jefIpcgAydvUZbTdEBZs2vEiTiS9m61ssiDA==}
     engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
-
-  dot-prop@8.0.2:
-    resolution: {integrity: sha512-xaBe6ZT4DHPkg0k4Ytbvn5xoxgpG0jOS1dYxSOwAHPuNLjP3/OzN0gH55SrLqpx8cBfSaVt91lXYkApjb+nYdQ==}
-    engines: {node: '>=16'}
 
   dotenv-expand@12.0.3:
     resolution: {integrity: sha512-uc47g4b+4k/M/SeaW1y4OApx+mtLWl92l5LMPP0GNXctZqELk+YGgOPIIC5elYmUH4OuoK3JLhuRUYegeySiFA==}
@@ -9905,9 +9901,9 @@ packages:
     resolution: {integrity: sha512-sJBRCbS5vh1Jp9EOgwp1Ws3c16lJrUkJYlvWTYC03oyiYVwS/ns7lKRWow4w4XjDyTrA2pplQv4B2naWSR6yDA==}
     engines: {node: '>=14.16'}
 
-  ow@2.0.0:
-    resolution: {integrity: sha512-ESUigmGrdhUZ2nQSFNkeKSl6ZRPupXzprMs3yF9DYlNVpJ8XAjM/fI9RUZxA7PI1K9HQDCCvBo1jr/GEIo9joQ==}
-    engines: {node: '>=18'}
+  ow@3.1.1:
+    resolution: {integrity: sha512-Hixi5roGFYZuiPV2pnnBi1hXdRG0uqifxE8rCCU6lKeCCQS+VGihuJnYxaJSffDz/clyH+xB2z1hXYRzeIcUMA==}
+    engines: {node: '>=20'}
 
   own-keys@1.0.2:
     resolution: {integrity: sha512-19YVAg7T+WTrxggPukVq7DjTv6+PJ867TmhCvBsYwmbFCsZd344rq2Ld1p0wo8f8Qrrhgp82c6FJRqdXWtSEhg==}
@@ -11952,10 +11948,6 @@ packages:
   type-fest@2.19.0:
     resolution: {integrity: sha512-RAH822pAdBgcNMAfWnCBU3CFZcfZ/i1eZjwFU/dsLKumyuuP3niueg2UAukXYF0E2AAoc82ZSSf9J0WQBinzHA==}
     engines: {node: '>=12.20'}
-
-  type-fest@3.13.1:
-    resolution: {integrity: sha512-tLq3bSNx+xSpwvAJnzrK0Ep5CLNWjvFTOp71URMaAEWBfRb9nnJiBoUe0tF8bI4ZFO3omgBR6NvnbzVUT3Ly4g==}
-    engines: {node: '>=14.16'}
 
   type-fest@4.41.0:
     resolution: {integrity: sha512-TeTSQ6H5YHvpqVwBRcnLDCBnDOHWYu7IvGbHT6N8AOymcr9PJGjc1GTtiWZTYg0NCgYwvnYWEkVChQAr9bjfwA==}
@@ -17260,8 +17252,6 @@ snapshots:
 
   '@sindresorhus/is@5.6.0': {}
 
-  '@sindresorhus/is@6.3.1': {}
-
   '@sindresorhus/is@7.2.0': {}
 
   '@sindresorhus/merge-streams@4.0.0': {}
@@ -19948,6 +19938,10 @@ snapshots:
       no-case: 3.0.4
       tslib: 2.8.1
 
+  dot-prop@10.2.0:
+    dependencies:
+      type-fest: 5.10.0
+
   dot-prop@6.0.1:
     dependencies:
       is-obj: 2.0.0
@@ -19955,10 +19949,6 @@ snapshots:
   dot-prop@7.2.0:
     dependencies:
       type-fest: 2.19.0
-
-  dot-prop@8.0.2:
-    dependencies:
-      type-fest: 3.13.1
 
   dotenv-expand@12.0.3:
     dependencies:
@@ -21463,7 +21453,7 @@ snapshots:
     dependencies:
       browserslist: 4.29.3
       generative-bayesian-network: 2.1.88
-      ow: 2.0.0
+      ow: 3.1.1
       tslib: 2.8.1
 
   help-me@5.0.0: {}
@@ -23854,11 +23844,11 @@ snapshots:
       lodash.isequal: 4.5.0
       vali-date: 1.0.0
 
-  ow@2.0.0:
+  ow@3.1.1:
     dependencies:
-      '@sindresorhus/is': 6.3.1
+      '@sindresorhus/is': 7.2.0
       callsites: 4.2.0
-      dot-prop: 8.0.2
+      dot-prop: 10.2.0
       environment: 1.1.0
       fast-equals: 5.4.3
       is-identifier: 1.1.0
@@ -26347,8 +26337,6 @@ snapshots:
   type-fest@1.4.0: {}
 
   type-fest@2.19.0: {}
-
-  type-fest@3.13.1: {}
 
   type-fest@4.41.0: {}
 
