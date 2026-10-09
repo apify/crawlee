@@ -12,7 +12,7 @@
 
 ## Utility changes
 
-The `utils` object exported by `crawlee` is removed. Replace `utils.puppeteer` and `utils.playwright` with direct `puppeteerUtils` and `playwrightUtils` imports. Import `log`, `enqueueLinks`, `social`, `sleep`, `downloadListOfUrls` and `parseOpenGraph` directly for the other members. Prefer existing context helpers for page-bound operations.
+The `utils` object exported by `crawlee` is removed. Replace `utils.puppeteer` and `utils.playwright` with direct `puppeteerUtils` and `playwrightUtils` imports. Import `log`, `social`, `sleep`, `downloadListOfUrls` and `parseOpenGraph` directly for the other members. `utils.enqueueLinks` has no standalone replacement; use `context.enqueueLinks()`. Prefer existing context helpers for page-bound operations.
 
 `RobotsFile` becomes `RobotsTxtFile`. `RobotsTxtFile.find(url, proxyUrl, options)` becomes `find(url, { proxyUrl, ...options })`, also supporting httpClient and logger. `getSitemaps`, `parseSitemaps` and `parseUrlsFromSitemaps` still accept `RobotsTxtFileSitemapsOptions`. Their `enqueueStrategy` defaults to `'same-hostname'`; deliberate cross-host discovery needs `'all'`. Only HTTP(S) URLs are allowed. Replace `ParseSitemapOptions.networkTimeouts` with the single `timeoutMillis` option.
 
