@@ -21,6 +21,8 @@ A supplied pool is borrowed and never destroyed by the crawler. `crawler.browser
 
 Custom pools implement `IBrowserPool`: `newPage`, `closePage`, `extractPageState`, and `injectPageState`. Passing a session to `newPage` is a best-effort hint. A plain `SessionError` passed to `closePage` signals a block and should discard associated session state. Its `SessionRetiredError` subclass signals normal usage or age expiry, so a pool may keep a warm page. The caller owns custom lifecycle methods.
 
+The built-in `BrowserPool` closes the page and retires its controller for either error. A custom pool retaining a warm page must keep the finished session's cookies and other state from leaking into another session.
+
 `crawler.teardown()` releases only per-run resources and leaves a crawler-owned browser pool reusable for the next `run()`. `crawler.destroy()` or async disposal releases resources that outlive a run. A finished run leaves no browsers or timers keeping the process alive, so disposal is optional. Borrowed pools still require their owner's cleanup.
 
 ## Imports and constructor options
