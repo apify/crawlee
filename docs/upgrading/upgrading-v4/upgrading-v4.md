@@ -1220,7 +1220,7 @@ The `crawlee` meta-package no longer re-exports them.
 The crawler-only parts of `@crawlee/core` moved to `@crawlee/basic`, so that `@crawlee/core` carries just the storage, request and configuration layer. The moved exports are:
 
 - autoscaling: `AutoscaledPool`, `Snapshotter`, `SystemStatus`, the `LoadSignal` implementations and their option/snapshot types
-- crawler internals: `Statistics`, `ErrorTracker`, `ErrorSnapshotter`, and the crawling-context types (`CrawlingContext`, `RestrictedCrawlingContext`, `LoadedRequest`, …)
+- crawler internals: `Statistics`, `ErrorTracker`, and the crawling-context types (`CrawlingContext`, `RestrictedCrawlingContext`, `LoadedRequest`, …)
 - `SessionPool`, `Session` and the session-pool constants
 - `Router` (with `RouterHandler`, `RouterRoutes` and `defaultRoute`)
 - the cookie helpers (`mergeCookies`, `getCookiesFromResponse`, …)
