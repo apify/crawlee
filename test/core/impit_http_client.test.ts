@@ -47,4 +47,26 @@ describe('ImpitHttpClient', () => {
 
         expect(Impit).toHaveBeenCalledWith(expect.objectContaining({ ignoreTlsErrors: true }));
     });
+
+    test('lets the abort signal decide when a request times out, not the 30 s impit default', async () => {
+        const httpClient = new ImpitHttpClient();
+        const { signal } = new AbortController();
+
+        await httpClient.sendRequest(new Request('http://example.com'), { signal });
+
+        const { fetch } = vi.mocked(Impit).mock.instances[0];
+        const [, init] = vi.mocked(fetch).mock.calls[0];
+        expect(init).toMatchObject({ signal });
+        expect(init?.timeout).toBeGreaterThan(24 * 60 * 60 * 1000);
+    });
+
+    test('keeps the impit default timeout when there is no abort signal', async () => {
+        const httpClient = new ImpitHttpClient();
+
+        await httpClient.sendRequest(new Request('http://example.com'));
+
+        const { fetch } = vi.mocked(Impit).mock.instances[0];
+        const [, init] = vi.mocked(fetch).mock.calls[0];
+        expect(init?.timeout).toBeUndefined();
+    });
 });

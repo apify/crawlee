@@ -32,6 +32,10 @@ export const Browser = {
     'Firefox': 'firefox',
 } as const;
 
+// impit has no way to switch its own timeout off (0 and Infinity both time out immediately), so a request bound
+// by an abort signal gets a timeout of about 24 days instead, far beyond any navigation window.
+const TIMEOUT_DEFERRED_TO_SIGNAL_MILLIS = 2 ** 31 - 1;
+
 /**
  * A HTTP client implementation based on the `impit` library.
  */
@@ -105,7 +109,12 @@ export class ImpitHttpClient extends BaseHttpClient {
             followRedirects: redirect === 'follow',
         });
 
-        const response = await impit.fetch(request, { signal: signal ?? undefined });
+        // The caller's signal carries the deadline (for crawlers, the navigation window that `extendTimeout()` can
+        // push out), so impit's 30 s default must not cut the request short. Without a signal, the default stays.
+        const response = await impit.fetch(request, {
+            signal: signal ?? undefined,
+            ...(signal ? { timeout: TIMEOUT_DEFERRED_TO_SIGNAL_MILLIS } : {}),
+        });
 
         // todo - cast shouldn't be needed here, impit returns `Uint8Array`
         return new ResponseWithUrl(response.body, response);
