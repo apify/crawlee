@@ -2,7 +2,7 @@
 
 ## Pools and ownership
 
-Replace `browserPoolOptions` with `playwrightBrowserPool()`, `puppeteerBrowserPool()` or `stagehandBrowserPool()`, passed as `browserPool`. Move `launchContext`, `headless` and supported `remoteBrowser` settings into the factory; combining them with crawler `browserPool` throws.
+Replace `browserPoolOptions` with `playwrightBrowserPool()`, `puppeteerBrowserPool()` or `stagehandBrowserPool()`, passed as `browserPool`. Move `launchContext`, `headless`, supported `remoteBrowser` settings and Stagehand's `stagehandOptions` into the factory; combining them with crawler `browserPool` throws.
 
 Remote connections use the regular factory or `RemotePlaywrightPlugin` / `RemotePuppeteerPlugin`. There is no separate remote factory or `RemoteBrowserPool`; `BrowserPool` accepts `maxOpenBrowsers`. Stagehand uses `stagehandOptions.env` and rejects `remoteBrowser`. Puppeteer's `'new'` / `'old'` headless values are Puppeteer-only.
 
@@ -49,7 +49,7 @@ Remove `preventDirectStorageAccess` and `commitResult`. Result callbacks receive
 
 Remove `experimentalContainers`, Stagehand `ignoreShadowRoots` / `ignoreIframes`, and extra dictionary keys in `StagehandGotoOptions`.
 
-Replace `StagehandRequestHandler` with `RequestHandler<StagehandCrawlingContext>`. Remove `stagehandUtils`; import `AgentResult` from `@browserbasehq/stagehand`. Move `launchContext.stagehandOptions` to the crawler/factory's top-level option. Replace `StagehandPlugin.getStagehandForBrowser()` and access to private `stagehandOptions` with `context.stagehand`.
+Replace `StagehandRequestHandler` with `RequestHandler<StagehandCrawlingContext>`. Remove `stagehandUtils`; import `AgentResult` from `@browserbasehq/stagehand`. Move `launchContext.stagehandOptions` to the top-level option on the crawler, or on `stagehandBrowserPool()` when a pool is supplied. Replace `StagehandPlugin.getStagehandForBrowser()` and access to private `stagehandOptions` with `context.stagehand`.
 
 Pool maps, counters, option mirrors and hook arrays are private. Supply options/hooks at construction; use `getPage()`, `getPageId()`, `getBrowserControllerByPage()` and lifecycle events. Replace `BROWSER_POOL_EVENTS.BROWSER_CLOSED` with the controller event `BROWSER_CONTROLLER_EVENTS.BROWSER_CLOSED`.
 
