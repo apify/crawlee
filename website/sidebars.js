@@ -54,6 +54,7 @@ module.exports = {
                 'guides/running-in-web-server/running-in-web-server',
                 'guides/parallel-scraping/parallel-scraping-guide',
                 'guides/custom-statistics',
+                'guides/crawling-context/crawling-context',
                 'guides/custom-http-client/custom-http-client',
                 'guides/custom-logger/custom-logger'
             ],
