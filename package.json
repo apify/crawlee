@@ -82,9 +82,9 @@
         "@opentelemetry/sdk-trace-node": "^2.0.0",
         "@opentelemetry/semantic-conventions": "^1.39.0",
         "@oxlint/plugins": "^1.86.0",
-        "@playwright/browser-chromium": "1.63.0",
-        "@playwright/browser-firefox": "1.63.0",
-        "@playwright/browser-webkit": "1.63.0",
+        "@playwright/browser-chromium": "1.64.0",
+        "@playwright/browser-firefox": "1.64.0",
+        "@playwright/browser-webkit": "1.64.0",
         "@types/domhandler": "^3.1.0",
         "@types/express": "^5.0.1",
         "@types/fs-extra": "^11.0.4",
@@ -133,16 +133,16 @@
             "oxfmt --write --no-error-on-unmatched-pattern"
         ]
     },
-    "packageManager": "pnpm@12.9.1",
+    "packageManager": "pnpm@12.10.1",
     "devEngines": {
         "packageManager": {
             "name": "pnpm",
-            "version": "12.9.1",
+            "version": "12.10.1",
             "onFail": "error"
         }
     },
     "volta": {
         "node": "24.21.0",
-        "pnpm": "12.9.1"
+        "pnpm": "12.10.1"
     }
 }
