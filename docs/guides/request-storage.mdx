@@ -1,0 +1,91 @@
+---
+id: request-storage
+title: Request Storage
+description: How to store the requests your crawler will go through
+---
+
+import ApiLink from '@site/src/components/ApiLink';
+
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+import CodeBlock from '@theme/CodeBlock';
+
+import BasicOperationsSource from '!!raw-loader!./request-storage-queue-basic.ts';
+import CrawlerExplicitSource from '!!raw-loader!./request-storage-queue-crawler-explicit.ts';
+import CrawlerSource from '!!raw-loader!./request-storage-queue-crawler.ts';
+
+import RequestQueueAddRequestsSource from '!!raw-loader!./request-storage-queue-only.ts';
+
+Crawlee has several request storage types that are useful for specific tasks. The requests are stored on local disk to a directory defined by the `CRAWLEE_STORAGE_DIR` environment variable. If this variable is not defined, by default Crawlee sets `CRAWLEE_STORAGE_DIR` to `./storage` in the current working directory.
+
+## Request queue
+
+The request queue is a storage of URLs to crawl. The queue is used for the deep crawling of websites, where we start with several URLs and then recursively follow links to other pages. The data structure supports both breadth-first and depth-first crawling orders.
+
+Each Crawlee project run is associated with a **default request queue**. Typically, it is used to store URLs to crawl in the specific crawler run. Its usage is optional.
+
+In Crawlee, the request queue is represented by the <ApiLink to="core/class/RequestQueue">`RequestQueue`</ApiLink> class.
+
+By default, the request queue is managed by the <ApiLink to="fs-storage/class/FileSystemStorageBackend">`FileSystemStorageBackend`</ApiLink> class and its data is stored in the local directory specified by the `CRAWLEE_STORAGE_DIR` environment variable as follows:
+
+```text
+{CRAWLEE_STORAGE_DIR}/request_queues/{QUEUE_ID}/entries.json
+```
+
+:::note
+
+`{QUEUE_ID}` is the name or ID of the request queue. The default queue has ID `default`.
+
+:::
+
+:::note
+
+`entries.json` contains an array of requests.
+
+:::
+
+The following code demonstrates the usage of the request queue:
+
+<Tabs groupId="request_queue">
+    <TabItem value="crawler" label="Usage with Crawler" default>
+        <CodeBlock language="js">
+            {CrawlerSource}
+        </CodeBlock>
+    </TabItem>
+    <TabItem value="crawler_explicit" label="Explicit usage with Crawler">
+        <CodeBlock language="js">
+            {CrawlerExplicitSource}
+        </CodeBlock>
+    </TabItem>
+    <TabItem value="basic_operations" label="Basic Operations" default>
+        <CodeBlock language="js">
+            {BasicOperationsSource}
+        </CodeBlock>
+    </TabItem>
+</Tabs>
+
+To see more detailed example of how to use the request queue with a crawler, see the [Puppeteer Crawler](/js/docs/examples/puppeteer-crawler) example.
+
+The request queue is not optimized for adding numerous URLs in a single batch — historically, requests were added one by one. To enqueue a large set of initial URLs efficiently, use the <ApiLink to="core/class/RequestQueue#addRequests">`addRequests()`</ApiLink> method (or simply pass the URLs to `crawler.run()`), which adds requests in batches:
+
+<CodeBlock language="js">
+    {RequestQueueAddRequestsSource}
+</CodeBlock>
+
+## Reading requests from other sources
+
+Sometimes you don't want to start from a dynamic queue, but from a static list of URLs (for example, parsed from a file) or from a website's sitemap. Crawlee provides **request loaders** for these read-only sources — <ApiLink to="core/class/RequestList">`RequestList`</ApiLink> and <ApiLink to="basic-crawler/class/SitemapRequestLoader">`SitemapRequestLoader`</ApiLink> — which can be combined with a request queue when you also need to enqueue requests discovered during the crawl.
+
+See the dedicated [Request loaders](./request-loaders) guide for details on loaders, request managers, and how to combine them with a queue into a <ApiLink to="core/class/RequestManagerTandem">`RequestManagerTandem`</ApiLink>.
+
+## Cleaning up the storages
+
+Run-scoped storages - the default one and any opened with an `alias` - are purged before the crawler starts if not specified otherwise. Storages opened with a `name` persist across runs and are never purged. This happens as early as when we try to open some storage (e.g. via `RequestQueue.open()`) or when we try to work with a default storage via one of the helper methods (e.g. `crawler.addRequests()` that under the hood calls `RequestQueue.open()`). If we don't work with storages explicitly in our code, the purging will eventually happen when the `run` method of our crawler is executed. In case we need to purge the storages sooner, we can use the <ApiLink to="core/function/purgeDefaultStorages">`purgeDefaultStorages()`</ApiLink> helper explicitly:
+
+```javascript
+import { purgeDefaultStorages } from 'crawlee';
+
+await purgeDefaultStorages();
+```
+
+Calling this function will clean up the run-scoped request storage directories - the default queue and any alias-keyed one - along with the request list stored in the default key-value store. This is a shortcut for running (optional) `purge` method on the <ApiLink to="core/interface/StorageBackend">`StorageBackend`</ApiLink> interface, in other words it will call the `purge` method of the underlying storage implementation we are currently using. You can make sure the storage is purged only once for a given execution context if you set `onlyPurgeOnce` to `true` in the `options` object.

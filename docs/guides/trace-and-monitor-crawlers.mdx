@@ -6,11 +6,11 @@ description: How to use OpenTelemetry to trace and monitor your crawlers
 
 import CodeBlock from '@theme/CodeBlock';
 
-import RegisterHookSource from '!!raw-loader!./trace_and_monitor_register_hook.ts';
-import SetupSource from '!!raw-loader!./trace_and_monitor_setup.ts';
-import BasicExampleSource from '!!raw-loader!./trace_and_monitor_basic.ts';
-import WrapWithSpanSource from '!!raw-loader!./trace_and_monitor_wrap_with_span.ts';
-import CustomInstrumentationSource from '!!raw-loader!./trace_and_monitor_custom.ts';
+import RegisterHookSource from '!!raw-loader!./trace-and-monitor-register-hook.ts';
+import SetupSource from '!!raw-loader!./trace-and-monitor-setup.ts';
+import BasicExampleSource from '!!raw-loader!./trace-and-monitor-basic.ts';
+import WrapWithSpanSource from '!!raw-loader!./trace-and-monitor-wrap-with-span.ts';
+import CustomInstrumentationSource from '!!raw-loader!./trace-and-monitor-custom.ts';
 
 [OpenTelemetry](https://opentelemetry.io/) is a collection of APIs, SDKs, and tools to instrument, generate, collect, and export telemetry data (metrics, logs, and traces) to help you analyze your software's performance and behavior. You can learn more about its basic concepts in the [OpenTelemetry documentation](https://opentelemetry.io/docs/concepts/).
 
@@ -98,9 +98,9 @@ starts, and only then is the crawler loaded and patched.
 The examples on this page live in the Crawlee repository, so to run this one from a checkout, from the repository root:
 
 ```bash
-pnpm exec tsx --import ./docs/guides/trace_and_monitor_register_hook.ts \
-    --import ./docs/guides/trace_and_monitor_setup.ts \
-    ./docs/guides/trace_and_monitor_basic.ts
+pnpm exec tsx --import ./docs/guides/trace-and-monitor-register-hook.ts \
+    --import ./docs/guides/trace-and-monitor-setup.ts \
+    ./docs/guides/trace-and-monitor-basic.ts
 ```
 
 ## Troubleshoot instrumentation setup

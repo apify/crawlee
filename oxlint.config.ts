@@ -110,6 +110,7 @@ export default defineConfig({
         'import/no-default-export': 'off',
 
         'unicorn/no-empty-file': 'off',
+        'unicorn/filename-case': ['error', { case: 'kebabCase' }],
 
         // Rules pulled in by `@apify/oxlint-config` that the codebase does not
         // currently satisfy. Disabled here to keep this migration scoped to a
@@ -142,13 +143,6 @@ export default defineConfig({
                 'vitest/no-disabled-tests': 'off',
                 'vitest/no-conditional-tests': 'off',
                 'vitest/hoisted-apis-on-top': 'off',
-            },
-        },
-        {
-            // docs are not migrated to kebab-case yet (#3113)
-            files: ['packages/**/*', 'test/**/*', 'scripts/**/*'],
-            rules: {
-                'unicorn/filename-case': ['error', { case: 'kebabCase' }],
             },
         },
         {
