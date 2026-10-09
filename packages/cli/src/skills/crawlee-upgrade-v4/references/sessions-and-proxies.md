@@ -33,6 +33,6 @@ HTTP cookie precedence is sendRequest overrides, request Cookie header, then the
 
 ## Proxies
 
-`tieredProxyUrls`, `ProxyInfo.proxyTier`, `TieredProxy` and `TieredProxyOptions` are removed. To preserve escalation, use named sessions carrying different `proxyInfo` values and change `request.sessionId` in an error handler. Avoid also assigning crawler proxy configuration when the session already owns its proxy.
+`tieredProxyUrls`, `ProxyInfo.proxyTier`, `TieredProxy` and `TieredProxyOptions` are removed. To preserve escalation, use named sessions carrying different `proxyInfo` values and change `request.sessionId` in an error handler. A supplied `sessionPool` makes the crawler ignore `proxyConfiguration` with a warning, for every pooled session; configure proxies on the pool through `addSession({ proxyInfo })` or `createSessionFunction`.
 
 `ProxyConfiguration.newUrl()` and `newUrlFunction` take no arguments. `newProxyInfo(proxyInfo?)` accepts only an existing `ProxyInfo`, such as one restored with a persisted session. Custom `IProxyConfiguration` implementations must preserve restored proxies, refreshing environment-dependent fields as needed. Proxy resolution is per session. Preserve request-specific or sticky routing with named sessions and `request.sessionId`; the old session-ID and `{ request }` callback arguments are gone.
