@@ -39,7 +39,7 @@ afterAll(async () => {
     if (temporaryRoot) await rm(temporaryRoot, { recursive: true, force: true });
 });
 
-it.each([['upgrade-to-v4'], ['--help', 'upgrade-to-v4']])(
+it.each([['upgrade'], ['--help', 'upgrade'], ['upgrade', '--from', '3', '--to', '4']])(
     'uses the invoked CLI for %j even when an older project-local CLI exists',
     (...args) => {
         const output = execFileSync(process.execPath, [launcher, ...args], { cwd: projectRoot, encoding: 'utf8' });
