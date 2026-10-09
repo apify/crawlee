@@ -24,6 +24,10 @@ The second configuration argument is removed from crawler constructors, but stay
 
 Prefer `serviceLocator.getConfiguration()` for the active configuration. `getGlobalConfiguration()` also follows the active service locator, despite its name. Pass `configuration`, `storageBackend` and `eventManager` in crawler options for per-crawler isolation. Event-manager constructors take an options object; `LocalEventManager.fromConfiguration()` derives intervals from a configuration.
 
+`serviceLocator.reset()` and `getStorageInstanceManager()` are internal and have no semver guarantees. Use `reset()` for test cleanup when needed; application code should open storages through their public `.open()` methods.
+
+`Configuration.defaultDatasetId`, `defaultKeyValueStoreId`, `defaultRequestQueueId` and their `CRAWLEE_DEFAULT_*_ID` environment variables are removed. Default storages use a reserved alias. Open and pass a specific storage explicitly when the project requires one. `Configuration.inputKey` and `CRAWLEE_INPUT_KEY` also disappear; read the storage reference before replacing input access or handling default-store purge.
+
 Rename Crawlee's `config` options and properties to `configuration`, including storage opening, `useState`, `purgeDefaultStorages`, snapshot helpers, `RecoverableState`, request-list and load-signal options. Do not rename unrelated application variables merely because they are called `config`.
 
 ## Hooks and context
