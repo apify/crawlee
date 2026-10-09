@@ -59,7 +59,7 @@ If you previously used `browserController` in your request handlers, here is how
 
 **Cookies** — Cookie injection and persistence are now handled automatically by the crawler and the pool. You no longer need to call `browserController.getCookies()` or `browserController.setCookies()` manually.
 
-**Proxy info** — Access proxy information via `session.proxyInfo` instead of `browserController.launchContext.proxyUrl`. TLS-error handling moved along with it: the pool reads `session.proxyInfo.ignoreTlsErrors`, so there is no standalone `ignoreTlsErrors` page option anymore. If you need to disable TLS verification for some other reason, set `ignoreHTTPSErrors` (Playwright) / `acceptInsecureCerts` (Puppeteer) through the browser's `launchOptions`.
+**Proxy info** — Access proxy information via `session.proxyInfo` instead of `browserController.launchContext.proxyUrl`. TLS-error handling moved along with it: the pool reads `session.proxyInfo.ignoreTlsErrors`. The `IBrowserPool` interface has no standalone `proxyUrl` / `ignoreTlsErrors` page options; the built-in `BrowserPool.newPage()` still accepts both as explicit overrides that take precedence over the session. If you need to disable TLS verification for some other reason, set `ignoreHTTPSErrors` (Playwright) / `acceptInsecureCerts` (Puppeteer) through the browser's `launchOptions`.
 
 **Direct browser access** — If you need the raw browser or controller instance (e.g. for Puppeteer/Playwright-specific APIs), construct a `BrowserPool` yourself, pass it to the crawler, and reference it directly in your handler — no cast needed:
 
