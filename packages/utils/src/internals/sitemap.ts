@@ -385,47 +385,54 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
         // the loop (per-entry warnings could flood the log; individual drops are logged at debug level).
         let droppedUrlEntries = 0;
 
-        for await (const item of items) {
-            if (item.type === 'sitemapUrl' && !visitedSitemapUrls.has(item.url)) {
-                if (nestedSitemapFilter && !nestedSitemapFilter(item.url)) {
-                    logger?.debug(`Skipping sitemap ${item.url} due to nestedSitemapFilter.`);
-                    continue;
-                }
-
-                // Keep only nested sitemaps matching the strategy (and using http(s)) relative to the
-                // parent. Raw string sources have no parent URL, so the check is skipped.
-                if (source.type === 'url') {
-                    const { allowed, reason } = filterUrl(item.url, sitemapUrl!, enqueueStrategy);
-                    if (!allowed) {
-                        logger?.warning(`Skipping nested sitemap ${item.url} (parent ${source.url}): ${reason}.`);
+        try {
+            for await (const item of items) {
+                if (item.type === 'sitemapUrl' && !visitedSitemapUrls.has(item.url)) {
+                    if (nestedSitemapFilter && !nestedSitemapFilter(item.url)) {
+                        logger?.debug(`Skipping sitemap ${item.url} due to nestedSitemapFilter.`);
                         continue;
+                    }
+
+                    // Keep only nested sitemaps matching the strategy (and using http(s)) relative to the
+                    // parent. Raw string sources have no parent URL, so the check is skipped.
+                    if (source.type === 'url') {
+                        const { allowed, reason } = filterUrl(item.url, sitemapUrl!, enqueueStrategy);
+                        if (!allowed) {
+                            logger?.warning(`Skipping nested sitemap ${item.url} (parent ${source.url}): ${reason}.`);
+                            continue;
+                        }
+                    }
+
+                    sources.push({ type: 'url', url: item.url, depth: (source.depth ?? 0) + 1 });
+                    if (emitNestedSitemaps) {
+                        yield { loc: item.url, originSitemapUrl: null } as any;
                     }
                 }
 
-                sources.push({ type: 'url', url: item.url, depth: (source.depth ?? 0) + 1 });
-                if (emitNestedSitemaps) {
-                    yield { loc: item.url, originSitemapUrl: null } as any;
+                if (item.type === 'url') {
+                    // Keep only URL entries that match the enqueue strategy relative to the parent (see above).
+                    if (source.type === 'url') {
+                        const { allowed, reason } = filterUrl(item.loc, sitemapUrl!, enqueueStrategy);
+                        if (!allowed) {
+                            droppedUrlEntries++;
+                            logger?.debug(`Skipping sitemap URL ${item.loc} (parent ${source.url}): ${reason}.`);
+                            continue;
+                        }
+                    }
+
+                    yield {
+                        ...item,
+                        originSitemapUrl:
+                            source.type === 'url'
+                                ? source.url
+                                : `raw://${createHash('sha256').update(source.content).digest('base64')}`,
+                    };
                 }
             }
-
-            if (item.type === 'url') {
-                // Keep only URL entries that match the enqueue strategy relative to the parent (see above).
-                if (source.type === 'url') {
-                    const { allowed, reason } = filterUrl(item.loc, sitemapUrl!, enqueueStrategy);
-                    if (!allowed) {
-                        droppedUrlEntries++;
-                        logger?.debug(`Skipping sitemap URL ${item.loc} (parent ${source.url}): ${reason}.`);
-                        continue;
-                    }
-                }
-
-                yield {
-                    ...item,
-                    originSitemapUrl:
-                        source.type === 'url'
-                            ? source.url
-                            : `raw://${createHash('sha256').update(source.content).digest('base64')}`,
-                };
+        } catch (e) {
+            // Skip a malformed sitemap without losing the other ones; raw sources already report the error above.
+            if (source.type === 'url') {
+                logger?.warning(`Malformed sitemap content: ${source.url} (${e})`);
             }
         }
 

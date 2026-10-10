@@ -143,6 +143,21 @@ describe('Sitemap', () => {
                     '</sitemapindex>',
                 ].join('\n'),
             )
+            .get('/sitemap_parent_with_malformed_child.xml')
+            .reply(
+                200,
+                [
+                    '<?xml version="1.0" encoding="UTF-8"?>',
+                    '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+                    '<sitemap>',
+                    '<loc>http://not-exists.com/not_actual_xml.xml</loc>',
+                    '</sitemap>',
+                    '<sitemap>',
+                    '<loc>http://not-exists.com/sitemap_child.xml</loc>',
+                    '</sitemap>',
+                    '</sitemapindex>',
+                ].join('\n'),
+            )
             .get('/not_actual_xml.xml')
             .reply(
                 200,
@@ -391,6 +406,22 @@ describe('Sitemap', () => {
             httpClient: new FetchHttpClient(),
         });
         expect(sitemap.urls).toEqual([]);
+    });
+
+    it('keeps urls from other sitemaps when one of them is malformed', async () => {
+        const sitemap = await Sitemap.load(
+            ['http://not-exists.com/not_actual_xml.xml', 'http://not-exists.com/sitemap_child.xml'],
+            undefined,
+            { httpClient: new FetchHttpClient() },
+        );
+        expect(sitemap.urls).toHaveLength(5);
+    });
+
+    it('keeps urls from other nested sitemaps when one of them is malformed', async () => {
+        const sitemap = await Sitemap.load('http://not-exists.com/sitemap_parent_with_malformed_child.xml', undefined, {
+            httpClient: new FetchHttpClient(),
+        });
+        expect(sitemap.urls).toHaveLength(5);
     });
 
     it('handles CDATA in loc tags', async () => {
