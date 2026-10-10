@@ -2,10 +2,10 @@ import type { Configuration } from '@crawlee/browser';
 import type { BrowserPool, BrowserPoolHooks, BrowserPoolOptions } from '@crawlee/browser-pool';
 import type { Page } from 'playwright';
 
-import type { StagehandOptions } from './stagehand-crawler';
-import type { StagehandLaunchContext } from './stagehand-launcher';
+import type { StagehandOptions } from './stagehand-crawler.js';
+import type { StagehandLaunchContext } from './stagehand-launcher.js';
 import { StagehandLauncher } from './stagehand-launcher.js';
-import type { StagehandPlugin } from './stagehand-plugin';
+import type { StagehandPlugin } from './stagehand-plugin.js';
 
 /** A {@apilink BrowserPool} of Stagehand browsers, as built by {@apilink stagehandBrowserPool}. */
 export type StagehandBrowserPool = BrowserPool<{ browserPlugins: [StagehandPlugin] }, [StagehandPlugin]>;

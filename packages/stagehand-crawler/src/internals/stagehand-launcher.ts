@@ -4,7 +4,7 @@ import { parseArgument, schemas } from '@crawlee/utils/internal';
 import type { BrowserType, LaunchOptions } from 'playwright';
 import { z } from 'zod';
 
-import type { StagehandOptions } from './stagehand-crawler';
+import type { StagehandOptions } from './stagehand-crawler.js';
 import { StagehandPlugin } from './stagehand-plugin.js';
 
 /**

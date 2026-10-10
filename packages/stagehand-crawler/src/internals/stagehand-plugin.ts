@@ -8,7 +8,7 @@ import type { Browser as PlaywrightBrowser, BrowserType, LaunchOptions } from 'p
 import { chromium } from 'playwright';
 
 import { StagehandController } from './stagehand-controller.js';
-import type { StagehandOptions } from './stagehand-crawler';
+import type { StagehandOptions } from './stagehand-crawler.js';
 
 /**
  * Options for StagehandPlugin initialization.

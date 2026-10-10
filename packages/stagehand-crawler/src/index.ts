@@ -58,7 +58,7 @@ export { StagehandCrawler, createStagehandRouter } from './internals/stagehand-c
 
 // Export the browser pool factories, which are how a pool with non-default options reaches the crawler
 export { stagehandBrowserPool } from './internals/stagehand-browser-pool.js';
-export type { StagehandBrowserPool, StagehandBrowserPoolOptions } from './internals/stagehand-browser-pool';
+export type { StagehandBrowserPool, StagehandBrowserPoolOptions } from './internals/stagehand-browser-pool.js';
 
 // Export types
 export type {
@@ -68,9 +68,9 @@ export type {
     StagehandHook,
     StagehandGotoOptions,
     StagehandCrawlerOptions,
-} from './internals/stagehand-crawler';
+} from './internals/stagehand-crawler.js';
 
-export type { StagehandLaunchContext } from './internals/stagehand-launcher';
+export type { StagehandLaunchContext } from './internals/stagehand-launcher.js';
 
 // Re-export key types from Stagehand for convenience
 export type {
