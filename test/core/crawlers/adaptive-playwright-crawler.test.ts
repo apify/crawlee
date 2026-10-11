@@ -217,6 +217,92 @@ describe('AdaptivePlaywrightCrawler', () => {
         },
     );
 
+    describe('deferred cleanup', () => {
+        test.each(['static', 'clientOnly'] as const)(
+            'runs callbacks sequentially in reverse registration order (%s)',
+            async (renderingType) => {
+                const events: string[] = [];
+                const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+                    detectionProbabilityRecommendation: 0,
+                    renderingType,
+                });
+                const requestHandler = vi.fn(async ({ registerDeferredCleanup }: AdaptivePlaywrightCrawlerContext) => {
+                    registerDeferredCleanup(async () => {
+                        events.push('handler:start');
+                        await Promise.resolve();
+                        events.push('handler:end');
+                    });
+                });
+                const crawler = await makeOneshotCrawler(
+                    {
+                        renderingTypePredictor,
+                        extendContext: ({ registerDeferredCleanup }) => {
+                            registerDeferredCleanup(async () => {
+                                events.push('middleware:start');
+                                await Promise.resolve();
+                                events.push('middleware:end');
+                            });
+                            return {};
+                        },
+                        requestHandler,
+                    },
+                    [`http://${HOSTNAME}:${port}/static`],
+                );
+
+                const statistics = await crawler.run();
+
+                expect(events).toEqual(['handler:start', 'handler:end', 'middleware:start', 'middleware:end']);
+                expect(requestHandler).toHaveBeenCalledOnce();
+                expect(statistics.requestsSucceeded).toBe(1);
+            },
+        );
+
+        test.each(['static', 'clientOnly'] as const)(
+            'logs cleanup errors and finishes all callbacks without failing the request (%s)',
+            async (renderingType) => {
+                const events: string[] = [];
+                const cleanupError = new Error('cleanup failed');
+                const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+                    detectionProbabilityRecommendation: 0,
+                    renderingType,
+                });
+                const requestHandler = vi.fn(
+                    async ({ registerDeferredCleanup, pushData }: AdaptivePlaywrightCrawlerContext) => {
+                        registerDeferredCleanup(async () => {
+                            await Promise.resolve();
+                            events.push('first');
+                        });
+                        registerDeferredCleanup(async () => {
+                            events.push('throwing');
+                            throw cleanupError;
+                        });
+                        registerDeferredCleanup(async () => {
+                            await Promise.resolve();
+                            events.push('last');
+                        });
+                        await pushData({ value: 'saved' });
+                    },
+                );
+                const failedRequestHandler = vi.fn();
+                const crawler = await makeOneshotCrawler(
+                    { renderingTypePredictor, requestHandler, failedRequestHandler },
+                    [`http://${HOSTNAME}:${port}/static`],
+                );
+                const debug = vi.spyOn(crawler.log, 'debug');
+
+                const statistics = await crawler.run();
+
+                expect(events).toEqual(['last', 'throwing', 'first']);
+                expect(debug).toHaveBeenCalledWith('Error in deferred cleanup', { error: cleanupError });
+                expect(requestHandler).toHaveBeenCalledOnce();
+                expect(failedRequestHandler).not.toHaveBeenCalled();
+                expect(statistics.requestsSucceeded).toBe(1);
+                expect(statistics.requestsFailed).toBe(0);
+                expect((await Dataset.getData()).items).toEqual([{ value: 'saved' }]);
+            },
+        );
+    });
+
     describe('should detect page rendering type', () => {
         test.each([
             ['/static', 'static'],
