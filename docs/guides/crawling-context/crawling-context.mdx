@@ -11,9 +11,9 @@ import ExtendContextSource from '!!raw-loader!./extend-context.ts';
 import CustomCrawlerSource from '!!raw-loader!./custom-crawler.ts';
 import HookReturnSource from '!!raw-loader!./hook-return.ts';
 
-The object your request handler receives (`request`, `session`, `page`, `$` and the rest) is built step by step. Every crawler runs each request through a chain of middlewares, the <ApiLink to="basic-crawler/class/ContextPipeline">`ContextPipeline`</ApiLink>. One step resolves the session, another opens a page, another parses the response. The pipeline is the one place where the context gets shaped.
+The object your request handler receives (`request`, `session`, `page`, `$` and the rest) is built step by step. Every crawler runs each request through a chain of middlewares, the <ApiLink to="basic-crawler/class/ContextPipeline">`ContextPipeline`</ApiLink>, and each step adds members. The [Request lifecycle](./request-lifecycle) guide lists the steps and what happens around them. This guide is about adding your own.
 
-If you ever need to check in the source code what a crawler does with a request, its pipeline is where to look. The built-in crawlers add all of their steps there, and the methods behind those steps are private, so a subclass changes them only by composing onto the pipeline. There are two ways to add your own step. The `extendContext` option adds members to one crawler instance. A crawler subclass with its own pipeline packages the behavior for reuse.
+The [`extendContext` option](#extending-the-context-with-extendcontext) adds members to one crawler instance. A [crawler subclass](#writing-a-custom-crawler) with its own pipeline adds them to every instance of that class. A [navigation hook](#returning-from-a-navigation-hook) cannot add members, but it can replace existing ones.
 
 ## Extending the context with `extendContext`
 
@@ -21,69 +21,19 @@ When you need a helper or some shared state in your handlers, pass <ApiLink to="
 
 <CodeBlock className="language-typescript">{ExtendContextSource}</CodeBlock>
 
-The returned members are typed. `note` above is known to the `requestHandler`, the navigation hooks and the error handlers, and a typo in any of them is a compile-time error. The file handle is released with `registerDeferredCleanup()`, which runs once the request is done, whether it succeeded or failed (see [Cleanup](#cleanup)).
+The returned members are typed. `note` above is known to the `requestHandler`, the navigation hooks and the error handlers, and a typo in any of them is a compile-time error. The file handle is released with <ApiLink to="basic-crawler/interface/CrawlingContext#registerDeferredCleanup">`registerDeferredCleanup()`</ApiLink>, which runs once the request is done, whether it succeeded or failed (see [Cleanup](./request-lifecycle#cleanup) in the lifecycle guide).
 
 `extendContext` runs before navigation, so the members it returns are visible to `preNavigationHooks`, `postNavigationHooks` and the `requestHandler` alike. For the same reason its own input has no `page`, `response`, `$` or `body` yet. Anything that needs those belongs in a `postNavigationHook` or the request handler.
 
-The navigation hooks run inside the pipeline too, so they have one ability `extendContext` lacks. A `preNavigationHook` or `postNavigationHook` can return a `Partial` of the crawling context, and the crawler copies the returned members onto it, replacing the existing ones. This is how `handleCloudflareChallengeHook()` works. After solving the challenge, the reloaded page's response replaces `response`, so the crawler's own blocked-request detection and the request handler both see it instead of the original 403. Written out by hand:
+Storage writes made from `extendContext` go through the same [storage transaction](./result-storage#transactional-storage) as the rest of the request, so a failed request rolls them back.
+
+### Returning from a navigation hook
+
+A `preNavigationHook` or `postNavigationHook` can also return a `Partial` of the crawling context, and the crawler copies the returned members onto it, replacing the existing ones. This is how `handleCloudflareChallengeHook()` works. After solving the challenge, the reloaded page's response replaces `response`, so the crawler's own blocked-request detection and the request handler both see it instead of the original 403. Written out by hand:
 
 <CodeBlock className="language-typescript">{HookReturnSource}</CodeBlock>
 
 Only existing members can be replaced this way. The handler's type does not change, so use `extendContext` or a subclass to add new ones.
-
-Storage writes made from `extendContext` go through the same [storage transaction](./result-storage#transactional-storage) as the rest of the request, so a failed request rolls them back.
-
-## How the pipeline works
-
-A <ApiLink to="basic-crawler/class/ContextPipeline">`ContextPipeline<TBase, TFinal>`</ApiLink> is an immutable chain of middlewares. `ContextPipeline.create<TBase>()` returns an empty one. `compose(middleware)` returns a new pipeline whose output type is this pipeline's output type plus the members the middleware returns. `chain(other)` appends another pipeline whose base type matches this one's output.
-
-A middleware is a function `(context, onCleanup) => extension`. The pipeline copies the returned `extension` onto the context object it received, so later middlewares and the request handler see one object with all the members. Property descriptors are copied as they are, so a getter in the extension stays a getter on the context.
-
-Each request goes through the `BasicCrawler` steps, then `extendContext`, then the steps the crawler class adds through `contextPipelineBuilder`, and finally a `BasicCrawler` check of the enqueue strategy:
-
-```mermaid
-flowchart TB
-    subgraph basic ["BasicCrawler"]
-        direction LR
-        robots["robots.txt check"] --> base["base context<br/>(log, pushData, useState, …)"] --> session["session + proxyInfo"] --> helpers["addRequests, sendRequest"]
-    end
-    subgraph crawler ["Crawler class (contextPipelineBuilder)"]
-        direction LR
-        prepare["prepare navigation"] --> pre["preNavigationHooks"] --> nav["navigation"] --> post["postNavigationHooks"] --> parse["response processing, parsing, …"]
-    end
-    subgraph basic2 ["BasicCrawler"]
-        strategy["enqueue-strategy check"]
-    end
-    basic --> extend["extendContext"] --> crawler --> basic2 --> handler["requestHandler"]
-```
-
-For `CheerioCrawler` the middle part makes the HTTP request and parses the body into `$`. For `PlaywrightCrawler` it opens a page and navigates it. The enqueue-strategy check skips requests that no longer match `strategy` after a redirect.
-
-### Cleanup
-
-A middleware registers teardown for anything it sets up (a page, a connection, a timer) with the `onCleanup` callback, next to the code it undoes. `FileDownload` does this. Its middleware sends the HTTP request and registers a cleanup that cancels the response body if the request handler never read it, which releases the connection.
-
-Cleanups run after the request handler finishes, whether it succeeded or threw, in reverse registration order. They also run after `errorHandler` and `failedRequestHandler`, so an error handler still sees the page or connection a middleware opened. By then the request's storage writes have been committed or rolled back, so a write made in a cleanup applies immediately and is never rolled back.
-
-Each cleanup receives the failure as its argument. A middleware failure arrives wrapped in a <ApiLink to="basic-crawler/class/ContextPipelineInitializationError">`ContextPipelineInitializationError`</ApiLink>, a request handler failure in a <ApiLink to="basic-crawler/class/RequestHandlerError">`RequestHandlerError`</ApiLink>, with the original error in `cause`. A skipped request (see below) counts as a failure here. On success the argument is `undefined`.
-
-`extendContext`, the navigation hooks and the request handler have no `onCleanup` to call. They use <ApiLink to="basic-crawler/interface/CrawlingContext#registerDeferredCleanup">`context.registerDeferredCleanup()`</ApiLink> instead. It joins the same cleanup sequence, with two differences. It receives no error argument, and if it throws, the crawler logs the error at debug level and carries on. In `AdaptivePlaywrightCrawler` it also runs once per request handler attempt, so a storage write made there can land more than once. Push results from the request handler instead.
-
-## Error handling
-
-A middleware that throws fails the current attempt, the same way a throwing request handler does. The remaining middlewares and the request handler do not run. The error goes to `errorHandler` and, once the retries run out, to `failedRequestHandler`.
-
-Because the failure may have happened before the context was fully built, `errorHandler` and `failedRequestHandler` type everything the crawler class and `extendContext` add as optional, so check for `page` or `$` before using it. `request`, `log` and the storage helpers are always present. `session` is typed as present but is missing when fetching the session itself failed.
-
-A cleanup must not throw. If one does, the remaining cleanups are skipped and the crawler stops, and `crawler.run()` rejects with the error the cleanup threw. Catch and log inside the cleanup if a failure there is tolerable.
-
-### Skipping a request without failing it
-
-Not every request a middleware refuses to process is an error. Calling <ApiLink to="basic-crawler/interface/RestrictedCrawlingContext#skipRequest">`context.skipRequest(message?)`</ApiLink> ends the request as skipped. The crawler marks it as handled, does not retry it, does not call `failedRequestHandler` and logs no error. <ApiLink to="basic-crawler/interface/BasicCrawlerOptions#onSkippedRequest">`onSkippedRequest`</ApiLink> fires with the `'manual'` reason and the message you passed. It works from a middleware, `extendContext`, a navigation hook, the request handler and `errorHandler`. In `failedRequestHandler` it has no effect.
-
-Storage writes made for the request before the skip are rolled back, the same as on failure.
-
-See the [Skipping requests](../examples/skip-request) example.
 
 ## Writing a custom crawler
 
@@ -93,7 +43,17 @@ When the behavior should be reusable, with its own options, its own context type
 
 `TimedCrawler` is a `BasicCrawler` subclass with a single middleware. The middleware runs after `extendContext`, so `elapsedMillis` counts from there, not from when the request was fetched.
 
-The subclass passes `BasicCrawler` a <ApiLink to="basic-crawler/interface/BasicCrawlerOptions#contextPipelineBuilder">`contextPipelineBuilder`</ApiLink>, a function that builds the crawler-specific part of the pipeline. `BasicCrawler` runs it after `extendContext`, as in the diagram above. The option is required whenever the `Context` type parameter is narrower than the default `CrawlingContext`, since without a pipeline nothing would produce the extra members the type promises.
+The subclass passes `BasicCrawler` a <ApiLink to="basic-crawler/interface/BasicCrawlerOptions#contextPipelineBuilder">`contextPipelineBuilder`</ApiLink>, a function that builds the crawler-specific part of the pipeline. `BasicCrawler` runs it after `extendContext`. The option is required whenever the `Context` type parameter is narrower than the default `CrawlingContext`, since without a pipeline the members declared by the type would never be added.
+
+### The pipeline API
+
+A <ApiLink to="basic-crawler/class/ContextPipeline">`ContextPipeline<TBase, TFinal>`</ApiLink> is an immutable chain of middlewares. `ContextPipeline.create<TBase>()` returns an empty one. `compose(middleware)` returns a new pipeline whose output type is this pipeline's output type plus the members the middleware returns. `chain(other)` appends another pipeline whose base type matches this one's output.
+
+A middleware is a function `(context, onCleanup) => extension`. The pipeline copies the returned `extension` onto the context object it received, so later middlewares and the request handler see one object with all the members. Property descriptors are copied as they are, so a getter in the extension stays a getter on the context.
+
+`onCleanup` registers teardown for anything the middleware sets up. Cleanups run once the request is done (see [Cleanup](./request-lifecycle#cleanup) in the lifecycle guide). Their argument is `undefined` when the request succeeded. If it failed, they receive the error instead, wrapped in a <ApiLink to="basic-crawler/class/ContextPipelineInitializationError">`ContextPipelineInitializationError`</ApiLink> or <ApiLink to="basic-crawler/class/RequestHandlerError">`RequestHandlerError`</ApiLink> with the original in `cause`. A cleanup should not throw, since that skips the remaining cleanups and stops the crawler.
+
+### Extending an existing crawler
 
 To add typed members on top of an existing crawler, extend `HttpCrawler`, override `buildContextPipeline()` and compose onto the parent's pipeline. In simplified form, `DOMCrawler` does this:
 
@@ -107,6 +67,8 @@ protected override buildContextPipeline() {
 ```
 
 `PlaywrightCrawler` and `PuppeteerCrawler` have a `buildContextPipeline()` too, and a subclass can override it the same way. There the result runs right after the page opens and before navigation, because `BrowserCrawler` adds the navigation steps after it. A step added this way has `page` but no `response`. Use a `postNavigationHook` for anything that needs the loaded page.
+
+If you ever need to check in the source code what a crawler does with a request, its pipeline is where to look. The built-in crawlers add all of their steps there, and the methods behind those steps are private, so a subclass changes them only by composing onto the pipeline.
 
 ### Best practices
 
