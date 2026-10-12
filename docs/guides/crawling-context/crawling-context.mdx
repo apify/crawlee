@@ -20,7 +20,7 @@ When you need a helper or some shared state in your handlers, pass <ApiLink to="
 
 <CodeBlock className="language-typescript">{ExtendContextSource}</CodeBlock>
 
-The returned members are typed. `saveUrl` above is known to the `requestHandler`, the navigation hooks and the error handlers, and a typo in any of them is a compile-time error.
+The returned members are typed. `note` above is known to the `requestHandler`, the navigation hooks and the error handlers, and a typo in any of them is a compile-time error. The file handle is released with `registerDeferredCleanup()`, which runs once the request is done, whether it succeeded or failed (see [Cleanup](#cleanup)).
 
 `extendContext` runs before navigation, so the members it returns are visible to `preNavigationHooks`, `postNavigationHooks` and the `requestHandler` alike. For the same reason its own input has no `page`, `response`, `$` or `body` yet. Anything that needs those belongs in a `postNavigationHook` or the request handler.
 
