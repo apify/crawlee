@@ -56,7 +56,7 @@ class EncryptingStorageBackend implements StorageBackend {
 }
 
 const crawler = new CheerioCrawler({
-    storageBackend: new EncryptingStorageBackend(new FileSystemStorageBackend()),
+    storageBackend: new EncryptingStorageBackend(new FileSystemStorageBackend({ localDataDirectory: './storage' })),
     async requestHandler({ request, $, useState, getKeyValueStore }) {
         const state = await useState({ visited: 0 });
         state.visited++;
