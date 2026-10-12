@@ -78,6 +78,10 @@ Sometimes you don't want to start from a dynamic queue, but from a static list o
 
 See the dedicated [Request loaders](./request-loaders) guide for details on loaders, request managers, and how to combine them with a queue into a <ApiLink to="core/class/RequestManagerTandem">`RequestManagerTandem`</ApiLink>.
 
+## Transforming stored data
+
+To transform requests on their way to and from storage — encryption, redaction, caching — wrap the storage backend rather than subclassing `RequestQueue`. The [Encrypt KVS records](../examples/encrypt-key-value-store) example shows the pattern on a key-value store; a request queue works the same way through `createRequestQueueBackend()`.
+
 ## Cleaning up the storages
 
 Run-scoped storages - the default one and any opened with an `alias` - are purged before the crawler starts if not specified otherwise. Storages opened with a `name` persist across runs and are never purged. This happens as early as when we try to open some storage (e.g. via `RequestQueue.open()`) or when we try to work with a default storage via one of the helper methods (e.g. `crawler.addRequests()` that under the hood calls `RequestQueue.open()`). If we don't work with storages explicitly in our code, the purging will eventually happen when the `run` method of our crawler is executed. In case we need to purge the storages sooner, we can use the <ApiLink to="core/function/purgeDefaultStorages">`purgeDefaultStorages()`</ApiLink> helper explicitly:
