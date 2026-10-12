@@ -46,7 +46,7 @@ import {
 } from '@crawlee/basic';
 import type { StorageTransaction } from '@crawlee/core';
 import { currentStorageTransaction, MemoryStorageBackend } from '@crawlee/core';
-import { BaseHttpClient } from '@crawlee/http-client';
+import { BaseHttpClient, FetchHttpClient } from '@crawlee/http-client';
 import { FileSystemStorageBackend } from '@crawlee/fs-storage';
 import type { Dictionary, ISession, ProxyInfo } from '@crawlee/types';
 import { RobotsTxtFile, sleep } from '@crawlee/utils';
@@ -3120,6 +3120,30 @@ describe('BasicCrawler', () => {
                 server.close();
             }
 
+            expect(handled).toEqual(['/public']);
+        });
+
+        test('fetches robots.txt through the proxy of a crawler session', async () => {
+            const proxyUrl = 'http://proxy.example.com:8000';
+            const httpClient = new FetchHttpClient();
+            const sendRequest = vitest
+                .spyOn(httpClient, 'sendRequest')
+                .mockResolvedValue(new Response('User-agent: *\nDisallow: /private\n'));
+
+            const handled: string[] = [];
+            const crawler = new BasicCrawler({
+                respectRobotsTxtFile: true,
+                httpClient,
+                proxyConfiguration: new ProxyConfiguration({ proxyUrls: [proxyUrl] }),
+                requestHandler: async ({ request }) => {
+                    handled.push(new URL(request.url).pathname);
+                },
+            });
+
+            await crawler.run(['https://example.com/public', 'https://example.com/private']);
+
+            expect(sendRequest).toHaveBeenCalledOnce();
+            expect(sendRequest.mock.calls[0][1]?.session?.proxyInfo?.url).toBe(proxyUrl);
             expect(handled).toEqual(['/public']);
         });
 
