@@ -9,6 +9,7 @@ import CodeBlock from '@theme/CodeBlock';
 
 import ExtendContextSource from '!!raw-loader!./extend-context.ts';
 import CustomCrawlerSource from '!!raw-loader!./custom-crawler.ts';
+import HookReturnSource from '!!raw-loader!./hook-return.ts';
 
 The object your request handler receives (`request`, `session`, `page`, `$` and the rest) is built step by step. Every crawler runs each request through a chain of middlewares, the <ApiLink to="basic-crawler/class/ContextPipeline">`ContextPipeline`</ApiLink>. One step resolves the session, another opens a page, another parses the response. The pipeline is the one place where the context gets shaped.
 
@@ -23,6 +24,12 @@ When you need a helper or some shared state in your handlers, pass <ApiLink to="
 The returned members are typed. `note` above is known to the `requestHandler`, the navigation hooks and the error handlers, and a typo in any of them is a compile-time error. The file handle is released with `registerDeferredCleanup()`, which runs once the request is done, whether it succeeded or failed (see [Cleanup](#cleanup)).
 
 `extendContext` runs before navigation, so the members it returns are visible to `preNavigationHooks`, `postNavigationHooks` and the `requestHandler` alike. For the same reason its own input has no `page`, `response`, `$` or `body` yet. Anything that needs those belongs in a `postNavigationHook` or the request handler.
+
+The navigation hooks run inside the pipeline too, so they have one ability `extendContext` lacks. A `preNavigationHook` or `postNavigationHook` can return a `Partial` of the crawling context, and the crawler copies the returned members onto it, replacing the existing ones. This is how `handleCloudflareChallengeHook()` works. After solving the challenge, the reloaded page's response replaces `response`, so the crawler's own blocked-request detection and the request handler both see it instead of the original 403. Written out by hand:
+
+<CodeBlock className="language-typescript">{HookReturnSource}</CodeBlock>
+
+Only existing members can be replaced this way. The handler's type does not change, so use `extendContext` or a subclass to add new ones.
 
 Storage writes made from `extendContext` go through the same [storage transaction](./result-storage#transactional-storage) as the rest of the request, so a failed request rolls them back.
 
