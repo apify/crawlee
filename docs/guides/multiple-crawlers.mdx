@@ -1,0 +1,60 @@
+---
+id: multiple-crawlers
+title: Running multiple crawlers
+description: Separate queues, feeding one crawler from another, and knowing when to stop
+---
+
+import ApiLink from '@site/src/components/ApiLink';
+import CodeBlock from '@theme/CodeBlock';
+
+import CrossEnqueueSource from '!!raw-loader!./multiple-crawlers-cross-enqueue.ts';
+
+A single process can run several crawlers at once. A common setup is a fast <ApiLink to="cheerio-crawler/class/CheerioCrawler">`CheerioCrawler`</ApiLink> that discovers links and a <ApiLink to="playwright-crawler/class/PlaywrightCrawler">`PlaywrightCrawler`</ApiLink> that renders the pages it finds. Another is one crawler per target site, each with its own rate limit.
+
+## Every crawler has its own queue
+
+Only the first crawler created in a process uses the default request queue. Every crawler after it opens a queue of its own, so `crawler.run(urls)` and `crawler.addRequests()` never leak requests into a sibling crawler.
+
+Sometimes we need to reference a crawler's queue ourselves, for example to check on it from outside the crawler or to keep it between runs. In that case, we open the queue with an alias and pass it as the <ApiLink to="basic-crawler/interface/BasicCrawlerOptions#requestManager">`requestManager`</ApiLink> option:
+
+```js
+const detailQueue = await RequestQueue.open({ alias: 'details' });
+const detailCrawler = new PlaywrightCrawler({ requestManager: detailQueue, requestHandler: async () => { /* ... */ } });
+```
+
+An alias identifies a run-scoped queue. Crawlee purges it on start along with the default storages. Opening the same alias again returns the same queue, handled requests included. Use a `name` instead if the queue has to survive the process. See [request storage](./request-storage) for the details.
+
+## Feeding one crawler from another
+
+The `enqueueLinks()` context helper always adds to the crawler's own queue. To feed a different crawler, extract the links with `extractLinks()` and pass them to that crawler's <ApiLink to="basic-crawler/class/BasicCrawler#addRequests">`addRequests()`</ApiLink>. It takes the same `include` and `exclude` filters, and it applies the target crawler's limits, such as `maxRequestsPerCrawl`.
+
+<CodeBlock language="js">
+	{CrossEnqueueSource}
+</CodeBlock>
+
+The <ApiLink to="basic-crawler/interface/BasicCrawlerOptions#taskLoopOptions">`taskLoopOptions.isFinishedFunction`</ApiLink> option makes this work. By default, a crawler finishes as soon as its queue has nothing left to process. The detail crawler starts with an empty queue, and its queue empties again every time it catches up with the listing crawler. Without the override, it would exit long before the listing crawler is done. The override waits until the listing crawler is no longer `running` and <ApiLink to="core/class/RequestQueue#checkReadiness">`checkReadiness()`</ApiLink> reports `'finished'`. At that point no new requests can arrive and the detail crawler has handled every request it received.
+
+:::caution `keepAlive` overrides `isFinishedFunction`
+
+With <ApiLink to="basic-crawler/interface/BasicCrawlerOptions#keepAlive">`keepAlive: true`</ApiLink>, the crawler ignores `isFinishedFunction` and never finishes on its own. Don't combine the two. If the producer eventually ends, use `isFinishedFunction` and leave `keepAlive` off.
+
+:::
+
+## `stop()` is not a way to drain a queue
+
+<ApiLink to="basic-crawler/class/BasicCrawler#stop">`crawler.stop()`</ApiLink> stops dispatching new requests, lets the in-flight ones finish and resolves `run()`. Anything still waiting in the queue stays there. That suits [stopping once we have enough results](../examples/stop-crawler). It does not work for ending a `keepAlive` crawler that another crawler feeds:
+
+```js
+// Don't do this - whatever the detail crawler has not picked up yet is abandoned.
+await listingCrawler.run(['https://warehouse-theme-metal.myshopify.com/collections/sales']);
+detailCrawler.stop();
+```
+
+If the producer finishes at some point, drop `keepAlive` and use `isFinishedFunction` as shown above. Keep `keepAlive` for producers that never finish on their own, such as [a crawler running in a web server](./running-in-web-server/running-in-web-server).
+
+## Sharing resources between crawlers
+
+Crawlers in one process don't know about each other, so each one scales its concurrency and warms up its sessions independently. We can share both between crawlers:
+
+- Inject the same `ConcurrencySystem` into several crawlers to cap their combined concurrency. See [scaling crawlers](./scaling-crawlers#advanced-options).
+- Pass the same `SessionPool` to several crawlers so they reuse sessions that have not been blocked. See [sharing a session pool between crawlers](./session-management#sharing-a-session-pool-between-crawlers).
