@@ -118,6 +118,25 @@ The `newUrlFunction` takes no arguments and returns a string with the proxy URL 
 
 Our crawlers will now use the selected proxies for all connections.
 
+### Proxies in browser crawlers
+
+A browser is launched with a single proxy, so in `PlaywrightCrawler` and `PuppeteerCrawler` the session's proxy only applies to a page if the browser it lands in was launched with the same one. By default, the pool opens the page in any browser with free capacity, which can ignore the session's proxy. Two `launchContext` options fix that:
+
+- `useIncognitoPages: true` - every page gets its own browser context with the session's proxy applied to it. Pages share no cookies or cache with each other; the session's cookies are still carried over.
+- `browserPerProxy: true` - the pool only reuses a browser that was launched with the page's proxy, and launches a new one otherwise. Useful when you need a shared context per proxy, at the cost of more browser instances.
+
+```js
+import { PlaywrightCrawler } from 'crawlee';
+
+const crawler = new PlaywrightCrawler({
+    proxyConfiguration,
+    launchContext: {
+        browserPerProxy: true,
+    },
+    // ...
+});
+```
+
 ## IP Rotation and session management
 
 Each call to <ApiLink to="core/class/ProxyConfiguration#newUrl">`proxyConfiguration.newUrl()`</ApiLink> generates a new proxy URL. Crawler instances pair these URLs with `Session` instances and rotate those together with browser fingerprints, impersonated headers, and more. This is extremely useful in scraping, because we want to create the impression of a real user. See the [session management guide](../guides/session-management) and <ApiLink to="basic-crawler/class/SessionPool">`SessionPool`</ApiLink> class for more information on how keeping a real session helps us avoid blocking.
