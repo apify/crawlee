@@ -2556,7 +2556,14 @@ export class BasicCrawler<
                 return cachedRobotsTxtFile;
             }
 
-            const robotsTxtFile = await RobotsTxtFile.find(url, { logger: this.log });
+            // Fetch robots.txt with the crawler's own HTTP client and configured proxy, so the robots.txt
+            // request shares the crawler's fingerprint instead of a bare FetchHttpClient. https://github.com/apify/crawlee/issues/4244
+            const proxyInfo = await this.proxyConfiguration?.newProxyInfo();
+            const robotsTxtFile = await RobotsTxtFile.find(url, {
+                logger: this.log,
+                httpClient: this.httpClient,
+                proxyUrl: proxyInfo?.url,
+            });
             this.#robotsTxtFileCache.add(origin, robotsTxtFile);
 
             return robotsTxtFile;

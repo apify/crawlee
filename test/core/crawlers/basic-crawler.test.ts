@@ -3178,6 +3178,71 @@ describe('BasicCrawler', () => {
             });
         });
 
+        describe('robots.txt fetch fingerprint', () => {
+            // https://github.com/apify/crawlee/issues/4244 - robots.txt must be fetched with the
+            // crawler's own httpClient (and configured proxy), not a bare FetchHttpClient.
+            const exposedCrawler = (options: Partial<BasicCrawlerOptions> = {}) => {
+                class RobotsFingerprintCrawler extends BasicCrawler {
+                    fetchRobots(url: string) {
+                        return this.getRobotsTxtFileForUrl(url);
+                    }
+                    getHttpClient() {
+                        return this.httpClient;
+                    }
+                }
+                return new RobotsFingerprintCrawler({
+                    respectRobotsTxtFile: true,
+                    requestHandler: async () => {},
+                    ...options,
+                } as BasicCrawlerOptions);
+            };
+
+            test('forwards the crawler httpClient and proxyConfiguration proxy URL to RobotsTxtFile.find', async () => {
+                const proxyUrl = 'http://user:***@proxy.example.com:8000';
+                const crawler = exposedCrawler({
+                    proxyConfiguration: new ProxyConfiguration({ proxyUrls: [proxyUrl] }),
+                });
+
+                const findSpy = vitest
+                    .spyOn(RobotsTxtFile, 'find')
+                    .mockImplementation(async () =>
+                        RobotsTxtFile.from('http://example.com/robots.txt', 'User-agent: *'),
+                    );
+
+                await crawler.fetchRobots('http://example.com/1');
+
+                expect(findSpy).toHaveBeenCalledWith('http://example.com/1', {
+                    logger: crawler.log,
+                    httpClient: crawler.getHttpClient(),
+                    proxyUrl,
+                });
+            });
+
+            test('passes the custom httpClient when one is configured, with no proxyUrl', async () => {
+                class CustomHttpClient extends BaseHttpClient {
+                    protected override async fetch(): Promise<Response> {
+                        return new Response('', { status: 200 });
+                    }
+                }
+                const httpClient = new CustomHttpClient();
+                const crawler = exposedCrawler({ httpClient });
+
+                const findSpy = vitest
+                    .spyOn(RobotsTxtFile, 'find')
+                    .mockImplementation(async () =>
+                        RobotsTxtFile.from('http://example.com/robots.txt', 'User-agent: *'),
+                    );
+
+                await crawler.fetchRobots('http://example.com/2');
+
+                expect(findSpy).toHaveBeenCalledWith('http://example.com/2', {
+                    logger: crawler.log,
+                    httpClient,
+                    proxyUrl: undefined,
+                });
+            });
+        });
+
         describe('sameDomainDelaySecs', () => {
             const crawlerVisiting = async (urls: string[], options: Partial<BasicCrawlerOptions> = {}) => {
                 const visits: { url: string; at: number }[] = [];
