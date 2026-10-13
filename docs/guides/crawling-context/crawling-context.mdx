@@ -23,7 +23,7 @@ When you need a helper or some shared state in your handlers, pass <ApiLink to="
 
 The returned members are typed. `note` above is known to the `requestHandler`, the navigation hooks and the error handlers, and a typo in any of them is a compile-time error. The file handle is released with <ApiLink to="basic-crawler/interface/CrawlingContext#registerDeferredCleanup">`registerDeferredCleanup()`</ApiLink>, which runs once the request is done, whether it succeeded or failed (see [Cleanup](./request-lifecycle#cleanup) in the lifecycle guide).
 
-`extendContext` runs before navigation, so the members it returns are visible to `preNavigationHooks`, `postNavigationHooks` and the `requestHandler` alike. For the same reason its own input has no `page`, `response`, `$` or `body` yet. Anything that needs those belongs in a `postNavigationHook` or the request handler.
+`extendContext` runs before navigation, so the members it returns are visible to `preNavigationHooks`, `postNavigationHooks` and the `requestHandler` alike. For the same reason its own input has no `page`, `response`, `$` or `body` yet. Anything that needs `page` or `response` can go in a `postNavigationHook`, and if `$` or `body` is required, use the request handler.
 
 Storage writes made from `extendContext` go through the same [storage transaction](./result-storage#transactional-storage) as the rest of the request, so a failed request rolls them back.
 
