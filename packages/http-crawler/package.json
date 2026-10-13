@@ -48,9 +48,7 @@
     },
     "dependencies": {
         "@apify/timeout": "^1.0.1",
-        "@apify/utilities": "^3.0.1",
         "@crawlee/basic": "workspace:*",
-        "@crawlee/core": "workspace:*",
         "@crawlee/http-client": "workspace:*",
         "@crawlee/types": "workspace:*",
         "@crawlee/utils": "workspace:*",

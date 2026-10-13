@@ -51,7 +51,6 @@
         "@crawlee/basic": "workspace:*",
         "@crawlee/impit-client": "workspace:*",
         "@crawlee/browser": "workspace:*",
-        "@crawlee/browser-pool": "workspace:*",
         "@crawlee/cheerio": "workspace:*",
         "@crawlee/cli": "workspace:*",
         "@crawlee/core": "workspace:*",
