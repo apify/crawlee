@@ -30,7 +30,7 @@ const detailCrawler = new PlaywrightCrawler({
     },
 });
 
-// The listing crawler goes first: `running` stays `false` until its `run()` is called.
+// Start both together: `listingCrawler.running` is `false` until its `run()` is called, so the detail crawler would otherwise finish immediately.
 await Promise.all([
     listingCrawler.run(['https://warehouse-theme-metal.myshopify.com/collections/sales']),
     detailCrawler.run(),
