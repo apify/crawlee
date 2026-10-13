@@ -4,9 +4,9 @@ import type { BaseHttpClient } from '@crawlee/http-client';
 import type { Dictionary, StorageBackend } from '@crawlee/types';
 
 import { Configuration } from '../configuration.js';
-import type { IProxyConfiguration } from '../proxy_configuration.js';
-import { serviceLocator } from '../service_locator.js';
-import { KeyValueStore } from './key_value_store.js';
+import type { IProxyConfiguration } from '../proxy-configuration.js';
+import { serviceLocator } from '../service-locator.js';
+import { KeyValueStore } from './key-value-store.js';
 
 /**
  * Options for purging default storage.

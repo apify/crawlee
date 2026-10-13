@@ -14,14 +14,13 @@ import { BrowserCrawler, RequestState, Router } from '@crawlee/browser';
 import { serviceLocator } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/types';
 import { assertBrowserPoolNotConfigured, parseArgument, schemas } from '@crawlee/utils/internal';
-// @ts-ignore This only throws when compiled against puppeteer 25+ (ESM only), we only import types, so its alllll gooooood
 import type { HTTPResponse, Page } from 'puppeteer';
 import { z } from 'zod';
 
 import type { EnqueueLinksByClickingElementsOptions } from './enqueue-links/click-elements.js';
-import { puppeteerBrowserPool, remotePuppeteerBrowserPool } from './puppeteer-browser-pool.js';
+import { puppeteerBrowserPool } from './puppeteer-browser-pool.js';
 import type { PuppeteerLaunchContext } from './puppeteer-launcher.js';
-import type { InterceptHandler } from './utils/puppeteer_request_interception.js';
+import type { InterceptHandler } from './utils/puppeteer-request-interception.js';
 import type {
     BlockRequestsOptions,
     DirectNavigationOptions,
@@ -29,8 +28,8 @@ import type {
     InjectFileOptions,
     PuppeteerContextUtils,
     SaveSnapshotOptions,
-} from './utils/puppeteer_utils.js';
-import * as puppeteerUtils from './utils/puppeteer_utils.js';
+} from './utils/puppeteer-utils.js';
+import * as puppeteerUtils from './utils/puppeteer-utils.js';
 
 export type PuppeteerGoToOptions = NonNullable<Parameters<Page['goto']>[1]>;
 
@@ -247,9 +246,7 @@ export class PuppeteerCrawler<
             configuration,
             proxyConfiguration,
             browserPoolBuilder: (remoteBrowser) =>
-                remoteBrowser
-                    ? remotePuppeteerBrowserPool({ ...remoteBrowser, launchContext, headless, configuration })
-                    : puppeteerBrowserPool({ launchContext, headless, configuration }),
+                puppeteerBrowserPool({ launchContext, headless, configuration, remoteBrowser }),
             contextPipelineBuilder: () => this.#buildContextPipeline(),
         });
     }

@@ -4,9 +4,9 @@ import type { Awaitable, Dictionary, RequestSchema } from '@crawlee/types';
 
 import { addTimeoutToPromise, storage as timeoutStorage, tryCancel } from '@apify/timeout';
 
-import { serviceLocator } from '../service_locator.js';
+import { serviceLocator } from '../service-locator.js';
 import { AfterCommitError, NonRetryableError } from '../errors.js';
-import type { RecordOptions } from './key_value_store.js';
+import type { RecordOptions } from './key-value-store.js';
 
 /**
  * Governs whether writes of a given storage type performed inside a {@apilink StorageTransaction} are

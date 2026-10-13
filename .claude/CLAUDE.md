@@ -95,7 +95,7 @@ crawlee                 # Meta-package re-exporting most @crawlee/* packages
 
 ### Test Location
 
-Most tests are in `/test/` at the repo root; some packages also have their own `packages/*/test/`. E2E tests are in `/test/e2e/`. `tsc-check-tests` only type-checks `/test/`, not `packages/*/test/`.
+All tests are in `/test/` at the repo root, E2E tests in `/test/e2e/`.
 
 ## Vitest Notes (vs Jest)
 
