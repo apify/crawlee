@@ -93,7 +93,7 @@ export class ImpitHttpClient extends BaseHttpClient {
     protected override async fetch(request: Request, options?: RequestInit & CustomFetchOptions): Promise<Response> {
         const { proxyUrl, redirect, signal, fingerprint, ignoreTlsErrors } = options ?? {};
 
-        const impitBrowser = this.#resolveImpitBrowser(fingerprint);
+        const impitBrowser = this.#impitOptions.browser ? undefined : this.#resolveImpitBrowser(fingerprint);
 
         const impit = this.#getClient({
             ...this.#impitOptions,

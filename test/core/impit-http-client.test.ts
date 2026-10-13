@@ -1,4 +1,5 @@
 import { ImpitHttpClient } from '@crawlee/impit-client';
+import type { ISession } from '@crawlee/types';
 import { Impit } from 'impit';
 
 vi.mock('impit', () => ({
@@ -46,5 +47,24 @@ describe('ImpitHttpClient', () => {
         await httpClient.sendRequest(new Request('http://example.com'));
 
         expect(Impit).toHaveBeenCalledWith(expect.objectContaining({ ignoreTlsErrors: true }));
+    });
+
+    test('constructor-level browser takes precedence over the session fingerprint', async () => {
+        const httpClient = new ImpitHttpClient({ browser: 'firefox144' });
+        const session = { fingerprint: { browser: 'chrome' } } as ISession;
+
+        await httpClient.sendRequest(new Request('http://example.com'), { session });
+
+        expect(Impit).toHaveBeenCalledTimes(1);
+        expect(Impit).toHaveBeenCalledWith(expect.objectContaining({ browser: 'firefox144' }));
+    });
+
+    test('uses the session fingerprint when no browser is set on the client', async () => {
+        const httpClient = new ImpitHttpClient();
+        const session = { fingerprint: { browser: 'firefox' } } as ISession;
+
+        await httpClient.sendRequest(new Request('http://example.com'), { session });
+
+        expect(Impit).toHaveBeenCalledWith(expect.objectContaining({ browser: expect.stringMatching(/^firefox/) }));
     });
 });
