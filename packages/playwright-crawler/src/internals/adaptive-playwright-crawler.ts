@@ -703,6 +703,10 @@ export class AdaptivePlaywrightCrawler<
                 crawlingContext.log.debug(`Running HTTP-only request handler for ${crawlingContext.request.url}`);
                 this.statistics.state.httpOnlyRequestHandlerRuns++;
 
+                // The HTTP crawler may set request.noRetry (e.g. unsupported Content-Type). That flag
+                // must not stick on the shared request when we fall through to the browser attempt.
+                const noRetryBeforeHttp = crawlingContext.request.noRetry;
+
                 const plainHTTPRun = await this.#crawlOne(
                     'static',
                     crawlingContext,
@@ -742,6 +746,8 @@ export class AdaptivePlaywrightCrawler<
                     );
                     this.statistics.state.renderingTypeMispredictions++;
                 }
+
+                crawlingContext.request.noRetry = noRetryBeforeHttp;
             }
 
             crawlingContext.log.debug(`Running browser request handler for ${crawlingContext.request.url}`);
