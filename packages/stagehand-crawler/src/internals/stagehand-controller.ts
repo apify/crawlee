@@ -5,7 +5,7 @@ import type { Cookie } from '@crawlee/types';
 import { sleep } from '@crawlee/utils';
 import type { Browser as PlaywrightBrowser, BrowserType, LaunchOptions, Page } from 'playwright';
 
-import type { StagehandPlugin } from './stagehand-plugin';
+import type { StagehandPlugin } from './stagehand-plugin.js';
 
 /**
  * StagehandController manages the lifecycle of a Stagehand-controlled browser for Crawlee's BrowserPool.

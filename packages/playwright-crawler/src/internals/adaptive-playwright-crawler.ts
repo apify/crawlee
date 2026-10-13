@@ -22,6 +22,7 @@ import {
     BasicCrawler,
     ContextPipeline,
     ContextPipelineInitializationError,
+    ContextPipelineInterruptedError,
     navigationDeadlineKey,
     RequestHandlerError,
     resolveBaseUrlForEnqueueLinksFiltering,
@@ -746,7 +747,10 @@ export class AdaptivePlaywrightCrawler<
                             ? (plainHTTPRun.error.cause as Error)
                             : (plainHTTPRun.error as Error);
 
-                    if (await this.#shouldPropagateError(actualError, crawlingContext as any)) {
+                    if (
+                        actualError instanceof ContextPipelineInterruptedError ||
+                        (await this.#shouldPropagateError(actualError, crawlingContext as any))
+                    ) {
                         throw actualError;
                     }
 

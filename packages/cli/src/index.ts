@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 
 // eslint-disable-next-line
-import { CreateProjectCommand } from './commands/CreateProjectCommand.js';
+import { CreateProjectCommand } from './commands/create-project-command.js';
 
-import { InstallPlaywrightBrowsersCommand } from './commands/InstallPlaywrightBrowsersCommand.js';
+import { InstallPlaywrightBrowsersCommand } from './commands/install-playwright-browsers-command.js';
 
-import { RunProjectCommand } from './commands/RunProjectCommand.js';
+import { RunProjectCommand } from './commands/run-project-command.js';
 
 import { createRequire } from 'node:module';
 import yargs from 'yargs';

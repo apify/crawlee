@@ -2,7 +2,7 @@ import type { ActOptions, AgentConfig, ExtractOptions, ObserveOptions, Stagehand
 import type { Page } from 'playwright';
 import type { ZodType } from 'zod';
 
-import type { StagehandPage } from '../stagehand-crawler';
+import type { StagehandPage } from '../stagehand-crawler.js';
 
 const PROVIDER_ENV_VARS: Record<string, string> = {
     OpenAI: 'OPENAI_API_KEY',

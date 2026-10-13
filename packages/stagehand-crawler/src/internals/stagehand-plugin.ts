@@ -7,8 +7,8 @@ import type { Browser as PlaywrightBrowser, BrowserType, LaunchOptions } from 'p
 // Firefox and WebKit are not supported by Stagehand.
 import { chromium } from 'playwright';
 
-import { StagehandController } from './stagehand-controller';
-import type { StagehandOptions } from './stagehand-crawler';
+import { StagehandController } from './stagehand-controller.js';
+import type { StagehandOptions } from './stagehand-crawler.js';
 
 /**
  * Options for StagehandPlugin initialization.

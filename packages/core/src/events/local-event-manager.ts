@@ -1,0 +1,126 @@
+import { betterClearInterval, betterSetInterval } from '@apify/utilities';
+
+import type { Configuration } from '../configuration.js';
+import { serviceLocator } from '../service-locator.js';
+import { EventManager, type EventManagerOptions, EventType } from './event-manager.js';
+import type { SystemInfo } from './system-info.js';
+
+export interface LocalEventManagerOptions extends EventManagerOptions {
+    /** Interval between emitted `systemInfo` events in milliseconds. */
+    systemInfoIntervalMillis: number;
+}
+
+export class LocalEventManager extends EventManager {
+    #systemInfoIntervalMillis: number;
+
+    constructor(options: LocalEventManagerOptions) {
+        super(options);
+        this.#systemInfoIntervalMillis = options.systemInfoIntervalMillis;
+    }
+
+    /**
+     * Creates a new `LocalEventManager` based on the provided `Configuration`.
+     * Uses the global configuration from the service locator if none is provided.
+     */
+    static fromConfiguration(configuration?: Configuration): LocalEventManager {
+        const resolvedConfiguration = configuration ?? serviceLocator.getConfiguration();
+
+        return new LocalEventManager({
+            persistStateIntervalMillis: resolvedConfiguration.persistStateIntervalMillis,
+            systemInfoIntervalMillis: resolvedConfiguration.systemInfoIntervalMillis,
+        });
+    }
+
+    /**
+     * Initializes the EventManager and sets up periodic `systemInfo` events.
+     * This is automatically called at the beginning of `crawler.run()`.
+     */
+    override async init() {
+        if (this.initialized) {
+            return;
+        }
+
+        await super.init();
+
+        this.emitSystemInfoEvent = this.emitSystemInfoEvent.bind(this);
+        this.intervals.systemInfo = betterSetInterval(
+            this.emitSystemInfoEvent.bind(this),
+            this.#systemInfoIntervalMillis,
+        );
+    }
+
+    /**
+     * @inheritDoc
+     */
+    override async close() {
+        if (!this.initialized) {
+            return;
+        }
+
+        await super.close();
+        betterClearInterval(this.intervals.systemInfo!);
+    }
+
+    /**
+     * @internal
+     */
+    async emitSystemInfoEvent(intervalCallback: () => unknown) {
+        const info = await this.#createSystemInfo({
+            maxUsedCpuRatio: serviceLocator.getConfiguration().maxUsedCpuRatio,
+        });
+        this.events.emit(EventType.SYSTEM_INFO, info);
+        intervalCallback();
+    }
+
+    /**
+     * @internal
+     */
+    async isContainerizedWrapper() {
+        const { isContainerized } = await import('../system-info/runtime.js');
+        return serviceLocator.getConfiguration().containerized ?? (await isContainerized());
+    }
+
+    /**
+     * Creates a SystemInfo object based on local metrics.
+     */
+    async #createSystemInfo(options: { maxUsedCpuRatio: number }) {
+        return {
+            createdAt: new Date(),
+            ...(await this.#createCpuInfo(options)),
+            ...(await this.#createMemoryInfo()),
+        } as SystemInfo;
+    }
+
+    async #createCpuInfo(options: { maxUsedCpuRatio: number }) {
+        const { getCurrentCpuTicksV2 } = await import('../system-info/cpu-info.js');
+        const usedCpuRatio = await getCurrentCpuTicksV2({
+            containerized: await this.isContainerizedWrapper(),
+            logger: serviceLocator.getLogger(),
+        });
+        return {
+            cpuCurrentUsage: usedCpuRatio * 100,
+            isCpuOverloaded: usedCpuRatio > options.maxUsedCpuRatio,
+        };
+    }
+
+    async #createMemoryInfo() {
+        try {
+            const memInfo = await this.#getMemoryInfo();
+            return {
+                memTotalBytes: memInfo.totalBytes,
+                memCurrentBytes: memInfo.mainProcessBytes + memInfo.childProcessesBytes,
+            };
+        } catch (err) {
+            this.log.exception(err as Error, 'Memory snapshot failed.');
+            return {};
+        }
+    }
+
+    async #getMemoryInfo() {
+        const { getMemoryInfo } = await import('../system-info/memory-info.js');
+        return getMemoryInfo({
+            containerized: await this.isContainerizedWrapper(),
+            logger: serviceLocator.getLogger(),
+        });
+    }
+}

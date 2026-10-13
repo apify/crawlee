@@ -8,19 +8,18 @@ import { defaultExclude, defineConfig, mergeConfig } from 'vitest/config';
 // They get their own project so `maxWorkers` can be capped independently, and `sequence.groupOrder`
 // keeps them from running next to the cheap tests.
 const browserTests = [
-    'packages/browser-pool/test/**/*.test.ts',
     'test/browser-pool/**/*.test.ts',
-    'test/core/autoscaling/memory-infoV2.test.ts',
-    'test/core/browser_launchers/*.test.ts',
-    'test/core/crawlers/adaptive_playwright_crawler.test.ts',
-    'test/core/crawlers/browser_crawler.test.ts',
-    'test/core/crawlers/playwright_crawler.test.ts',
-    'test/core/crawlers/puppeteer_crawler.test.ts',
-    'test/core/enqueue_links/click_elements.test.ts',
-    'test/core/enqueue_links/enqueue_links.test.ts',
-    'test/core/playwright_utils.test.ts',
-    'test/core/puppeteer_request_interception.test.ts',
-    'test/core/puppeteer_utils.test.ts',
+    'test/core/autoscaling/memory-info-v2.test.ts',
+    'test/core/browser-launchers/*.test.ts',
+    'test/core/crawlers/adaptive-playwright-crawler.test.ts',
+    'test/core/crawlers/browser-crawler.test.ts',
+    'test/core/crawlers/playwright-crawler.test.ts',
+    'test/core/crawlers/puppeteer-crawler.test.ts',
+    'test/core/enqueue-links/click-elements.test.ts',
+    'test/core/enqueue-links/enqueue-links.test.ts',
+    'test/core/playwright-utils.test.ts',
+    'test/core/puppeteer-request-interception.test.ts',
+    'test/core/puppeteer-utils.test.ts',
 ];
 
 // vitest's default of one worker per core (minus one) is fine for cheap tests but not for tests
@@ -46,23 +45,23 @@ const baseConfig = defineConfig({
         testTimeout: 60_000,
         hookTimeout: 60_000,
         alias: [
-            { find: 'crawlee', replacement: resolve(__dirname, './packages/crawlee/src') },
-            { find: '@crawlee/basic', replacement: resolve(__dirname, './packages/basic-crawler/src') },
-            { find: '@crawlee/browser', replacement: resolve(__dirname, './packages/browser-crawler/src') },
-            { find: '@crawlee/http', replacement: resolve(__dirname, './packages/http-crawler/src') },
-            { find: '@crawlee/cheerio', replacement: resolve(__dirname, './packages/cheerio-crawler/src') },
-            { find: '@crawlee/playwright', replacement: resolve(__dirname, './packages/playwright-crawler/src') },
-            { find: '@crawlee/puppeteer', replacement: resolve(__dirname, './packages/puppeteer-crawler/src') },
-            { find: '@crawlee/stagehand', replacement: resolve(__dirname, './packages/stagehand-crawler/src') },
-            { find: '@crawlee/core/internal', replacement: resolve(__dirname, './packages/core/src/internal') },
-            { find: '@crawlee/utils/internal', replacement: resolve(__dirname, './packages/utils/src/internal') },
+            { find: 'crawlee', replacement: resolve(import.meta.dirname, './packages/crawlee/src') },
+            { find: '@crawlee/basic', replacement: resolve(import.meta.dirname, './packages/basic-crawler/src') },
+            { find: '@crawlee/browser', replacement: resolve(import.meta.dirname, './packages/browser-crawler/src') },
+            { find: '@crawlee/http', replacement: resolve(import.meta.dirname, './packages/http-crawler/src') },
+            { find: '@crawlee/cheerio', replacement: resolve(import.meta.dirname, './packages/cheerio-crawler/src') },
+            { find: '@crawlee/playwright', replacement: resolve(import.meta.dirname, './packages/playwright-crawler/src') },
+            { find: '@crawlee/puppeteer', replacement: resolve(import.meta.dirname, './packages/puppeteer-crawler/src') },
+            { find: '@crawlee/stagehand', replacement: resolve(import.meta.dirname, './packages/stagehand-crawler/src') },
+            { find: '@crawlee/core/internal', replacement: resolve(import.meta.dirname, './packages/core/src/internal') },
+            { find: '@crawlee/utils/internal', replacement: resolve(import.meta.dirname, './packages/utils/src/internal') },
             // The generic `@crawlee/*` aliases below map specifiers to workspace package sources. They
             // exclude `@crawlee/fs-storage-native` via a negative lookahead, since it is a real external
             // (npm) dependency with no `packages/fs-storage-native` source — letting it resolve normally
             // through node_modules.
-            { find: /^@crawlee\/(?!fs-storage-native)(.*)\/(.*)$/, replacement: resolve(__dirname, './packages/$1/$2') },
-            { find: /^@crawlee\/(?!fs-storage-native)(.*)$/, replacement: resolve(__dirname, './packages/$1/src') },
-            { find: /^test\/(.*)$/, replacement: resolve(__dirname, './test/$1') },
+            { find: /^@crawlee\/(?!fs-storage-native)(.*)\/(.*)$/, replacement: resolve(import.meta.dirname, './packages/$1/$2') },
+            { find: /^@crawlee\/(?!fs-storage-native)(.*)$/, replacement: resolve(import.meta.dirname, './packages/$1/src') },
+            { find: /^test\/(.*)$/, replacement: resolve(import.meta.dirname, './test/$1') },
         ],
         retry: process.env.RETRY_TESTS ? 3 : 0,
         projects: [
@@ -91,7 +90,7 @@ const baseConfig = defineConfig({
 });
 
 // Optional local override, gitignored. Resolved once per project, so it must stay side-effect free.
-const localConfigPath = resolve(__dirname, './vitest.config.local.mts');
+const localConfigPath = resolve(import.meta.dirname, './vitest.config.local.mts');
 let finalConfig = baseConfig;
 
 if (existsSync(localConfigPath)) {
