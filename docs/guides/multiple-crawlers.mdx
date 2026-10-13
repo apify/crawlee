@@ -28,6 +28,8 @@ An alias identifies a run-scoped queue. Crawlee purges it on start along with th
 
 The `enqueueLinks()` context helper always adds to the crawler's own queue. To feed a different crawler, extract the links with `extractLinks()` and pass them to that crawler's <ApiLink to="basic-crawler/class/BasicCrawler#addRequests">`addRequests()`</ApiLink>. It takes the same `include` and `exclude` filters, and it applies the target crawler's limits, such as `maxRequestsPerCrawl`.
 
+Unlike `enqueueLinks()`, this does not restrict links to the current hostname. `extractLinks()` returns every link the selector matches, and `addRequests()` defaults to `strategy: 'all'`. Pass `strategy` and `baseUrl` if you need the restriction, as the example below does.
+
 <CodeBlock language="js">
 	{CrossEnqueueSource}
 </CodeBlock>

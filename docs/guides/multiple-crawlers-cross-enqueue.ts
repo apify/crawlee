@@ -4,10 +4,14 @@ import { CheerioCrawler, PlaywrightCrawler, RequestQueue } from 'crawlee';
 const detailQueue = await RequestQueue.open({ alias: 'details' });
 
 const listingCrawler = new CheerioCrawler({
-    async requestHandler({ extractLinks, enqueueLinks }) {
-        // Product pages go to the detail crawler's queue...
-        await detailCrawler.addRequests(await extractLinks({ selector: '.product-item > a' }));
-        // ...while the next listing page stays in the listing crawler's own.
+    async requestHandler({ request, extractLinks, enqueueLinks }) {
+        // Product pages go to the detail crawler's queue. Unlike `enqueueLinks()`, `addRequests()` keeps
+        // off-site links unless we pass a strategy and the URL it is relative to.
+        await detailCrawler.addRequests(await extractLinks({ selector: '.product-item > a' }), {
+            strategy: 'same-hostname',
+            baseUrl: request.loadedUrl ?? request.url,
+        });
+        // The next listing page stays in the listing crawler's own queue.
         await enqueueLinks({ selector: 'a.pagination__next' });
     },
 });
