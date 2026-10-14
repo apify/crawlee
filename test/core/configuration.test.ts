@@ -1,3 +1,4 @@
+import { EventEmitter } from 'node:events';
 import { existsSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -313,5 +314,19 @@ describe('Configuration', () => {
             const config2 = new ExtendedConfig();
             expect((config2 as any).customFlag).toBe(true);
         });
+    });
+
+    it('does not change EventEmitter.defaultMaxListeners on import', async () => {
+        const original = EventEmitter.defaultMaxListeners;
+        try {
+            EventEmitter.defaultMaxListeners = 7;
+            // The vitest setup already loaded the module, so reset the registry to evaluate it again
+            vitest.resetModules();
+            await import('../../packages/core/src/configuration.js');
+
+            expect(EventEmitter.defaultMaxListeners).toBe(7);
+        } finally {
+            EventEmitter.defaultMaxListeners = original;
+        }
     });
 });

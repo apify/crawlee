@@ -286,6 +286,20 @@ Configuration instances are immutable — attempting to assign a property throws
 Previously, environment variables always won. Now `new Configuration({ headless: false })`
 works even when `CRAWLEE_HEADLESS=true` is set.
 
+#### Crawlee no longer raises `EventEmitter.defaultMaxListeners`
+
+Crawlee v3 set Node's global `EventEmitter.defaultMaxListeners` to 50 as a side effect of creating a `Configuration`. v4 leaves it alone, so the limit is back to Node's default of 10 for your own emitters and everything else in the process. Crawlee's event manager is unaffected, it sets its own limit.
+
+If you relied on the higher limit and now see `MaxListenersExceededWarning`, set it yourself:
+
+```typescript
+import { EventEmitter } from 'node:events';
+
+EventEmitter.defaultMaxListeners = 50;
+```
+
+Each running crawler also adds a `SIGINT` listener to `process` until it finishes, so running more than 10 crawlers concurrently in one process now triggers the warning too.
+
 ### `KeyValueStore.getInput()` and `Configuration.inputKey` moved to the Apify SDK
 
 Reading the run input is an Apify platform concern, so Crawlee no longer has any notion of it:
