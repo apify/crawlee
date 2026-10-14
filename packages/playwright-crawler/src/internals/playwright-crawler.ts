@@ -17,7 +17,7 @@ import type { Download, Page, Response } from 'playwright';
 import { z } from 'zod';
 
 import type { EnqueueLinksByClickingElementsOptions } from './enqueue-links/click-elements.js';
-import { playwrightBrowserPool, remotePlaywrightBrowserPool } from './playwright-browser-pool.js';
+import { playwrightBrowserPool, type PlaywrightRemoteBrowserOptions } from './playwright-browser-pool.js';
 import type { PlaywrightLaunchContext } from './playwright-launcher.js';
 import type {
     BlockRequestsOptions,
@@ -78,6 +78,9 @@ export interface PlaywrightCrawlerOptions<
      * Can be also set via {@apilink Configuration}.
      */
     headless?: boolean;
+
+    /** See {@apilink BrowserCrawlerOptions.remoteBrowser}; Playwright additionally lets you pick the `protocol`. */
+    remoteBrowser?: PlaywrightRemoteBrowserOptions;
 
     /**
      * Async functions that are sequentially evaluated before the navigation. Good for setting additional cookies
@@ -250,9 +253,7 @@ export class PlaywrightCrawler<
             >),
             configuration,
             browserPoolBuilder: (remoteBrowser) =>
-                remoteBrowser
-                    ? remotePlaywrightBrowserPool({ ...remoteBrowser, launchContext, headless, configuration })
-                    : playwrightBrowserPool({ launchContext, headless, configuration }),
+                playwrightBrowserPool({ launchContext, headless, configuration, remoteBrowser }),
             contextPipelineBuilder: () => this.#buildContextPipeline(),
         });
     }

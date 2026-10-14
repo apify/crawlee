@@ -17,6 +17,7 @@ import type { BrowserPoolOptions } from '@crawlee/browser-pool';
 import type { CheerioAPI } from 'cheerio';
 import type { ClickOptions } from 'puppeteer';
 import { Configuration } from '@crawlee/browser';
+import type { CrawlerRemoteBrowserOptions } from '@crawlee/browser';
 import { Dictionary } from '@crawlee/types';
 import type { GetUserDataFromRequest } from '@crawlee/browser';
 import type { HTTPRequest } from 'puppeteer';
@@ -24,8 +25,6 @@ import type { HTTPResponse } from 'puppeteer';
 import { IRequestManager } from '@crawlee/browser';
 import type { Page } from 'puppeteer';
 import { PuppeteerPlugin } from '@crawlee/browser-pool';
-import type { RemoteBrowserPool } from '@crawlee/browser-pool';
-import type { RemoteBrowserPoolOptions } from '@crawlee/browser-pool';
 import { Request as Request_2 } from '@crawlee/browser';
 import type { RequestTransform } from '@crawlee/browser';
 import type { RouterHandler } from '@crawlee/browser';
@@ -142,6 +141,7 @@ export interface PuppeteerBrowserPoolOptions extends Omit<BrowserPoolOptions, 'b
     configuration?: Configuration;
     headless?: boolean | 'new' | 'old';
     launchContext?: PuppeteerLaunchContext;
+    remoteBrowser?: CrawlerRemoteBrowserOptions;
 }
 
 // @public (undocumented)
@@ -222,13 +222,6 @@ declare namespace puppeteerUtils {
         addInterceptRequestHandler,
         removeInterceptRequestHandler
     }
-}
-
-// @public
-export function remotePuppeteerBrowserPool(options: RemotePuppeteerBrowserPoolOptions): RemoteBrowserPool<Page>;
-
-// @public (undocumented)
-export interface RemotePuppeteerBrowserPoolOptions extends Pick<PuppeteerBrowserPoolOptions, 'launchContext' | 'headless' | 'configuration'>, Omit<RemoteBrowserPoolOptions, 'browserPlugins'> {
 }
 
 // @public

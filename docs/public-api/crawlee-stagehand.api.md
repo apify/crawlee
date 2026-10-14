@@ -32,8 +32,6 @@ import { ModelConfiguration } from '@browserbasehq/stagehand';
 import type { NonStreamingAgentInstance } from '@browserbasehq/stagehand';
 import { ObserveOptions } from '@browserbasehq/stagehand';
 import type { Page } from 'playwright';
-import type { RemoteBrowserPool } from '@crawlee/browser-pool';
-import type { RemoteBrowserPoolOptions } from '@crawlee/browser-pool';
 import type { RequestHandler } from '@crawlee/browser';
 import type { Response as Response_2 } from 'playwright';
 import type { RouterHandler } from '@crawlee/browser';
@@ -66,13 +64,6 @@ export { ExtractOptions }
 export { ModelConfiguration }
 
 export { ObserveOptions }
-
-// @public
-export function remoteStagehandBrowserPool(options: RemoteStagehandBrowserPoolOptions): RemoteBrowserPool<Page>;
-
-// @public (undocumented)
-export interface RemoteStagehandBrowserPoolOptions extends Pick<StagehandBrowserPoolOptions, 'launchContext' | 'stagehandOptions' | 'headless' | 'configuration'>, Omit<RemoteBrowserPoolOptions, 'browserPlugins'> {
-}
 
 export { Stagehand }
 

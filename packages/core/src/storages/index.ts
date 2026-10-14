@@ -1,20 +1,20 @@
 export * from './dataset.js';
-export * from './key_value_store.js';
-export * from './key_value_store_codec.js';
-export * from './request_list.js';
-export type * from './request_loader.js';
-export type * from './request_manager.js';
-export * from './request_queue.js';
+export * from './key-value-store.js';
+export * from './key-value-store-codec.js';
+export * from './request-list.js';
+export type * from './request-loader.js';
+export type * from './request-manager.js';
+export * from './request-queue.js';
 // `resolveStorageIdentifier` is deliberately absent: it is an internal helper of the storage frontends.
 export type {
     DefaultStorageIdentifier,
     ExplicitStorageIdentifier,
     IStorage,
     StorageIdentifier,
-} from './storage_instance_manager.js';
-export { StorageInstanceManager } from './storage_instance_manager.js';
+} from './storage-instance-manager.js';
+export { StorageInstanceManager } from './storage-instance-manager.js';
 // `StorageStatsTracker` is deliberately absent: it is the mutable counter backing the `stats` getters.
-export type { DatasetStats, KeyValueStoreStats, RequestQueueStats } from './storage_stats.js';
+export type { DatasetStats, KeyValueStoreStats, RequestQueueStats } from './storage-stats.js';
 export * from './utils.js';
 export * from './transaction.js';
-export * from './request_manager_tandem.js';
+export * from './request-manager-tandem.js';

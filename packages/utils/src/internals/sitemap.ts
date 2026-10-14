@@ -152,18 +152,23 @@ class SitemapXmlParser extends Transform {
     }
 
     #onText(text: string) {
+        text = text.trim();
+
+        // Whitespace around a CDATA section arrives as separate text events.
+        if (text === '') {
+            return;
+        }
+
         if (this.#currentTag === 'loc') {
             if (this.#rootTagName === 'sitemapindex') {
-                this.push({ type: 'sitemapUrl', url: text.trim() } satisfies SitemapItem);
+                this.push({ type: 'sitemapUrl', url: text } satisfies SitemapItem);
             }
 
             if (this.#rootTagName === 'urlset') {
                 this.#url ??= {};
-                this.#url.loc = text.trim();
+                this.#url.loc = text;
             }
         }
-
-        text = text.trim();
 
         if (this.#currentTag === 'lastmod') {
             const lastmod = new Date(text);

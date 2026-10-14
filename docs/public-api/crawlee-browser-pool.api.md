@@ -100,7 +100,6 @@ export abstract class BrowserPlugin<Library extends CommonLibrary = CommonLibrar
     protected abstract addProxyToLaunchOptions(launchContext: LaunchContext<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>): Promise<void>;
     // (undocumented)
     readonly browserPerProxy?: boolean;
-    protected connectToRemoteBrowser(launchContext: LaunchContext<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>, connect: (url: string) => Promise<LaunchResult>): Promise<LaunchResult>;
     // (undocumented)
     abstract createController(): BrowserController<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>;
     createLaunchContext(options?: CreateLaunchContextOptions<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>): LaunchContext<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>;
@@ -209,6 +208,7 @@ export interface BrowserPoolOptions<Plugin extends BrowserPlugin = BrowserPlugin
     closeInactiveBrowserAfterSecs?: number;
     // (undocumented)
     fingerprintOptions?: FingerprintOptions;
+    maxOpenBrowsers?: number;
     maxOpenPagesPerBrowser?: number;
     operationTimeoutSecs?: number;
     retireBrowserAfterPageCount?: number;
@@ -242,9 +242,6 @@ export interface CommonPage {
     // (undocumented)
     url(): string | Promise<string>;
 }
-
-// @public
-export type CrawlerRemoteBrowserOptions = Omit<RemoteBrowserPoolOptions, 'browserPlugins' | 'browserPoolOptions'>;
 
 // @public (undocumented)
 export interface CreateLaunchContextOptions<Library extends CommonLibrary, LibraryOptions extends Dictionary | undefined = Parameters<Library['launch']>[0], LaunchResult extends CommonBrowser = UnwrapPromise<ReturnType<Library['launch']>>, NewPageOptions = Parameters<LaunchResult['newPage']>[0], NewPageResult = UnwrapPromise<ReturnType<LaunchResult['newPage']>>> extends Partial<Omit<LaunchContextOptions<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>, 'browserPlugin'>> {
@@ -434,6 +431,9 @@ export class PuppeteerController extends BrowserController<typeof Puppeteer, Pup
     protected _setCookies(page: PuppeteerTypes.Page, cookies: Cookie[]): Promise<void>;
 }
 
+// @public (undocumented)
+export type PuppeteerLaunchContext = LaunchContext<typeof Puppeteer, PuppeteerTypes.LaunchOptions, PuppeteerTypes.Browser, PuppeteerNewPageOptions>;
+
 // Not exported by the entry point; reachable only as a referenced type.
 // @public (undocumented)
 interface PuppeteerNewPageOptions extends PuppeteerTypes.BrowserContextOptions {
@@ -452,7 +452,7 @@ export class PuppeteerPlugin extends BrowserPlugin<typeof Puppeteer, PuppeteerTy
     // (undocumented)
     protected isChromiumBasedBrowser(_launchContext: LaunchContext<typeof Puppeteer, PuppeteerTypes.LaunchOptions, PuppeteerTypes.Browser, PuppeteerNewPageOptions>): boolean;
     // (undocumented)
-    protected _launch(launchContext: LaunchContext<typeof Puppeteer, PuppeteerTypes.LaunchOptions, PuppeteerTypes.Browser, PuppeteerNewPageOptions>): Promise<PuppeteerTypes.Browser>;
+    protected _launch(launchContext: PuppeteerLaunchContext): Promise<PuppeteerTypes.Browser>;
 }
 
 // @public
@@ -461,32 +461,9 @@ export type RemoteBrowserEndpoint = string | ((options?: {
 }) => string | ResolvedRemoteEndpoint | Promise<string | ResolvedRemoteEndpoint>);
 
 // @public
-export class RemoteBrowserPool<Page = unknown> implements IBrowserPool<Page> {
-    // (undocumented)
-    [Symbol.asyncDispose](): Promise<void>;
-    constructor(options: RemoteBrowserPoolOptions);
-    // (undocumented)
-    closePage(page: Page, options?: {
-        error?: Error;
-    }): Promise<void>;
-    destroy(): Promise<void>;
-    // (undocumented)
-    extractPageState(page: Page): Promise<PageState>;
-    // (undocumented)
-    injectPageState(page: Page, state: PageState): Promise<void>;
-    get maxOpenBrowsers(): number;
-    set maxOpenBrowsers(value: number);
-    newPage(options?: NewPageOptions): Promise<Page>;
-    releaseAllBrowsers(): Promise<void>;
-}
-
-// @public (undocumented)
-export interface RemoteBrowserPoolOptions {
-    browserPlugins: BrowserPlugin[];
-    browserPoolOptions?: Omit<BrowserPoolOptions, 'browserPlugins'> & BrowserPoolHooks<any, any, any>;
-    connection?: RemoteConnectionParameters;
+export interface RemoteBrowserOptions {
+    connectOptions?: Record<string, unknown>;
     endpoint: RemoteBrowserEndpoint | RemoteBrowserProvider<any>;
-    maxOpenBrowsers?: number;
     release?: (info: {
         endpoint: string;
         context?: Record<string, unknown>;
@@ -509,20 +486,32 @@ export abstract class RemoteBrowserProvider<TContext extends Record<string, unkn
 }
 
 // @public
-export interface RemoteConnection {
-    release(token: number): Promise<void>;
-    resolve(options?: {
-        proxyUrl?: string;
-    }): Promise<{
-        url: string;
-        token: number;
-    }>;
+export class RemotePlaywrightPlugin extends PlaywrightPlugin {
+    constructor(library: BrowserType, options: RemotePlaywrightPluginOptions);
+    // (undocumented)
+    createLaunchContext(options?: CreateLaunchContextOptions<BrowserType>): LaunchContext<BrowserType>;
+    launch(launchContext?: LaunchContext<BrowserType>): Promise<Browser>;
+    // (undocumented)
+    protected _launch(launchContext: LaunchContext<BrowserType>): Promise<Browser>;
+}
+
+// @public (undocumented)
+export interface RemotePlaywrightPluginOptions extends BrowserPluginOptions<SafeParameters<BrowserType['launch']>[0]>, RemoteBrowserOptions {
+    protocol?: 'cdp' | 'playwright';
 }
 
 // @public
-export interface RemoteConnectionParameters {
-    connectOptions?: Record<string, unknown>;
-    protocol?: 'cdp' | 'playwright';
+export class RemotePuppeteerPlugin extends PuppeteerPlugin {
+    constructor(library: typeof Puppeteer, options: RemotePuppeteerPluginOptions);
+    // (undocumented)
+    createLaunchContext(options?: CreateLaunchContextOptions<typeof Puppeteer, PuppeteerTypes.LaunchOptions, PuppeteerTypes.Browser, PuppeteerNewPageOptions>): PuppeteerLaunchContext;
+    launch(launchContext?: PuppeteerLaunchContext): Promise<PuppeteerTypes.Browser>;
+    // (undocumented)
+    protected _launch(launchContext: PuppeteerLaunchContext): Promise<PuppeteerTypes.Browser>;
+}
+
+// @public (undocumented)
+export interface RemotePuppeteerPluginOptions extends BrowserPluginOptions<PuppeteerTypes.LaunchOptions>, RemoteBrowserOptions {
 }
 
 // @public

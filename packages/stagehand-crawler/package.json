@@ -56,7 +56,6 @@
         "access": "public"
     },
     "dependencies": {
-        "@apify/timeout": "^1.0.1",
         "@crawlee/browser": "workspace:*",
         "@crawlee/browser-pool": "workspace:*",
         "@crawlee/core": "workspace:*",

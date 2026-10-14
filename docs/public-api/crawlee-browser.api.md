@@ -8,10 +8,9 @@ import type { AddRequestsBatchedResult } from '@crawlee/basic';
 import type { Awaitable } from '@crawlee/types';
 import { BasicCrawler } from '@crawlee/basic';
 import { BasicCrawlerOptions } from '@crawlee/basic';
-import type { BrowserPluginOptions } from '@crawlee/browser-pool';
+import { BrowserPluginOptions } from '@crawlee/browser-pool';
 import type { CommonPage } from '@crawlee/browser-pool';
 import { ContextPipeline } from '@crawlee/basic';
-import type { CrawlerRemoteBrowserOptions } from '@crawlee/browser-pool';
 import type { CrawlingContext } from '@crawlee/basic';
 import { CrawlingRequest } from '@crawlee/basic';
 import type { Dictionary } from '@crawlee/types';
@@ -21,6 +20,7 @@ import type { ExtractLinksOptions } from '@crawlee/basic';
 import type { GetUserDataFromRequest } from '@crawlee/basic';
 import type { IBrowserPool } from '@crawlee/types';
 import type { LoadedRequest } from '@crawlee/basic';
+import { RemoteBrowserOptions } from '@crawlee/browser-pool';
 import type { RequestHandler } from '@crawlee/basic';
 import type { RouterHandler } from '@crawlee/basic';
 
@@ -87,6 +87,11 @@ export interface BrowserLaunchContext<TOptions, Launcher> extends BrowserPluginO
     useIncognitoPages?: boolean;
     userAgent?: string;
     userDataDir?: string;
+}
+
+// @public
+export interface CrawlerRemoteBrowserOptions extends RemoteBrowserOptions {
+    maxOpenBrowsers?: number;
 }
 
 // @public
