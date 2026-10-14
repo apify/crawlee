@@ -532,7 +532,7 @@ The `PersistenceOptions` argument of `persistState()` and `resetStore()` and the
 
 With both `state` and `persistStateKey` set, the record now wins. Previously `state` did. The option is also validated up front: `nextIndex` must be a non-negative integer and `inProgress` an array of unique keys. The `@internal` `isStatePersisted` flag is gone.
 
-Both `SessionPool` and `RequestList` now persist through `RecoverableState`, like `Statistics`. The persisted records keep their shape, but `RequestList` stores them under a different key: the prefix added to `persistStateKey` and `persistRequestsKey` (and to the keys derived from `RequestList.open(name)`) changed from `SDK_` to `CRAWLEE_`. A v3 run's record is therefore not found and the list restarts from the beginning. To carry an in-flight crawl across the upgrade, finish it first or copy the records to the `CRAWLEE_` keys.
+Both `SessionPool` and `RequestList` now persist through `RecoverableState`, like `Statistics`. Resuming a v3 crawl on v4 is not supported: `RequestList` stores its records under `CRAWLEE_`-prefixed keys where v3 used `SDK_`, so a v4 run does not find a v3 run's state and starts the list from the beginning. Finish or discard in-flight crawls before upgrading.
 
 ### `retireOnBlockedStatusCodes` is removed from `Session`
 

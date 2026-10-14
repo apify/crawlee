@@ -44,7 +44,7 @@ Read-only loaders lose `reclaimRequest`, `inProgress` and `persistState` from th
 
 Crawler constructor `requestList` and `requestQueue` options are deprecated but still accepted. Prefer `requestManager`; combine list and queue with `await requestList.toTandem(queue)` or `new RequestManagerTandem(list, queue)`. A lone list now runs through a tandem with a queue, changing retries and request-limit accounting. Crawler instance `requestList` and `requestQueue` fields are removed. `getRequestQueue()` remains deprecated but may return any manager; use `getRequestManager()`.
 
-`RequestList` persisted state wins over the explicit `state` option. `nextIndex` must be a nonnegative integer and `inProgress` unique keys. Its record shape remains compatible, but the key prefix for `persistStateKey`, `persistRequestsKey` and `RequestList.open(name)` changes from `SDK_` to `CRAWLEE_`, so a persisted v3 list restarts. The sitemap default key changes from `SITEMAP_REQUEST_LIST_STATE` to `SITEMAP_REQUEST_LOADER_STATE`. If a restart is unacceptable, finish the crawl before upgrading or copy the records to the new keys.
+`RequestList` persisted state wins over the explicit `state` option. `nextIndex` must be a nonnegative integer and `inProgress` unique keys. Resuming a v3 crawl on v4 is not supported: `RequestList` keys gain the `CRAWLEE_` prefix instead of `SDK_` and the sitemap default key changes from `SITEMAP_REQUEST_LIST_STATE` to `SITEMAP_REQUEST_LOADER_STATE`, so persisted v3 lists restart. Finish or discard in-flight crawls before upgrading.
 
 ## Stored requests and crawler requests
 
