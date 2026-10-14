@@ -60,6 +60,27 @@ describe('ImpitHttpClient', () => {
         expect(init?.timeout).toBeGreaterThan(24 * 60 * 60 * 1000);
     });
 
+    test('cancels the download when the abort signal fires after the response headers', async () => {
+        const cancel = vi.fn();
+        const body = new ReadableStream({ pull: async () => new Promise(() => {}), cancel });
+        vi.mocked(Impit).mockImplementationOnce(
+            class {
+                fetch = vi.fn(async () => new Response(body));
+            } as any,
+        );
+        const httpClient = new ImpitHttpClient();
+        const controller = new AbortController();
+
+        const response = await httpClient.sendRequest(new Request('http://example.com'), {
+            signal: controller.signal,
+        });
+        const reading = response.text();
+        controller.abort();
+
+        await expect(reading).rejects.toThrow();
+        await vi.waitFor(() => expect(cancel).toHaveBeenCalled());
+    });
+
     test('keeps the impit default timeout when there is no abort signal', async () => {
         const httpClient = new ImpitHttpClient();
 

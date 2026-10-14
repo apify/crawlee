@@ -116,8 +116,13 @@ export class ImpitHttpClient extends BaseHttpClient {
             ...(signal ? { timeout: TIMEOUT_DEFERRED_TO_SIGNAL_MILLIS } : {}),
         });
 
+        // Once the headers are in, an aborted signal only stops impit's body reads, while the download itself keeps
+        // going. Piping the body through the signal cancels the download too.
+        const body =
+            signal && response.body ? response.body.pipeThrough(new TransformStream(), { signal }) : response.body;
+
         // todo - cast shouldn't be needed here, impit returns `Uint8Array`
-        return new ResponseWithUrl(response.body, response);
+        return new ResponseWithUrl(body, response);
     }
 
     #resolveImpitBrowser(fingerprint?: SessionFingerprint): ImpitBrowser | undefined {
