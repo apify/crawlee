@@ -463,6 +463,9 @@ describe('AdaptivePlaywrightCrawler', () => {
 
         expect(requestHandler).toHaveBeenCalledTimes(2);
         expect(resultChecker).toHaveBeenCalledTimes(1);
+        expect(resultChecker).toHaveBeenCalledWith(expect.anything(), {
+            request: expect.objectContaining({ url: url.toString() }),
+        });
 
         expect(crawler.statistics.state).toMatchObject({
             httpOnlyRequestHandlerRuns: 1,

@@ -164,6 +164,12 @@ type AdaptivePostNavigationHook<ContextExtension = Dictionary<never>> = BrowserH
     ContextExtension
 >;
 
+/** Passed to {@apilink AdaptivePlaywrightCrawlerOptions.resultChecker} and `resultComparator` alongside the results. */
+export interface AdaptiveResultContext {
+    /** The request whose handler produced the results. */
+    request: CrawlingRequest;
+}
+
 export interface AdaptivePlaywrightCrawlerOptions<
     ContextExtension = Dictionary<never>,
     ExtendedContext extends AdaptivePlaywrightCrawlerContext = AdaptivePlaywrightCrawlerContext & ContextExtension,
@@ -217,7 +223,7 @@ export interface AdaptivePlaywrightCrawlerOptions<
      * If it returns false, the request is retried in a browser.
      * If no callback is specified, every result is considered valid.
      */
-    resultChecker?: (result: StorageTransactionView) => boolean;
+    resultChecker?: (result: StorageTransactionView, context: AdaptiveResultContext) => boolean;
 
     /**
      * An optional callback that decides whether an error thrown during the plain HTTP request handler
@@ -245,6 +251,7 @@ export interface AdaptivePlaywrightCrawlerOptions<
     resultComparator?: (
         resultA: StorageTransactionView,
         resultB: StorageTransactionView,
+        context: AdaptiveResultContext,
     ) => boolean | 'equal' | 'different' | 'inconclusive';
 
     /**
@@ -453,7 +460,8 @@ export class AdaptivePlaywrightCrawler<
         if (resultComparator !== undefined) {
             this.#resultComparator = resultComparator;
         } else if (resultChecker !== undefined) {
-            this.#resultComparator = (resultA, resultB) => this.#resultChecker(resultA) && this.#resultChecker(resultB);
+            this.#resultComparator = (resultA, resultB, context) =>
+                this.#resultChecker(resultA, context) && this.#resultChecker(resultB, context);
         } else {
             this.#resultComparator = (resultA, resultB) => {
                 return (
@@ -691,7 +699,7 @@ export class AdaptivePlaywrightCrawler<
                     transactions,
                 );
 
-                if (plainHTTPRun.ok && this.#resultChecker(plainHTTPRun.result)) {
+                if (plainHTTPRun.ok && this.#resultChecker(plainHTTPRun.result, { request: crawlingContext.request })) {
                     crawlingContext.log.debug(`HTTP-only request handler succeeded for ${crawlingContext.request.url}`);
                     plainHTTPRun.logs?.forEach(([log, method, ...args]) => log[method](...(args as [any, any])));
                     await plainHTTPRun.result.commit();
@@ -782,7 +790,9 @@ export class AdaptivePlaywrightCrawler<
                             return 'clientOnly';
                         }
 
-                        const comparisonResult = this.#resultComparator(plainHTTPRun.result, browserRun.result);
+                        const comparisonResult = this.#resultComparator(plainHTTPRun.result, browserRun.result, {
+                            request: crawlingContext.request,
+                        });
                         if (comparisonResult === true || comparisonResult === 'equal') {
                             return 'static';
                         }
