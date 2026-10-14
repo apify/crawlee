@@ -34,7 +34,7 @@ Crawlee is available as the [`crawlee`](https://www.npmjs.com/package/crawlee) N
 
 We recommend visiting the [Introduction tutorial](https://crawlee.dev/js/docs/introduction) in Crawlee documentation for more information.
 
-> Crawlee requires **Node.js 16 or higher**.
+> Crawlee requires **Node.js 22.13 or higher**.
 
 ### With Crawlee CLI
 

@@ -11,7 +11,6 @@ import { isDeepStrictEqual } from 'node:util';
 
 import type {
     BasicCrawlerOptions,
-    ContextPipeline,
     CrawlingContext,
     EnqueueLinksOptions,
     GetUserDataFromRequest,
@@ -21,6 +20,9 @@ import type {
 } from '@crawlee/basic';
 import {
     BasicCrawler,
+    ContextPipeline,
+    ContextPipelineInitializationError,
+    ContextPipelineInterruptedError,
     RequestHandlerError,
     resolveBaseUrlForEnqueueLinksFiltering,
     Router,
@@ -179,7 +181,7 @@ export interface AdaptivePlaywrightCrawlerOptions<
                 Routes,
                 StatisticStateExtension
             >,
-            'preNavigationHooks' | 'postNavigationHooks'
+            'preNavigationHooks' | 'postNavigationHooks' | 'contextPipelineBuilder'
         >,
         Pick<PlaywrightCrawlerOptions, 'launchContext' | 'headless' | 'browserPool' | 'remoteBrowser'> {
     /**
@@ -367,7 +369,6 @@ export class AdaptivePlaywrightCrawler<
             preNavigationHooks = [],
             postNavigationHooks = [],
             extendContext,
-            contextPipelineBuilder,
             transactionalStorage,
             launchContext,
             headless,
@@ -426,7 +427,7 @@ export class AdaptivePlaywrightCrawler<
                     stateExtension:
                         adaptivePlaywrightCrawlerStatisticState as StatisticStateExtensionOptions<StatisticStateExtension>,
                 }),
-            contextPipelineBuilder: contextPipelineBuilder ?? (() => this.buildContextPipeline()),
+            contextPipelineBuilder: () => this.#buildContextPipeline(),
             // The base crawler must not wrap requests in a transaction of its own - this crawler opens
             // one per request handler attempt in `crawlOne` instead, forwarding the write policy of the
             // user-facing option (validated above) to those.
@@ -495,11 +496,11 @@ export class AdaptivePlaywrightCrawler<
         this.#browserCrawler = browserCrawler;
 
         this.#staticContextPipeline = staticCrawler.contextPipeline.compose(
-            this.adaptCheerioContext.bind(this),
+            this.#adaptCheerioContext.bind(this),
         ) as unknown as ContextPipeline<CrawlingContext, ExtendedContext>;
 
         this.#browserContextPipeline = browserCrawler.contextPipeline.compose(
-            this.adaptPlaywrightContext.bind(this),
+            this.#adaptPlaywrightContext.bind(this),
         ) as unknown as ContextPipeline<CrawlingContext, ExtendedContext>;
     }
 
@@ -512,11 +513,11 @@ export class AdaptivePlaywrightCrawler<
         return await super.init();
     }
 
-    protected override buildContextPipeline(): ContextPipeline<CrawlingContext, AdaptivePlaywrightCrawlerContext> {
+    #buildContextPipeline(): ContextPipeline<CrawlingContext, AdaptivePlaywrightCrawlerContext> {
         const errorMessage = (prop: string) =>
             `The \`${prop}\` property is not available on the outer context pipeline of AdaptivePlaywrightCrawler - it is provided by the inner (static/browser) pipelines`;
 
-        return super.buildContextPipeline().compose(async ({ request }) => ({
+        return ContextPipeline.create<CrawlingContext>().compose(async ({ request }) => ({
             get request(): LoadedRequest<CrawlingRequest<Dictionary>> {
                 return request as LoadedRequest<CrawlingRequest<Dictionary>>;
             },
@@ -544,7 +545,7 @@ export class AdaptivePlaywrightCrawler<
         }));
     }
 
-    private async adaptCheerioContext(cheerioContext: CheerioCrawlingContext) {
+    async #adaptCheerioContext(cheerioContext: CheerioCrawlingContext) {
         return {
             get page(): Page {
                 throw new Error('Page object was used in HTTP-only request handler');
@@ -561,13 +562,13 @@ export class AdaptivePlaywrightCrawler<
                     options.selector,
                     options.baseUrl ?? cheerioContext.request.loadedUrl,
                 );
-                return (await this.enqueueLinks(urls, options, cheerioContext.request)) as unknown as void;
+                return (await this.#enqueueLinks(urls, options, cheerioContext.request)) as unknown as void;
             },
             response: cheerioContext.response,
         };
     }
 
-    private async adaptPlaywrightContext(playwrightContext: PlaywrightCrawlingContext) {
+    async #adaptPlaywrightContext(playwrightContext: PlaywrightCrawlingContext) {
         // Capture the original response to avoid infinite recursion when the getter is copied to the context
         const originalResponse = playwrightContext.response;
 
@@ -602,7 +603,7 @@ export class AdaptivePlaywrightCrawler<
                     options.baseUrl ?? playwrightContext.request.loadedUrl,
                 );
 
-                return (await this.enqueueLinks(urls, options, playwrightContext.request)) as unknown as void;
+                return (await this.#enqueueLinks(urls, options, playwrightContext.request)) as unknown as void;
             },
         };
     }
@@ -613,7 +614,7 @@ export class AdaptivePlaywrightCrawler<
      * time, before the `try`* - the `ok: false` branch of the returned {@apilink Result} carries no
      * result, and failed attempts are routine here. The caller owns the outcome and disposal.
      */
-    private async crawlOne(
+    async #crawlOne(
         renderingType: RenderingType,
         context: CrawlingContext,
         useStateFunction: (defaultValue?: Dictionary) => Promise<Dictionary>,
@@ -631,7 +632,7 @@ export class AdaptivePlaywrightCrawler<
 
         const attemptBoundContextHelpers = {
             useState: useStateFunction,
-            log: this.createLogProxy(context.log, logs),
+            log: this.#createLogProxy(context.log, logs),
             registerDeferredCleanup: (cleanup: () => Promise<unknown>) => deferredCleanup.push(cleanup),
         };
 
@@ -702,7 +703,7 @@ export class AdaptivePlaywrightCrawler<
                 crawlingContext.log.debug(`Running HTTP-only request handler for ${crawlingContext.request.url}`);
                 this.statistics.state.httpOnlyRequestHandlerRuns++;
 
-                const plainHTTPRun = await this.crawlOne(
+                const plainHTTPRun = await this.#crawlOne(
                     'static',
                     crawlingContext,
                     crawlingContext.useState,
@@ -719,11 +720,15 @@ export class AdaptivePlaywrightCrawler<
                 // Execution will "fall through" and try running the request handler in a browser
                 if (!plainHTTPRun.ok) {
                     const actualError =
-                        plainHTTPRun.error instanceof RequestHandlerError
+                        plainHTTPRun.error instanceof RequestHandlerError ||
+                        plainHTTPRun.error instanceof ContextPipelineInitializationError
                             ? (plainHTTPRun.error.cause as Error)
                             : (plainHTTPRun.error as Error);
 
-                    if (await this.#shouldPropagateError(actualError, crawlingContext as any)) {
+                    if (
+                        actualError instanceof ContextPipelineInterruptedError ||
+                        (await this.#shouldPropagateError(actualError, crawlingContext as any))
+                    ) {
                         throw actualError;
                     }
 
@@ -765,7 +770,7 @@ export class AdaptivePlaywrightCrawler<
                 },
             };
 
-            const browserRun = await this.crawlOne(
+            const browserRun = await this.#crawlOne(
                 'clientOnly',
                 crawlingContext,
                 stateTracker.getLiveState.bind(stateTracker),
@@ -784,7 +789,7 @@ export class AdaptivePlaywrightCrawler<
                     crawlingContext.log.debug(`Detecting rendering type for ${crawlingContext.request.url}`);
                     // The detection attempt's transaction is never committed - its writes exist only for the
                     // result comparison.
-                    const plainHTTPRun = await this.crawlOne(
+                    const plainHTTPRun = await this.#crawlOne(
                         'static',
                         crawlingContext,
                         stateTracker.getStateCopy.bind(stateTracker),
@@ -845,7 +850,7 @@ export class AdaptivePlaywrightCrawler<
         }
     }
 
-    private async enqueueLinks(
+    async #enqueueLinks(
         urls: readonly string[],
         options: EnqueueLinksOptions,
         request: RestrictedCrawlingContext['request'],
@@ -868,7 +873,7 @@ export class AdaptivePlaywrightCrawler<
         });
     }
 
-    private createLogProxy(log: CrawleeLogger, logs: LogProxyCall[]) {
+    #createLogProxy(log: CrawleeLogger, logs: LogProxyCall[]) {
         return new Proxy(log, {
             get(target: CrawleeLogger, propertyName: (typeof proxyLogMethods)[number]) {
                 if (proxyLogMethods.includes(propertyName)) {

@@ -9,7 +9,6 @@ import { fileURLToPath } from 'node:url';
 import { URL_NO_COMMAS_REGEX } from '@crawlee/utils/internal';
 import { Actor, ApifyClient } from 'apify';
 import fs from 'fs-extra';
-import { got } from 'got';
 
 /**
  * @param {string} command
@@ -116,51 +115,31 @@ export async function pushActor(client, dirName) {
 }
 
 export async function startActorOnPlatform(client, id, input, inputContentType = 'application/json', memory = 4096) {
-    const gotClient = got.extend({
-        retry: {
-            limit: 2,
-            statusCodes: [500, 502],
-        },
-        headers: {
-            'user-agent': 'crawlee e2e tests (got)',
-        },
-        timeout: {
-            request: 10000,
-        },
-    });
-
     // Do NOT use Apify Client yet!
     // See https://github.com/apify/apify-client-js/issues/277
+    const response = await fetch(`https://api.apify.com/v2/acts/${id}/runs?memory=${memory}`, {
+        method: 'POST',
+        headers: {
+            'content-type': inputContentType,
+            authorization: `Bearer ${client.token}`,
+            'user-agent': 'crawlee e2e tests',
+        },
+        body: input,
+        signal: AbortSignal.timeout(10_000),
+    });
 
-    try {
-        const {
-            data: { id: foundRunId },
-        } = await gotClient(`https://api.apify.com/v2/acts/${id}/runs`, {
-            method: 'POST',
-            searchParams: {
-                memory,
-            },
-            headers: {
-                'content-type': inputContentType,
-                authorization: `Bearer ${client.token}`,
-            },
-            body: input,
-            retry: {
-                limit: 2,
-                statusCodes: [500, 502],
-            },
-        }).json();
+    if (!response.ok) {
+        console.error(
+            colors.red(`Failed to start actor run on the Apify platform. (code ${colors.yellow(response.status)})`),
+        );
+        console.log(colors.grey(`  RESPONSE: `), await response.text());
 
-        return foundRunId;
-    } catch (err) {
-        console.error(colors.red(`Failed to start actor run on the Apify platform. (code ${colors.yellow(err.code)})`));
-
-        if (err.response) {
-            console.log(colors.grey(`  RESPONSE: `), err.response.body || err.response.rawBody?.toString('utf-8'));
-        }
-
-        throw err;
+        throw new Error(`Failed to start actor run on the Apify platform (HTTP ${response.status})`);
     }
+
+    const { data } = await response.json();
+
+    return data.id;
 }
 
 /**

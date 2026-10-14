@@ -4,8 +4,6 @@
 
 import type { ESTree, Plugin, Rule } from '@oxlint/plugins';
 
-// `PropertyDefinition`/`MethodDefinition` also cover their `TSAbstract*` variants — oxlint models
-// those as the same node shape with a different `type`, which is why the selector lists both.
 type PrivateMember = ESTree.PropertyDefinition | ESTree.MethodDefinition | ESTree.TSParameterProperty;
 
 export const preferPrivateFields = {
@@ -18,7 +16,7 @@ export const preferPrivateFields = {
     // keeps no per-file state.
     createOnce(context) {
         return {
-            'PropertyDefinition[accessibility="private"], MethodDefinition[accessibility="private"], TSAbstractPropertyDefinition[accessibility="private"], TSAbstractMethodDefinition[accessibility="private"], TSParameterProperty[accessibility="private"]'(
+            'PropertyDefinition[accessibility="private"], MethodDefinition[accessibility="private"], TSParameterProperty[accessibility="private"]'(
                 node: PrivateMember,
             ) {
                 // `private constructor` has no native counterpart - it is the only way to keep a

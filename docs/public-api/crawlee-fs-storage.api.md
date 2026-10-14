@@ -5,7 +5,6 @@
 ```ts
 
 import { AdoptionCandidate } from '@crawlee/fs-storage-native';
-import type { CrawleeLogger } from '@crawlee/types';
 import type * as storage from '@crawlee/types';
 
 export { AdoptionCandidate }
@@ -19,22 +18,10 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
     createKeyValueStoreBackend(options?: storage.StorageIdentifier): Promise<storage.KeyValueStoreBackend>;
     // (undocumented)
     createRequestQueueBackend(options?: storage.StorageIdentifier): Promise<storage.RequestQueueBackend>;
-    // (undocumented)
-    readonly datasetsDirectory: string;
     getStorageBackendCacheKey(): string;
     protected keyValueStoreAdoptionCandidates(_options: KeyValueStoreHookOptions): AdoptionCandidate[];
-    // (undocumented)
-    readonly keyValueStoresDirectory: string;
-    // (undocumented)
-    readonly localDataDirectory: string;
-    // (undocumented)
-    readonly logger?: CrawleeLogger;
     purge(): Promise<void>;
     protected purgeKeyValueStore(store: PurgeableKeyValueStoreBackend, _options: KeyValueStoreHookOptions): Promise<void>;
-    // (undocumented)
-    readonly requestQueueAccess: 'single' | 'shared';
-    // (undocumented)
-    readonly requestQueuesDirectory: string;
     // (undocumented)
     storageExists(id: string, type: 'Dataset' | 'KeyValueStore' | 'RequestQueue'): Promise<boolean>;
     teardown(): Promise<void>;
@@ -43,7 +30,6 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
 // @public (undocumented)
 export interface FileSystemStorageOptions {
     localDataDirectory: string;
-    logger?: CrawleeLogger;
     requestQueueAccess?: 'single' | 'shared';
 }
 

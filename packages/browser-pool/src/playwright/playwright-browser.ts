@@ -16,6 +16,7 @@ export class PlaywrightBrowser extends EventEmitter {
     #isConnected = true;
     #browserType?: BrowserType;
 
+    /** @internal */
     constructor(options: BrowserOptions) {
         super();
 

@@ -21,10 +21,17 @@ export const extendTimeoutKey = Symbol('extendTimeout');
  */
 export const timeoutExpiredKey = Symbol('timeoutExpired');
 
+/**
+ * Stops the internal request timeout's clock until the returned callback is called. Error handling has a timeout
+ * of its own, and must not be cut short (and handled again) by the request timeout.
+ */
+export const suspendTimeoutKey = Symbol('suspendTimeout');
+
 /** The slots the internal request timeout hangs on the in-flight crawling context. */
 export interface RequestTimeoutContext {
     [extendTimeoutKey]?: (extraMillis: number) => void;
     [timeoutExpiredKey]?: () => boolean;
+    [suspendTimeoutKey]?: () => () => void;
     [navigationDeadlineKey]?: number;
 }
 
@@ -62,12 +69,18 @@ export async function raceWithTimeout(
     let deadline = Date.now() + timeoutMillis;
     let settled = false;
     let firedByTimeout = false;
+    let suspendedAt: number | undefined;
 
     const timeout = new Promise<never>((_, reject) => {
         const fire = () => {
             settled = true;
             firedByTimeout = true;
             reject(new TimeoutError(`Request timed out after ${timeoutMillis / 1e3} seconds (${requestId}).`));
+        };
+
+        const schedule = () => {
+            clearTimeout(timer);
+            timer = setTimeout(fire, Math.max(deadline - Date.now(), 0));
         };
 
         timer = setTimeout(fire, timeoutMillis);
@@ -79,9 +92,27 @@ export async function raceWithTimeout(
                 return;
             }
 
-            clearTimeout(timer);
             deadline += extraMillis;
-            timer = setTimeout(fire, Math.max(deadline - Date.now(), 0));
+            if (suspendedAt === undefined) {
+                schedule();
+            }
+        };
+
+        context[suspendTimeoutKey] = () => {
+            if (settled || suspendedAt !== undefined) {
+                return () => {};
+            }
+
+            clearTimeout(timer);
+            suspendedAt = Date.now();
+
+            return () => {
+                deadline += Date.now() - suspendedAt!;
+                suspendedAt = undefined;
+                if (!settled) {
+                    schedule();
+                }
+            };
         };
     });
 

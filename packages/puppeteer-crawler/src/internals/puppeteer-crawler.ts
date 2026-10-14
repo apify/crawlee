@@ -10,18 +10,17 @@ import type {
     RouteSchemas,
     RoutesFromSchemas,
 } from '@crawlee/browser';
-import { assertBrowserPoolNotConfigured, BrowserCrawler, RequestState, Router } from '@crawlee/browser';
+import { BrowserCrawler, RequestState, Router } from '@crawlee/browser';
 import { serviceLocator } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/types';
-import { parseArgument } from '@crawlee/utils/internal';
-// @ts-ignore This only throws when compiled against puppeteer 25+ (ESM only), we only import types, so its alllll gooooood
-import type { HTTPResponse, LaunchOptions, Page } from 'puppeteer';
+import { assertBrowserPoolNotConfigured, parseArgument, schemas } from '@crawlee/utils/internal';
+import type { HTTPResponse, Page } from 'puppeteer';
 import { z } from 'zod';
 
 import type { EnqueueLinksByClickingElementsOptions } from './enqueue-links/click-elements.js';
-import { puppeteerBrowserPool, remotePuppeteerBrowserPool } from './puppeteer-browser-pool.js';
+import { puppeteerBrowserPool } from './puppeteer-browser-pool.js';
 import type { PuppeteerLaunchContext } from './puppeteer-launcher.js';
-import type { InterceptHandler } from './utils/puppeteer_request_interception.js';
+import type { InterceptHandler } from './utils/puppeteer-request-interception.js';
 import type {
     BlockRequestsOptions,
     DirectNavigationOptions,
@@ -29,8 +28,8 @@ import type {
     InjectFileOptions,
     PuppeteerContextUtils,
     SaveSnapshotOptions,
-} from './utils/puppeteer_utils.js';
-import { gotoExtended, puppeteerUtils } from './utils/puppeteer_utils.js';
+} from './utils/puppeteer-utils.js';
+import * as puppeteerUtils from './utils/puppeteer-utils.js';
 
 export type PuppeteerGoToOptions = NonNullable<Parameters<Page['goto']>[1]>;
 
@@ -189,7 +188,6 @@ export class PuppeteerCrawler<
 > extends BrowserCrawler<
     Page,
     HTTPResponse,
-    LaunchOptions,
     PuppeteerCrawlingContext,
     ContextExtension,
     ExtendedContext,
@@ -201,6 +199,7 @@ export class PuppeteerCrawler<
      */
     protected static override optionsShape = {
         ...BrowserCrawler.optionsShape,
+        launchContext: schemas.anyObject.default(() => ({})),
         // Deliberately looser than the declared type: Puppeteer's own accepted string values have moved over
         // time (`'new'`/`'old'`, now `'shell'`), and the value is forwarded to it verbatim.
         headless: z.union([z.boolean(), z.string()]).optional(),
@@ -217,14 +216,7 @@ export class PuppeteerCrawler<
     ) {
         const parsedOptions = parseArgument(options, PuppeteerCrawler.optionsSchema, 'PuppeteerCrawlerOptions');
 
-        const {
-            launchContext,
-            headless,
-            configuration,
-            proxyConfiguration,
-            contextPipelineBuilder,
-            ...browserCrawlerOptions
-        } = parsedOptions;
+        const { launchContext, headless, configuration, proxyConfiguration, ...browserCrawlerOptions } = parsedOptions;
 
         if (launchContext.proxyUrl) {
             throw new Error(
@@ -251,22 +243,19 @@ export class PuppeteerCrawler<
                 Routes,
                 StatisticStateExtension
             >),
-            launchContext,
             configuration,
             proxyConfiguration,
             browserPoolBuilder: (remoteBrowser) =>
-                remoteBrowser
-                    ? remotePuppeteerBrowserPool({ ...remoteBrowser, launchContext, headless, configuration })
-                    : puppeteerBrowserPool({ launchContext, headless, configuration }),
-            contextPipelineBuilder: contextPipelineBuilder ?? (() => this.buildContextPipeline()),
+                puppeteerBrowserPool({ launchContext, headless, configuration, remoteBrowser }),
+            contextPipelineBuilder: () => this.#buildContextPipeline(),
         });
     }
 
-    protected override buildContextPipeline(): ContextPipeline<CrawlingContext, PuppeteerCrawlingContext> {
-        return super.buildContextPipeline().compose(this.enhanceContext.bind(this));
+    #buildContextPipeline(): ContextPipeline<CrawlingContext, PuppeteerCrawlingContext> {
+        return this.buildContextPipeline().compose(this.#enhanceContext.bind(this));
     }
 
-    private async enhanceContext(context: BrowserCrawlingContext<Page, HTTPResponse>) {
+    async #enhanceContext(context: BrowserCrawlingContext<Page, HTTPResponse>) {
         const waitForSelector = async (selector: string, timeoutMs = 5_000) => {
             await context.page.waitForSelector(selector, { timeout: timeoutMs });
         };
@@ -321,7 +310,7 @@ export class PuppeteerCrawler<
         crawlingContext: PuppeteerCrawlingContext,
         gotoOptions: DirectNavigationOptions,
     ) {
-        return gotoExtended(crawlingContext.page, crawlingContext.request, gotoOptions);
+        return puppeteerUtils.gotoExtended(crawlingContext.page, crawlingContext.request, gotoOptions);
     }
 }
 

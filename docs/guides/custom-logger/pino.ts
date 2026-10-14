@@ -13,20 +13,20 @@ const CRAWLEE_TO_PINO: Record<number, string> = {
 };
 
 class PinoAdapter extends BaseCrawleeLogger {
-    constructor(
-        private logger: pino.Logger,
-        options?: Partial<CrawleeLoggerOptions>,
-    ) {
+    #logger: pino.Logger;
+
+    constructor(logger: pino.Logger, options?: Partial<CrawleeLoggerOptions>) {
         super(options);
+        this.#logger = logger;
     }
 
     logWithLevel(level: number, message: string, data?: Record<string, unknown>): void {
         const pinoLevel = CRAWLEE_TO_PINO[level] ?? 'info';
-        this.logger[pinoLevel as pino.Level](data ?? {}, message);
+        this.#logger[pinoLevel as pino.Level](data ?? {}, message);
     }
 
     protected createChild(options: Partial<CrawleeLoggerOptions>): CrawleeLogger {
-        return new PinoAdapter(this.logger.child({ prefix: options.prefix }), { ...this.getOptions(), ...options });
+        return new PinoAdapter(this.#logger.child({ prefix: options.prefix }), { ...this.getOptions(), ...options });
     }
 }
 

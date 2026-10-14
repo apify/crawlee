@@ -18,7 +18,6 @@ import type {
     ContextPipeline,
     CrawlingContext,
     GetUserDataFromRequest,
-    LoadedContext,
     OwnedBrowserPool,
     RequestHandler,
     RouterHandler,
@@ -26,16 +25,16 @@ import type {
     RouteSchemas,
     RoutesFromSchemas,
 } from '@crawlee/browser';
-import { assertBrowserPoolNotConfigured, BrowserCrawler, Router } from '@crawlee/browser';
+import { BrowserCrawler, Router } from '@crawlee/browser';
 import type { Dictionary } from '@crawlee/types';
-import { parseArgument, schemas } from '@crawlee/utils/internal';
-import type { LaunchOptions, Page, Response } from 'playwright';
+import { assertBrowserPoolNotConfigured, parseArgument, schemas } from '@crawlee/utils/internal';
+import type { Page, Response } from 'playwright';
 import { z } from 'zod';
 
-import { remoteStagehandBrowserPool, stagehandBrowserPool } from './stagehand-browser-pool';
-import type { StagehandController } from './stagehand-controller';
-import type { StagehandLaunchContext } from './stagehand-launcher';
-import { enhancePageWithStagehand } from './utils/stagehand-utils';
+import { stagehandBrowserPool } from './stagehand-browser-pool.js';
+import type { StagehandController } from './stagehand-controller.js';
+import type { StagehandLaunchContext } from './stagehand-launcher.js';
+import { enhancePageWithStagehand } from './utils/stagehand-utils.js';
 
 /**
  * Stagehand-specific configuration options.
@@ -238,11 +237,6 @@ export type StagehandHook<
 > = BrowserHook<StagehandCrawlingContext<UserData>>;
 
 /**
- * Request handler for StagehandCrawler.
- */
-export interface StagehandRequestHandler extends RequestHandler<LoadedContext<StagehandCrawlingContext>> {}
-
-/**
  * Options for StagehandCrawler.
  */
 export interface StagehandCrawlerOptions<
@@ -324,9 +318,8 @@ export interface StagehandCrawlerOptions<
      * ```
      */
     // Both union members must share the exact same call signature, otherwise TS cannot contextually type
-    // an inline `requestHandler({ page, request, ... })`. `StagehandRequestHandler` wraps the context in
-    // `LoadedContext`, while the router member uses `ExtendedContext`; since `StagehandCrawlingContext`
-    // already carries a `LoadedRequest`, using `ExtendedContext` for both keeps the signatures identical.
+    // an inline `requestHandler({ page, request, ... })`. `StagehandCrawlingContext` already carries a
+    // `LoadedRequest`, so using `ExtendedContext` for both keeps the signatures identical.
     requestHandler?: RouterHandler<ExtendedContext, Routes> | RequestHandler<ExtendedContext>;
 
     /**
@@ -406,7 +399,6 @@ export class StagehandCrawler<
 > extends BrowserCrawler<
     StagehandPage,
     Response,
-    LaunchOptions,
     StagehandCrawlingContext,
     ContextExtension,
     ExtendedContext,
@@ -418,6 +410,7 @@ export class StagehandCrawler<
      */
     protected static override optionsShape = {
         ...BrowserCrawler.optionsShape,
+        launchContext: schemas.anyObject.default(() => ({})),
         stagehandOptions: schemas.anyObject.optional(),
         headless: z.boolean().optional(),
     };
@@ -435,14 +428,7 @@ export class StagehandCrawler<
     ) {
         const parsedOptions = parseArgument(options, StagehandCrawler.optionsSchema, 'StagehandCrawlerOptions');
 
-        const {
-            stagehandOptions,
-            launchContext,
-            headless,
-            configuration,
-            contextPipelineBuilder,
-            ...browserCrawlerOptions
-        } = parsedOptions;
+        const { stagehandOptions, launchContext, headless, configuration, ...browserCrawlerOptions } = parsedOptions;
 
         if (options.browserPool) {
             // The raw options, not the parsed ones: `launchContext` has a default, so by now it is always set.
@@ -460,31 +446,31 @@ export class StagehandCrawler<
                 Routes,
                 StatisticStateExtension
             >),
-            launchContext,
             configuration,
             // The pool serves plain Playwright pages - a page only becomes a `StagehandPage` further down the
             // pipeline, once `setUpStagehand` enhances it - so its page type is narrower than the crawler's.
-            browserPoolBuilder: (remoteBrowser) =>
-                (remoteBrowser
-                    ? remoteStagehandBrowserPool({
-                          ...remoteBrowser,
-                          launchContext,
-                          stagehandOptions,
-                          headless,
-                          configuration,
-                      })
-                    : stagehandBrowserPool({
-                          launchContext,
-                          stagehandOptions,
-                          headless,
-                          configuration,
-                      })) as unknown as OwnedBrowserPool<StagehandPage>,
-            contextPipelineBuilder: contextPipelineBuilder ?? (() => this.buildContextPipeline()),
+            browserPoolBuilder: (remoteBrowser) => {
+                // Stagehand manages its own browser (local or Browserbase), so a Crawlee-level remote connection
+                // would be silently ignored.
+                if (remoteBrowser) {
+                    throw new Error(
+                        'StagehandCrawler does not support `remoteBrowser`. Use `stagehandOptions.env: "BROWSERBASE"` instead.',
+                    );
+                }
+
+                return stagehandBrowserPool({
+                    launchContext,
+                    stagehandOptions,
+                    headless,
+                    configuration,
+                }) as unknown as OwnedBrowserPool<StagehandPage>;
+            },
+            contextPipelineBuilder: () => this.#buildContextPipeline(),
         });
     }
 
-    protected override buildContextPipeline(): ContextPipeline<CrawlingContext, StagehandCrawlingContext> {
-        return super.buildContextPipeline().compose(this.setUpStagehand.bind(this));
+    #buildContextPipeline(): ContextPipeline<CrawlingContext, StagehandCrawlingContext> {
+        return this.buildContextPipeline().compose(this.#setUpStagehand.bind(this));
     }
 
     /**
@@ -496,7 +482,7 @@ export class StagehandCrawler<
      * instance bound to the page's browser, which is why it reaches past the
      * {@apilink IBrowserPool} abstraction here.
      */
-    private getBrowserControllerByPage(page: StagehandPage): StagehandController | undefined {
+    #getBrowserControllerByPage(page: StagehandPage): StagehandController | undefined {
         if ('getBrowserControllerByPage' in this.browserPool) {
             return (
                 this.browserPool as unknown as {
@@ -511,10 +497,8 @@ export class StagehandCrawler<
     /**
      * Enhance the page with Stagehand AI methods.
      */
-    private async setUpStagehand(crawlingContext: {
-        page: Page;
-    }): Promise<{ stagehand: Stagehand; page: StagehandPage }> {
-        const controller = this.getBrowserControllerByPage(crawlingContext.page as StagehandPage);
+    async #setUpStagehand(crawlingContext: { page: Page }): Promise<{ stagehand: Stagehand; page: StagehandPage }> {
+        const controller = this.#getBrowserControllerByPage(crawlingContext.page as StagehandPage);
 
         if (!controller) {
             throw new Error(

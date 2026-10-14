@@ -122,6 +122,12 @@ export interface ISession {
     isUsable(): boolean;
 
     /**
+     * Indicates whether the session is blocked, i.e. its error score reached the maximum or it was retired via `retire()`.
+     * Unlike other reasons for not being usable, this means the identity itself is burned.
+     */
+    isBlocked(): boolean;
+
+    /**
      * This method should be called after a successful session usage.
      */
     markGood(): void;

@@ -3,7 +3,7 @@
     "version": "4.0.0",
     "description": "impit-based HTTP client implementation for Crawlee. Impersonates browser requests to avoid bot detection.",
     "engines": {
-        "node": ">=22.0.0"
+        "node": ">=22.13.0"
     },
     "type": "module",
     "exports": {

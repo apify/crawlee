@@ -11,7 +11,7 @@
  *
  * With the wrapper removed, request 2's body should report no cookies.
  */
-import { PlaywrightCrawler, remotePlaywrightBrowserPool } from 'crawlee';
+import { PlaywrightCrawler, playwrightBrowserPool } from 'crawlee';
 import { expect, test } from 'vitest';
 
 import { BROWSERLESS_URL, httpbin } from './helpers.js';
@@ -26,18 +26,15 @@ test.skipIf(!process.env.CRAWLEE_DIFFICULT_TESTS)(
 
         // Tuning the pool that wraps the remote connection means building it here rather than using the
         // crawler's terser `remoteBrowser` option - and owning its teardown as a result.
-        const browserPool = remotePlaywrightBrowserPool({
-            endpoint: BROWSERLESS_URL,
-            maxOpenBrowsers: 1,
-            browserPoolOptions: {
-                retireBrowserAfterPageCount: 10, // keep the same browser across both requests
-                maxOpenPagesPerBrowser: 2,
-                postPageCreateHooks: [
-                    (page: object, browserController: { id: string }) => {
-                        controllerIdByPage.set(page, browserController.id);
-                    },
-                ],
-            },
+        const browserPool = playwrightBrowserPool({
+            remoteBrowser: { endpoint: BROWSERLESS_URL, maxOpenBrowsers: 1 },
+            retireBrowserAfterPageCount: 10, // keep the same browser across both requests
+            maxOpenPagesPerBrowser: 2,
+            postPageCreateHooks: [
+                (page, browserController) => {
+                    controllerIdByPage.set(page, browserController.id);
+                },
+            ],
         });
 
         const crawler = new PlaywrightCrawler({

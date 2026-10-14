@@ -48,6 +48,7 @@ module.exports = {
                 'guides/impit-http-client/impit-http-client',
                 'guides/got-scraping',
                 'guides/typescript-project',
+                'guides/public-api',
                 'guides/docker-images',
                 'guides/stagehand-crawler-guide',
                 'guides/running-in-web-server/running-in-web-server',

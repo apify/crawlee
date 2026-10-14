@@ -70,7 +70,7 @@ body:
       description: |
         Which version of Node.js are you using? Run `node --version` in your project directory and paste the output.
         If you are using TypeScript, please include its version (`npm list typescript`) as well.
-      placeholder: Node.js version 16+ is required for Crawlee
+      placeholder: Node.js version 22.13+ is required for Crawlee
     validations:
       required: true
 

@@ -18,7 +18,7 @@ describe('log forwarding against the real Crawlee logger', () => {
 
     beforeAll(() => {
         exporter = new InMemoryLogRecordExporter();
-        loggerProvider = new LoggerProvider({ processors: [new SimpleLogRecordProcessor(exporter)] });
+        loggerProvider = new LoggerProvider({ processors: [new SimpleLogRecordProcessor({ exporter })] });
 
         const instrumentation = new CrawleeInstrumentation({ requestHandlingInstrumentation: false });
         instrumentation.setLoggerProvider(loggerProvider);

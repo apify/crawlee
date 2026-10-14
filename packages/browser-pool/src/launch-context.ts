@@ -60,6 +60,7 @@ export interface LaunchContextOptions<
      * Whether this launch context represents a connection to a remote browser
      * rather than a locally launched one.
      * @default false
+     * @internal
      */
     isRemote?: boolean;
 }
@@ -84,13 +85,6 @@ export class LaunchContext<
     readonly #reservedFieldNames: (string | symbol)[];
 
     fingerprint?: BrowserFingerprintWithHeaders;
-
-    /**
-     * Token identifying the remote browser session this context connected to, set by the plugin and read by
-     * the {@apilink RemoteBrowserPool} to release the session on close. Only present for remote connections.
-     * @internal
-     */
-    remoteToken?: number;
 
     [K: PropertyKey]: unknown;
 
@@ -120,7 +114,7 @@ export class LaunchContext<
 
         // Computed here (not in a field initializer) so that all fields already exist; the accessors live on
         // the prototype, so they are never own keys and have to be listed explicitly.
-        this.#reservedFieldNames = [...Reflect.ownKeys(this), 'proxyUrl', 'remoteToken', 'extend'];
+        this.#reservedFieldNames = [...Reflect.ownKeys(this), 'proxyUrl', 'extend'];
     }
 
     /**

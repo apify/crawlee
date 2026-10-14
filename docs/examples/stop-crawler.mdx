@@ -1,0 +1,16 @@
+---
+id: stop-crawler
+title: Stopping the crawler early
+---
+
+import RunnableCodeBlock from '@site/src/components/RunnableCodeBlock';
+import ApiLink from '@site/src/components/ApiLink';
+import StopCrawlerSource from '!!raw-loader!roa-loader!./stop-crawler.ts';
+
+Calling <ApiLink to="basic-crawler/class/BasicCrawler#stop">`crawler.stop()`</ApiLink> ends the run gracefully: no further requests are dispatched, the ones already being processed finish, and `crawler.run()` resolves. Requests still waiting in the queue are left there untouched, so a later `run()` picks up where this one left off. This is the way to stop once a result limit is reached, without draining the queue or marking the remaining requests as handled.
+
+To abort immediately without waiting for in-flight requests, use <ApiLink to="basic-crawler/class/BasicCrawler#teardown">`crawler.teardown()`</ApiLink> instead.
+
+<RunnableCodeBlock className="language-js" type="cheerio">
+	{StopCrawlerSource}
+</RunnableCodeBlock>

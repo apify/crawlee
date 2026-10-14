@@ -4,9 +4,9 @@ import type { Awaitable, Dictionary, RequestSchema } from '@crawlee/types';
 
 import { addTimeoutToPromise, storage as timeoutStorage, tryCancel } from '@apify/timeout';
 
-import { serviceLocator } from '../service_locator.js';
+import { serviceLocator } from '../service-locator.js';
 import { AfterCommitError, NonRetryableError } from '../errors.js';
-import type { RecordOptions } from './key_value_store.js';
+import type { RecordOptions } from './key-value-store.js';
 
 /**
  * Governs whether writes of a given storage type performed inside a {@apilink StorageTransaction} are
@@ -54,6 +54,7 @@ export interface TransactionParticipant {
 
 /**
  * A single dataset write (`pushData`) recorded in a transaction journal.
+ * @internal
  */
 export interface DatasetJournalEntry {
     type: 'dataset';
@@ -67,6 +68,7 @@ export interface DatasetJournalEntry {
 
 /**
  * A single key-value store write (`setValue`) recorded in a transaction journal.
+ * @internal
  */
 export interface KeyValueStoreJournalEntry {
     type: 'keyValueStore';
@@ -81,6 +83,7 @@ export interface KeyValueStoreJournalEntry {
 
 /**
  * A request recorded in a transaction journal.
+ * @internal
  */
 export interface JournaledRequest {
     url: string;
@@ -95,6 +98,7 @@ export interface JournaledRequest {
 
 /**
  * A batch of request queue additions recorded in a transaction journal.
+ * @internal
  */
 export interface RequestQueueJournalEntry {
     type: 'requestQueue';
@@ -106,6 +110,7 @@ export interface RequestQueueJournalEntry {
     writeThrough: boolean;
 }
 
+/** @internal */
 export type JournalEntry = DatasetJournalEntry | KeyValueStoreJournalEntry | RequestQueueJournalEntry;
 
 /**
@@ -164,11 +169,13 @@ const COMMIT_ORDER: JournalEntry['type'][] = ['keyValueStore', 'requestQueue', '
  * handler unless `transactionalStorage: false` is set.
  */
 export class StorageTransaction implements StorageTransactionView {
-    /** The ordered, append-only journal — the source of truth for commit, introspection and reads. */
+    /**
+     * The ordered, append-only journal — the source of truth for commit, introspection and reads.
+     * @internal
+     */
     readonly journal: JournalEntry[] = [];
 
-    /** Per-storage-type write policy. */
-    readonly policy: StorageWritePolicy;
+    readonly #policy: StorageWritePolicy;
 
     readonly #commitTimeoutMillis: number;
 
@@ -181,8 +188,16 @@ export class StorageTransaction implements StorageTransactionView {
 
     /** @internal */
     constructor(options: StorageTransactionOptions = {}) {
-        this.policy = { ...DEFAULT_STORAGE_WRITE_POLICY, ...options.policy };
+        this.#policy = { ...DEFAULT_STORAGE_WRITE_POLICY, ...options.policy };
         this.#commitTimeoutMillis = options.commitTimeoutMillis ?? DEFAULT_COMMIT_TIMEOUT_MILLIS;
+    }
+
+    /**
+     * Per-storage-type write policy.
+     * @internal
+     */
+    get policy(): StorageWritePolicy {
+        return this.#policy;
     }
 
     get state(): StorageTransactionState {
@@ -250,7 +265,7 @@ export class StorageTransaction implements StorageTransactionView {
             // handler that succeeded. Hence a fresh timeout context, which also provides the time bound.
             await timeoutStorage.exit(async () =>
                 addTimeoutToPromise(
-                    async () => this.flush(),
+                    async () => this.#flush(),
                     this.#commitTimeoutMillis,
                     `Committing the storage transaction timed out after ${this.#commitTimeoutMillis / 1000} seconds.`,
                 ),
@@ -284,7 +299,7 @@ export class StorageTransaction implements StorageTransactionView {
         });
     }
 
-    private async flush(): Promise<void> {
+    async #flush(): Promise<void> {
         // Each participating frontend replays all of its buffered entries in one call. Frontends are
         // ordered by storage type: key-value stores and request queues first (idempotent under retry),
         // datasets last (not idempotent), minimizing the blast radius of a partial commit failure.

@@ -48,4 +48,4 @@ export function uniqueKeyToRequestId(uniqueKey: string): string {
     return str.length > REQUEST_ID_LENGTH ? str.slice(0, REQUEST_ID_LENGTH) : str;
 }
 
-export { isBuffer, isStream, toBuffer } from '../byte_utils.js';
+export { isBuffer, isStream, toBuffer } from '../byte-utils.js';
