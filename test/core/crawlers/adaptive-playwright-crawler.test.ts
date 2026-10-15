@@ -263,7 +263,7 @@ describe('AdaptivePlaywrightCrawler', () => {
         });
     });
 
-    describe('querySelector and querySelectorAll', () => {
+    describe('querySelectorOne and querySelectorAll', () => {
         test.each([
             ['/static', 'static'],
             ['/dynamic', 'clientOnly'],
@@ -275,14 +275,10 @@ describe('AdaptivePlaywrightCrawler', () => {
             const url = new URL(`http://${HOSTNAME}:${port}${path}`);
 
             const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = vi.fn(
-                async ({ pushData, querySelector, querySelectorAll }) => {
-                    const first = await querySelector('a');
+                async ({ pushData, querySelectorOne, querySelectorAll }) => {
+                    const first = await querySelectorOne('a');
                     const all = await querySelectorAll('a');
-                    await pushData({
-                        firstCount: first.length,
-                        firstText: first.text(),
-                        allCount: all.length,
-                    });
+                    await pushData({ firstCount: first.length, firstText: first.text(), allCount: all.length });
                 },
             );
 
@@ -296,8 +292,28 @@ describe('AdaptivePlaywrightCrawler', () => {
 
             await crawler.run();
 
-            // `querySelector` returns only the first match, `querySelectorAll` returns the whole collection.
             expect((await Dataset.getData()).items).toEqual([{ firstCount: 1, firstText: 'Link 1', allCount: 5 }]);
+        });
+
+        test('falls back to the browser when the static run finds nothing', async () => {
+            const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+                detectionProbabilityRecommendation: 0,
+                renderingType: 'static',
+            });
+            const url = new URL(`http://${HOSTNAME}:${port}/dynamic`);
+
+            const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = vi.fn(
+                async ({ pushData, querySelectorAll }) => {
+                    await pushData({ heading: (await querySelectorAll('h1')).text() });
+                },
+            );
+
+            const crawler = await makeOneshotCrawler({ requestHandler, renderingTypePredictor }, [url.toString()]);
+
+            await crawler.run();
+
+            expect(requestHandler).toHaveBeenCalledTimes(2);
+            expect((await Dataset.getData()).items).toEqual([{ heading: 'Heading' }]);
         });
     });
 
@@ -421,9 +437,9 @@ describe('AdaptivePlaywrightCrawler', () => {
         const url = new URL(`http://${HOSTNAME}:${port}/dynamic`);
 
         const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = vi.fn(
-            async ({ pushData, querySelector }) => {
+            async ({ pushData, parseWithCheerio }) => {
                 await pushData({
-                    heading: (await querySelector('h1')).text(),
+                    heading: (await parseWithCheerio())('h1').text(),
                 });
             },
         );

@@ -26,7 +26,7 @@ const crawler = new AdaptivePlaywrightCrawler({
     requestHandler: async (context) => {
         const { url } = context.request;
 
-        const heading = (await context.querySelector('h1')).text();
+        const heading = (await context.querySelectorOne('h1')).text();
 
         const requestHandlerMode = await (async () => {
             try {
