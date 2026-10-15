@@ -110,6 +110,10 @@ await dataset.pushData([{ foo: 'bar2', col2: 'val2' }, { col3: 123 }]);
 
 To see how to use the dataset to store crawler results, see the [Cheerio Crawler](../examples/cheerio-crawler) example.
 
+## Transforming stored data
+
+To transform data on its way to and from storage — encryption, compression, caching — wrap the storage backend rather than subclassing `KeyValueStore` or `Dataset`. A `KeyValueStore` subclass in particular would see each write from a request handler twice, once when it is made and again when the [transaction](#transactional-storage) commits. See the [Encrypt KVS records](../examples/encrypt-key-value-store) example.
+
 ## Cleaning up the storages
 
 Run-scoped storages - the default one and any opened with an `alias` - are purged before the crawler starts if not specified otherwise. Storages opened with a `name` persist across runs and are never purged. This happens as early as when we try to open some storage (e.g. via `Dataset.open()`) or when we try to work with a default storage via one of the helper methods (e.g. `Dataset.pushData()` that under the hood calls `Dataset.open()`). If we don't work with storages explicitly in our code, the purging will eventually happen when the `run` method of our crawler is executed. In case we need to purge the storages sooner, we can use the <ApiLink to="core/function/purgeDefaultStorages">`purgeDefaultStorages()`</ApiLink> helper explicitly:
