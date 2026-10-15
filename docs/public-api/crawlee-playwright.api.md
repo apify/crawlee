@@ -101,8 +101,8 @@ export interface AdaptivePlaywrightCrawlerOptions<ContextExtension = Dictionary<
     preNavigationHooks?: AdaptiveHook<ContextExtension>[];
     renderingTypeDetectionRatio?: number;
     renderingTypePredictor?: IRenderingTypePredictor;
-    resultChecker?: (result: StorageTransactionView) => boolean;
-    resultComparator?: (resultA: StorageTransactionView, resultB: StorageTransactionView) => boolean | 'equal' | 'different' | 'inconclusive';
+    resultChecker?: (result: StorageTransactionView, context: AdaptiveResultContext) => boolean;
+    resultComparator?: (resultA: StorageTransactionView, resultB: StorageTransactionView, context: AdaptiveResultContext) => boolean | 'equal' | 'different' | 'inconclusive';
     shouldPropagateError?: (error: Error, context: PlaywrightCrawlingContext) => Awaitable<boolean>;
 }
 
@@ -123,6 +123,11 @@ export const adaptivePlaywrightCrawlerStatisticState: {
 type AdaptivePostNavigationHook<ContextExtension = Dictionary<never>> = BrowserHook<Omit<AdaptiveHookContext, 'request'> & {
     request: LoadedRequest<CrawlingRequest>;
 }, ContextExtension>;
+
+// @public
+export interface AdaptiveResultContext {
+    request: CrawlingRequest;
+}
 
 // Not exported by the entry point; reachable only as a referenced type.
 // @public (undocumented)

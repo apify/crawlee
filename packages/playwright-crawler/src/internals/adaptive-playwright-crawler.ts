@@ -164,6 +164,12 @@ type AdaptivePostNavigationHook<ContextExtension = Dictionary<never>> = BrowserH
     ContextExtension
 >;
 
+/** Passed to {@apilink AdaptivePlaywrightCrawlerOptions.resultChecker} and `resultComparator` alongside the results. */
+export interface AdaptiveResultContext {
+    /** The request whose handler produced the results. */
+    request: CrawlingRequest;
+}
+
 export interface AdaptivePlaywrightCrawlerOptions<
     ContextExtension = Dictionary<never>,
     ExtendedContext extends AdaptivePlaywrightCrawlerContext = AdaptivePlaywrightCrawlerContext & ContextExtension,
@@ -217,7 +223,7 @@ export interface AdaptivePlaywrightCrawlerOptions<
      * If it returns false, the request is retried in a browser.
      * If no callback is specified, every result is considered valid.
      */
-    resultChecker?: (result: StorageTransactionView) => boolean;
+    resultChecker?: (result: StorageTransactionView, context: AdaptiveResultContext) => boolean;
 
     /**
      * An optional callback that decides whether an error thrown during the plain HTTP request handler
@@ -245,6 +251,7 @@ export interface AdaptivePlaywrightCrawlerOptions<
     resultComparator?: (
         resultA: StorageTransactionView,
         resultB: StorageTransactionView,
+        context: AdaptiveResultContext,
     ) => boolean | 'equal' | 'different' | 'inconclusive';
 
     /**
@@ -453,7 +460,8 @@ export class AdaptivePlaywrightCrawler<
         if (resultComparator !== undefined) {
             this.#resultComparator = resultComparator;
         } else if (resultChecker !== undefined) {
-            this.#resultComparator = (resultA, resultB) => this.#resultChecker(resultA) && this.#resultChecker(resultB);
+            this.#resultComparator = (resultA, resultB, context) =>
+                this.#resultChecker(resultA, context) && this.#resultChecker(resultB, context);
         } else {
             this.#resultComparator = (resultA, resultB) => {
                 return (
@@ -680,6 +688,10 @@ export class AdaptivePlaywrightCrawler<
         const transactions: StorageTransaction[] = [];
 
         try {
+            // A result the `resultChecker` rejected is as good as a detection saying the page needs a browser - but
+            // only once the browser run has succeeded. A thrown error says nothing about rendering.
+            let httpResultRejected = false;
+
             if (renderingTypePrediction.renderingType === 'static' && !shouldDetectRenderingType) {
                 crawlingContext.log.debug(`Running HTTP-only request handler for ${crawlingContext.request.url}`);
                 this.statistics.state.httpOnlyRequestHandlerRuns++;
@@ -691,7 +703,7 @@ export class AdaptivePlaywrightCrawler<
                     transactions,
                 );
 
-                if (plainHTTPRun.ok && this.#resultChecker(plainHTTPRun.result)) {
+                if (plainHTTPRun.ok && this.#resultChecker(plainHTTPRun.result, { request: crawlingContext.request })) {
                     crawlingContext.log.debug(`HTTP-only request handler succeeded for ${crawlingContext.request.url}`);
                     plainHTTPRun.logs?.forEach(([log, method, ...args]) => log[method](...(args as [any, any])));
                     await plainHTTPRun.result.commit();
@@ -722,6 +734,7 @@ export class AdaptivePlaywrightCrawler<
                         `HTTP-only request handler returned a suspicious result for ${crawlingContext.request.url}`,
                     );
                     this.statistics.state.renderingTypeMispredictions++;
+                    httpResultRejected = true;
                 }
             }
 
@@ -765,6 +778,11 @@ export class AdaptivePlaywrightCrawler<
             browserRun.logs?.forEach(([log, method, ...args]) => log[method](...(args as [any, any])));
             await browserRun.result.commit();
 
+            // Past the shutdown fence, `teardown()` has already drained - and possibly torn down the predictor.
+            if (httpResultRejected && !this.#shutDown) {
+                this.#storeRenderingType(crawlingContext.request, 'clientOnly');
+            }
+
             if (shouldDetectRenderingType) {
                 const detectionPromise = (async () => {
                     crawlingContext.log.debug(`Detecting rendering type for ${crawlingContext.request.url}`);
@@ -782,7 +800,9 @@ export class AdaptivePlaywrightCrawler<
                             return 'clientOnly';
                         }
 
-                        const comparisonResult = this.#resultComparator(plainHTTPRun.result, browserRun.result);
+                        const comparisonResult = this.#resultComparator(plainHTTPRun.result, browserRun.result, {
+                            request: crawlingContext.request,
+                        });
                         if (comparisonResult === true || comparisonResult === 'equal') {
                             return 'static';
                         }
@@ -799,24 +819,7 @@ export class AdaptivePlaywrightCrawler<
                     );
 
                     if (detectionResult !== undefined) {
-                        // Deliberately not awaited: a predictor that persists asynchronously gets to keep
-                        // batching its writes, and the drain below catches whatever is still pending.
-                        const stored = this.#renderingTypePredictor.value.storeResult(
-                            crawlingContext.request,
-                            detectionResult,
-                        );
-
-                        if (stored !== undefined) {
-                            // Nothing downstream awaits this, so a failed write would otherwise be silent.
-                            void this.#trackDetection(
-                                Promise.resolve(stored).catch((error) =>
-                                    this.log.exception(
-                                        error as Error,
-                                        `Failed to store the rendering type detection result for ${crawlingContext.request.url}`,
-                                    ),
-                                ),
-                            );
-                        }
+                        this.#storeRenderingType(crawlingContext.request, detectionResult);
                     }
                 })();
 
@@ -828,6 +831,24 @@ export class AdaptivePlaywrightCrawler<
                 transaction.rollback();
                 transaction.dispose();
             }
+        }
+    }
+
+    #storeRenderingType(request: CrawlingContext['request'], renderingType: RenderingType): void {
+        // Deliberately not awaited: a predictor that persists asynchronously gets to keep batching its writes,
+        // and `drainRenderingDetections()` catches whatever is still pending.
+        const stored = this.#renderingTypePredictor.value.storeResult(request, renderingType);
+
+        if (stored !== undefined) {
+            // Nothing downstream awaits this, so a failed write would otherwise be silent.
+            void this.#trackDetection(
+                Promise.resolve(stored).catch((error) =>
+                    this.log.exception(
+                        error as Error,
+                        `Failed to store the rendering type detection result for ${request.url}`,
+                    ),
+                ),
+            );
         }
     }
 
