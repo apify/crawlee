@@ -304,6 +304,8 @@ interface PlaywrightContextUtils {
     injectJQuery(): Promise<unknown>;
     listDownloads(): Promise<Download[]>;
     parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioAPI>;
+    querySelectorAll(selector: string, timeoutMs?: number): Promise<Cheerio<AnyNode>>;
+    querySelectorOne(selector: string, timeoutMs?: number): Promise<Cheerio<AnyNode>>;
     saveSnapshot(options?: SaveSnapshotOptions): Promise<void>;
     waitForSelector(selector: string, timeoutMs?: number): Promise<void>;
 }

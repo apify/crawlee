@@ -274,6 +274,24 @@ export class PlaywrightCrawler<
             const locator = context.page.locator(selector).first();
             await locator.waitFor({ timeout: timeoutMs, state: 'attached' });
         };
+        const parseWithCheerioFn = async (selector?: string, timeoutMs = 5_000) => {
+            if (selector) {
+                await waitForSelector(selector, timeoutMs);
+            }
+
+            return parseWithCheerio(context.page, this.ignoreShadowRoots, this.ignoreIframes);
+        };
+        const querySelectorAll = async (selector: string, timeoutMs?: number) => {
+            const matches = (await parseWithCheerioFn(selector, timeoutMs))(selector);
+
+            // The browser located it but the Cheerio snapshot does not have it - a Playwright-only selector,
+            // or an element under a shadow root/iframe the snapshot was told to ignore.
+            if (matches.length === 0) {
+                throw new Error(`Selector '${selector}' not found in the page snapshot.`);
+            }
+
+            return matches;
+        };
 
         const downloads: Download[] = [];
         context.page.on('download', (download) => downloads.push(download));
@@ -293,13 +311,10 @@ export class PlaywrightCrawler<
             },
             blockRequests: async (options?: BlockRequestsOptions) => blockRequests(context.page, options),
             waitForSelector,
-            parseWithCheerio: async (selector?: string, timeoutMs = 5_000) => {
-                if (selector) {
-                    await waitForSelector(selector, timeoutMs);
-                }
-
-                return parseWithCheerio(context.page, this.ignoreShadowRoots, this.ignoreIframes);
-            },
+            parseWithCheerio: parseWithCheerioFn,
+            querySelectorAll,
+            querySelectorOne: async (selector: string, timeoutMs?: number) =>
+                (await querySelectorAll(selector, timeoutMs)).first(),
             infiniteScroll: async (options?: InfiniteScrollOptions) => infiniteScroll(context.page, options),
             listDownloads: async () => downloads,
             saveSnapshot: async (options?: SaveSnapshotOptions) =>

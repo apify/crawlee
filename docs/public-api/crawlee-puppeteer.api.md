@@ -4,6 +4,7 @@
 
 ```ts
 
+import type { AnyNode } from 'domhandler';
 import type { BatchAddRequestsResult } from '@crawlee/types';
 import type { Browser } from 'puppeteer';
 import { BrowserCrawler } from '@crawlee/browser';
@@ -14,6 +15,7 @@ import type { BrowserLaunchContext } from '@crawlee/browser';
 import type { BrowserPool } from '@crawlee/browser-pool';
 import type { BrowserPoolHooks } from '@crawlee/browser-pool';
 import type { BrowserPoolOptions } from '@crawlee/browser-pool';
+import type { Cheerio } from 'cheerio';
 import type { CheerioAPI } from 'cheerio';
 import type { ClickOptions } from 'puppeteer';
 import { Configuration } from '@crawlee/browser';
@@ -154,6 +156,8 @@ interface PuppeteerContextUtils {
     injectFile(filePath: string, options?: InjectFileOptions): Promise<unknown>;
     injectJQuery(): Promise<unknown>;
     parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioAPI>;
+    querySelectorAll(selector: string, timeoutMs?: number): Promise<Cheerio<AnyNode>>;
+    querySelectorOne(selector: string, timeoutMs?: number): Promise<Cheerio<AnyNode>>;
     removeInterceptRequestHandler(handler: InterceptHandler): Promise<void>;
     saveSnapshot(options?: SaveSnapshotOptions): Promise<void>;
     waitForSelector(selector: string, timeoutMs?: number): Promise<void>;

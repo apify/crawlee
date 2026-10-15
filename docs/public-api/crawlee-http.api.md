@@ -5,9 +5,11 @@
 ```ts
 
 import type { AddRequestsBatchedResult } from '@crawlee/basic';
+import type { AnyNode } from 'domhandler';
 import type { Awaitable } from '@crawlee/types';
 import { BasicCrawler } from '@crawlee/basic';
 import { BasicCrawlerOptions } from '@crawlee/basic';
+import type { Cheerio } from 'cheerio';
 import type { CheerioAPI } from 'cheerio';
 import type { ConcurrencySystemOptions } from '@crawlee/basic';
 import { ContextPipeline } from '@crawlee/basic';
@@ -147,6 +149,10 @@ export interface HttpCrawlerOptions<Context extends InternalHttpCrawlingContext 
 
 // @public (undocumented)
 export interface HttpCrawlingContext<UserData extends Dictionary = any, JSONData extends JsonValue = any> extends InternalHttpCrawlingContext<UserData, JSONData> {
+    // (undocumented)
+    querySelectorAll(selector: string, timeoutMs?: number): Promise<Cheerio<AnyNode>>;
+    // (undocumented)
+    querySelectorOne(selector: string, timeoutMs?: number): Promise<Cheerio<AnyNode>>;
 }
 
 // @public (undocumented)
@@ -168,6 +174,8 @@ JSONData extends JsonValue = any> extends CrawlingContextWithResponse<UserData> 
     };
     json: JSONData;
     parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioAPI>;
+    querySelectorAll(selector: string, timeoutMs?: number): Promise<ArrayLike<unknown>>;
+    querySelectorOne(selector: string, timeoutMs?: number): Promise<unknown>;
     waitForSelector(selector: string, timeoutMs?: number): Promise<void>;
 }
 
