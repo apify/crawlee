@@ -3,7 +3,7 @@ import { resolve } from 'node:path';
 
 import { FileSystemStorageBackend } from '@crawlee/fs-storage';
 
-describe('FileSystemStorageBackend extendRequestProcessingTimeSecs', () => {
+describe('FileSystemStorageBackend extendRequestProcessingTime', () => {
     const tmpLocation = resolve(import.meta.dirname, './tmp/prolong-request-lock');
 
     afterEach(async () => {
@@ -22,8 +22,8 @@ describe('FileSystemStorageBackend extendRequestProcessingTimeSecs', () => {
         const locked = await queue.fetchNextRequest();
         expect(locked).toBeDefined();
 
-        expect(await queue.extendRequestProcessingTimeSecs!(locked!.id!, 30)).toBe(true);
-        expect(await queue.extendRequestProcessingTimeSecs!('no-such-request', 30)).toBe(false);
+        expect(await queue.extendRequestProcessingTime!(locked!.id!, 30)).toBe(true);
+        expect(await queue.extendRequestProcessingTime!('no-such-request', 30)).toBe(false);
 
         await queue.drop();
     });

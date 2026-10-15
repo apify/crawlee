@@ -1034,7 +1034,7 @@ describe('AdaptivePlaywrightCrawler', () => {
 
     test('reserves a request for the longest route timeout override', async () => {
         const requestQueue = await RequestQueue.open(`rq-adaptive-${Math.random() * 10000}`);
-        const hintSpy = vitest.spyOn(requestQueue, 'setExpectedRequestProcessingTimeSecs');
+        const hintSpy = vitest.spyOn(requestQueue, 'setExpectedRequestProcessingTime');
 
         const router = createAdaptivePlaywrightRouter();
         router.addHandler('LIST', async () => {}, { requestHandlerTimeoutSecs: 300 });

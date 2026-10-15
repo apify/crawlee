@@ -419,7 +419,7 @@ describe('ThrottlingRequestManager', () => {
             const manager = new ThrottlingRequestManager({ ...throttling, inner: factory });
 
             await manager.purge();
-            await manager.setExpectedRequestProcessingTimeSecs(600);
+            await manager.setExpectedRequestProcessingTime(600);
             await manager.drop();
 
             expect(factory).not.toHaveBeenCalled();
@@ -428,10 +428,10 @@ describe('ThrottlingRequestManager', () => {
 
         test('receives an expected-processing-time hint given before it was resolved', async () => {
             const inner = await createQueue();
-            const setHint = vitest.spyOn(inner, 'setExpectedRequestProcessingTimeSecs');
+            const setHint = vitest.spyOn(inner, 'setExpectedRequestProcessingTime');
             const manager = new ThrottlingRequestManager({ ...throttling, inner: () => inner });
 
-            await manager.setExpectedRequestProcessingTimeSecs(600);
+            await manager.setExpectedRequestProcessingTime(600);
             expect(setHint).not.toHaveBeenCalled();
 
             await manager.fetchNextRequest();
@@ -513,7 +513,7 @@ describe('ThrottlingRequestManager', () => {
         });
     });
 
-    test('extendRequestProcessingTimeSecs reaches the manager holding the request without disturbing its routing', async () => {
+    test('extendRequestProcessingTime reaches the manager holding the request without disturbing its routing', async () => {
         // The file-system backend actually locks fetched requests, so the spies observe
         // the real forwarding without replacing it.
         const tmpLocation = resolve(import.meta.dirname, './tmp/extend-routing');
@@ -543,14 +543,14 @@ describe('ThrottlingRequestManager', () => {
 
             // Re-opening the deterministic alias yields the same cached frontend the manager routes to.
             const subQueue = await RequestQueue.open({ alias: 'throttled-example.com' }, { storageBackend });
-            const innerSpy = vi.spyOn(inner.backend, 'extendRequestProcessingTimeSecs');
-            const subSpy = vi.spyOn(subQueue.backend, 'extendRequestProcessingTimeSecs');
+            const innerSpy = vi.spyOn(inner.backend, 'extendRequestProcessingTime');
+            const subSpy = vi.spyOn(subQueue.backend, 'extendRequestProcessingTime');
 
-            await expect(manager.extendRequestProcessingTimeSecs(routed, 30)).resolves.toBe(true);
+            await expect(manager.extendRequestProcessingTime(routed, 30)).resolves.toBe(true);
             expect(subSpy).toHaveBeenCalledExactlyOnceWith(routed.id, 30);
             expect(innerSpy).not.toHaveBeenCalled();
 
-            await expect(manager.extendRequestProcessingTimeSecs(fromInner, 30)).resolves.toBe(true);
+            await expect(manager.extendRequestProcessingTime(fromInner, 30)).resolves.toBe(true);
             expect(innerSpy).toHaveBeenCalledExactlyOnceWith(fromInner.id, 30);
             expect(subSpy).toHaveBeenCalledTimes(1);
 
