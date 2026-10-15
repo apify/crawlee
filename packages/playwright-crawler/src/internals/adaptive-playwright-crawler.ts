@@ -307,8 +307,6 @@ interface InnerCrawlerLifecycle {
  *     'http://www.example.com/page-2',
  * ]);
  * ```
- *
- * @experimental
  */
 export class AdaptivePlaywrightCrawler<
     ContextExtension = Dictionary<never>,

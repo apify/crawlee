@@ -38,6 +38,7 @@ module.exports = {
                 'guides/configuration',
                 'guides/cheerio-crawler-guide',
                 'guides/javascript-rendering',
+                'guides/adaptive-crawling/adaptive-crawling',
                 'guides/remote-browser',
                 'guides/proxy-management',
                 'guides/session-management',
