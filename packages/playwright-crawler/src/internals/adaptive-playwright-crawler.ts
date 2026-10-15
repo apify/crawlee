@@ -107,16 +107,17 @@ export interface AdaptivePlaywrightCrawlerContext<
     page: Page;
 
     /**
-     * Wait for an element matching the selector to appear and return a Cheerio object of the first matched element.
-     * Timeout defaults to 5s.
-     */
-    querySelector(selector: string, timeoutMs?: number): Promise<Cheerio<AnyNode>>;
-
-    /**
      * Wait for an element matching the selector to appear and return a Cheerio object of all matched elements.
+     * Throws when nothing matches - in the HTTP-only run, that makes the crawler retry the request in a browser.
      * Timeout defaults to 5s.
      */
     querySelectorAll(selector: string, timeoutMs?: number): Promise<Cheerio<AnyNode>>;
+
+    /**
+     * Like {@apilink AdaptivePlaywrightCrawlerContext.querySelectorAll|`querySelectorAll`}, but returns only the
+     * first match.
+     */
+    querySelectorOne(selector: string, timeoutMs?: number): Promise<Cheerio<AnyNode>>;
 
     /**
      * Wait for an element matching the selector to appear.
@@ -281,9 +282,9 @@ interface InnerCrawlerLifecycle {
  * ```javascript
  * const crawler = new AdaptivePlaywrightCrawler({
  *     renderingTypeDetectionRatio: 0.1,
- *     async requestHandler({ querySelector, pushData, enqueueLinks, request, log }) {
+ *     async requestHandler({ querySelectorAll, pushData, enqueueLinks, request, log }) {
  *         // This function is called to extract data from a single web page
- *         const $prices = await querySelector('span.price')
+ *         const $prices = await querySelectorAll('span.price')
  *
  *         await pushData({
  *             url: request.url,
@@ -527,11 +528,11 @@ export class AdaptivePlaywrightCrawler<
             get page(): Page {
                 throw new Error(errorMessage('page'));
             },
-            get querySelector(): AdaptivePlaywrightCrawlerContext['querySelector'] {
-                throw new Error(errorMessage('querySelector'));
-            },
             get querySelectorAll(): AdaptivePlaywrightCrawlerContext['querySelectorAll'] {
                 throw new Error(errorMessage('querySelectorAll'));
+            },
+            get querySelectorOne(): AdaptivePlaywrightCrawlerContext['querySelectorOne'] {
+                throw new Error(errorMessage('querySelectorOne'));
             },
             get waitForSelector(): AdaptivePlaywrightCrawlerContext['waitForSelector'] {
                 throw new Error(errorMessage('waitForSelector'));
@@ -549,12 +550,6 @@ export class AdaptivePlaywrightCrawler<
         return {
             get page(): Page {
                 throw new Error('Page object was used in HTTP-only request handler');
-            },
-            async querySelector(selector: string) {
-                return cheerioContext.$(selector).first();
-            },
-            async querySelectorAll(selector: string) {
-                return cheerioContext.$(selector);
             },
             enqueueLinks: async (options: EnqueueLinksOptions = {}) => {
                 const urls = extractUrlsFromCheerio(
@@ -578,20 +573,6 @@ export class AdaptivePlaywrightCrawler<
                 status: originalResponse.status(),
                 statusText: originalResponse.statusText(),
             }),
-            async querySelector(selector: string, timeoutMs = 5000) {
-                const locator = playwrightContext.page.locator(selector).first();
-                await locator.waitFor({ timeout: timeoutMs, state: 'attached' });
-                const $ = await playwrightContext.parseWithCheerio();
-
-                return $(selector).first() as Cheerio<any>;
-            },
-            async querySelectorAll(selector: string, timeoutMs = 5000) {
-                const locator = playwrightContext.page.locator(selector).first();
-                await locator.waitFor({ timeout: timeoutMs, state: 'attached' });
-                const $ = await playwrightContext.parseWithCheerio();
-
-                return $(selector) as Cheerio<any>;
-            },
             enqueueLinks: async (options: EnqueueLinksOptions = {}, timeoutMs = 5000) => {
                 // TODO consider using `context.parseWithCheerio` to make this universal and avoid code duplication
                 const selector = options.selector ?? 'a';

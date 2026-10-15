@@ -87,8 +87,8 @@ export interface AdaptivePlaywrightCrawlerContext<UserData extends Dictionary = 
     enqueueLinks(options?: EnqueueLinksOptions): Promise<unknown>;
     page: Page;
     parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioAPI>;
-    querySelector(selector: string, timeoutMs?: number): Promise<Cheerio<AnyNode>>;
     querySelectorAll(selector: string, timeoutMs?: number): Promise<Cheerio<AnyNode>>;
+    querySelectorOne(selector: string, timeoutMs?: number): Promise<Cheerio<AnyNode>>;
     // (undocumented)
     request: LoadedRequest<CrawlingRequest<UserData>>;
     response: Response;
@@ -304,6 +304,8 @@ interface PlaywrightContextUtils {
     injectJQuery(): Promise<unknown>;
     listDownloads(): Promise<Download[]>;
     parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioAPI>;
+    querySelectorAll(selector: string, timeoutMs?: number): Promise<Cheerio<AnyNode>>;
+    querySelectorOne(selector: string, timeoutMs?: number): Promise<Cheerio<AnyNode>>;
     saveSnapshot(options?: SaveSnapshotOptions): Promise<void>;
     waitForSelector(selector: string, timeoutMs?: number): Promise<void>;
 }

@@ -259,6 +259,24 @@ export class PuppeteerCrawler<
         const waitForSelector = async (selector: string, timeoutMs = 5_000) => {
             await context.page.waitForSelector(selector, { timeout: timeoutMs });
         };
+        const parseWithCheerio = async (selector?: string, timeoutMs = 5_000) => {
+            if (selector) {
+                await waitForSelector(selector, timeoutMs);
+            }
+
+            return puppeteerUtils.parseWithCheerio(context.page, this.ignoreShadowRoots, this.ignoreIframes);
+        };
+        const querySelectorAll = async (selector: string, timeoutMs?: number) => {
+            const matches = (await parseWithCheerio(selector, timeoutMs))(selector);
+
+            // The browser located it but the Cheerio snapshot does not have it - a Puppeteer-only selector,
+            // or an element under a shadow root/iframe the snapshot was told to ignore.
+            if (matches.length === 0) {
+                throw new Error(`Selector '${selector}' not found in the page snapshot.`);
+            }
+
+            return matches;
+        };
 
         return {
             injectFile: async (filePath: string, options?: InjectFileOptions) =>
@@ -274,13 +292,10 @@ export class PuppeteerCrawler<
                 await puppeteerUtils.injectJQuery(context.page, { surviveNavigations: false });
             },
             waitForSelector,
-            parseWithCheerio: async (selector?: string, timeoutMs = 5_000) => {
-                if (selector) {
-                    await waitForSelector(selector, timeoutMs);
-                }
-
-                return puppeteerUtils.parseWithCheerio(context.page, this.ignoreShadowRoots, this.ignoreIframes);
-            },
+            parseWithCheerio,
+            querySelectorAll,
+            querySelectorOne: async (selector: string, timeoutMs?: number) =>
+                (await querySelectorAll(selector, timeoutMs)).first(),
             enqueueLinksByClickingElements: async (
                 options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestManager'>,
             ) =>
