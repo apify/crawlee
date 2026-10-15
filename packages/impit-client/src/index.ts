@@ -1,3 +1,4 @@
+import { serviceLocator } from '@crawlee/core';
 import type { CustomFetchOptions } from '@crawlee/http-client';
 import { BaseHttpClient, ResponseWithUrl } from '@crawlee/http-client';
 import type { CrawleeLogger, SessionFingerprint } from '@crawlee/types';
@@ -81,7 +82,14 @@ export class ImpitHttpClient extends BaseHttpClient {
         options?: Omit<ImpitOptions, 'proxyUrl' | 'timeout'> & { cacheClients?: boolean; logger?: CrawleeLogger },
     ) {
         super({ logger: options?.logger });
-        const { cacheClients = true, logger: _logger, ...impitOptions } = options ?? {};
+        const { cacheClients = true, logger, ...impitOptions } = options ?? {};
+
+        if (impitOptions.browser) {
+            (logger ?? serviceLocator.getLogger()).warningOnce(
+                'The `browser` option of ImpitHttpClient overrides the browser fingerprint of the session. ' +
+                    'Using it with Crawlee crawlers can lead to incompatible Session setups.',
+            );
+        }
 
         this.#impitOptions = impitOptions;
         this.#cacheClients = cacheClients;
@@ -93,7 +101,7 @@ export class ImpitHttpClient extends BaseHttpClient {
     protected override async fetch(request: Request, options?: RequestInit & CustomFetchOptions): Promise<Response> {
         const { proxyUrl, redirect, signal, fingerprint, ignoreTlsErrors } = options ?? {};
 
-        const impitBrowser = this.#resolveImpitBrowser(fingerprint);
+        const impitBrowser = this.#impitOptions.browser ? undefined : this.#resolveImpitBrowser(fingerprint);
 
         const impit = this.#getClient({
             ...this.#impitOptions,
