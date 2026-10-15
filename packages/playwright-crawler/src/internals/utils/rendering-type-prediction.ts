@@ -51,8 +51,6 @@ export interface RenderingTypePredictorOptions {
 /**
  * Minimal contract that any object passed to {@apilink AdaptivePlaywrightCrawler} as its
  * `renderingTypePredictor` option must satisfy.
- *
- * @experimental
  */
 export interface IRenderingTypePredictor {
     /**
@@ -124,8 +122,6 @@ const stateCodec = z.codec(persistedState, predictorState, {
 
 /**
  * Stores rendering type information for previously crawled URLs and predicts the rendering type for URLs that have yet to be crawled and recommends when rendering type detection should be performed.
- *
- * @experimental
  */
 export class RenderingTypePredictor implements IRenderingTypePredictor {
     #detectionRatio: number;
