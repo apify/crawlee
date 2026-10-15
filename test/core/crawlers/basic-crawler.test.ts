@@ -1923,7 +1923,7 @@ describe('BasicCrawler', () => {
         const requestQueue = await RequestQueue.open(null, {
             storageBackend: new FileSystemStorageBackend({ localDataDirectory: tmpLocation }),
         });
-        const extendSpy = vitest.spyOn(requestQueue.backend, 'extendRequestProcessingTimeSecs');
+        const extendSpy = vitest.spyOn(requestQueue.backend, 'extendRequestProcessingTime');
 
         try {
             let sawFailure = false;
