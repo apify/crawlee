@@ -106,3 +106,11 @@ FederCr:
     socials:
         x: FederCr
         github: feder-cr
+        
+JindrichB:
+    name: Jindřich Bär
+    title: Crawlee Maintainer
+    url: https://github.com/barjin
+    image_url: https://avatars.githubusercontent.com/u/61918049?v=4
+    socials:
+        github: barjin
