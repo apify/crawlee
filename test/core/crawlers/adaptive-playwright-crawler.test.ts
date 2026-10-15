@@ -134,6 +134,13 @@ describe('AdaptivePlaywrightCrawler', () => {
             res.setHeader('Location', 'https://google.com');
             res.send('Redirecting...');
         });
+
+        app.get('/text-plain', (_req, res) => {
+            // not in the HTTP crawler's supported MIME types, but renders inline in a browser
+            res.status(200);
+            res.setHeader('Content-Type', 'text/plain');
+            res.send('plain text payload');
+        });
     });
     afterAll(async () => {
         server.close();
@@ -623,6 +630,60 @@ describe('AdaptivePlaywrightCrawler', () => {
             expect(requestContext.request).toMatchObject({ url: `${url}/1`, crawlDepth: 3 });
         },
     );
+
+    describe('noRetry scoping between HTTP-only and browser attempts (#4261)', () => {
+        const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+            detectionProbabilityRecommendation: 0,
+            renderingType: 'static',
+        });
+
+        test('a Content-Type rejection in the HTTP-only attempt does not suppress retries of the browser attempt', async () => {
+            const failedRequestHandler = vi.fn();
+            let handlerCalls = 0;
+
+            const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = vi.fn(
+                async () => {
+                    handlerCalls++;
+                    if (handlerCalls === 1) {
+                        // simulate a transient browser failure on the first browser attempt
+                        throw new Error('Transient browser failure');
+                    }
+                },
+            );
+
+            const url = new URL(`http://${HOSTNAME}:${port}/text-plain`);
+
+            const crawler = new AdaptivePlaywrightCrawler({
+                renderingTypeDetectionRatio: 0,
+                maxConcurrency: 1,
+                maxRequestRetries: 1,
+                maxRequestsPerCrawl: 1,
+                requestList: await RequestList.open({ sources: [url.toString()] }),
+                requestHandler,
+                renderingTypePredictor,
+                failedRequestHandler,
+                launchContext: {
+                    // use the system Chrome binary when no playwright browsers are installed
+                    ...(process.env.CHROME_PATH
+                        ? {
+                              launcher: (await import('playwright')).chromium,
+                              launchOptions: { executablePath: process.env.CHROME_PATH },
+                          }
+                        : {}),
+                },
+            });
+
+            await crawler.run();
+
+            // the static attempt is rejected by the HTTP crawler (unsupported Content-Type),
+            // the first browser attempt fails transiently, and the request must be retried,
+            // giving a second (successful) browser attempt. if the HTTP-only attempt leaked
+            // `noRetry = true` onto the shared request, the browser handler would run only
+            // once and `failedRequestHandler` would settle the request.
+            expect(requestHandler).toHaveBeenCalledTimes(2);
+            expect(failedRequestHandler).not.toHaveBeenCalled();
+        });
+    });
 
     describe('should enqueue links correctly', () => {
         test.each([

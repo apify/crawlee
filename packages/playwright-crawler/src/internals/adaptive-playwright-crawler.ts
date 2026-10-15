@@ -687,6 +687,13 @@ export class AdaptivePlaywrightCrawler<
         // `finally` below, not earlier: the comparators read the journals after `crawlOne` returns.
         const transactions: StorageTransaction[] = [];
 
+        // A rejected HTTP-only attempt must not change how the browser attempt is retried:
+        // the HTTP crawler's `#abortDownloadOfBody` sets `request.noRetry = true` when it rejects
+        // the response Content-Type, and both attempts share the same `request` object. Snapshot
+        // the flag before the HTTP-only attempt and restore it before the browser fallback, so a
+        // flag set while rejecting the static attempt stays scoped to that attempt (see #4261).
+        const noRetryBeforeHttpAttempt = crawlingContext.request.noRetry;
+
         try {
             // A result the `resultChecker` rejected is as good as a detection saying the page needs a browser - but
             // only once the browser run has succeeded. A thrown error says nothing about rendering.
@@ -763,6 +770,12 @@ export class AdaptivePlaywrightCrawler<
                     return this.stateCopy;
                 },
             };
+
+            // Undo any retry state the failed/suspicious HTTP-only attempt left on the shared request
+            // (notably `noRetry` from `#abortDownloadOfBody` on an unsupported Content-Type), so a
+            // transient browser failure is still retried. Genuine skips short-circuit earlier via
+            // `ContextPipelineInterruptedError`, so they are unaffected by this restore.
+            crawlingContext.request.noRetry = noRetryBeforeHttpAttempt;
 
             const browserRun = await this.#crawlOne(
                 'clientOnly',
