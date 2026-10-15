@@ -67,7 +67,8 @@ export interface IRenderingTypePredictor {
     }>;
 
     /**
-     * Report a detected rendering type, so that future predictions can take it into account.
+     * Report a rendering type established by a detection, or `clientOnly` when the `resultChecker` rejected an
+     * HTTP-only result, so that future predictions can take it into account.
      *
      * The crawler does not await this per detection - it collects the returned promises and drains them in
      * `teardown()`, so an implementation that persists results asynchronously can keep batching its writes

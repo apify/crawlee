@@ -688,6 +688,10 @@ export class AdaptivePlaywrightCrawler<
         const transactions: StorageTransaction[] = [];
 
         try {
+            // A result the `resultChecker` rejected is as good as a detection saying the page needs a browser - but
+            // only once the browser run has succeeded. A thrown error says nothing about rendering.
+            let httpResultRejected = false;
+
             if (renderingTypePrediction.renderingType === 'static' && !shouldDetectRenderingType) {
                 crawlingContext.log.debug(`Running HTTP-only request handler for ${crawlingContext.request.url}`);
                 this.statistics.state.httpOnlyRequestHandlerRuns++;
@@ -730,6 +734,7 @@ export class AdaptivePlaywrightCrawler<
                         `HTTP-only request handler returned a suspicious result for ${crawlingContext.request.url}`,
                     );
                     this.statistics.state.renderingTypeMispredictions++;
+                    httpResultRejected = true;
                 }
             }
 
@@ -773,6 +778,11 @@ export class AdaptivePlaywrightCrawler<
             browserRun.logs?.forEach(([log, method, ...args]) => log[method](...(args as [any, any])));
             await browserRun.result.commit();
 
+            // Past the shutdown fence, `teardown()` has already drained - and possibly torn down the predictor.
+            if (httpResultRejected && !this.#shutDown) {
+                this.#storeRenderingType(crawlingContext.request, 'clientOnly');
+            }
+
             if (shouldDetectRenderingType) {
                 const detectionPromise = (async () => {
                     crawlingContext.log.debug(`Detecting rendering type for ${crawlingContext.request.url}`);
@@ -809,24 +819,7 @@ export class AdaptivePlaywrightCrawler<
                     );
 
                     if (detectionResult !== undefined) {
-                        // Deliberately not awaited: a predictor that persists asynchronously gets to keep
-                        // batching its writes, and the drain below catches whatever is still pending.
-                        const stored = this.#renderingTypePredictor.value.storeResult(
-                            crawlingContext.request,
-                            detectionResult,
-                        );
-
-                        if (stored !== undefined) {
-                            // Nothing downstream awaits this, so a failed write would otherwise be silent.
-                            void this.#trackDetection(
-                                Promise.resolve(stored).catch((error) =>
-                                    this.log.exception(
-                                        error as Error,
-                                        `Failed to store the rendering type detection result for ${crawlingContext.request.url}`,
-                                    ),
-                                ),
-                            );
-                        }
+                        this.#storeRenderingType(crawlingContext.request, detectionResult);
                     }
                 })();
 
@@ -838,6 +831,24 @@ export class AdaptivePlaywrightCrawler<
                 transaction.rollback();
                 transaction.dispose();
             }
+        }
+    }
+
+    #storeRenderingType(request: CrawlingContext['request'], renderingType: RenderingType): void {
+        // Deliberately not awaited: a predictor that persists asynchronously gets to keep batching its writes,
+        // and `drainRenderingDetections()` catches whatever is still pending.
+        const stored = this.#renderingTypePredictor.value.storeResult(request, renderingType);
+
+        if (stored !== undefined) {
+            // Nothing downstream awaits this, so a failed write would otherwise be silent.
+            void this.#trackDetection(
+                Promise.resolve(stored).catch((error) =>
+                    this.log.exception(
+                        error as Error,
+                        `Failed to store the rendering type detection result for ${request.url}`,
+                    ),
+                ),
+            );
         }
     }
 

@@ -472,6 +472,32 @@ describe('AdaptivePlaywrightCrawler', () => {
             renderingTypeMispredictions: 1,
             browserRequestHandlerRuns: 1,
         });
+        expect(renderingTypePredictor.storeResult).toHaveBeenCalledOnce();
+        expect(renderingTypePredictor.storeResult).toHaveBeenCalledWith(
+            expect.objectContaining({ url: url.toString() }),
+            'clientOnly',
+        );
+    });
+
+    test('should not store a rendering type when the HTTP-only handler throws', async () => {
+        const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+            detectionProbabilityRecommendation: 0,
+            renderingType: 'static',
+        });
+        const url = new URL(`http://${HOSTNAME}:${port}/static`);
+
+        // Only the HTTP attempt fails, so the browser run succeeds - an error says nothing about rendering.
+        const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = vi
+            .fn(async () => {})
+            .mockRejectedValueOnce(new Error('transient failure'));
+
+        const crawler = await makeOneshotCrawler({ requestHandler, renderingTypePredictor }, [url.toString()]);
+
+        await crawler.run();
+
+        expect(requestHandler).toHaveBeenCalledTimes(2);
+        expect(crawler.statistics.state.browserRequestHandlerRuns).toEqual(1);
+        expect(renderingTypePredictor.storeResult).not.toHaveBeenCalled();
     });
 
     test('should track its own fields alongside those of an injected statistics instance', async () => {
