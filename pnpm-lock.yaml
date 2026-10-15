@@ -613,6 +613,9 @@ importers:
       cheerio:
         specifier: ^1.0.0
         version: 1.2.0
+      domhandler:
+        specifier: ^6.0.0
+        version: 6.0.1
       htmlparser2:
         specifier: ^10.0.0
         version: 10.1.0
@@ -805,6 +808,9 @@ importers:
       content-type:
         specifier: ^3.1.1
         version: 3.1.1
+      domhandler:
+        specifier: ^6.0.0
+        version: 6.0.1
       iconv-lite:
         specifier: ^0.7.2
         version: 0.7.3
@@ -893,6 +899,9 @@ importers:
       cheerio:
         specifier: ^1.0.0
         version: 1.2.0
+      domhandler:
+        specifier: ^6.0.0
+        version: 6.0.1
       jquery:
         specifier: ^3.7.1
         version: 3.7.1
@@ -941,6 +950,9 @@ importers:
       devtools-protocol:
         specifier: '*'
         version: 0.0.1710668
+      domhandler:
+        specifier: ^6.0.0
+        version: 6.0.1
       jquery:
         specifier: ^3.7.1
         version: 3.7.1
