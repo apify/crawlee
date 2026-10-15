@@ -8,6 +8,8 @@ import type {
 import { BasicCrawler, ContextPipeline } from '@crawlee/basic';
 import { ResponseWithUrl } from '@crawlee/http-client';
 import type { Dictionary } from '@crawlee/types';
+import { parseArgument } from '@crawlee/utils/internal';
+import { z } from 'zod';
 
 import type {
     ErrorHandler,
@@ -37,6 +39,24 @@ export interface FileDownloadCrawlingContext<
 export type FileDownloadRequestHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
 > = RequestHandler<FileDownloadCrawlingContext<UserData>>;
+
+export interface FileDownloadOptions extends Omit<
+    BasicCrawlerOptions<FileDownloadCrawlingContext>,
+    'contextPipelineBuilder'
+> {
+    /**
+     * If set to `true`, TLS/SSL certificate errors are ignored. Forwarded to the HTTP client as
+     * {@apilink SendRequestOptions.ignoreTlsErrors|`ignoreTlsErrors`} on every download, so custom
+     * {@apilink BaseHttpClient} implementations should honor that flag (the built-in impit and got-scraping
+     * clients do; the native fetch fallback cannot disable TLS verification and warns instead).
+     *
+     * Certificates are verified by default. Sessions whose proxy is a MITM proxy
+     * (`session.proxyInfo.ignoreTlsErrors`) skip verification regardless of this option.
+     *
+     * @default false
+     */
+    ignoreTlsErrors?: boolean;
+}
 
 /**
  * Provides a framework for downloading files in parallel using plain HTTP requests. The URLs to download are fed either from a static list of URLs or they can be added on the fly from another crawler.
@@ -72,12 +92,34 @@ export type FileDownloadRequestHandler<
  * ```
  */
 export class FileDownload extends BasicCrawler<FileDownloadCrawlingContext> {
+    #ignoreTlsErrors: boolean;
+
+    /**
+     * @internal
+     */
+    protected static override optionsShape = {
+        ...BasicCrawler.optionsShape,
+
+        ignoreTlsErrors: z.boolean().default(false),
+    };
+
+    /** @internal */
+    protected static optionsSchema = z.strictObject(FileDownload.optionsShape);
+
     // TODO hooks
-    constructor(options: Omit<BasicCrawlerOptions<FileDownloadCrawlingContext>, 'contextPipelineBuilder'> = {}) {
+    constructor(options: FileDownloadOptions = {}) {
+        const { ignoreTlsErrors, ...basicCrawlerOptions } = parseArgument(
+            options,
+            FileDownload.optionsSchema,
+            'FileDownloadOptions',
+        );
+
         super({
-            ...options,
+            ...basicCrawlerOptions,
             contextPipelineBuilder: () => this.#buildContextPipeline(),
         });
+
+        this.#ignoreTlsErrors = ignoreTlsErrors;
     }
 
     #buildContextPipeline(): ContextPipeline<CrawlingContext, FileDownloadCrawlingContext> {
@@ -87,6 +129,7 @@ export class FileDownload extends BasicCrawler<FileDownloadCrawlingContext> {
     async #initiateDownload(context: CrawlingContext, onCleanup: CleanupRegistrar) {
         const response = await this.httpClient.sendRequest(context.request.intoFetchAPIRequest(), {
             session: context.session,
+            ignoreTlsErrors: this.#ignoreTlsErrors,
         });
 
         const { type, charset: encoding } = parseContentTypeFromResponse(response);
