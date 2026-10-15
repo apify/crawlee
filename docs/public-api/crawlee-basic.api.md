@@ -150,7 +150,7 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = CrawlingC
     statusMessageCallback?: StatusMessageCallback;
     statusMessageLoggingInterval?: number;
     storageBackend?: StorageBackend;
-    taskLoopOptions?: TaskLoopOptions;
+    taskLoopOptions?: TaskLoopPredicates;
     transactionalStorage?: boolean | Partial<StorageWritePolicy>;
 }
 
@@ -999,11 +999,6 @@ export interface StorageBackendLoadSignalOptions {
     maxErrors?: number;
     overloadedRatio?: number;
     snapshotIntervalSecs?: number;
-}
-
-// @public (undocumented)
-export interface TaskLoopOptions extends TaskLoopPredicates {
-    maybeRunIntervalSecs?: number;
 }
 
 // @public

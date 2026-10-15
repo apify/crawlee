@@ -52,16 +52,14 @@ export interface TaskLoopPredicates {
     isFinishedFunction?: () => Promise<boolean>;
 }
 
-export interface TaskLoopOptions extends TaskLoopPredicates {
+/** @internal */
+export interface AutoscaledPoolOptions extends TaskLoopPredicates {
     /**
      * How often the pool should check if a new task is ready, in seconds.
      * @default 0.5
      */
     maybeRunIntervalSecs?: number;
-}
 
-/** @internal */
-export interface AutoscaledPoolOptions extends TaskLoopOptions {
     /**
      * The governor that decides whether there is free compute for one more task. Typically a
      * {@apilink ConcurrencySystem}, but any {@apilink IConcurrencySystem} works. Share a single instance across

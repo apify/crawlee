@@ -1586,7 +1586,6 @@ describe('BasicCrawler', () => {
             requestHandler: async ({ request }) => {
                 handled.push(request.url);
             },
-            taskLoopOptions: { maybeRunIntervalSecs: 0.05 },
         });
 
         const run = crawler.run();
@@ -1619,7 +1618,6 @@ describe('BasicCrawler', () => {
                     isTaskReadyFunctionCalled = true;
                     return Promise.resolve(!isFinished);
                 },
-                maybeRunIntervalSecs: 0.05,
             },
             requestHandler: async ({ request }) => {
                 await sleep(10);
@@ -1675,9 +1673,6 @@ describe('BasicCrawler', () => {
         const basicCrawler = new BasicCrawler({
             requestQueue,
             keepAlive: true,
-            taskLoopOptions: {
-                maybeRunIntervalSecs: 0.05,
-            },
             requestHandler: async ({ request }) => {
                 await sleep(10);
                 processed.push(request);
