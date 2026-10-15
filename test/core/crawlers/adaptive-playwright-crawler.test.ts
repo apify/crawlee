@@ -87,6 +87,12 @@ describe('AdaptivePlaywrightCrawler', () => {
              `);
         });
 
+        app.get('/plain-text', (_req, res) => {
+            res.status(200);
+            res.type('text/plain');
+            res.send('hello');
+        });
+
         app.get('/dynamic', (req, res) => {
             lastDynamicRequestUserAgent = req.headers['user-agent'];
             res.status(200);
@@ -869,6 +875,39 @@ describe('AdaptivePlaywrightCrawler', () => {
         expect(handlerRuns).toBe(2);
         expect(committed).toEqual([1]);
         expect((await Dataset.getData()).items).toEqual([{ run: 1 }]);
+    });
+
+    test('should retry after HTTP-only Content-Type rejection falls through to the browser', async () => {
+        // Unsupported Content-Type makes the HTTP crawler set request.noRetry before the adaptive
+        // crawler falls through to Playwright. That flag must not block browser-attempt retries.
+        const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+            detectionProbabilityRecommendation: 0,
+            renderingType: 'static',
+        });
+
+        let handlerCalls = 0;
+        const failedRequestHandler = vi.fn();
+
+        const crawler = await makeOneshotCrawler(
+            {
+                requestHandler: async () => {
+                    handlerCalls++;
+                    if (handlerCalls === 1) {
+                        throw new Error('a transient failure');
+                    }
+                },
+                renderingTypePredictor,
+                maxRequestsPerCrawl: 1,
+                maxRequestRetries: 3,
+                failedRequestHandler,
+            },
+            [`http://${HOSTNAME}:${port}/plain-text`],
+        );
+
+        await crawler.run();
+
+        expect(handlerCalls).toBe(2);
+        expect(failedRequestHandler).not.toHaveBeenCalled();
     });
 
     test('should not retry a request whose afterStorageCommit callback threw after a commit', async () => {
