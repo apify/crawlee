@@ -35,6 +35,7 @@ export function createSendRequest(httpClient: BaseHttpClient, originRequest: Cra
         return httpClient.sendRequest(request, {
             session,
             cookieJar: overrideOptions?.cookieJar ?? session.cookieJar,
+            proxyUrl: overrideOptions.proxyUrl ?? overrideRequest.proxyUrl,
             timeoutMillis: overrideOptions.timeoutMillis,
             signal: overrideOptions.signal,
             ignoreTlsErrors: overrideOptions.ignoreTlsErrors,
