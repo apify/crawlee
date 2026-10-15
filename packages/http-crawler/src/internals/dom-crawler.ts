@@ -266,19 +266,18 @@ export class DOMCrawler<
                     strategy: options.strategy ?? EnqueueStrategy.SameHostname,
                 });
             },
-            async parseWithCheerio(selector?: string, _timeoutMs = 5_000) {
+            async parseWithCheerio(selector?: string, timeoutMs?: number) {
+                if (selector) {
+                    await waitForSelector(selector, timeoutMs);
+                }
+
                 // Import full cheerio (not cheerio/slim) to be browser-compliant for DOM Crawlers (not CheerioCrawler).
-                const $ =
+                return (
                     (await parser.toCheerio?.(context)) ??
                     (await import('cheerio')).load(context.body, {
                         xmlMode: context.contentType.type.includes('xml'),
-                    });
-
-                if (selector && $(selector).get().length === 0) {
-                    throw new Error(`Selector '${selector}' not found.`);
-                }
-
-                return $;
+                    })
+                );
             },
         };
     }
