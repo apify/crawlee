@@ -1,5 +1,6 @@
+import { serviceLocator } from '@crawlee/core';
 import { ImpitHttpClient } from '@crawlee/impit-client';
-import type { ISession } from '@crawlee/types';
+import type { CrawleeLogger, ISession } from '@crawlee/types';
 import { Impit } from 'impit';
 
 vi.mock('impit', () => ({
@@ -57,6 +58,23 @@ describe('ImpitHttpClient', () => {
 
         expect(Impit).toHaveBeenCalledTimes(1);
         expect(Impit).toHaveBeenCalledWith(expect.objectContaining({ browser: 'firefox144' }));
+    });
+
+    test('warns on the passed logger only when the browser option is set', () => {
+        const logger = { warningOnce: vi.fn() } as unknown as CrawleeLogger;
+
+        void new ImpitHttpClient({ logger });
+        expect(logger.warningOnce).not.toHaveBeenCalled();
+
+        void new ImpitHttpClient({ browser: 'firefox144', logger });
+        expect(logger.warningOnce).toHaveBeenCalledWith(expect.stringContaining('incompatible Session setups'));
+    });
+
+    test('warns on the service locator logger when no logger is passed', () => {
+        const warningOnce = vi.spyOn(serviceLocator.getLogger(), 'warningOnce').mockImplementation(() => {});
+
+        void new ImpitHttpClient({ browser: 'firefox144' });
+        expect(warningOnce).toHaveBeenCalledWith(expect.stringContaining('incompatible Session setups'));
     });
 
     test('uses the session fingerprint when no browser is set on the client', async () => {

@@ -826,6 +826,9 @@ importers:
       '@apify/datastructures':
         specifier: ^3.0.1
         version: 3.0.1
+      '@crawlee/core':
+        specifier: workspace:*
+        version: link:../core
       '@crawlee/http-client':
         specifier: workspace:*
         version: link:../http-client
