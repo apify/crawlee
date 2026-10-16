@@ -674,6 +674,32 @@ describe('AdaptivePlaywrightCrawler', () => {
                 crawlDepth: 1,
             });
         });
+
+        test.each([['static'], ['clientOnly']] as const)(
+            'enqueues nothing when the selector matches nothing (%s)',
+            async (renderingType) => {
+                const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+                    detectionProbabilityRecommendation: 0,
+                    renderingType,
+                });
+
+                const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = vi.fn(
+                    async ({ enqueueLinks, pushData }) => {
+                        const { addedRequests } = await enqueueLinks({ selector: '.missing' });
+                        await pushData({ enqueued: addedRequests.length });
+                    },
+                );
+
+                const crawler = await makeOneshotCrawler({ requestHandler, renderingTypePredictor }, [
+                    `http://${HOSTNAME}:${port}/static`,
+                ]);
+
+                await crawler.run();
+
+                expect(requestHandler).toHaveBeenCalledOnce();
+                expect((await Dataset.getData()).items).toEqual([{ enqueued: 0 }]);
+            },
+        );
     });
 
     test.each([['static'], ['clientOnly']] as const)(
@@ -719,6 +745,27 @@ describe('AdaptivePlaywrightCrawler', () => {
             expect(new Set(enqueuedUrls)).toEqual(new Set([`http://${HOSTNAME}:${port}/external-redirect`]));
         },
     );
+
+    test.each([['static'], ['clientOnly']] as const)('response body is readable (%s)', async (renderingType) => {
+        const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+            detectionProbabilityRecommendation: 0,
+            renderingType,
+        });
+        const url = `http://${HOSTNAME}:${port}/static`;
+
+        const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = vi.fn(
+            async ({ response, pushData }) => {
+                await pushData({ url: response.url, hasHeading: (await response.text()).includes('<h1>Heading</h1>') });
+            },
+        );
+
+        const crawler = await makeOneshotCrawler({ requestHandler, renderingTypePredictor }, [url]);
+
+        await crawler.run();
+
+        expect(requestHandler).toHaveBeenCalledOnce();
+        expect((await Dataset.getData()).items).toEqual([{ url, hasHeading: true }]);
+    });
 
     test('should persist crawler state', async () => {
         const renderingTypePredictor = makeRiggedRenderingTypePredictor({
