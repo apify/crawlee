@@ -118,7 +118,7 @@
         "playwright": "catalog:",
         "portastic": "^1.0.1",
         "proxy": "^2.2.0",
-        "puppeteer": "25.13.0",
+        "puppeteer": "25.14.0",
         "rimraf": "^6.0.1",
         "tsx": "4.21.0",
         "turbo": "^2.10.11",
@@ -133,16 +133,16 @@
             "oxfmt --write --no-error-on-unmatched-pattern"
         ]
     },
-    "packageManager": "pnpm@12.11.2",
+    "packageManager": "pnpm@12.14.0",
     "devEngines": {
         "packageManager": {
             "name": "pnpm",
-            "version": "12.11.2",
+            "version": "12.14.0",
             "onFail": "error"
         }
     },
     "volta": {
         "node": "24.22.0",
-        "pnpm": "12.11.2"
+        "pnpm": "12.14.0"
     }
 }
