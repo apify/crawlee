@@ -1,6 +1,6 @@
 import { AdaptivePlaywrightCrawler, KeyValueStore, RenderingTypePredictor } from 'crawlee';
 
-const renderingTypePredictor = new RenderingTypePredictor({
+await using renderingTypePredictor = new RenderingTypePredictor({
     detectionRatio: 0.1,
     persistenceOptions: {
         keyValueStore: KeyValueStore.open('rendering-predictions'),
@@ -17,8 +17,4 @@ const crawler = new AdaptivePlaywrightCrawler({
     },
 });
 
-try {
-    await crawler.run(['https://crawlee.dev']);
-} finally {
-    await renderingTypePredictor.teardown();
-}
+await crawler.run(['https://crawlee.dev']);
