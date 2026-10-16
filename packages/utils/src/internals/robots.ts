@@ -1,6 +1,6 @@
 import { FetchHttpClient } from '@crawlee/http-client';
 import type { BaseHttpClient } from '@crawlee/http-client';
-import type { CrawleeLogger } from '@crawlee/types';
+import type { CrawleeLogger, ISession } from '@crawlee/types';
 import type { Robot } from 'robots-parser';
 import robotsParser from 'robots-parser';
 
@@ -59,6 +59,7 @@ export class RobotsTxtFile {
      * @param [options.signal] an AbortSignal to cancel the request
      * @param [options.timeoutMillis] timeout in milliseconds for the request
      * @param [options.proxyUrl] a proxy to be used for fetching the robots.txt file
+     * @param [options.session] a session whose fingerprint and cookies the request uses, like a page request would
      */
     static async find(
         url: string,
@@ -67,6 +68,7 @@ export class RobotsTxtFile {
             timeoutMillis?: number;
             proxyUrl?: string;
             httpClient?: BaseHttpClient;
+            session?: ISession;
             logger?: CrawleeLogger;
         },
     ): Promise<RobotsTxtFile> {
@@ -95,12 +97,14 @@ export class RobotsTxtFile {
             timeoutMillis?: number;
             proxyUrl?: string;
             httpClient?: BaseHttpClient;
+            session?: ISession;
             logger?: CrawleeLogger;
         },
     ): Promise<RobotsTxtFile> {
-        const { proxyUrl, logger, httpClient = new FetchHttpClient() } = options || {};
+        const { proxyUrl, logger, session, httpClient = new FetchHttpClient() } = options || {};
 
         const response = await httpClient.sendRequest(new Request(url, { method: 'GET' }), {
+            session,
             proxyUrl,
             timeoutMillis: options?.timeoutMillis,
             signal: options?.signal,
