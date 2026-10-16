@@ -147,7 +147,13 @@ If you crawl the same site repeatedly, there is no need to relearn its rendering
 
 <CodeBlock className="language-typescript">{PredictorSource}</CodeBlock>
 
-An injected predictor is borrowed: the crawler never initializes or tears it down. Call `initialize()` before the run to load what earlier runs learned, and `teardown()` after it to write out what this one did. `renderingTypeDetectionRatio` only configures the default predictor, so pass `detectionRatio` to the constructor instead.
+An injected predictor is borrowed: the crawler never initializes or tears it down. Call `initialize()` before the run to load what earlier runs learned. Declaring the predictor with `await using` tears it down once you are done, which writes out what this run learned. `renderingTypeDetectionRatio` only configures the default predictor, so pass `detectionRatio` to the constructor instead.
+
+:::note Requires Node.js 24
+
+The `await using` syntax needs Node.js 24 or later. On Node.js 22 call <ApiLink to="playwright-crawler/class/RenderingTypePredictor#teardown">`teardown()`</ApiLink> yourself in a `finally` block instead — it is what the disposal hook calls anyway.
+
+:::
 
 A named store is only shared by runs that can open it — on the Apify platform, that means runs under the same account. To go further, see [custom predictors](#custom-predictors).
 
@@ -162,13 +168,13 @@ Rejected results only ever correct a wrong `static` prediction. The only way to 
 
 ## Navigation hooks and browser options
 
-`preNavigationHooks` and `postNavigationHooks` run in both modes. Over HTTP the hook context has no `page`, so check for it before configuring the browser page:
+`preNavigationHooks` and `postNavigationHooks` run in both modes. As in the request handler, accessing `page` over HTTP throws and makes the crawler retry the request in the browser — and destructuring `{ page }` in the hook's parameters counts as accessing it. Only browser navigations have `gotoOptions`, so check for those first:
 
 ```ts
 preNavigationHooks: [
-    async ({ page }) => {
-        if (page) {
-            await page.setViewportSize({ width: 1920, height: 1080 });
+    async (context) => {
+        if (context.gotoOptions && context.page) {
+            await context.page.setViewportSize({ width: 1920, height: 1080 });
         }
     },
 ],
