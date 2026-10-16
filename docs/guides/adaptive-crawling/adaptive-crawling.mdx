@@ -19,11 +19,11 @@ That also means you can start writing a scraper without first finding out whethe
 
 Not having to investigate the rendering up front makes it a reasonable default for most crawls. It pays off the most on sites that mix server-rendered and client-rendered pages, and on crawls across many unrelated sites, where checking each one by hand is not an option.
 
-On a fully static site, it soon runs almost everything over HTTP, apart from a few browser runs while it warms up and an [occasional detection](#tuning-the-prediction). Once you know the target is static, you can switch to `CheerioCrawler` and drop the browser altogether — handy for keeping [Docker images](../docker-images) small, if you deploy that way.
+On a fully static site, it soon runs almost everything over HTTP, apart from a few browser runs while it warms up and an [occasional detection](#tuning-the-prediction). Once you know the target is static, you can switch to `CheerioCrawler` and drop the browser altogether — handy for keeping [Docker images](./docker-images) small, if you deploy that way.
 
 It might be the wrong tool when the handler has to interact with the page — clicking, scrolling, filling forms — on most pages (use `PlaywrightCrawler`), or when the handler has side effects outside of Crawlee storage, because [the handler may run twice](#how-it-works).
 
-Most of the time, you don't need to know how a site renders its pages to use this crawler. When you do — say, to understand why some page type keeps ending up in the browser — the [JavaScript rendering guide](../javascript-rendering) explains the difference.
+Most of the time, you don't need to know how a site renders its pages to use this crawler. When you do — say, to understand why some page type keeps ending up in the browser — the [JavaScript rendering guide](./javascript-rendering) explains the difference.
 
 ## Quick start
 
@@ -49,7 +49,7 @@ flowchart TD
 - **Predicted client-only:** the handler runs in the browser.
 - **Detection:** on some requests, the handler runs in the browser *and* over HTTP. The browser result is committed, the two are compared with the [`resultComparator`](#comparing-results-during-detection), and the verdict trains the predictor.
 
-Each attempt runs in its own storage transaction (see [Result storage](../result-storage)). The writes of an attempt that loses — a failed HTTP run, or the HTTP run of a detection — are rolled back, and its log messages are dropped with it. The HTTP run of a detection also sees `useState()` as it was before the browser run, so both runs start from the same state.
+Each attempt runs in its own storage transaction (see [Result storage](./result-storage)). The writes of an attempt that loses — a failed HTTP run, or the HTTP run of a detection — are rolled back, and its log messages are dropped with it. The HTTP run of a detection also sees `useState()` as it was before the browser run, so both runs start from the same state.
 
 :::caution The request handler may run twice
 
@@ -178,7 +178,7 @@ preNavigationHooks: [
 
 ## Monitoring
 
-On top of the usual statistics, the crawler tracks `httpOnlyRequestHandlerRuns`, `browserRequestHandlerRuns` and `renderingTypeMispredictions` in `crawler.statistics.state`. A high misprediction count means the HTTP runs are often rejected — a hint to add labels or a better `resultChecker`. To track fields of your own next to these, see [Custom statistics](../custom-statistics#crawlers-that-track-fields-of-their-own).
+On top of the usual statistics, the crawler tracks `httpOnlyRequestHandlerRuns`, `browserRequestHandlerRuns` and `renderingTypeMispredictions` in `crawler.statistics.state`. A high misprediction count means the HTTP runs are often rejected — a hint to add labels or a better `resultChecker`. To track fields of your own next to these, see [Custom statistics](./custom-statistics#crawlers-that-track-fields-of-their-own).
 
 Debug logs show the predicted and detected rendering type for each URL.
 
