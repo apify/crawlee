@@ -32,7 +32,8 @@ import {
 import { ResponseWithUrl } from '@crawlee/http-client';
 import type { Awaitable, Dictionary, ISession } from '@crawlee/types';
 import { parseArgument, RETRY_CSS_SELECTORS, schemas } from '@crawlee/utils/internal';
-import type { CheerioAPI } from 'cheerio';
+import type { Cheerio, CheerioAPI } from 'cheerio';
+import type { AnyNode } from 'domhandler';
 import { isTypeValid, parse as parseContentType } from 'content-type';
 import iconv from 'iconv-lite';
 import type { JsonValue } from 'type-fest';
@@ -243,6 +244,19 @@ export interface InternalHttpCrawlingContext<
     waitForSelector(selector: string, timeoutMs?: number): Promise<void>;
 
     /**
+     * Like {@apilink InternalHttpCrawlingContext.waitForSelector|`waitForSelector`}, but returns the matched
+     * elements - a Cheerio object here, whatever the parser produces in {@apilink DOMCrawler}. Throws when nothing
+     * matches.
+     */
+    querySelectorAll(selector: string, timeoutMs?: number): Promise<ArrayLike<unknown>>;
+
+    /**
+     * Like {@apilink InternalHttpCrawlingContext.querySelectorAll|`querySelectorAll`}, but returns only the first
+     * match.
+     */
+    querySelectorOne(selector: string, timeoutMs?: number): Promise<unknown>;
+
+    /**
      * Returns Cheerio handle for `page.content()`, allowing to work with the data same way as with {@apilink CheerioCrawler}.
      * This is here to unify the crawler API, so they all have this handy method - in {@apilink CheerioCrawler} it has
      * the same return type as the `$` context property, so use it only if you are abstracting your workflow to
@@ -265,7 +279,10 @@ export interface InternalHttpCrawlingContext<
 export interface HttpCrawlingContext<
     UserData extends Dictionary = any,
     JSONData extends JsonValue = any,
-> extends InternalHttpCrawlingContext<UserData, JSONData> {}
+> extends InternalHttpCrawlingContext<UserData, JSONData> {
+    querySelectorAll(selector: string, timeoutMs?: number): Promise<Cheerio<AnyNode>>;
+    querySelectorOne(selector: string, timeoutMs?: number): Promise<Cheerio<AnyNode>>;
+}
 
 export type HttpRequestHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
@@ -577,6 +594,16 @@ export class HttpCrawler<
                         'The `parseWithCheerio` method is not available - `skipNavigation` was used',
                     );
                 },
+                get querySelectorAll(): InternalHttpCrawlingContext['querySelectorAll'] {
+                    throw new NavigationSkippedError(
+                        'The `querySelectorAll` method is not available - `skipNavigation` was used',
+                    );
+                },
+                get querySelectorOne(): InternalHttpCrawlingContext['querySelectorOne'] {
+                    throw new NavigationSkippedError(
+                        'The `querySelectorOne` method is not available - `skipNavigation` was used',
+                    );
+                },
             };
         }
 
@@ -615,12 +642,19 @@ export class HttpCrawler<
 
             return load(parsed.body!.toString(), { xmlMode: contentType.type.includes('xml') });
         };
-        const waitForSelector = async (selector: string, _timeoutMs?: number) => {
-            const $ = await loadBody();
+        const querySelectorAll = async (selector: string, _timeoutMs?: number) => {
+            const matches = (await loadBody())(selector);
 
-            if ($(selector).get().length === 0) {
+            if (matches.length === 0) {
                 throw new Error(`Selector '${selector}' not found.`);
             }
+
+            return matches;
+        };
+        const querySelectorOne = async (selector: string, timeoutMs?: number) =>
+            (await querySelectorAll(selector, timeoutMs)).first();
+        const waitForSelector = async (selector: string, timeoutMs?: number) => {
+            await querySelectorAll(selector, timeoutMs);
         };
         const parseWithCheerio = async (selector?: string, timeoutMs?: number) => {
             const $ = await loadBody();
@@ -658,6 +692,8 @@ export class HttpCrawler<
                 return JSON.parse(jsonString);
             },
             waitForSelector,
+            querySelectorOne,
+            querySelectorAll,
             parseWithCheerio,
             contentType,
             body: parsed.body,

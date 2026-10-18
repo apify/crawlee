@@ -42,6 +42,7 @@ module.exports = {
                 'guides/proxy-management',
                 'guides/session-management',
                 'guides/scaling-crawlers',
+                'guides/multiple-crawlers',
                 'guides/trace-and-monitor-crawlers',
                 'guides/avoid-blocking',
                 'guides/cookie-modals',
@@ -54,6 +55,8 @@ module.exports = {
                 'guides/running-in-web-server/running-in-web-server',
                 'guides/parallel-scraping/parallel-scraping-guide',
                 'guides/custom-statistics',
+                'guides/request-lifecycle/request-lifecycle',
+                'guides/crawling-context/crawling-context',
                 'guides/custom-http-client/custom-http-client',
                 'guides/custom-logger/custom-logger'
             ],

@@ -4,6 +4,8 @@
 
 ```ts
 
+import type { AnyNode } from 'domhandler';
+import type { Cheerio } from 'cheerio';
 import type { CheerioAPI } from 'cheerio';
 import type { CrawlingContext } from '@crawlee/http';
 import type { Dictionary } from '@crawlee/types';
@@ -19,7 +21,7 @@ import type { RouteSchemas } from '@crawlee/http';
 import type { RoutesFromSchemas } from '@crawlee/http';
 
 // @public
-export class CheerioCrawler<ContextExtension = Dictionary<never>, ExtendedContext extends CheerioCrawlingContext = CheerioCrawlingContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<CheerioCrawlingContext['request']>>, StatisticStateExtension extends object = {}> extends DOMCrawler<CheerioParseResult, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
+export class CheerioCrawler<ContextExtension = Dictionary<never>, ExtendedContext extends CheerioCrawlingContext = CheerioCrawlingContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<CheerioCrawlingContext['request']>>, StatisticStateExtension extends object = {}> extends DOMCrawler<CheerioParseResult, Cheerio<AnyNode>, Cheerio<AnyNode>, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
     constructor(options?: CheerioCrawlerOptions<ContextExtension, ExtendedContext, any, any, Routes, StatisticStateExtension>);
 }
 
@@ -31,7 +33,7 @@ Routes extends Record<keyof Routes, Dictionary> = Record<string, UserData>, Stat
 
 // @public (undocumented)
 export interface CheerioCrawlingContext<UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-JSONData extends Dictionary = any> extends DOMCrawlingContext<CheerioParseResult, UserData, JSONData> {
+JSONData extends Dictionary = any> extends DOMCrawlingContext<CheerioParseResult, Cheerio<AnyNode>, Cheerio<AnyNode>, UserData, JSONData> {
 }
 
 // @public (undocumented)

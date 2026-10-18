@@ -60,7 +60,7 @@ import { LruCache } from '@apify/datastructures';
 import { addTimeoutToPromise, extendTimeout, storage as timeoutStorage, TimeoutError, tryCancel } from '@apify/timeout';
 import { cryptoRandomObjectId } from '@apify/utilities';
 
-import type { AutoscaledPoolOptions, TaskLoopOptions } from './autoscaling/autoscaled-pool.js';
+import type { AutoscaledPoolOptions, TaskLoopPredicates } from './autoscaling/autoscaled-pool.js';
 import type { ConcurrencySystemOptions, IConcurrencySystem } from './autoscaling/concurrency-system.js';
 import { ConcurrencySystem } from './autoscaling/concurrency-system.js';
 import type { FinalStatistics } from './autoscaling/system-status.js';
@@ -376,7 +376,7 @@ export interface BasicCrawlerOptions<
      * Concurrency is configured elsewhere — through the `minConcurrency`/`maxConcurrency`/`maxRequestsPerMinute`
      * shortcuts, or a {@apilink BasicCrawlerOptions.concurrencySystem|`concurrencySystem`} for finer control.
      */
-    taskLoopOptions?: TaskLoopOptions;
+    taskLoopOptions?: TaskLoopPredicates;
 
     /**
      * A pre-configured concurrency governor — the component that decides whether there is free compute for one more

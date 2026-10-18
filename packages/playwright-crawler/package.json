@@ -57,6 +57,7 @@
         "@crawlee/types": "workspace:*",
         "@crawlee/utils": "workspace:*",
         "cheerio": "^1.0.0",
+        "domhandler": "^6.0.0",
         "jquery": "^3.7.1",
         "ml-logistic-regression": "^2.0.0",
         "ml-matrix": "^6.12.1",

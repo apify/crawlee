@@ -177,8 +177,8 @@ overrides:
   apify>@crawlee/types: workspace:*
   apify>@crawlee/utils: workspace:*
   header-generator>ow: ^2.0.0
-  playwright: 1.64.0
-  playwright-core: 1.64.0
+  playwright: 1.64.1
+  playwright-core: 1.64.1
 
 patchedDependencies:
   '@docusaurus/core@3.10.2': 7e95e0e59f770d24c0e51e1e2635b0a25edf33b38938162fa8c69ab42d38b1fb
@@ -261,14 +261,14 @@ importers:
         specifier: ^1.86.0
         version: 1.86.0
       '@playwright/browser-chromium':
-        specifier: 1.64.0
-        version: 1.64.0
+        specifier: 1.64.1
+        version: 1.64.1
       '@playwright/browser-firefox':
-        specifier: 1.64.0
-        version: 1.64.0
+        specifier: 1.64.1
+        version: 1.64.1
       '@playwright/browser-webkit':
-        specifier: 1.64.0
-        version: 1.64.0
+        specifier: 1.64.1
+        version: 1.64.1
       '@types/domhandler':
         specifier: ^3.1.0
         version: 3.1.0
@@ -316,7 +316,7 @@ importers:
         version: 2.3.0(supports-color@7.2.0)
       camoufox-js:
         specifier: ^0.12.0
-        version: 0.12.0(playwright-core@1.64.0)
+        version: 0.12.0(playwright-core@1.64.1)
       crawlee:
         specifier: workspace:*
         version: link:packages/crawlee
@@ -360,8 +360,8 @@ importers:
         specifier: ^7.0.2003
         version: 7.0.2003
       playwright:
-        specifier: 1.64.0
-        version: 1.64.0
+        specifier: 1.64.1
+        version: 1.64.1
       portastic:
         specifier: ^1.0.1
         version: 1.0.1(supports-color@7.2.0)
@@ -448,13 +448,13 @@ importers:
         version: 10.4.0
       playwright-extra:
         specifier: ^4.3.6
-        version: 4.3.6(playwright-core@1.64.0)(playwright@1.64.0)(supports-color@8.1.1)
+        version: 4.3.6(playwright-core@1.64.1)(playwright@1.64.1)(supports-color@8.1.1)
       puppeteer-extra:
         specifier: ^3.3.6
         version: 3.3.6(puppeteer-core@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(puppeteer@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(supports-color@8.1.1)
       puppeteer-extra-plugin-stealth:
         specifier: ^2.11.2
-        version: 2.11.2(playwright-extra@4.3.6(playwright-core@1.64.0)(playwright@1.64.0)(supports-color@8.1.1))(puppeteer-extra@3.3.6(puppeteer-core@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(puppeteer@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(supports-color@8.1.1))(supports-color@8.1.1)
+        version: 2.11.2(playwright-extra@4.3.6(playwright-core@1.64.1)(playwright@1.64.1)(supports-color@8.1.1))(puppeteer-extra@3.3.6(puppeteer-core@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(puppeteer@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(supports-color@8.1.1))(supports-color@8.1.1)
       winston:
         specifier: ^3.17.0
         version: 3.19.0
@@ -536,8 +536,8 @@ importers:
         specifier: workspace:*
         version: link:../utils
       playwright:
-        specifier: 1.64.0
-        version: 1.64.0
+        specifier: 1.64.1
+        version: 1.64.1
       puppeteer:
         specifier: '*'
         version: 25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@7.2.0))
@@ -567,7 +567,7 @@ importers:
         version: 2.1.88
       fingerprint-injector:
         specifier: ^2.1.68
-        version: 2.1.88(playwright@1.64.0)(puppeteer@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))
+        version: 2.1.88(playwright@1.64.1)(puppeteer@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))
       lodash.merge:
         specifier: ^4.6.2
         version: 4.6.2
@@ -578,8 +578,8 @@ importers:
         specifier: ^6.2.0
         version: 6.2.0
       playwright:
-        specifier: 1.64.0
-        version: 1.64.0
+        specifier: 1.64.1
+        version: 1.64.1
       proxy-chain:
         specifier: ^2.5.8
         version: 2.7.1(supports-color@8.1.1)
@@ -613,6 +613,9 @@ importers:
       cheerio:
         specifier: ^1.0.0
         version: 1.2.0
+      domhandler:
+        specifier: ^6.0.0
+        version: 6.0.1
       htmlparser2:
         specifier: ^10.0.0
         version: 10.1.0
@@ -740,8 +743,8 @@ importers:
         specifier: ^3.2.0
         version: 3.2.0
       playwright:
-        specifier: 1.64.0
-        version: 1.64.0
+        specifier: 1.64.1
+        version: 1.64.1
       puppeteer:
         specifier: '*'
         version: 25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@7.2.0))
@@ -805,6 +808,9 @@ importers:
       content-type:
         specifier: ^3.1.1
         version: 3.1.1
+      domhandler:
+        specifier: ^6.0.0
+        version: 6.0.1
       iconv-lite:
         specifier: ^0.7.2
         version: 0.7.3
@@ -826,6 +832,9 @@ importers:
       '@apify/datastructures':
         specifier: ^3.0.1
         version: 3.0.1
+      '@crawlee/core':
+        specifier: workspace:*
+        version: link:../core
       '@crawlee/http-client':
         specifier: workspace:*
         version: link:../http-client
@@ -890,6 +899,9 @@ importers:
       cheerio:
         specifier: ^1.0.0
         version: 1.2.0
+      domhandler:
+        specifier: ^6.0.0
+        version: 6.0.1
       jquery:
         specifier: ^3.7.1
         version: 3.7.1
@@ -900,8 +912,8 @@ importers:
         specifier: ^6.12.1
         version: 6.15.0
       playwright:
-        specifier: 1.64.0
-        version: 1.64.0
+        specifier: 1.64.1
+        version: 1.64.1
       string-comparison:
         specifier: ^1.3.0
         version: 1.3.0
@@ -938,6 +950,9 @@ importers:
       devtools-protocol:
         specifier: '*'
         version: 0.0.1710668
+      domhandler:
+        specifier: ^6.0.0
+        version: 6.0.1
       jquery:
         specifier: ^3.7.1
         version: 3.7.1
@@ -979,8 +994,8 @@ importers:
         specifier: 3.0.7
         version: 3.0.7(@cfworker/json-schema@4.1.1)(@opentelemetry/api@1.9.1)(@opentelemetry/exporter-trace-otlp-proto@0.222.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.11.0(@opentelemetry/api@1.9.1))(deepmerge@4.3.1)(dotenv@16.4.7)(encoding@0.1.13)(proxy-agent@8.0.2(supports-color@8.1.1))(supports-color@8.1.1)(zod@4.6.5)
       playwright:
-        specifier: 1.64.0
-        version: 1.64.0
+        specifier: 1.64.1
+        version: 1.64.1
 
   packages/templates:
     dependencies:
@@ -4179,16 +4194,16 @@ packages:
   '@pinojs/redact@0.4.0':
     resolution: {integrity: sha512-k2ENnmBugE/rzQfEcdWHcCY+/FM3VLzH9cYEsbdsoqrvzAKRhUZeRNhAZvB8OitQJ1TBed3yqWtdjzS6wJKBwg==}
 
-  '@playwright/browser-chromium@1.64.0':
-    resolution: {integrity: sha512-vnkDCrnSwdXdB+lNlqyBbLS7+iuw7IRn2vAbu+Hf7d+aXdRW2nRDZGZbqu7nezDUOKRDKc0135pnO3HG936clQ==}
+  '@playwright/browser-chromium@1.64.1':
+    resolution: {integrity: sha512-0Bq4UoZb6AC637FmXYavKkF9qVB80OMM8MSKl9FZQ/7eheoE4NcXJSDU/U9vGg+woCZccpcDw7rM7dh7y6HBBg==}
     engines: {node: '>=20'}
 
-  '@playwright/browser-firefox@1.64.0':
-    resolution: {integrity: sha512-D4mhlbFpoc4aZIk4JDJdXprdA0K/SKwnIwgGXhqhLYEKr43I3MG1pxE0kgLD0+8V2vPFGX/jF912UmKQQaybtw==}
+  '@playwright/browser-firefox@1.64.1':
+    resolution: {integrity: sha512-CfPaUExbJqipQPvJWZpOwyaEjKjcqhGzcgqH7litulcbppZ2fuM2NWAT9padYTTw3G9eahE5W5YzxrBICNnX0g==}
     engines: {node: '>=20'}
 
-  '@playwright/browser-webkit@1.64.0':
-    resolution: {integrity: sha512-zUkFNm/HpqtqHMr0GuN50D+Unb1B0VPWBL12pSb6v8/LW65F1xWOG8UMbRNjTH1OhHGbe+KWfQ4/rikLktNFtQ==}
+  '@playwright/browser-webkit@1.64.1':
+    resolution: {integrity: sha512-HGmpbPrInHV16QkNvN6Z0MwRXgIlgjsUiyVf84nHCeHT9wy7GM97nt1k04CxpZMlfyvxYNR9IBWKHmMjfbc1sA==}
     engines: {node: '>=20'}
 
   '@pnpm/config.env-replace@1.1.0':
@@ -6096,7 +6111,7 @@ packages:
     engines: {node: '>= 22'}
     hasBin: true
     peerDependencies:
-      playwright-core: 1.64.0
+      playwright-core: 1.64.1
 
   caniuse-api@3.0.0:
     resolution: {integrity: sha512-bsTwuIg/BZZK/vreVTYYbSWoe2F+71P7K5QGEX+pT250DZbfU1MQ5prOKpPR+LL6uWKK3KMwMCAS74QB3Um1uw==}
@@ -7612,7 +7627,7 @@ packages:
     resolution: {integrity: sha512-npQr/Nc00x3XfbT9TE6RqPLIaYbun63rCL8isGqZVp0mlWw2mAr0J81WsIW3ENZB2w/dkCA9QewA0ufoYMB0Qw==}
     engines: {node: '>=16.0.0'}
     peerDependencies:
-      playwright: 1.64.0
+      playwright: 1.64.1
       puppeteer: '>= 9.x'
     peerDependenciesMeta:
       playwright:
@@ -10194,8 +10209,8 @@ packages:
     resolution: {integrity: sha512-Oo/NZcSWccq8KyoG7gLE9fnltgHns+pNCjCAp/WmjsUySi+sX7y4z4Xqu4fVb42CDHzRPl33fjzT15V1wvcyhA==}
     engines: {node: '>=16.0.0'}
 
-  playwright-core@1.64.0:
-    resolution: {integrity: sha512-T9r+MZkTECl2+oUcZ26YgZzTrYidTsIhYYkJix+6iDOymOb1FB2RLLSOxRGnZGv5DStt+aduIVbt+E8WygXYpg==}
+  playwright-core@1.64.1:
+    resolution: {integrity: sha512-BC4s8y6SEVA6Q1rSxZTto8hI1KUI3xXlHGZgvGqP4IqPdI/a6FX9H29IDNz7vKo9l21b6LfYosScPL6M3xxyDQ==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -10203,16 +10218,16 @@ packages:
     resolution: {integrity: sha512-q2rVtcE8V8K3vPVF1zny4pvwZveHLH8KBuVU2MoE3Jw4OKVoBWsHI9CH9zPydovHHOCDxjGN2Vg+2m644q3ijA==}
     engines: {node: '>=12'}
     peerDependencies:
-      playwright: 1.64.0
-      playwright-core: 1.64.0
+      playwright: 1.64.1
+      playwright-core: 1.64.1
     peerDependenciesMeta:
       playwright:
         optional: true
       playwright-core:
         optional: true
 
-  playwright@1.64.0:
-    resolution: {integrity: sha512-kVzTnYFYEyQ9RGzBjNCd2+yEqWmVbxl3AHPynv3qQ6JTjv4a+kwRcnqQwIpuP3NnrnIrE/Q6wWAIAvMfIE2/Yg==}
+  playwright@1.64.1:
+    resolution: {integrity: sha512-HCrVhHr5QQuwYoswEUGTb7gGp522yflbv/ST8nF4sFWGuLjQCt17Q/EubpGGSNKYn1tsTCPZxqHhHCfVURu7UA==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -13823,8 +13838,8 @@ snapshots:
       chrome-launcher: 1.2.2(supports-color@8.1.1)
       ollama-ai-provider-v2: 1.5.5(zod@4.6.5)
       patchright-core: 1.63.0
-      playwright: 1.64.0
-      playwright-core: 1.64.0
+      playwright: 1.64.1
+      playwright-core: 1.64.1
       puppeteer-core: 22.15.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1))(supports-color@8.1.1)
     transitivePeerDependencies:
       - '@cfworker/json-schema'
@@ -16942,17 +16957,17 @@ snapshots:
 
   '@pinojs/redact@0.4.0': {}
 
-  '@playwright/browser-chromium@1.64.0':
+  '@playwright/browser-chromium@1.64.1':
     dependencies:
-      playwright-core: 1.64.0
+      playwright-core: 1.64.1
 
-  '@playwright/browser-firefox@1.64.0':
+  '@playwright/browser-firefox@1.64.1':
     dependencies:
-      playwright-core: 1.64.0
+      playwright-core: 1.64.1
 
-  '@playwright/browser-webkit@1.64.0':
+  '@playwright/browser-webkit@1.64.1':
     dependencies:
-      playwright-core: 1.64.0
+      playwright-core: 1.64.1
 
   '@pnpm/config.env-replace@1.1.0': {}
 
@@ -17001,7 +17016,6 @@ snapshots:
       yargs: 18.2.0
     optionalDependencies:
       proxy-agent: 8.0.2(supports-color@8.1.1)
-    optional: true
 
   '@rolldown/binding-android-arm-eabi@1.2.12':
     optional: true
@@ -18942,7 +18956,7 @@ snapshots:
 
   camelcase@7.0.1: {}
 
-  camoufox-js@0.12.0(playwright-core@1.64.0):
+  camoufox-js@0.12.0(playwright-core@1.64.1):
     dependencies:
       adm-zip: 0.6.1
       better-sqlite3: 13.0.3
@@ -18953,7 +18967,7 @@ snapshots:
       impit: 0.14.5
       language-tags: 2.1.0
       maxmind: 5.0.7
-      playwright-core: 1.64.0
+      playwright-core: 1.64.1
       pretty-bytes: 7.2.0
       ua-parser-js: 2.0.10
       xml2js: 0.6.2
@@ -20851,12 +20865,12 @@ snapshots:
       header-generator: 2.1.88
       tslib: 2.8.1
 
-  fingerprint-injector@2.1.88(playwright@1.64.0)(puppeteer@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1))):
+  fingerprint-injector@2.1.88(playwright@1.64.1)(puppeteer@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1))):
     dependencies:
       fingerprint-generator: 2.1.88
       tslib: 2.8.1
     optionalDependencies:
-      playwright: 1.64.0
+      playwright: 1.64.1
       puppeteer: 25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1))
 
   flat-cache@3.2.0:
@@ -24260,20 +24274,20 @@ snapshots:
       pvutils: 1.2.0
       tslib: 2.8.1
 
-  playwright-core@1.64.0: {}
+  playwright-core@1.64.1: {}
 
-  playwright-extra@4.3.6(playwright-core@1.64.0)(playwright@1.64.0)(supports-color@8.1.1):
+  playwright-extra@4.3.6(playwright-core@1.64.1)(playwright@1.64.1)(supports-color@8.1.1):
     dependencies:
       debug: 4.4.3(supports-color@8.1.1)
     optionalDependencies:
-      playwright: 1.64.0
-      playwright-core: 1.64.0
+      playwright: 1.64.1
+      playwright-core: 1.64.1
     transitivePeerDependencies:
       - supports-color
 
-  playwright@1.64.0:
+  playwright@1.64.1:
     dependencies:
-      playwright-core: 1.64.0
+      playwright-core: 1.64.1
 
   points-on-curve@0.2.0: {}
 
@@ -24918,50 +24932,49 @@ snapshots:
       - proxy-agent
       - utf-8-validate
       - yauzl
-    optional: true
 
-  puppeteer-extra-plugin-stealth@2.11.2(playwright-extra@4.3.6(playwright-core@1.64.0)(playwright@1.64.0)(supports-color@8.1.1))(puppeteer-extra@3.3.6(puppeteer-core@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(puppeteer@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(supports-color@8.1.1))(supports-color@8.1.1):
+  puppeteer-extra-plugin-stealth@2.11.2(playwright-extra@4.3.6(playwright-core@1.64.1)(playwright@1.64.1)(supports-color@8.1.1))(puppeteer-extra@3.3.6(puppeteer-core@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(puppeteer@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(supports-color@8.1.1))(supports-color@8.1.1):
     dependencies:
       debug: 4.4.3(supports-color@8.1.1)
-      puppeteer-extra-plugin: 3.2.3(playwright-extra@4.3.6(playwright-core@1.64.0)(playwright@1.64.0)(supports-color@8.1.1))(puppeteer-extra@3.3.6(puppeteer-core@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(puppeteer@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(supports-color@8.1.1))(supports-color@8.1.1)
-      puppeteer-extra-plugin-user-preferences: 2.4.1(playwright-extra@4.3.6(playwright-core@1.64.0)(playwright@1.64.0)(supports-color@8.1.1))(puppeteer-extra@3.3.6(puppeteer-core@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(puppeteer@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(supports-color@8.1.1))(supports-color@8.1.1)
+      puppeteer-extra-plugin: 3.2.3(playwright-extra@4.3.6(playwright-core@1.64.1)(playwright@1.64.1)(supports-color@8.1.1))(puppeteer-extra@3.3.6(puppeteer-core@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(puppeteer@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(supports-color@8.1.1))(supports-color@8.1.1)
+      puppeteer-extra-plugin-user-preferences: 2.4.1(playwright-extra@4.3.6(playwright-core@1.64.1)(playwright@1.64.1)(supports-color@8.1.1))(puppeteer-extra@3.3.6(puppeteer-core@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(puppeteer@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(supports-color@8.1.1))(supports-color@8.1.1)
     optionalDependencies:
-      playwright-extra: 4.3.6(playwright-core@1.64.0)(playwright@1.64.0)(supports-color@8.1.1)
+      playwright-extra: 4.3.6(playwright-core@1.64.1)(playwright@1.64.1)(supports-color@8.1.1)
       puppeteer-extra: 3.3.6(puppeteer-core@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(puppeteer@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
 
-  puppeteer-extra-plugin-user-data-dir@2.4.1(playwright-extra@4.3.6(playwright-core@1.64.0)(playwright@1.64.0)(supports-color@8.1.1))(puppeteer-extra@3.3.6(puppeteer-core@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(puppeteer@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(supports-color@8.1.1))(supports-color@8.1.1):
+  puppeteer-extra-plugin-user-data-dir@2.4.1(playwright-extra@4.3.6(playwright-core@1.64.1)(playwright@1.64.1)(supports-color@8.1.1))(puppeteer-extra@3.3.6(puppeteer-core@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(puppeteer@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(supports-color@8.1.1))(supports-color@8.1.1):
     dependencies:
       debug: 4.4.3(supports-color@8.1.1)
       fs-extra: 10.1.0
-      puppeteer-extra-plugin: 3.2.3(playwright-extra@4.3.6(playwright-core@1.64.0)(playwright@1.64.0)(supports-color@8.1.1))(puppeteer-extra@3.3.6(puppeteer-core@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(puppeteer@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(supports-color@8.1.1))(supports-color@8.1.1)
+      puppeteer-extra-plugin: 3.2.3(playwright-extra@4.3.6(playwright-core@1.64.1)(playwright@1.64.1)(supports-color@8.1.1))(puppeteer-extra@3.3.6(puppeteer-core@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(puppeteer@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(supports-color@8.1.1))(supports-color@8.1.1)
       rimraf: 3.0.2
     optionalDependencies:
-      playwright-extra: 4.3.6(playwright-core@1.64.0)(playwright@1.64.0)(supports-color@8.1.1)
+      playwright-extra: 4.3.6(playwright-core@1.64.1)(playwright@1.64.1)(supports-color@8.1.1)
       puppeteer-extra: 3.3.6(puppeteer-core@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(puppeteer@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
 
-  puppeteer-extra-plugin-user-preferences@2.4.1(playwright-extra@4.3.6(playwright-core@1.64.0)(playwright@1.64.0)(supports-color@8.1.1))(puppeteer-extra@3.3.6(puppeteer-core@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(puppeteer@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(supports-color@8.1.1))(supports-color@8.1.1):
+  puppeteer-extra-plugin-user-preferences@2.4.1(playwright-extra@4.3.6(playwright-core@1.64.1)(playwright@1.64.1)(supports-color@8.1.1))(puppeteer-extra@3.3.6(puppeteer-core@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(puppeteer@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(supports-color@8.1.1))(supports-color@8.1.1):
     dependencies:
       debug: 4.4.3(supports-color@8.1.1)
       deepmerge: 4.3.1
-      puppeteer-extra-plugin: 3.2.3(playwright-extra@4.3.6(playwright-core@1.64.0)(playwright@1.64.0)(supports-color@8.1.1))(puppeteer-extra@3.3.6(puppeteer-core@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(puppeteer@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(supports-color@8.1.1))(supports-color@8.1.1)
-      puppeteer-extra-plugin-user-data-dir: 2.4.1(playwright-extra@4.3.6(playwright-core@1.64.0)(playwright@1.64.0)(supports-color@8.1.1))(puppeteer-extra@3.3.6(puppeteer-core@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(puppeteer@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(supports-color@8.1.1))(supports-color@8.1.1)
+      puppeteer-extra-plugin: 3.2.3(playwright-extra@4.3.6(playwright-core@1.64.1)(playwright@1.64.1)(supports-color@8.1.1))(puppeteer-extra@3.3.6(puppeteer-core@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(puppeteer@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(supports-color@8.1.1))(supports-color@8.1.1)
+      puppeteer-extra-plugin-user-data-dir: 2.4.1(playwright-extra@4.3.6(playwright-core@1.64.1)(playwright@1.64.1)(supports-color@8.1.1))(puppeteer-extra@3.3.6(puppeteer-core@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(puppeteer@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(supports-color@8.1.1))(supports-color@8.1.1)
     optionalDependencies:
-      playwright-extra: 4.3.6(playwright-core@1.64.0)(playwright@1.64.0)(supports-color@8.1.1)
+      playwright-extra: 4.3.6(playwright-core@1.64.1)(playwright@1.64.1)(supports-color@8.1.1)
       puppeteer-extra: 3.3.6(puppeteer-core@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(puppeteer@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
 
-  puppeteer-extra-plugin@3.2.3(playwright-extra@4.3.6(playwright-core@1.64.0)(playwright@1.64.0)(supports-color@8.1.1))(puppeteer-extra@3.3.6(puppeteer-core@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(puppeteer@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(supports-color@8.1.1))(supports-color@8.1.1):
+  puppeteer-extra-plugin@3.2.3(playwright-extra@4.3.6(playwright-core@1.64.1)(playwright@1.64.1)(supports-color@8.1.1))(puppeteer-extra@3.3.6(puppeteer-core@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(puppeteer@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(supports-color@8.1.1))(supports-color@8.1.1):
     dependencies:
       '@types/debug': 4.1.13
       debug: 4.4.3(supports-color@8.1.1)
       merge-deep: 3.0.3
     optionalDependencies:
-      playwright-extra: 4.3.6(playwright-core@1.64.0)(playwright@1.64.0)(supports-color@8.1.1)
+      playwright-extra: 4.3.6(playwright-core@1.64.1)(playwright@1.64.1)(supports-color@8.1.1)
       puppeteer-extra: 3.3.6(puppeteer-core@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(puppeteer@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
@@ -25004,7 +25017,6 @@ snapshots:
       - proxy-agent
       - utf-8-validate
       - yauzl
-    optional: true
 
   pvtsutils@1.3.6:
     dependencies:

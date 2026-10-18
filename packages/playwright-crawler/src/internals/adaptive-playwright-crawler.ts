@@ -107,16 +107,17 @@ export interface AdaptivePlaywrightCrawlerContext<
     page: Page;
 
     /**
-     * Wait for an element matching the selector to appear and return a Cheerio object of the first matched element.
-     * Timeout defaults to 5s.
-     */
-    querySelector(selector: string, timeoutMs?: number): Promise<Cheerio<AnyNode>>;
-
-    /**
      * Wait for an element matching the selector to appear and return a Cheerio object of all matched elements.
+     * Throws when nothing matches - in the HTTP-only run, that makes the crawler retry the request in a browser.
      * Timeout defaults to 5s.
      */
     querySelectorAll(selector: string, timeoutMs?: number): Promise<Cheerio<AnyNode>>;
+
+    /**
+     * Like {@apilink AdaptivePlaywrightCrawlerContext.querySelectorAll|`querySelectorAll`}, but returns only the
+     * first match.
+     */
+    querySelectorOne(selector: string, timeoutMs?: number): Promise<Cheerio<AnyNode>>;
 
     /**
      * Wait for an element matching the selector to appear.
@@ -162,6 +163,12 @@ type AdaptivePostNavigationHook<ContextExtension = Dictionary<never>> = BrowserH
     Omit<AdaptiveHookContext, 'request'> & { request: LoadedRequest<CrawlingRequest> },
     ContextExtension
 >;
+
+/** Passed to {@apilink AdaptivePlaywrightCrawlerOptions.resultChecker} and `resultComparator` alongside the results. */
+export interface AdaptiveResultContext {
+    /** The request whose handler produced the results. */
+    request: CrawlingRequest;
+}
 
 export interface AdaptivePlaywrightCrawlerOptions<
     ContextExtension = Dictionary<never>,
@@ -216,7 +223,7 @@ export interface AdaptivePlaywrightCrawlerOptions<
      * If it returns false, the request is retried in a browser.
      * If no callback is specified, every result is considered valid.
      */
-    resultChecker?: (result: StorageTransactionView) => boolean;
+    resultChecker?: (result: StorageTransactionView, context: AdaptiveResultContext) => boolean;
 
     /**
      * An optional callback that decides whether an error thrown during the plain HTTP request handler
@@ -244,6 +251,7 @@ export interface AdaptivePlaywrightCrawlerOptions<
     resultComparator?: (
         resultA: StorageTransactionView,
         resultB: StorageTransactionView,
+        context: AdaptiveResultContext,
     ) => boolean | 'equal' | 'different' | 'inconclusive';
 
     /**
@@ -281,9 +289,9 @@ interface InnerCrawlerLifecycle {
  * ```javascript
  * const crawler = new AdaptivePlaywrightCrawler({
  *     renderingTypeDetectionRatio: 0.1,
- *     async requestHandler({ querySelector, pushData, enqueueLinks, request, log }) {
+ *     async requestHandler({ querySelectorAll, pushData, enqueueLinks, request, log }) {
  *         // This function is called to extract data from a single web page
- *         const $prices = await querySelector('span.price')
+ *         const $prices = await querySelectorAll('span.price')
  *
  *         await pushData({
  *             url: request.url,
@@ -452,7 +460,8 @@ export class AdaptivePlaywrightCrawler<
         if (resultComparator !== undefined) {
             this.#resultComparator = resultComparator;
         } else if (resultChecker !== undefined) {
-            this.#resultComparator = (resultA, resultB) => this.#resultChecker(resultA) && this.#resultChecker(resultB);
+            this.#resultComparator = (resultA, resultB, context) =>
+                this.#resultChecker(resultA, context) && this.#resultChecker(resultB, context);
         } else {
             this.#resultComparator = (resultA, resultB) => {
                 return (
@@ -527,11 +536,11 @@ export class AdaptivePlaywrightCrawler<
             get page(): Page {
                 throw new Error(errorMessage('page'));
             },
-            get querySelector(): AdaptivePlaywrightCrawlerContext['querySelector'] {
-                throw new Error(errorMessage('querySelector'));
-            },
             get querySelectorAll(): AdaptivePlaywrightCrawlerContext['querySelectorAll'] {
                 throw new Error(errorMessage('querySelectorAll'));
+            },
+            get querySelectorOne(): AdaptivePlaywrightCrawlerContext['querySelectorOne'] {
+                throw new Error(errorMessage('querySelectorOne'));
             },
             get waitForSelector(): AdaptivePlaywrightCrawlerContext['waitForSelector'] {
                 throw new Error(errorMessage('waitForSelector'));
@@ -549,12 +558,6 @@ export class AdaptivePlaywrightCrawler<
         return {
             get page(): Page {
                 throw new Error('Page object was used in HTTP-only request handler');
-            },
-            async querySelector(selector: string) {
-                return cheerioContext.$(selector).first();
-            },
-            async querySelectorAll(selector: string) {
-                return cheerioContext.$(selector);
             },
             enqueueLinks: async (options: EnqueueLinksOptions = {}) => {
                 const urls = extractUrlsFromCheerio(
@@ -578,20 +581,6 @@ export class AdaptivePlaywrightCrawler<
                 status: originalResponse.status(),
                 statusText: originalResponse.statusText(),
             }),
-            async querySelector(selector: string, timeoutMs = 5000) {
-                const locator = playwrightContext.page.locator(selector).first();
-                await locator.waitFor({ timeout: timeoutMs, state: 'attached' });
-                const $ = await playwrightContext.parseWithCheerio();
-
-                return $(selector).first() as Cheerio<any>;
-            },
-            async querySelectorAll(selector: string, timeoutMs = 5000) {
-                const locator = playwrightContext.page.locator(selector).first();
-                await locator.waitFor({ timeout: timeoutMs, state: 'attached' });
-                const $ = await playwrightContext.parseWithCheerio();
-
-                return $(selector) as Cheerio<any>;
-            },
             enqueueLinks: async (options: EnqueueLinksOptions = {}, timeoutMs = 5000) => {
                 // TODO consider using `context.parseWithCheerio` to make this universal and avoid code duplication
                 const selector = options.selector ?? 'a';
@@ -699,6 +688,10 @@ export class AdaptivePlaywrightCrawler<
         const transactions: StorageTransaction[] = [];
 
         try {
+            // A result the `resultChecker` rejected is as good as a detection saying the page needs a browser - but
+            // only once the browser run has succeeded. A thrown error says nothing about rendering.
+            let httpResultRejected = false;
+
             if (renderingTypePrediction.renderingType === 'static' && !shouldDetectRenderingType) {
                 crawlingContext.log.debug(`Running HTTP-only request handler for ${crawlingContext.request.url}`);
                 this.statistics.state.httpOnlyRequestHandlerRuns++;
@@ -710,7 +703,7 @@ export class AdaptivePlaywrightCrawler<
                     transactions,
                 );
 
-                if (plainHTTPRun.ok && this.#resultChecker(plainHTTPRun.result)) {
+                if (plainHTTPRun.ok && this.#resultChecker(plainHTTPRun.result, { request: crawlingContext.request })) {
                     crawlingContext.log.debug(`HTTP-only request handler succeeded for ${crawlingContext.request.url}`);
                     plainHTTPRun.logs?.forEach(([log, method, ...args]) => log[method](...(args as [any, any])));
                     await plainHTTPRun.result.commit();
@@ -741,6 +734,7 @@ export class AdaptivePlaywrightCrawler<
                         `HTTP-only request handler returned a suspicious result for ${crawlingContext.request.url}`,
                     );
                     this.statistics.state.renderingTypeMispredictions++;
+                    httpResultRejected = true;
                 }
             }
 
@@ -784,6 +778,11 @@ export class AdaptivePlaywrightCrawler<
             browserRun.logs?.forEach(([log, method, ...args]) => log[method](...(args as [any, any])));
             await browserRun.result.commit();
 
+            // Past the shutdown fence, `teardown()` has already drained - and possibly torn down the predictor.
+            if (httpResultRejected && !this.#shutDown) {
+                this.#storeRenderingType(crawlingContext.request, 'clientOnly');
+            }
+
             if (shouldDetectRenderingType) {
                 const detectionPromise = (async () => {
                     crawlingContext.log.debug(`Detecting rendering type for ${crawlingContext.request.url}`);
@@ -801,7 +800,9 @@ export class AdaptivePlaywrightCrawler<
                             return 'clientOnly';
                         }
 
-                        const comparisonResult = this.#resultComparator(plainHTTPRun.result, browserRun.result);
+                        const comparisonResult = this.#resultComparator(plainHTTPRun.result, browserRun.result, {
+                            request: crawlingContext.request,
+                        });
                         if (comparisonResult === true || comparisonResult === 'equal') {
                             return 'static';
                         }
@@ -818,24 +819,7 @@ export class AdaptivePlaywrightCrawler<
                     );
 
                     if (detectionResult !== undefined) {
-                        // Deliberately not awaited: a predictor that persists asynchronously gets to keep
-                        // batching its writes, and the drain below catches whatever is still pending.
-                        const stored = this.#renderingTypePredictor.value.storeResult(
-                            crawlingContext.request,
-                            detectionResult,
-                        );
-
-                        if (stored !== undefined) {
-                            // Nothing downstream awaits this, so a failed write would otherwise be silent.
-                            void this.#trackDetection(
-                                Promise.resolve(stored).catch((error) =>
-                                    this.log.exception(
-                                        error as Error,
-                                        `Failed to store the rendering type detection result for ${crawlingContext.request.url}`,
-                                    ),
-                                ),
-                            );
-                        }
+                        this.#storeRenderingType(crawlingContext.request, detectionResult);
                     }
                 })();
 
@@ -847,6 +831,24 @@ export class AdaptivePlaywrightCrawler<
                 transaction.rollback();
                 transaction.dispose();
             }
+        }
+    }
+
+    #storeRenderingType(request: CrawlingContext['request'], renderingType: RenderingType): void {
+        // Deliberately not awaited: a predictor that persists asynchronously gets to keep batching its writes,
+        // and `drainRenderingDetections()` catches whatever is still pending.
+        const stored = this.#renderingTypePredictor.value.storeResult(request, renderingType);
+
+        if (stored !== undefined) {
+            // Nothing downstream awaits this, so a failed write would otherwise be silent.
+            void this.#trackDetection(
+                Promise.resolve(stored).catch((error) =>
+                    this.log.exception(
+                        error as Error,
+                        `Failed to store the rendering type detection result for ${request.url}`,
+                    ),
+                ),
+            );
         }
     }
 

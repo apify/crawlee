@@ -48,6 +48,7 @@
     },
     "dependencies": {
         "@apify/datastructures": "^3.0.1",
+        "@crawlee/core": "workspace:*",
         "@crawlee/http-client": "workspace:*",
         "@crawlee/types": "workspace:*",
         "impit": "^0.14.2",

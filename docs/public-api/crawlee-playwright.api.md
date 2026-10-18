@@ -87,8 +87,8 @@ export interface AdaptivePlaywrightCrawlerContext<UserData extends Dictionary = 
     enqueueLinks(options?: EnqueueLinksOptions): Promise<unknown>;
     page: Page;
     parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioAPI>;
-    querySelector(selector: string, timeoutMs?: number): Promise<Cheerio<AnyNode>>;
     querySelectorAll(selector: string, timeoutMs?: number): Promise<Cheerio<AnyNode>>;
+    querySelectorOne(selector: string, timeoutMs?: number): Promise<Cheerio<AnyNode>>;
     // (undocumented)
     request: LoadedRequest<CrawlingRequest<UserData>>;
     response: Response;
@@ -101,8 +101,8 @@ export interface AdaptivePlaywrightCrawlerOptions<ContextExtension = Dictionary<
     preNavigationHooks?: AdaptiveHook<ContextExtension>[];
     renderingTypeDetectionRatio?: number;
     renderingTypePredictor?: IRenderingTypePredictor;
-    resultChecker?: (result: StorageTransactionView) => boolean;
-    resultComparator?: (resultA: StorageTransactionView, resultB: StorageTransactionView) => boolean | 'equal' | 'different' | 'inconclusive';
+    resultChecker?: (result: StorageTransactionView, context: AdaptiveResultContext) => boolean;
+    resultComparator?: (resultA: StorageTransactionView, resultB: StorageTransactionView, context: AdaptiveResultContext) => boolean | 'equal' | 'different' | 'inconclusive';
     shouldPropagateError?: (error: Error, context: PlaywrightCrawlingContext) => Awaitable<boolean>;
 }
 
@@ -123,6 +123,11 @@ export const adaptivePlaywrightCrawlerStatisticState: {
 type AdaptivePostNavigationHook<ContextExtension = Dictionary<never>> = BrowserHook<Omit<AdaptiveHookContext, 'request'> & {
     request: LoadedRequest<CrawlingRequest>;
 }, ContextExtension>;
+
+// @public
+export interface AdaptiveResultContext {
+    request: CrawlingRequest;
+}
 
 // Not exported by the entry point; reachable only as a referenced type.
 // @public (undocumented)
@@ -304,6 +309,8 @@ interface PlaywrightContextUtils {
     injectJQuery(): Promise<unknown>;
     listDownloads(): Promise<Download[]>;
     parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioAPI>;
+    querySelectorAll(selector: string, timeoutMs?: number): Promise<Cheerio<AnyNode>>;
+    querySelectorOne(selector: string, timeoutMs?: number): Promise<Cheerio<AnyNode>>;
     saveSnapshot(options?: SaveSnapshotOptions): Promise<void>;
     waitForSelector(selector: string, timeoutMs?: number): Promise<void>;
 }
