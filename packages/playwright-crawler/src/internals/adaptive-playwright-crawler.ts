@@ -31,6 +31,7 @@ import {
 import { extractUrlsFromPage } from '@crawlee/browser';
 import type { CheerioCrawlingContext } from '@crawlee/cheerio';
 import { CheerioCrawler } from '@crawlee/cheerio';
+import { ResponseWithUrl } from '@crawlee/http-client';
 import type {
     AddRequestsBatchedResult,
     CrawleeLogger,
@@ -567,7 +568,9 @@ export class AdaptivePlaywrightCrawler<
                 );
                 return (await this.#enqueueLinks(urls, options, cheerioContext.request)) as unknown as void;
             },
-            response: cheerioContext.response,
+            // The HTTP crawler has already consumed the body; hand out a fresh copy, like the browser side does.
+            // HTML bodies are already decoded to UTF-8, so `arrayBuffer()` may disagree with the original headers.
+            response: new ResponseWithUrl(cheerioContext.body, cheerioContext.response),
         };
     }
 
@@ -576,16 +579,20 @@ export class AdaptivePlaywrightCrawler<
         const originalResponse = playwrightContext.response;
 
         return {
-            response: new Response(Uint8Array.from(await originalResponse.body()), {
+            response: new ResponseWithUrl(Uint8Array.from(await originalResponse.body()), {
                 headers: originalResponse.headers(),
                 status: originalResponse.status(),
                 statusText: originalResponse.statusText(),
+                url: originalResponse.url(),
             }),
             enqueueLinks: async (options: EnqueueLinksOptions = {}, timeoutMs = 5000) => {
                 // TODO consider using `context.parseWithCheerio` to make this universal and avoid code duplication
                 const selector = options.selector ?? 'a';
                 const locator = playwrightContext.page.locator(selector).first();
-                await locator.waitFor({ timeout: timeoutMs, state: 'attached' });
+                // Wait for client-rendered links, but like the HTTP side, enqueue nothing when there are none.
+                await locator.waitFor({ timeout: timeoutMs, state: 'attached' }).catch((error: Error) => {
+                    if (error.name !== 'TimeoutError') throw error;
+                });
                 const urls = await extractUrlsFromPage(
                     playwrightContext.page,
                     selector,
