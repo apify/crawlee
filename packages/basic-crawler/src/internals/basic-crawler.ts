@@ -2562,6 +2562,7 @@ export class BasicCrawler<
             const robotsTxtFile = await RobotsTxtFile.find(url, {
                 httpClient: this.httpClient,
                 session: await this.sessionPool.getSession(),
+                timeoutMillis: 30_000,
                 logger: this.log,
             });
             this.#robotsTxtFileCache.add(origin, robotsTxtFile);

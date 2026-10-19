@@ -3144,6 +3144,7 @@ describe('BasicCrawler', () => {
 
             expect(sendRequest).toHaveBeenCalledOnce();
             expect(sendRequest.mock.calls[0][1]?.session?.proxyInfo?.url).toBe(proxyUrl);
+            expect(sendRequest.mock.calls[0][1]?.timeoutMillis).toBeGreaterThan(0);
             expect(handled).toEqual(['/public']);
         });
 
