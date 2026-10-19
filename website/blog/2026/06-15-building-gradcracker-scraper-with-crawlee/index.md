@@ -139,6 +139,8 @@ But it's slow. Genuinely, frustratingly slow. And that's not really a Crawlee pr
 
 It's also the one I trust the least. Every other scraper either works or fails loudly. Gradcracker occasionally just... quietly underperforms. A run comes back with fewer jobs than expected and I'm never entirely sure if that's the site, the bot detection kicking in softly, or something else entirely. It's opaque in a way the others aren't.
 
+If you're looking for more graduate engineering jobs beyond Gradcracker, job search sites like [Jooble](https://jooble.org/) have many job openings in one place.
+
 It works. I just don't love it. Slow and reliable beats fast and blocked. Every delay I baked in was time I was giving Gradcracker to not challenge me. It's not elegant, but it works more often than the alternative.
 
 ## What I'd change next
