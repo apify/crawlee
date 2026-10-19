@@ -315,8 +315,8 @@ importers:
         specifier: ^2.3.0
         version: 2.3.0(supports-color@7.2.0)
       camoufox-js:
-        specifier: ^0.12.0
-        version: 0.12.0(playwright-core@1.64.1)
+        specifier: ^0.13.0
+        version: 0.13.0(playwright-core@1.64.1)
       crawlee:
         specifier: workspace:*
         version: link:packages/crawlee
@@ -6106,8 +6106,8 @@ packages:
     resolution: {integrity: sha512-xlx1yCK2Oc1APsPXDL2LdlNP6+uu8OCDdhOBSVT279M/S+y75O30C2VuD8T2ogdePBBl7PfPF4504tnLgX3zfw==}
     engines: {node: '>=14.16'}
 
-  camoufox-js@0.12.0:
-    resolution: {integrity: sha512-WvWrSL6IH7NixrmB4PM1NODx9cY2R+V/jv9jrmHMVlR4IHP3uheP6whhv0xsoVhFlKIErky5aYx7uA7oECA/Tg==}
+  camoufox-js@0.13.0:
+    resolution: {integrity: sha512-XVT9ErgpLaDyUKA/R/mGsDhiVtcE14TaJHELmKNZxGCCwkXBjFdyx6JG3D2KX+MwdGnfKGWE96otSO3FfVh44w==}
     engines: {node: '>= 22'}
     hasBin: true
     peerDependencies:
@@ -18956,7 +18956,7 @@ snapshots:
 
   camelcase@7.0.1: {}
 
-  camoufox-js@0.12.0(playwright-core@1.64.1):
+  camoufox-js@0.13.0(playwright-core@1.64.1):
     dependencies:
       adm-zip: 0.6.1
       better-sqlite3: 13.0.3
