@@ -1,0 +1,50 @@
+---
+id: using-browser-profile
+title: Using browser profile
+---
+
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+import CodeBlock from '@theme/CodeBlock';
+import ApiLink from '@site/src/components/ApiLink';
+
+import PlaywrightChromeSource from '!!raw-loader!./using_browser_profiles_playwright_chrome.ts';
+import PuppeteerChromeSource from '!!raw-loader!./using_browser_profiles_puppeteer_chrome.ts';
+import PlaywrightFirefoxSource from '!!raw-loader!./using_browser_profiles_playwright_firefox.ts';
+
+This example demonstrates how to run <ApiLink to="playwright-crawler/class/PlaywrightCrawler">`PlaywrightCrawler`</ApiLink> and <ApiLink to="puppeteer-crawler/class/PuppeteerCrawler">`PuppeteerCrawler`</ApiLink> using your local browser profile from [Chrome](https://www.google.com/intl/us/chrome/) or [Firefox](https://www.firefox.com/).
+
+Using browser profiles allows you to leverage existing login sessions, saved passwords, bookmarks, and other personalized browser data during crawling. This can be particularly useful for testing scenarios or when you need to access content that requires authentication.
+
+## Chrome browser
+
+To run a crawler with your Chrome profile, you need to know the path to your profile files. You can find this information by entering `chrome://version/` as a URL in your Chrome browser. If you have multiple profiles, pay attention to the profile name - if you only have one profile, it's always `Default`.
+
+:::warning Profile access limitation
+Due to [Chrome's security policies](https://developer.chrome.com/blog/remote-debugging-port), automation cannot use your main browsing profile directly. The example copies your profile to a temporary location as a workaround.
+:::
+
+Make sure you don't have any running Chrome browser processes before running this code:
+
+<Tabs groupId="crawler-type">
+    <TabItem value="playwright_crawler" label="Playwright Crawler" default>
+        <CodeBlock className="language-js">
+	        {PlaywrightChromeSource}
+        </CodeBlock>
+    </TabItem>
+    <TabItem value="puppeteer_crawler" label="Puppeteer Crawler">
+        <CodeBlock className="language-js">
+	        {PuppeteerChromeSource}
+        </CodeBlock>
+    </TabItem>
+</Tabs>
+
+## Firefox browser
+
+To find the path to your Firefox profile, enter `about:profiles` as a URL in your Firefox browser. Unlike Chrome, you can use your standard profile path directly without copying it first.
+
+Make sure you don't have any running Firefox browser processes before running this code:
+
+<CodeBlock className="language-js">
+	{PlaywrightFirefoxSource}
+</CodeBlock>
