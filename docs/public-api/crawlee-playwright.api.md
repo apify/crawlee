@@ -24,7 +24,7 @@ import { CheerioAPI } from 'cheerio';
 import { Configuration } from '@crawlee/browser';
 import type { CrawlerRemoteBrowserOptions } from '@crawlee/browser';
 import type { CrawlingContext } from '@crawlee/basic';
-import type { CrawlingRequest } from '@crawlee/browser';
+import { CrawlingRequest } from '@crawlee/browser';
 import type { Dictionary } from '@crawlee/types';
 import type { Download } from 'playwright';
 import type { EnqueueLinksOptions } from '@crawlee/basic';
