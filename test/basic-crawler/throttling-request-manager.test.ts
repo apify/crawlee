@@ -756,7 +756,7 @@ describe('ThrottlingRequestManager', () => {
             expect((await manager.fetchNextRequest())?.url).toBe('https://example.com/2');
         });
 
-        test('chooses the earliest cooldown only among domains with outstanding work', async () => {
+        test('skips finished cooldowns and stops probing at the earliest domain with outstanding work', async () => {
             const manager = new ThrottlingRequestManager({ inner: await createQueue(), domains: 'all' });
             for (const [domain, intervalMs] of [
                 ['finished.com', 10_000],
@@ -776,7 +776,17 @@ describe('ThrottlingRequestManager', () => {
                 }
             }
 
+            const finishedQueue = await RequestQueue.open({ alias: 'throttled-finished.com' });
+            const earlierQueue = await RequestQueue.open({ alias: 'throttled-earlier.com' });
+            const laterQueue = await RequestQueue.open({ alias: 'throttled-later.com' });
+            const finishedProbe = vitest.spyOn(finishedQueue, 'checkReadiness');
+            const earlierProbe = vitest.spyOn(earlierQueue, 'checkReadiness');
+            const laterProbe = vitest.spyOn(laterQueue, 'checkReadiness');
+
             expect(await manager.checkReadiness()).toEqual({ status: 'waiting', readyAt: Date.now() + 20_000 });
+            expect(finishedProbe).toHaveBeenCalledTimes(1);
+            expect(earlierProbe).toHaveBeenCalledTimes(1);
+            expect(laterProbe).not.toHaveBeenCalled();
         });
 
         test('returns ready without probing a cooling domain when other work is dispatchable', async () => {

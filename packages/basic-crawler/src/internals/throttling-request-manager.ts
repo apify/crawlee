@@ -1002,20 +1002,10 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
             }
         }
 
-        const cooldowns = await Promise.all(
-            cooling.map(async ({ subManager, until }) =>
-                (await (await subManager).checkReadiness()).status === 'finished' ? undefined : until,
-            ),
-        );
-        let readyAt: number | undefined;
-        for (const until of cooldowns) {
-            if (until !== undefined && (readyAt === undefined || until < readyAt)) {
-                readyAt = until;
+        for (const { subManager, until } of cooling.sort((a, b) => a.until - b.until)) {
+            if ((await (await subManager).checkReadiness()).status !== 'finished') {
+                return joinRequestSourceStatuses(probed, { status: 'waiting', readyAt: until });
             }
-        }
-
-        if (readyAt !== undefined) {
-            return joinRequestSourceStatuses(probed, { status: 'waiting', readyAt });
         }
 
         // Batches still landing in the background are work nobody can see in a queue yet.
