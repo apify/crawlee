@@ -1,11 +1,4 @@
-import type {
-    BrowserHook,
-    LoadedRequest,
-    CrawlingRequest,
-    RouterHandler,
-    RouteSchemas,
-    RoutesFromSchemas,
-} from '@crawlee/browser';
+import type { BrowserHook, LoadedRequest, RouterHandler, RouteSchemas, RoutesFromSchemas } from '@crawlee/browser';
 import { setTimeout as delay } from 'node:timers/promises';
 import { isDeepStrictEqual } from 'node:util';
 
@@ -28,7 +21,7 @@ import {
     Router,
     Statistics,
 } from '@crawlee/basic';
-import { extractUrlsFromPage } from '@crawlee/browser';
+import { CrawlingRequest, extractUrlsFromPage } from '@crawlee/browser';
 import type { CheerioCrawlingContext } from '@crawlee/cheerio';
 import { CheerioCrawler } from '@crawlee/cheerio';
 import { ResponseWithUrl } from '@crawlee/http-client';
@@ -41,7 +34,7 @@ import type {
 } from '@crawlee/core';
 import { createStorageTransaction, EnqueueStrategy, OwnedOrInjected } from '@crawlee/core';
 import type { Dictionary, Awaitable } from '@crawlee/types';
-import { extractUrlsFromCheerio, parseArgument } from '@crawlee/utils/internal';
+import { extractUrlsFromCheerio, MutationJournal, parseArgument } from '@crawlee/utils/internal';
 import { type Cheerio, type CheerioAPI } from 'cheerio';
 import type { AnyNode } from 'domhandler';
 import type { Page } from 'playwright';
@@ -62,9 +55,24 @@ import {
     RenderingTypePredictor,
 } from './utils/rendering-type-prediction.js';
 
-type Result<TResult> =
-    | { result: TResult; ok: true; logs?: LogProxyCall[] }
-    | { error: unknown; ok: false; logs?: LogProxyCall[] };
+/**
+ * Everything one request handler attempt produced. Present whether or not the attempt succeeded - the
+ * transaction and the context modifications of a failed attempt still need to be settled by the caller.
+ */
+type AttemptResult = {
+    transaction: StorageTransaction;
+    contextModifications: ContextModifications;
+    logs: LogProxyCall[];
+} & ({ ok: true } | { ok: false; error: unknown });
+
+/**
+ * The writes an attempt made to the shared `request` and `useState()` objects. Kept for an attempt whose
+ * outcome stands (committed, or failed and handed to the retry logic), reverted for one that is discarded.
+ */
+interface ContextModifications {
+    request: MutationJournal;
+    state: MutationJournal;
+}
 
 const adaptiveStatisticStateSchema = z.object({
     /** How many requests were handled by the HTTP-only request handler. */
@@ -605,15 +613,19 @@ export class AdaptivePlaywrightCrawler<
     /**
      * Runs one request handler attempt inside its own {@apilink StorageTransaction}, wrapping the inner
      * (static or browser) context pipeline. The transaction is pushed to `transactions` *at creation
-     * time, before the `try`* - the `ok: false` branch of the returned {@apilink Result} carries no
-     * result, and failed attempts are routine here. The caller owns the outcome and disposal.
+     * time, before the `try`*, as failed attempts are routine here. The caller owns the outcome and
+     * disposal, including closing or reverting the {@apilink ContextModifications}.
+     *
+     * `request` defaults to the context's; a detection rerun passes a copy so it sees the request as it
+     * was before the browser attempt.
      */
     async #crawlOne(
         renderingType: RenderingType,
         context: CrawlingContext,
         useStateFunction: (defaultValue?: Dictionary) => Promise<Dictionary>,
         transactions: StorageTransaction[],
-    ): Promise<Result<StorageTransaction>> {
+        request: CrawlingContext['request'] = context.request,
+    ): Promise<AttemptResult> {
         const transaction = createStorageTransaction({
             policy: this.#attemptWritePolicy,
             commitTimeoutMillis: this.internalTimeoutMillis,
@@ -624,8 +636,15 @@ export class AdaptivePlaywrightCrawler<
 
         const deferredCleanup: (() => Promise<unknown>)[] = [];
 
+        const contextModifications: ContextModifications = {
+            request: new MutationJournal(),
+            state: new MutationJournal(),
+        };
+
         const attemptBoundContextHelpers = {
-            useState: useStateFunction,
+            request: contextModifications.request.track(request),
+            useState: async (defaultValue?: Dictionary) =>
+                contextModifications.state.track(await useStateFunction(defaultValue)),
             log: this.#createLogProxy(context.log, logs),
             registerDeferredCleanup: (cleanup: () => Promise<unknown>) => deferredCleanup.push(cleanup),
         };
@@ -668,9 +687,9 @@ export class AdaptivePlaywrightCrawler<
                 'Request handler timed out',
             );
 
-            return { result: transaction, ok: true, logs };
+            return { ok: true, transaction, contextModifications, logs };
         } catch (error) {
-            return { error, ok: false, logs };
+            return { ok: false, error, transaction, contextModifications, logs };
         } finally {
             await Promise.all(deferredCleanup.map((cleanup) => cleanup()));
         }
@@ -708,10 +727,14 @@ export class AdaptivePlaywrightCrawler<
                     transactions,
                 );
 
-                if (plainHTTPRun.ok && this.#resultChecker(plainHTTPRun.result, { request: crawlingContext.request })) {
+                if (
+                    plainHTTPRun.ok &&
+                    this.#resultChecker(plainHTTPRun.transaction, { request: crawlingContext.request })
+                ) {
                     crawlingContext.log.debug(`HTTP-only request handler succeeded for ${crawlingContext.request.url}`);
-                    plainHTTPRun.logs?.forEach(([log, method, ...args]) => log[method](...(args as [any, any])));
-                    await plainHTTPRun.result.commit();
+                    plainHTTPRun.logs.forEach(([log, method, ...args]) => log[method](...(args as [any, any])));
+                    this.#keepContextModifications(plainHTTPRun.contextModifications);
+                    await plainHTTPRun.transaction.commit();
                     return;
                 }
 
@@ -727,6 +750,7 @@ export class AdaptivePlaywrightCrawler<
                         actualError instanceof ContextPipelineInterruptedError ||
                         (await this.#shouldPropagateError(actualError, crawlingContext as any))
                     ) {
+                        this.#keepContextModifications(plainHTTPRun.contextModifications);
                         throw actualError;
                     }
 
@@ -741,47 +765,31 @@ export class AdaptivePlaywrightCrawler<
                     this.statistics.state.renderingTypeMispredictions++;
                     httpResultRejected = true;
                 }
+
+                // The browser attempt starts from the request and state as they were before the rejected one.
+                this.#discardContextModifications(plainHTTPRun.contextModifications, crawlingContext);
             }
 
             crawlingContext.log.debug(`Running browser request handler for ${crawlingContext.request.url}`);
             this.statistics.state.browserRequestHandlerRuns++;
 
-            // Run the request handler in a browser. The copy of the crawler state is kept so that we can perform
-            // a rendering type detection if necessary. Without this measure, the HTTP request handler would run
-            // under different conditions, which could change its behavior. Changes done to the crawler state by
-            // the HTTP request handler will not be committed to the actual storage.
-            const stateTracker = {
-                stateCopy: null,
-                async getLiveState(defaultValue: Dictionary = {}) {
-                    const state = await crawlingContext.useState(defaultValue);
-
-                    if (this.stateCopy === null) {
-                        this.stateCopy = JSON.parse(JSON.stringify(state));
-                    }
-
-                    return state;
-                },
-                async getStateCopy(defaultValue: Dictionary = {}) {
-                    if (this.stateCopy === null) {
-                        return defaultValue;
-                    }
-                    return this.stateCopy;
-                },
-            };
-
             const browserRun = await this.#crawlOne(
                 'clientOnly',
                 crawlingContext,
-                stateTracker.getLiveState.bind(stateTracker),
+                crawlingContext.useState,
                 transactions,
             );
+
+            // A failed browser attempt is handed to the retry logic with its writes - `userData` stashed for the
+            // next attempt must survive.
+            this.#keepContextModifications(browserRun.contextModifications);
 
             if (!browserRun.ok) {
                 throw browserRun.error;
             }
 
-            browserRun.logs?.forEach(([log, method, ...args]) => log[method](...(args as [any, any])));
-            await browserRun.result.commit();
+            browserRun.logs.forEach(([log, method, ...args]) => log[method](...(args as [any, any])));
+            await browserRun.transaction.commit();
 
             // Past the shutdown fence, `teardown()` has already drained - and possibly torn down the predictor.
             if (httpResultRejected && !this.#shutDown) {
@@ -792,12 +800,22 @@ export class AdaptivePlaywrightCrawler<
                 const detectionPromise = (async () => {
                     crawlingContext.log.debug(`Detecting rendering type for ${crawlingContext.request.url}`);
                     // The detection attempt's transaction is never committed - its writes exist only for the
-                    // result comparison.
+                    // result comparison. It runs on copies of the request and the crawler state with the browser
+                    // attempt's writes undone, so both attempts start from the same conditions, and the copies go
+                    // away with it.
+                    const { request: requestJournal, state: stateJournal } = browserRun.contextModifications;
+                    let stateCopy: Dictionary | undefined;
                     const plainHTTPRun = await this.#crawlOne(
                         'static',
                         crawlingContext,
-                        stateTracker.getStateCopy.bind(stateTracker),
+                        async (defaultValue) =>
+                            (stateCopy ??= stateJournal.undoOnto(
+                                JSON.parse(JSON.stringify(await crawlingContext.useState(defaultValue))),
+                            )),
                         transactions,
+                        requestJournal.undoOnto(
+                            CrawlingRequest.fromSchema(JSON.parse(JSON.stringify(crawlingContext.request))),
+                        ),
                     );
 
                     const detectionResult: RenderingType | undefined = (() => {
@@ -805,9 +823,13 @@ export class AdaptivePlaywrightCrawler<
                             return 'clientOnly';
                         }
 
-                        const comparisonResult = this.#resultComparator(plainHTTPRun.result, browserRun.result, {
-                            request: crawlingContext.request,
-                        });
+                        const comparisonResult = this.#resultComparator(
+                            plainHTTPRun.transaction,
+                            browserRun.transaction,
+                            {
+                                request: crawlingContext.request,
+                            },
+                        );
                         if (comparisonResult === true || comparisonResult === 'equal') {
                             return 'static';
                         }
@@ -837,6 +859,26 @@ export class AdaptivePlaywrightCrawler<
                 transaction.dispose();
             }
         }
+    }
+
+    #keepContextModifications(modifications: ContextModifications): void {
+        modifications.request.close();
+        modifications.state.close();
+    }
+
+    #discardContextModifications(modifications: ContextModifications, { request, log }: CrawlingContext): void {
+        // Nothing else writes to a request while its handler runs, so a conflict means a write that bypassed
+        // the context (e.g. through a stashed reference) - it stays, but it is not what the retry logic expects.
+        modifications.request.revert({
+            onConflict: (key) =>
+                log.warning(`Request ${request.url}: '${String(key)}' was modified outside the request handler`),
+        });
+        // The state is shared with concurrent handlers; a conflict is one of them having written the same
+        // property meanwhile. Their value wins, and this attempt's write stays with it.
+        modifications.state.revert({
+            onConflict: (key) =>
+                log.debug(`Crawler state '${String(key)}' was changed concurrently; keeping the newer value`),
+        });
     }
 
     #storeRenderingType(request: CrawlingContext['request'], renderingType: RenderingType): void {
