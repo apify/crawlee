@@ -65,7 +65,7 @@ import type { ConcurrencySystemOptions, IConcurrencySystem } from './autoscaling
 import { ConcurrencySystem } from './autoscaling/concurrency-system.js';
 import type { FinalStatistics } from './autoscaling/system-status.js';
 import { mergeCookies } from './cookie-utils.js';
-import type { CleanupRegistrar } from './crawlers/context-pipeline.js';
+import type { CleanupRegistrar, ContextMiddleware } from './crawlers/context-pipeline.js';
 import { ContextPipeline } from './crawlers/context-pipeline.js';
 import type { CrawlingContext, TypedRequestsLike } from './crawlers/crawler-commons.js';
 import type { CrawlingRequestData, SkippedRequestReason } from './crawling-request.js';
@@ -255,6 +255,10 @@ export interface BasicCrawlerOptions<
      * **not** include navigation-dependent members (e.g. `page`, `response`, `$`, `body`). If you need
      * those, use a `postNavigationHook` or the `requestHandler` instead.
      *
+     * The second argument is the same {@apilink CleanupRegistrar|`onCleanup`} registrar used by
+     * {@apilink ContextPipeline.compose}. Use it to register teardown callbacks that run after the
+     * request handler or a pipeline failure, in reverse registration order.
+     *
      * **Example usage:**
      *
      * ```javascript
@@ -273,7 +277,7 @@ export interface BasicCrawlerOptions<
      * });
      * ```
      */
-    extendContext?: (context: CrawlingContext) => Awaitable<ContextExtension>;
+    extendContext?: ContextMiddleware<CrawlingContext, ContextExtension>;
 
     /**
      * *Intended for BasicCrawler subclasses*. Prepares a context pipeline that transforms the initial crawling context into the shape given by the `Context` type parameter.
@@ -899,7 +903,7 @@ export class BasicCrawler<
     readonly #identity: CrawlerIdentity;
     readonly #contextPipelineOptions: {
         contextPipelineBuilder?: () => ContextPipeline<CrawlingContext, Context>;
-        extendContext?: (context: CrawlingContext) => Awaitable<ContextExtension>;
+        extendContext?: ContextMiddleware<CrawlingContext, ContextExtension>;
     };
 
     /**
@@ -1546,7 +1550,7 @@ export class BasicCrawler<
         let contextPipeline: ContextPipeline<CrawlingContext, Context>;
         if (extendContext !== undefined) {
             contextPipeline = ContextPipeline.create<CrawlingContext>()
-                .compose(async (context) => await extendContext(context))
+                .compose(extendContext)
                 .chain(
                     subclassPipeline as unknown as ContextPipeline<
                         CrawlingContext & ContextExtension,
