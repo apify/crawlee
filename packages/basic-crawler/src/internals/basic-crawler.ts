@@ -2555,7 +2555,15 @@ export class BasicCrawler<
                 return cachedRobotsTxtFile;
             }
 
-            const robotsTxtFile = await RobotsTxtFile.find(url, { logger: this.log });
+            // Fetch robots.txt the way pages are fetched: through the crawler's HTTP client, with a session's browser
+            // fingerprint and proxy. Sites with bot protection answer a bare request with 4xx or 5xx, and that status
+            // alone would then decide whether everything is allowed or disallowed.
+            const robotsTxtFile = await RobotsTxtFile.find(url, {
+                httpClient: this.httpClient,
+                session: await this.sessionPool.getSession(),
+                timeoutMillis: 30_000,
+                logger: this.log,
+            });
             this.#robotsTxtFileCache.add(origin, robotsTxtFile);
 
             return robotsTxtFile;
