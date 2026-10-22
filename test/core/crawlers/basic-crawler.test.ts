@@ -28,7 +28,6 @@ import {
     ErrorTracker,
     EventType,
     KeyValueStore,
-    LocalEventManager,
     MissingRouteError,
     NonRetryableError,
     ProxyConfiguration,
@@ -445,26 +444,28 @@ describe('BasicCrawler', () => {
 
     describe('teardown during startup', () => {
         test.each([
-            ['crawler-owned', false],
-            ['injected', true],
-        ])('teardown during startup settles run() with a %s ConcurrencySystem', async (_label, injectSystem) => {
+            { label: 'a crawler-owned', injectSystem: false },
+            { label: 'an injected', injectSystem: true },
+        ])('settles run() with $label ConcurrencySystem', async ({ injectSystem }) => {
             const initialized = Promise.withResolvers<void>();
             const resumeInitialization = Promise.withResolvers<void>();
-            const requestManager = await RequestQueue.open(`delayed-startup-${injectSystem}`);
-            vitest.spyOn(requestManager, 'setExpectedRequestProcessingTimeSecs').mockImplementation(async () => {
-                initialized.resolve();
-                await resumeInitialization.promise;
-            });
 
             const concurrencySystem = injectSystem ? new ConcurrencySystem({ maxConcurrency: 1 }) : undefined;
             await concurrencySystem?.start();
 
-            const crawler = new BasicCrawler({
+            // Override the `init` method to allow weaving a teardown call into it reliably
+            const crawler = new (class DelayedStartupCrawler extends BasicCrawler {
+                protected override async init() {
+                    await super.init();
+                    initialized.resolve();
+                    await resumeInitialization.promise;
+                }
+            })({
                 keepAlive: true,
                 ...(concurrencySystem && { concurrencySystem }),
-                requestManager,
                 requestHandler: async () => {},
             });
+
             const runPromise = crawler.run().then(
                 () => 'resolved',
                 (error: Error) => `rejected: ${error.message}`,
@@ -476,49 +477,40 @@ describe('BasicCrawler', () => {
 
             const outcome = await Promise.race([runPromise, sleep(500).then(() => 'still pending')]);
 
-            // Clean up the broken behavior so the failing test does not leak the pool interval.
+            // Without this, a regression would leak the pool interval into the following tests.
             if (outcome === 'still pending') await crawler.teardown();
             await concurrencySystem?.stop();
 
             expect(outcome).toBe('resolved');
         });
 
-        test.each([
-            ['crawler-owned', false],
-            ['injected', true],
-        ])('teardown before pool creation settles run() with a %s ConcurrencySystem', async (_label, injectSystem) => {
-            const initializationStarted = Promise.withResolvers<void>();
-            const resumeInitialization = Promise.withResolvers<void>();
-            const eventManager = LocalEventManager.fromConfiguration();
-            const initializeEventManager = eventManager.init.bind(eventManager);
-            vitest.spyOn(eventManager, 'init').mockImplementation(async () => {
-                initializationStarted.resolve();
-                await resumeInitialization.promise;
-                await initializeEventManager();
+        test('settles a repeated run() torn down while it resets the previous run state', async () => {
+            const crawler = new BasicCrawler({ keepAlive: true, requestHandler: async () => {} });
+            const firstRun = crawler.run();
+            await vitest.waitFor(() => expect(crawler.running).toBe(true));
+            await crawler.teardown();
+            await firstRun;
+
+            const resetStarted = Promise.withResolvers<void>();
+            const resumeReset = Promise.withResolvers<void>();
+            vitest.spyOn(crawler.statistics as Statistics, 'resetStore').mockImplementation(async () => {
+                resetStarted.resolve();
+                await resumeReset.promise;
             });
 
-            const concurrencySystem = injectSystem ? new ConcurrencySystem({ maxConcurrency: 1 }) : undefined;
-            await concurrencySystem?.start();
-
-            const crawler = new BasicCrawler({
-                keepAlive: true,
-                ...(concurrencySystem && { concurrencySystem }),
-                eventManager,
-                requestHandler: async () => {},
-            });
             const runPromise = crawler.run().then(
                 () => 'resolved',
                 (error: Error) => `rejected: ${error.message}`,
             );
 
-            await initializationStarted.promise;
+            await resetStarted.promise;
             await crawler.teardown();
-            resumeInitialization.resolve();
+            resumeReset.resolve();
+
             const outcome = await Promise.race([runPromise, sleep(500).then(() => 'still pending')]);
 
-            // Clean up the broken behavior so the failing test does not leak the pool interval.
+            // Without this, a regression would leak the pool interval into the following tests.
             if (outcome === 'still pending') await crawler.teardown();
-            await concurrencySystem?.stop();
 
             expect(outcome).toBe('resolved');
         });
