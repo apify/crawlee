@@ -57,6 +57,8 @@ export class CrawlerRun {
      * running by now — the task loop refuses to book anything against one that is not.
      */
     async dispatchRequests(): Promise<void> {
+        if (this.#ended) return;
+
         this.#dispatching = true;
 
         try {

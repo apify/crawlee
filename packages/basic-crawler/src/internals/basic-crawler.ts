@@ -849,7 +849,6 @@ export class BasicCrawler<
         return this.#contextPipeline;
     }
 
-    #teardownRequested = false;
     #hasFinishedBefore = false;
 
     /** Whether a `run()` on this instance has already finished - a repeated one continues where it left off. */
@@ -1684,21 +1683,6 @@ export class BasicCrawler<
                         'This crawler instance is already running, you can add more requests to it via `crawler.addRequests()`.',
                     );
                 }
-                this.#teardownRequested = false;
-
-                if (this.#hasFinishedBefore) {
-                    // A supplied statistics instance keeps whatever state it was handed - only wipe a default we built.
-                    await this.#statisticsDep.ifOwned(async (stats) => {
-                        stats.reset();
-                        await stats.resetStore();
-                    });
-                    // A session pool the crawler built follows the same blank-slate rule as its statistics.
-                    await this.#sessionPoolDep.ifOwned(async (pool) => {
-                        pool.reset();
-                        await pool.resetStore();
-                    });
-                }
-
                 // An owned governor is rebuilt for every run, so it always starts from a clean slate — stale
                 // resource snapshots or a previous run's scaled desired concurrency would otherwise distort this
                 // run's scaling. An injected one is long-lived and its lifecycle belongs to the caller.
@@ -1713,6 +1697,19 @@ export class BasicCrawler<
                 this.#run = run;
 
                 try {
+                    if (this.#hasFinishedBefore) {
+                        // A supplied statistics instance keeps whatever state it was handed - only wipe a default we built.
+                        await this.#statisticsDep.ifOwned(async (stats) => {
+                            stats.reset();
+                            await stats.resetStore();
+                        });
+                        // A session pool the crawler built follows the same blank-slate rule as its statistics.
+                        await this.#sessionPoolDep.ifOwned(async (pool) => {
+                            pool.reset();
+                            await pool.resetStore();
+                        });
+                    }
+
                     await purgeDefaultStorages({
                         onlyPurgeOnce: true,
                         storageBackend: serviceLocator.getStorageBackend(),
@@ -1764,7 +1761,7 @@ export class BasicCrawler<
                 let stats = {} as FinalStatistics;
 
                 try {
-                    if (!this.#teardownRequested) await run.dispatchRequests();
+                    await run.dispatchRequests();
                 } finally {
                     await this.statistics.stopCapturing();
                     await this.teardown();
@@ -3030,8 +3027,6 @@ export class BasicCrawler<
      * To stop the crawler gracefully (waiting for all running requests to finish), use {@apilink BasicCrawler.stop|`crawler.stop()`} instead.
      */
     async teardown(): Promise<void> {
-        this.#teardownRequested = true;
-
         const eventManager = serviceLocator.getEventManager();
         const ownsEventManager = this.#run?.ownsEventManager === true;
 
