@@ -1,0 +1,34 @@
+name: apify-factory review (AI review, and auto-approval)
+
+# Calls the apify-factory review and auto-approval pipeline (apify/ai-developer, wired up in
+# apify/workflows). Approvals additionally need the repository's `factory_auto_approve` custom
+# property set to true.
+on:
+  # Taken from the default branch, never from the pull request, so a pull request cannot rewrite
+  # its own review pipeline. Pull request code is never checked out or executed.
+  pull_request_target:
+    types:
+      - review_requested
+      - review_request_removed
+      - converted_to_draft
+      - ready_for_review
+      - synchronize
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  factory-review:
+    uses: apify/workflows/.github/workflows/factory_review.yaml@main
+    secrets: inherit
+    # Paths never auto-approved here, on top of the pipeline's defaults. Proposed from the
+    # repository's layout when this workflow was added; edit them like any other code.
+    with:
+      policy: |
+        {
+          "denyGlobs": [
+            "website/nginx.conf",
+            "scripts/copy.ts"
+          ]
+        }

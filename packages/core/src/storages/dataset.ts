@@ -4,17 +4,16 @@ import { z } from 'zod';
 import { tryCancel } from '@apify/timeout';
 
 import { Configuration } from '../configuration.js';
-import type { CrawleeLogger } from '../log.js';
-import { serviceLocator } from '../service_locator.js';
+import { serviceLocator } from '../service-locator.js';
 import { parseArgument, schemas, validators } from '../validators.js';
 import type { DatasetJournalEntry, JournalEntry } from './transaction.js';
 import { activeStorageTransaction, rejectOperationInTransaction, snapshotValue } from './transaction.js';
-import { KeyValueStore } from './key_value_store.js';
-import type { DatasetStats } from './storage_stats.js';
-import { StorageStatsTracker } from './storage_stats.js';
+import { KeyValueStore } from './key-value-store.js';
+import type { DatasetStats } from './storage-stats.js';
+import { StorageStatsTracker } from './storage-stats.js';
 import type { StorageOpenOptions } from './utils.js';
-import type { StorageIdentifier } from './storage_instance_manager.js';
-import { resolveStorageIdentifier } from './storage_instance_manager.js';
+import type { StorageIdentifier } from './storage-instance-manager.js';
+import { resolveStorageIdentifier } from './storage-instance-manager.js';
 import { createDualIterable, purgeDefaultStorages } from './utils.js';
 
 const openOptionsSchema = z.strictObject({
@@ -192,10 +191,10 @@ export interface DatasetExportToOptions extends DatasetExportOptions {
  * @category Result Stores
  */
 export class Dataset<Data extends Dictionary = Dictionary> {
-    id: string;
-    name?: string;
-    backend: DatasetBackend<Data>;
-    log: CrawleeLogger;
+    readonly id: string;
+    readonly name?: string;
+    // oxlint-disable-next-line crawlee/prefer-private-fields -- tests spy on the backend directly
+    private readonly backend: DatasetBackend<Data>;
 
     readonly #statsTracker = new StorageStatsTracker<DatasetStats>({
         readCount: 0,
@@ -212,7 +211,6 @@ export class Dataset<Data extends Dictionary = Dictionary> {
         this.id = options.metadata.id;
         this.name = options.metadata.name;
         this.backend = options.backend;
-        this.log = serviceLocator.getLogger().child({ prefix: 'Dataset' });
     }
 
     /**
@@ -268,7 +266,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
      */
     async getData(options: DatasetDataOptions = {}): Promise<DatasetContent<Data>> {
         try {
-            return await this.readPage(options);
+            return await this.#readPage(options);
         } catch (e) {
             const error = e as Error;
             if (error.message.includes('Cannot create a string longer than')) {
@@ -285,8 +283,8 @@ export class Dataset<Data extends Dictionary = Dictionary> {
      * the private `fetchPages()`. Returns the real page concatenated with the current transaction's
      * buffered items, with `offset` / `limit` / `desc` windowing applied across the concatenation.
      */
-    private async readPage(options: DatasetDataOptions): Promise<DatasetContent<Data>> {
-        const buffered = this.bufferedJournalEntries()?.flatMap((entry) => entry.items as Data[]);
+    async #readPage(options: DatasetDataOptions): Promise<DatasetContent<Data>> {
+        const buffered = this.#bufferedJournalEntries()?.flatMap((entry) => entry.items as Data[]);
 
         // Every branch below hits the backend exactly once.
         this.#statsTracker.add('readCount');
@@ -354,7 +352,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
     }
 
     /** The active transaction's buffered writes to this dataset, derived from its journal. */
-    private bufferedJournalEntries(): DatasetJournalEntry[] | undefined {
+    #bufferedJournalEntries(): DatasetJournalEntry[] | undefined {
         const transaction = activeStorageTransaction();
         return transaction?.journal.filter(
             (entry): entry is DatasetJournalEntry => entry.type === 'dataset' && entry.participant === this,
@@ -388,7 +386,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
 
         const items: Data[] = [];
 
-        for await (const page of this.fetchPages(options)) {
+        for await (const page of this.#fetchPages(options)) {
             items.push(...page.items);
         }
 
@@ -501,7 +499,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
      * @throws If the underlying storage no longer exists (e.g. it was deleted externally).
      */
     async getInfo(): Promise<DatasetInfo> {
-        const buffered = this.bufferedJournalEntries();
+        const buffered = this.#bufferedJournalEntries();
         const metadata = await this.backend.getMetadata();
 
         if (buffered?.length) {
@@ -661,9 +659,9 @@ export class Dataset<Data extends Dictionary = Dictionary> {
         return currentMemo;
     }
 
-    private async *fetchEntryPages(options: DatasetIteratorOptions): AsyncGenerator<PaginatedList<[number, Data]>> {
+    async *#fetchEntryPages(options: DatasetIteratorOptions): AsyncGenerator<PaginatedList<[number, Data]>> {
         let index = options.offset ?? 0;
-        for await (const page of this.fetchPages(options)) {
+        for await (const page of this.#fetchPages(options)) {
             yield {
                 ...page,
                 items: page.items.map((item) => [index++, item] as [number, Data]),
@@ -671,7 +669,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
         }
     }
 
-    private async *fetchPages(
+    async *#fetchPages(
         options: DatasetIteratorOptions,
         pageSize = DATASET_ITERATORS_DEFAULT_LIMIT,
     ): AsyncGenerator<PaginatedList<Data>> {
@@ -683,7 +681,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
             const fetchLimit = totalLimit !== undefined ? Math.min(pageSize, totalLimit - yielded) : pageSize;
             if (fetchLimit <= 0) break;
 
-            const page = await this.readPage({ ...options, offset, limit: fetchLimit });
+            const page = await this.#readPage({ ...options, offset, limit: fetchLimit });
             yield page;
 
             yielded += page.items.length;
@@ -719,7 +717,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
         tryCancel();
 
         return createDualIterable({
-            createPages: () => this.fetchPages(options),
+            createPages: () => this.#fetchPages(options),
             extractItems: (page) => page.items,
         });
     }
@@ -751,7 +749,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
         tryCancel();
 
         return createDualIterable({
-            createPages: () => this.fetchEntryPages(options),
+            createPages: () => this.#fetchEntryPages(options),
             extractItems: (page) => page.items,
         });
     }
@@ -781,6 +779,16 @@ export class Dataset<Data extends Dictionary = Dictionary> {
 
         await this.backend.drop();
         serviceLocator.getStorageInstanceManager().removeFromCache(this);
+    }
+
+    /**
+     * Removes all items from the dataset but keeps the dataset itself, along with its
+     * {@apilink Dataset.id|`id`} and {@apilink Dataset.name|`name`}.
+     */
+    async purge(): Promise<void> {
+        rejectOperationInTransaction('Dataset.purge()');
+
+        await this.backend.purge();
     }
 
     /**
@@ -895,6 +903,7 @@ export interface DatasetReducer<T, Data> {
     (memo: T, item: Data, index: number): Awaitable<T>;
 }
 
+/** @internal */
 export interface DatasetOptions {
     /** Resolved metadata for the dataset, as returned by the backend's `getMetadata()`. */
     metadata: DatasetInfo;

@@ -17,7 +17,7 @@ const mainOptions = {
 };
 
 await Actor.main(async () => {
-    const input = await Actor.getInputOrThrow();
+    const input = await Actor.getInput();
 
     log.info('Starting the crawler', input);
 

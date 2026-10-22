@@ -1,4 +1,4 @@
-import { parseRetryAfterHeader } from '@crawlee/core';
+import { parseRetryAfterHeader } from '@crawlee/basic';
 
 test('parseRetryAfterHeader parses delay-seconds and HTTP-dates', () => {
     expect(parseRetryAfterHeader('120')).toBe(120_000);

@@ -8,73 +8,72 @@ import type { AddRequestsBatchedOptions } from '@crawlee/core';
 import type { AddRequestsBatchedResult } from '@crawlee/core';
 import type { Awaitable } from '@crawlee/types';
 import { BaseHttpClient } from '@crawlee/http-client';
-import { ConcurrencySystem } from '@crawlee/core';
-import { ConcurrencySystemOptions } from '@crawlee/core';
 import { Configuration } from '@crawlee/core';
-import { ContextPipeline } from '@crawlee/core';
+import { CookieJar } from 'tough-cookie';
 import type { CrawleeLogger } from '@crawlee/core';
-import { CrawlingContext } from '@crawlee/core';
+import { CriticalError } from '@crawlee/core';
 import { Dataset } from '@crawlee/core';
 import type { DatasetExportOptions } from '@crawlee/core';
-import type { Dictionary } from '@crawlee/types';
-import type { EnqueueUrlsOptions } from '@crawlee/core';
+import { Dictionary } from '@crawlee/types';
+import { EnqueueStrategy } from '@crawlee/utils';
+import type { EnqueueStrategyOption } from '@crawlee/core';
 import { EventManager } from '@crawlee/core';
-import type { FinalStatistics } from '@crawlee/core';
-import type { GetUserDataFromRequest } from '@crawlee/core';
-import { IConcurrencySystem } from '@crawlee/core';
+import type { HttpRequestOptions } from '@crawlee/types';
 import { IProxyConfiguration } from '@crawlee/core';
 import { IRequestLoader } from '@crawlee/core';
 import { IRequestManager } from '@crawlee/core';
 import type { ISession } from '@crawlee/types';
 import type { ISessionPool } from '@crawlee/types';
-import { IStatistics } from '@crawlee/core';
+import { KeyValueStore } from '@crawlee/core';
+import { NonRetryableError } from '@crawlee/core';
+import { PacingSignal } from '@crawlee/core';
+import type { ParseSitemapOptions } from '@crawlee/utils';
 import type { ProxyInfo } from '@crawlee/types';
 import type { ReadonlyDeep } from 'type-fest';
 import { Request as Request_2 } from '@crawlee/core';
+import type { RequestLoaderStatus } from '@crawlee/core';
+import { RequestOptions } from '@crawlee/core';
 import { RequestQueue } from '@crawlee/core';
-import { RobotsTxtFile } from '@crawlee/utils';
-import type { RouterHandler } from '@crawlee/core';
-import type { RouterRoutes } from '@crawlee/core';
+import type { RequestQueueOperationInfo } from '@crawlee/core';
+import type { RequestQueueOperationOptions } from '@crawlee/core';
+import type { RequestSchema } from '@crawlee/types';
+import type { RequestsLike } from '@crawlee/core';
+import type { RequestSourceStatus } from '@crawlee/core';
+import type { SendRequestOptions } from '@crawlee/types';
+import type { SessionFingerprint } from '@crawlee/types';
 import type { SetStatusMessageOptions } from '@crawlee/types';
-import type { SkippedRequestCallback } from '@crawlee/core';
-import type { StatisticState } from '@crawlee/core';
+import { Source } from '@crawlee/core';
+import type { StandardSchemaV1 } from '@standard-schema/spec';
 import type { StorageBackend } from '@crawlee/types';
 import type { StorageIdentifier } from '@crawlee/core';
 import { StorageWritePolicy } from '@crawlee/core';
-import type { TaskLoopOptions } from '@crawlee/core';
-import { TimeoutError } from '@apify/timeout';
-import type { TypedRequestsLike } from '@crawlee/core';
+import type { SyncStateConversion } from '@crawlee/core';
+import { SystemInfo } from '@crawlee/core';
 
 // @public (undocumented)
 export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, ContextExtension = Dictionary<never>, ExtendedContext extends Context = Context & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>, StatisticStateExtension extends object = {}> {
+    // (undocumented)
+    [Symbol.asyncDispose](): Promise<void>;
     constructor(options?: BasicCrawlerOptions<Context, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> & RequireContextPipeline<CrawlingContext, Context>);
     // (undocumented)
     protected readonly additionalHttpErrorStatusCodes: Set<number>;
     addRequests(requests: ReadonlyDeep<TypedRequestsLike<Routes>>, options?: CrawlerAddRequestsOptions): Promise<CrawlerAddRequestsResult>;
-    get basicContextPipeline(): ContextPipeline<{
-        request: Request_2;
-    }, CrawlingContext>;
     // (undocumented)
     protected blockedStatusCodes: Set<number>;
-    protected buildContextPipeline(): ContextPipeline<CrawlingContext, CrawlingContext>;
     get concurrencySystem(): IConcurrencySystem | undefined;
-    // (undocumented)
-    get contextPipeline(): ContextPipeline<CrawlingContext, ExtendedContext>;
     protected createDefaultConcurrencySystem(options: ConcurrencySystemOptions): ConcurrencySystem;
+    destroy(): Promise<void>;
     exportData<Data>(path: string, format?: 'json' | 'csv', options?: DatasetExportOptions): Promise<Data[]>;
     // (undocumented)
     protected getCookieHeaderFromRequest(request: Request_2): string;
     getData(...args: Parameters<Dataset['getData']>): ReturnType<Dataset['getData']>;
     getDataset(identifier?: string | StorageIdentifier): Promise<Dataset>;
-    protected getMessageFromError(error: Error, forceStack?: boolean): string | TimeoutError | undefined;
+    protected getMessageFromError(error: Error, forceStack?: boolean): string;
     protected getNavigationTimeoutMillis(): number;
     getRequestManager(): Promise<IRequestManager>;
     // @deprecated (undocumented)
     getRequestQueue(): Promise<IRequestManager>;
-    // (undocumented)
-    protected getRobotsTxtFileForUrl(url: string): Promise<RobotsTxtFile | undefined>;
-    // (undocumented)
-    hasFinishedBefore: boolean;
+    get hasFinishedBefore(): boolean;
     // (undocumented)
     protected readonly httpClient: BaseHttpClient;
     protected init(): Promise<void>;
@@ -90,14 +89,13 @@ export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, Con
     protected recordDomainRateLimit(url: string, retryAfterHeader?: string | null): boolean;
     // (undocumented)
     protected readonly requestHandler: RequestHandler<ExtendedContext>;
-    protected requestManager?: IRequestManager;
+    protected get requestManager(): IRequestManager | undefined;
     resume(): void;
     // (undocumented)
     protected readonly retryOnBlocked: boolean;
     readonly router: RouterHandler<Context, Routes>;
     run(requests?: TypedRequestsLike<Routes>, options?: CrawlerRunOptions): Promise<FinalStatistics>;
-    // (undocumented)
-    running: boolean;
+    get running(): boolean;
     // (undocumented)
     protected runRequestHandler(crawlingContext: ExtendedContext): Promise<void>;
     get sessionPool(): ISessionPool;
@@ -152,12 +150,115 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = CrawlingC
     statusMessageCallback?: StatusMessageCallback;
     statusMessageLoggingInterval?: number;
     storageBackend?: StorageBackend;
-    taskLoopOptions?: TaskLoopOptions;
+    taskLoopOptions?: TaskLoopPredicates;
     transactionalStorage?: boolean | Partial<StorageWritePolicy>;
 }
 
 // @public (undocumented)
 export interface BasicCrawlingContext<UserData extends Dictionary = Dictionary> extends CrawlingContext<UserData> {
+}
+
+// @public (undocumented)
+export const BLOCKED_STATUS_CODES: readonly number[];
+
+// @public
+export interface CalculatedStatistics {
+    crawlerRuntimeMillis: number;
+    requestAvgFailedDurationMillis: number;
+    requestAvgSucceededDurationMillis: number;
+    requestsFailedPerMinute: number;
+    requestsSucceededPerMinute: number;
+    requestsTotal: number;
+    requestTotalDurationMillis: number;
+}
+
+// @public
+export type CleanupRegistrar = (cleanup: (error?: unknown) => Awaitable<void>) => void;
+
+// @public
+export interface ConcurrencyConsumer {
+    readonly id: string;
+}
+
+// @public
+export class ConcurrencySystem implements IConcurrencySystem {
+    // (undocumented)
+    [Symbol.asyncDispose](): Promise<void>;
+    constructor(options?: ConcurrencySystemOptions);
+    // (undocumented)
+    get currentConcurrency(): number;
+    get desiredConcurrency(): number;
+    getCurrentStatus(): SystemInfo;
+    hasCapacityForTask(_consumer?: ConcurrencyConsumer): boolean;
+    get isRunning(): boolean;
+    get maxConcurrency(): number;
+    set maxConcurrency(value: number);
+    readonly maxTasksPerMinute: number;
+    get minConcurrency(): number;
+    set minConcurrency(value: number);
+    registerTaskEnd(_consumer?: ConcurrencyConsumer): void;
+    start(): Promise<void>;
+    stop(): Promise<void>;
+    tryRegisterTaskStart(consumer?: ConcurrencyConsumer): boolean;
+}
+
+// @public (undocumented)
+export interface ConcurrencySystemOptions {
+    autoscaleIntervalSecs?: number;
+    currentHistorySecs?: number;
+    desiredConcurrency?: number;
+    desiredConcurrencyRatio?: number;
+    loadSignals?: LoadSignalsOptions;
+    // (undocumented)
+    log?: CrawleeLogger;
+    loggingIntervalSecs?: number | null;
+    maxConcurrency?: number;
+    maxTasksPerMinute?: number;
+    minConcurrency?: number;
+    scaleDownStepRatio?: number;
+    scaleUpStepRatio?: number;
+    snapshotHistorySecs?: number;
+}
+
+// @public
+export type ContextMiddleware<TCrawlingContext, TCrawlingContextExtension> = (context: TCrawlingContext, onCleanup: CleanupRegistrar) => Awaitable<TCrawlingContextExtension>;
+
+// @public
+export abstract class ContextPipeline<TContextBase, TCrawlingContext extends TContextBase> {
+    abstract call(crawlingContext: TContextBase, finalContextConsumer: (finalContext: TCrawlingContext) => Awaitable<unknown>, onError: (error: unknown) => Awaitable<void>): Promise<void>;
+    abstract chain<TFinalContext extends TCrawlingContext>(other: ContextPipeline<TCrawlingContext, TFinalContext>): ContextPipeline<TContextBase, TFinalContext>;
+    abstract compose<TCrawlingContextExtension>(middleware: ContextMiddleware<TCrawlingContext, TCrawlingContextExtension>): ContextPipeline<TContextBase, TCrawlingContext & TCrawlingContextExtension>;
+    static create<TContextBase>(): ContextPipeline<TContextBase, TContextBase>;
+}
+
+// @public (undocumented)
+export class ContextPipelineCleanupError extends CriticalError {
+    constructor(error: unknown, options?: ErrorOptions);
+}
+
+// @public
+export class ContextPipelineInitializationError extends Error {
+    constructor(error: unknown, options?: ErrorOptions);
+}
+
+// @public
+export class CpuLoadSignal implements LoadSignal {
+    constructor(options?: CpuLoadSignalOptions);
+    // (undocumented)
+    getSample(sampleDurationMillis?: number): LoadSnapshot[];
+    // (undocumented)
+    readonly name = "cpuInfo";
+    // (undocumented)
+    readonly overloadedRatio: number;
+    // (undocumented)
+    start(context: LoadSignalStartContext): Promise<void>;
+    // (undocumented)
+    stop(): Promise<void>;
+}
+
+// @public
+export interface CpuLoadSignalOptions {
+    overloadedRatio?: number;
 }
 
 // @public (undocumented)
@@ -170,7 +271,31 @@ export interface CrawlerAddRequestsResult extends AddRequestsBatchedResult {
 
 // @public (undocumented)
 export interface CrawlerRunOptions extends CrawlerAddRequestsOptions {
-    purgeRequestQueue?: boolean;
+}
+
+// @public (undocumented)
+export interface CrawlingContext<UserData extends Dictionary = Dictionary> extends RestrictedCrawlingContext<UserData> {
+    afterStorageCommit(callback: (error?: Error) => Awaitable<void>): void;
+    extendTimeout(secs: number): void;
+    registerDeferredCleanup(cleanup: () => Promise<unknown>): void;
+    sendRequest: (requestOverrides?: Partial<HttpRequestOptions>, optionsOverrides?: SendRequestOptions) => Promise<Response>;
+}
+
+// @public
+export class CrawlingRequest<UserData extends Dictionary = Dictionary> extends Request_2<UserData> {
+    get crawlDepth(): number;
+    set crawlDepth(value: number);
+    // (undocumented)
+    static fromSchema<UserData extends Dictionary = Dictionary>(schema: RequestSchema): CrawlingRequest<UserData>;
+    get maxRetries(): number | undefined;
+    set maxRetries(value: number | undefined);
+    pushErrorMessage(errorOrMessage: unknown, options?: PushErrorMessageOptions): void;
+    get sessionId(): string | undefined;
+    set sessionId(value: string | undefined);
+    get skipNavigation(): boolean;
+    set skipNavigation(value: boolean);
+    get state(): RequestState;
+    set state(value: RequestState);
 }
 
 // @public
@@ -179,26 +304,665 @@ export function createBasicRouter<Context extends BasicCrawlingContext = BasicCr
 // @public (undocumented)
 export function createBasicRouter<Context extends BasicCrawlingContext = BasicCrawlingContext, UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(routes?: RouterRoutes<Context, Record<string, UserData>>): RouterHandler<Context, Record<string, UserData>>;
 
-// @public (undocumented)
-export interface CreateContextOptions {
+// @public
+export interface CreateSession {
     // (undocumented)
-    proxyInfo?: ProxyInfo;
+    (options?: {
+        sessionOptions?: SessionOptions;
+    }): Session | Promise<Session>;
+}
+
+// @public
+export const defaultRoute: unique symbol;
+
+// @public
+export type DefaultRouteUserData<Routes, Fallback extends Dictionary> = Routes extends {
+    [defaultRoute]: infer DefaultUserData extends Dictionary;
+} ? DefaultUserData : Fallback;
+
+// @public
+export type EnqueueLinksOptions = ExtractLinksOptions & EnqueueUrlsOptions;
+
+// @public
+export interface EnqueueUrlsOptions extends RequestQueueOperationOptions {
+    baseUrl?: string;
+    exclude?: readonly UrlPatternInput[];
+    include?: readonly UrlPatternInput[];
+    label?: string;
+    limit?: number;
+    onSkippedRequest?: SkippedRequestCallback;
+    sessionId?: string;
+    skipNavigation?: boolean;
+    strategy?: EnqueueStrategyOption;
+    transformRequestFunction?: RequestTransform;
+    userData?: Dictionary;
+    waitForAllRequestsToBeAdded?: boolean;
+}
+
+// @public
+export interface ErrnoException extends Error {
     // (undocumented)
-    request: Request_2;
+    cause?: any;
     // (undocumented)
-    session: ISession;
+    code?: string | number;
+    // (undocumented)
+    errno?: number;
+    // (undocumented)
+    path?: string;
+    // (undocumented)
+    syscall?: string;
 }
 
 // @public
 export type ErrorHandler<BaseContext extends CrawlingContext = CrawlingContext, ExtendedContext extends BaseContext = BaseContext> = (inputs: BaseContext & Partial<ExtendedContext>, error: Error) => Awaitable<void>;
 
+// @public
+export class ErrorTracker {
+    constructor(options?: Partial<ErrorTrackerOptions>);
+    // (undocumented)
+    add(error: ErrnoException): void;
+    addAsync(error: ErrnoException, context?: CrawlingContext): Promise<void>;
+    // (undocumented)
+    getMostPopularErrors(count: number): [number, string[]][];
+    // (undocumented)
+    getUniqueErrorCount(): number;
+    // (undocumented)
+    reset(): void;
+    get result(): Record<string, unknown>;
+    get total(): number;
+}
+
+// @public (undocumented)
+export interface ErrorTrackerOptions {
+    // (undocumented)
+    saveErrorSnapshots: boolean;
+    // (undocumented)
+    showErrorCode: boolean;
+    // (undocumented)
+    showErrorMessage: boolean;
+    // (undocumented)
+    showErrorName: boolean;
+    // (undocumented)
+    showFullMessage: boolean;
+    // (undocumented)
+    showFullStack: boolean;
+    // (undocumented)
+    showStackTrace: boolean;
+}
+
+// @public
+export class EventLoopLoadSignal implements LoadSignal {
+    constructor(options?: EventLoopLoadSignalOptions);
+    // (undocumented)
+    getSample(sampleDurationMillis?: number): LoadSnapshot[];
+    // (undocumented)
+    readonly name = "eventLoopInfo";
+    // (undocumented)
+    readonly overloadedRatio: number;
+    // (undocumented)
+    start(context: LoadSignalStartContext): Promise<void>;
+    // (undocumented)
+    stop(): Promise<void>;
+}
+
+// @public
+export interface EventLoopLoadSignalOptions {
+    maxBlockedMillis?: number;
+    overloadedRatio?: number;
+    snapshotIntervalSecs?: number;
+}
+
+// @public
+export interface ExtractLinksOptions {
+    baseUrl?: string;
+    selector?: string;
+}
+
+// @public (undocumented)
+export interface FinalStatistics {
+    // (undocumented)
+    crawlerRuntimeMillis: number;
+    // (undocumented)
+    requestAvgFailedDurationMillis: number;
+    // (undocumented)
+    requestAvgSucceededDurationMillis: number;
+    // (undocumented)
+    requestsFailed: number;
+    // (undocumented)
+    requestsFailedPerMinute: number;
+    // (undocumented)
+    requestsSucceeded: number;
+    // (undocumented)
+    requestsSucceededPerMinute: number;
+    // (undocumented)
+    requestsTotal: number;
+    // (undocumented)
+    requestTotalDurationMillis: number;
+    // (undocumented)
+    retryHistogram: number[];
+}
+
+// @public (undocumented)
+export type GetUserDataFromRequest<T> = T extends CrawlingRequest<infer Y> ? Y : never;
+
+// @public (undocumented)
+export type GlobInput = string | GlobObject;
+
+// @public (undocumented)
+export interface GlobObject {
+    // (undocumented)
+    glob: string;
+}
+
+// @public
+export interface IConcurrencySystem {
+    readonly currentConcurrency: number;
+    readonly desiredConcurrency: number;
+    hasCapacityForTask(consumer: ConcurrencyConsumer): boolean;
+    readonly isRunning: boolean;
+    registerTaskEnd(consumer: ConcurrencyConsumer, taskId: string): void;
+    tryRegisterTaskStart(consumer: ConcurrencyConsumer, taskId: string): boolean;
+}
+
+// @public
+export interface IStatistics<StateExtension extends object = {}> {
+    calculate(): CalculatedStatistics;
+    discardRequestRecord(id: number | string): void;
+    readonly errorTracker: ErrorTracker;
+    readonly errorTrackerRetry: ErrorTracker;
+    persistState?(): Promise<void>;
+    recordRequestFailure(id: number | string, retryCount: number): void;
+    recordRequestStart(id: number | string): void;
+    recordRequestSuccess(id: number | string, retryCount: number): void;
+    registerStatusCode(code: number): void;
+    readonly requestRetryHistogram: number[];
+    startCapturing(): Promise<void>;
+    readonly state: StatisticState & StateExtension;
+    stopCapturing(): Promise<void>;
+}
+
+// @public
+export type LabeledSource<Routes extends Record<keyof Routes, Dictionary>> = string extends keyof Routes ? string | Source : string | Request_2 | ({
+    requestsFromUrl?: string;
+    regex?: RegExp;
+} & ({
+    [Label in keyof Routes & string]: Omit<Partial<RequestOptions<Routes[Label]>>, 'label'> & {
+        label: Label;
+    };
+}[keyof Routes & string] | (Omit<Partial<RequestOptions>, 'label'> & {
+    label?: undefined;
+})));
+
+// @public
+export type LoadedRequest<R extends Request_2> = R & Required<Pick<R, 'id' | 'loadedUrl'>>;
+
+// @public
+export interface LoadSignal {
+    getSample(sampleDurationMillis?: number): LoadSnapshot[];
+    readonly name: string;
+    readonly overloadedRatio: number;
+    start(context: LoadSignalStartContext): Promise<void>;
+    stop(): Promise<void>;
+}
+
+// @public
+export interface LoadSignalsOptions {
+    cpu?: CpuLoadSignalOptions | false;
+    custom?: LoadSignal[];
+    eventLoop?: EventLoopLoadSignalOptions | false;
+    memory?: MemoryLoadSignalOptions | false;
+    storageBackend?: StorageBackendLoadSignalOptions | false;
+}
+
+// @public
+export interface LoadSignalStartContext {
+    maxSampleWindowMillis: number;
+}
+
+// @public
+export interface LoadSnapshot {
+    // (undocumented)
+    createdAt: Date;
+    // (undocumented)
+    isOverloaded: boolean;
+}
+
+// @public
+export class MemoryLoadSignal implements LoadSignal {
+    constructor(options?: MemoryLoadSignalOptions);
+    // (undocumented)
+    getSample(sampleDurationMillis?: number): LoadSnapshot[];
+    // (undocumented)
+    readonly name = "memInfo";
+    // (undocumented)
+    readonly overloadedRatio: number;
+    // (undocumented)
+    start(context: LoadSignalStartContext): Promise<void>;
+    // (undocumented)
+    stop(): Promise<void>;
+}
+
+// @public
+export interface MemoryLoadSignalOptions {
+    maxUsedRatio?: number;
+    overloadedRatio?: number;
+}
+
+// @public
+export class MissingSessionError extends Error {
+    constructor(sessionId?: string);
+}
+
+// @public
+export class NavigationSkippedError extends NonRetryableError {
+}
+
+// @public
+export function parseRetryAfterHeader(value?: string | null): number | null;
+
+// @public
+export interface PersistenceOptions {
+    enable?: boolean;
+}
+
+// @public
+export class PersistentRateLimitError extends CriticalError {
+}
+
+// @public (undocumented)
+export interface PushErrorMessageOptions {
+    omitStack?: boolean;
+}
+
+// @public (undocumented)
+export type RegExpInput = RegExp | RegExpObject;
+
+// @public (undocumented)
+export interface RegExpObject {
+    // (undocumented)
+    regexp: RegExp;
+}
+
 // @public (undocumented)
 export type RequestHandler<Context extends CrawlingContext = CrawlingContext> = (inputs: Context) => Awaitable<void>;
+
+// @public
+export class RequestHandlerError extends Error {
+    constructor(error: unknown, options?: ErrorOptions);
+}
+
+// @public (undocumented)
+export enum RequestState {
+    // (undocumented)
+    AFTER_NAV = 2,
+    // (undocumented)
+    BEFORE_NAV = 1,
+    // (undocumented)
+    DONE = 4,
+    // (undocumented)
+    ERROR = 6,
+    // (undocumented)
+    ERROR_HANDLER = 5,
+    // (undocumented)
+    REQUEST_HANDLER = 3,
+    // (undocumented)
+    SKIPPED = 7,
+    // (undocumented)
+    UNPROCESSED = 0
+}
+
+// @public
+export class RequestThrottledError extends RetryRequestError {
+    constructor(message?: string);
+}
+
+// @public
+export interface RequestTransform {
+    // (undocumented)
+    (original: RequestOptions): RequestOptions | false | undefined | null | 'skip' | 'unchanged';
+}
 
 // @public (undocumented)
 export type RequireContextPipeline<DefaultContextType extends CrawlingContext, FinalContextType extends DefaultContextType> = DefaultContextType extends FinalContextType ? {} : {
     contextPipelineBuilder: () => ContextPipeline<CrawlingContext, FinalContextType>;
 };
+
+// @public (undocumented)
+export interface RestrictedCrawlingContext<UserData extends Dictionary = Dictionary> {
+    addRequests: (requestsLike: ReadonlyDeep<(string | Source)[]>, options?: ReadonlyDeep<EnqueueUrlsOptions>) => Promise<AddRequestsBatchedResult>;
+    getKeyValueStore: (identifier?: string | StorageIdentifier) => Promise<Pick<KeyValueStore, 'id' | 'name' | 'getValue' | 'getAutoSavedValue' | 'setValue' | 'getPublicUrl'>>;
+    log: CrawleeLogger;
+    proxyInfo?: ProxyInfo;
+    pushData(data: ReadonlyDeep<Parameters<Dataset['pushData']>[0]>, datasetIdentifier?: string | StorageIdentifier): Promise<void>;
+    request: CrawlingRequest<UserData>;
+    // (undocumented)
+    session: ISession;
+    skipRequest(message?: string): never;
+    useState: <State extends Dictionary = Dictionary>(defaultValue?: State) => Promise<State>;
+}
+
+// @public
+export class RetryRequestError extends Error {
+    constructor(message?: string);
+}
+
+// @public
+export interface RouteOptions {
+    requestHandlerTimeoutSecs?: number;
+}
+
+// @public
+export class Router<Context extends RestrictedCrawlingContext, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>> {
+    addDefaultHandler<UserData extends Dictionary = DefaultRouteUserData<Routes, GetUserDataFromRequest<Context['request']>>>(handler: (ctx: RouterHandlerContext<Context, UserData, Routes>) => Awaitable<void>, options?: RouteOptions): void;
+    addHandler<Label extends keyof Routes & string>(label: Label, handler: (ctx: RouterHandlerContext<Context, Routes[Label], Routes>) => Awaitable<void>, options?: RouteOptions): void;
+    addHandler<UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(label: RouterLabel<Routes>, handler: (ctx: RouterHandlerContext<Context, UserData, Routes>) => Awaitable<void>, options?: RouteOptions): void;
+    static create<Context extends RestrictedCrawlingContext = CrawlingContext, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>>(routes?: RouterRoutes<Context, Routes>): RouterHandler<Context, Routes>;
+    // (undocumented)
+    static create<Context extends RestrictedCrawlingContext = CrawlingContext, UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(routes?: RouterRoutes<Context, Record<string, UserData>>): RouterHandler<Context, Record<string, UserData>>;
+    // (undocumented)
+    static create<Context extends RestrictedCrawlingContext = CrawlingContext, const Schemas extends RouteSchemas = RouteSchemas>(schemas: Schemas): RouterHandler<Context, RoutesFromSchemas<Schemas>>;
+    getHandler(label?: string | symbol): (ctx: Context) => Awaitable<void>;
+    use(middleware: (ctx: Context) => Awaitable<void>): void;
+}
+
+// @public (undocumented)
+export interface RouterHandler<Context extends RestrictedCrawlingContext = CrawlingContext, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>> extends Router<Context, Routes> {
+    // (undocumented)
+    (ctx: Context): Awaitable<void>;
+}
+
+// @public
+export type RouterHandlerContext<Context, UserData extends Dictionary, Routes extends Record<keyof Routes, Dictionary>> = Omit<Context, 'request' | 'addRequests' | 'enqueueLinks'> & {
+    request: LoadedRequest<CrawlingRequest<UserData>>;
+    addRequests: TypedContextAddRequests<Routes>;
+} & (Context extends {
+    enqueueLinks: infer EnqueueLinks;
+} ? {
+    enqueueLinks: TypedContextEnqueueLinks<EnqueueLinks, Routes>;
+} : {});
+
+// @public
+export type RouterLabel<Routes extends Record<keyof Routes, Dictionary>> = string extends keyof Routes ? string | symbol : (keyof Routes & string) | symbol;
+
+// @public (undocumented)
+export type RouterRoutes<Context, Routes extends Record<keyof Routes, Dictionary>> = {
+    [Label in keyof Routes]: (ctx: Omit<Context, 'request'> & {
+        request: CrawlingRequest<Routes[Label]>;
+    }) => Awaitable<void>;
+};
+
+// @public
+export type RouteSchemas = Record<string, StandardSchemaV1> & {
+    [defaultRoute]?: StandardSchemaV1;
+};
+
+// @public
+export type RoutesFromSchemas<Schemas extends RouteSchemas> = {
+    [Label in Extract<keyof Schemas, string>]: SchemaUserData<Schemas[Label]>;
+} & (Schemas extends {
+    [defaultRoute]: StandardSchemaV1;
+} ? {
+    [defaultRoute]: SchemaUserData<Schemas[typeof defaultRoute]>;
+} : {});
+
+// Not exported by the entry point; reachable only as a referenced type.
+// @public
+type SchemaUserData<Schema extends StandardSchemaV1> = StandardSchemaV1.InferOutput<Schema> extends Dictionary ? StandardSchemaV1.InferOutput<Schema> : Dictionary;
+
+// @public
+export class Session implements ISession {
+    constructor(options?: SessionOptions);
+    // (undocumented)
+    get cookieJar(): CookieJar;
+    // (undocumented)
+    get createdAt(): Date;
+    // (undocumented)
+    get errorScore(): number;
+    // (undocumented)
+    get errorScoreDecrement(): number;
+    // (undocumented)
+    get expiresAt(): Date;
+    // (undocumented)
+    get fingerprint(): SessionFingerprint | undefined;
+    set fingerprint(fingerprint: SessionFingerprint | undefined);
+    getCookieString(url: string): Promise<string>;
+    // (undocumented)
+    readonly id: string;
+    isBlocked(): boolean;
+    isExpired(): boolean;
+    isMaxUsageCountReached(): boolean;
+    isUsable(): boolean;
+    markBad(): void;
+    markGood(): void;
+    // (undocumented)
+    get maxErrorScore(): number;
+    // (undocumented)
+    get maxUsageCount(): number;
+    // (undocumented)
+    get proxyInfo(): ProxyInfo | undefined;
+    retire(): void;
+    get retired(): boolean;
+    setCookie(rawCookie: string, url: string): Promise<void>;
+    // (undocumented)
+    get usageCount(): number;
+    // (undocumented)
+    readonly userData: Dictionary;
+}
+
+// @public (undocumented)
+export interface SessionOptions {
+    // (undocumented)
+    cookieJar?: CookieJar;
+    createdAt?: Date;
+    // (undocumented)
+    errorScore?: number;
+    errorScoreDecrement?: number;
+    expiresAt?: Date;
+    fingerprint?: SessionFingerprint;
+    id?: string;
+    maxAgeSecs?: number;
+    maxErrorScore?: number;
+    maxUsageCount?: number;
+    // (undocumented)
+    proxyInfo?: ProxyInfo;
+    retired?: boolean;
+    usageCount?: number;
+    userData?: Dictionary;
+}
+
+// @public
+export class SessionPool implements ISessionPool {
+    // (undocumented)
+    [Symbol.asyncDispose](): Promise<void>;
+    constructor(options?: SessionPoolOptions);
+    addSession(options?: Session | SessionOptions): Promise<void>;
+    getSession(sessionId?: string): Promise<Session | undefined>;
+    // (undocumented)
+    readonly id: string;
+    newSession(sessionOptions?: SessionOptions): Promise<Session>;
+    persistState(): Promise<void>;
+    reset(): void;
+    resetStore(): Promise<void>;
+    retiredSessionsCount(): Promise<number>;
+    teardown(): Promise<void>;
+    usableSessionsCount(): Promise<number>;
+}
+
+// @public (undocumented)
+export interface SessionPoolOptions {
+    createSessionFunction?: CreateSession;
+    id?: string | number;
+    maxPoolSize?: number;
+    persistenceOptions?: PersistenceOptions;
+    persistStateKey?: string;
+    persistStateKeyValueStoreId?: string;
+    sessionOptions?: SessionOptions;
+    sessionReuseStrategy?: SessionReuseStrategy;
+}
+
+// @public (undocumented)
+export type SessionReuseStrategy = 'random' | 'round-robin' | 'use-until-failure';
+
+// @public
+export class SitemapRequestLoader implements IRequestLoader {
+    // (undocumented)
+    [Symbol.asyncIterator](): AsyncGenerator<Request_2<Dictionary>, void, unknown>;
+    // (undocumented)
+    checkReadiness(): Promise<RequestLoaderStatus>;
+    // (undocumented)
+    fetchNextRequest(): Promise<Request_2 | null>;
+    // (undocumented)
+    getHandledCount(): Promise<number>;
+    // (undocumented)
+    getPendingCount(): Promise<number>;
+    // (undocumented)
+    getTotalCount(): Promise<number>;
+    isSitemapFullyLoaded(): boolean;
+    // (undocumented)
+    markRequestAsHandled(request: Request_2): Promise<void>;
+    static open(options: SitemapRequestLoaderOptions): Promise<SitemapRequestLoader>;
+    // (undocumented)
+    persistState(): Promise<void>;
+    teardown(): Promise<void>;
+    toTandem(requestManager?: IRequestManager): Promise<IRequestManager>;
+}
+
+// @public (undocumented)
+export interface SitemapRequestLoaderOptions extends UrlConstraints {
+    enqueueStrategy?: EnqueueStrategy | `${EnqueueStrategy}`;
+    httpClient?: BaseHttpClient;
+    maxBufferSize?: number;
+    parseSitemapOptions?: Omit<ParseSitemapOptions, 'emitNestedSitemaps' | 'maxDepth'>;
+    persistenceOptions?: {
+        enable?: boolean;
+    };
+    persistStateKey?: string;
+    proxyUrl?: string;
+    signal?: AbortSignal;
+    sitemapUrls: string[];
+    timeoutMillis?: number;
+}
+
+// @public (undocumented)
+export type SkippedRequestCallback = (args: {
+    request: Request_2;
+    reason: SkippedRequestReason;
+    message?: string;
+}) => Awaitable<void>;
+
+// @public (undocumented)
+export type SkippedRequestReason = 'robotsTxt' | 'limit' | 'enqueueLimit' | 'filters' | 'transform' | 'redirect' | 'depth' | 'manual';
+
+// @public
+export class SnapshotStore<T extends LoadSnapshot = LoadSnapshot> {
+    clear(): void;
+    getAll(): T[];
+    getSample(sampleDurationMillis?: number): T[];
+    push(snapshot: T, now?: Date): void;
+    useSampleWindow(maxSampleWindowMillis: number): void;
+}
+
+// @public
+export interface StatisticPersistedState extends Omit<StatisticState, 'statsPersistedAt' | 'crawlerStartedAt' | 'crawlerFinishedAt' | 'requestMinDurationMillis' | 'requestsFailedPerMinute' | 'requestsSucceededPerMinute' | 'requestRetryHistogram' | 'instanceStart'> {
+    // (undocumented)
+    crawlerFinishedAt: string | null;
+    crawlerLastStartTimestamp: number;
+    crawlerStartedAt: string | null;
+    // (undocumented)
+    requestAvgFailedDurationMillis: number | null;
+    // (undocumented)
+    requestAvgSucceededDurationMillis: number | null;
+    // (undocumented)
+    requestMinDurationMillis: number | null;
+    requestRetryHistogram: (number | null)[];
+    // (undocumented)
+    requestsFailedPerMinute: number | null;
+    // (undocumented)
+    requestsSucceededPerMinute: number | null;
+    // (undocumented)
+    requestsTotal: number;
+    // (undocumented)
+    requestTotalDurationMillis: number;
+    // (undocumented)
+    statsId: string;
+    // (undocumented)
+    statsPersistedAt: string;
+}
+
+// @public
+export class Statistics<StateExtension extends object = {}, PersistedStateExtension extends object = StateExtension> implements IStatistics<StateExtension> {
+    constructor(options?: StatisticsOptions<StateExtension, PersistedStateExtension>);
+    calculate(): CalculatedStatistics;
+    readonly errorTracker: ErrorTracker;
+    readonly errorTrackerRetry: ErrorTracker;
+    readonly id: string;
+    persistState(): Promise<void>;
+    registerStatusCode(code: number): void;
+    get requestRetryHistogram(): number[];
+    reset(): void;
+    resetStore(): Promise<void>;
+    startCapturing(): Promise<void>;
+    get state(): StatisticState & StateExtension;
+    stopCapturing(): Promise<void>;
+    toJSON(): StatisticPersistedState & PersistedStateExtension;
+}
+
+// @public
+export interface StatisticsOptions<StateExtension extends object = {}, PersistedStateExtension extends object = StateExtension> {
+    id?: string;
+    keyValueStore?: KeyValueStore;
+    log?: CrawleeLogger;
+    logIntervalSecs?: number;
+    logMessage?: string;
+    persistenceOptions?: PersistenceOptions;
+    saveErrorSnapshots?: boolean;
+    stateExtension?: StatisticStateExtensionOptions<StateExtension, PersistedStateExtension>;
+}
+
+// @public
+export interface StatisticState {
+    // (undocumented)
+    crawlerFinishedAt: Date | string | null;
+    // (undocumented)
+    crawlerRuntimeMillis: number;
+    // (undocumented)
+    crawlerStartedAt: Date | string | null;
+    // (undocumented)
+    errors: Record<string, unknown>;
+    instanceStart: number;
+    // (undocumented)
+    requestMaxDurationMillis: number;
+    // (undocumented)
+    requestMinDurationMillis: number;
+    requestRetryHistogram: number[];
+    // (undocumented)
+    requestsFailed: number;
+    // (undocumented)
+    requestsFailedPerMinute: number;
+    // (undocumented)
+    requestsRetries: number;
+    // (undocumented)
+    requestsSucceeded: number;
+    // (undocumented)
+    requestsSucceededPerMinute: number;
+    // (undocumented)
+    requestsWithStatusCode: Record<string, number>;
+    // (undocumented)
+    requestTotalFailedDurationMillis: number;
+    // (undocumented)
+    requestTotalSucceededDurationMillis: number;
+    // (undocumented)
+    retryErrors: Record<string, unknown>;
+    // (undocumented)
+    statsPersistedAt: Date | string | null;
+}
+
+// @public
+export interface StatisticStateExtensionOptions<StateExtension extends object, PersistedStateExtension extends object = StateExtension> {
+    defaultState?: StateExtension | (() => StateExtension);
+    deserialize?: SyncStateConversion<unknown, StateExtension>;
+    serialize?: SyncStateConversion<StateExtension, PersistedStateExtension>;
+}
 
 // @public (undocumented)
 export type StatusMessageCallback<Context extends CrawlingContext = BasicCrawlingContext, Crawler extends BasicCrawler<any, any, any, any> = BasicCrawler<Context>> = (params: StatusMessageCallbackParams<Context, Crawler>) => Awaitable<void>;
@@ -214,6 +978,105 @@ export interface StatusMessageCallbackParams<Context extends CrawlingContext = B
     // (undocumented)
     state: StatisticState;
 }
+
+// @public
+export class StorageBackendLoadSignal implements LoadSignal {
+    constructor(options?: StorageBackendLoadSignalOptions);
+    // (undocumented)
+    getSample(sampleDurationMillis?: number): LoadSnapshot[];
+    // (undocumented)
+    readonly name = "storageBackendInfo";
+    // (undocumented)
+    readonly overloadedRatio: number;
+    // (undocumented)
+    start(context: LoadSignalStartContext): Promise<void>;
+    // (undocumented)
+    stop(): Promise<void>;
+}
+
+// @public
+export interface StorageBackendLoadSignalOptions {
+    maxErrors?: number;
+    overloadedRatio?: number;
+    snapshotIntervalSecs?: number;
+}
+
+// @public
+export interface TaskLoopPredicates {
+    isFinishedFunction?: () => Promise<boolean>;
+    isTaskReadyFunction?: () => Promise<boolean>;
+}
+
+// @public
+export class ThrottlingRequestManager<T extends IRequestManager = IRequestManager> implements IRequestManager {
+    // (undocumented)
+    [Symbol.asyncIterator](): AsyncGenerator<Request_2<Dictionary>, void, unknown>;
+    constructor(options: ThrottlingRequestManagerOptions<T>, config?: Configuration);
+    // (undocumented)
+    addRequest(requestLike: Source, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo>;
+    addRequestsBatched(requests: RequestsLike, options?: AddRequestsBatchedOptions): Promise<AddRequestsBatchedResult>;
+    checkReadiness(): Promise<RequestSourceStatus>;
+    extendRequestProcessingTimeSecs(request: Request_2, secs: number): Promise<boolean>;
+    fetchNextRequest<R extends Dictionary = Dictionary>(): Promise<Request_2<R> | null>;
+    // (undocumented)
+    getHandledCount(): Promise<number>;
+    // (undocumented)
+    getPendingCount(): Promise<number>;
+    // (undocumented)
+    getTotalCount(): Promise<number>;
+    // (undocumented)
+    markRequestAsHandled(request: Request_2): Promise<RequestQueueOperationInfo | void | null>;
+    purge(): Promise<void>;
+    // (undocumented)
+    reclaimRequest(request: Request_2, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo | null>;
+    recordPacingSignal(signal: PacingSignal): boolean;
+    // (undocumented)
+    setExpectedRequestProcessingTimeSecs(secs: number): Promise<void>;
+}
+
+// @public
+export interface ThrottlingRequestManagerOptions<T extends IRequestManager = IRequestManager> {
+    baseDelaySecs?: number;
+    domains: string[] | 'all';
+    inner?: T | (() => T | Promise<T>);
+    maxDelaySecs?: number;
+    maxDomainStallSecs?: number;
+    maxThrottledDomains?: number;
+    minCrawlDelaySecs?: number;
+    persistStateKey?: string;
+    throttleBy?: 'hostname' | 'registrableDomain';
+}
+
+// @public
+export type TypedContextAddRequests<Routes extends Record<keyof Routes, Dictionary>> = (requestsLike: ReadonlyDeep<LabeledSource<Routes>[]>, options?: ReadonlyDeep<EnqueueUrlsOptions>) => Promise<AddRequestsBatchedResult>;
+
+// @public
+export type TypedContextEnqueueLinks<EnqueueLinks, Routes extends Record<keyof Routes, Dictionary>> = EnqueueLinks extends (options?: infer Options) => infer Result ? (options?: TypedEnqueueLinksOptions<Options, Routes>) => Result : EnqueueLinks extends (options: infer Options) => infer Result ? (options: TypedEnqueueLinksOptions<Options, Routes>) => Result : EnqueueLinks;
+
+// Not exported by the entry point; reachable only as a referenced type.
+// @public
+type TypedEnqueueLinksOptions<Options, Routes extends Record<keyof Routes, Dictionary>> = string extends keyof Routes ? Options : Omit<Options, 'label' | 'userData'> & ({
+    [Label in keyof Routes & string]: {
+        label: Label;
+        userData?: Routes[Label];
+    };
+}[keyof Routes & string] | {
+    label?: undefined;
+    userData?: Dictionary;
+});
+
+// @public
+export type TypedRequestsLike<Routes extends Record<keyof Routes, Dictionary>> = AsyncIterable<LabeledSource<Routes>> | Iterable<LabeledSource<Routes>> | LabeledSource<Routes>[];
+
+// Not exported by the entry point; reachable only as a referenced type.
+// @public (undocumented)
+interface UrlConstraints {
+    exclude?: readonly UrlPatternInput[];
+    include?: readonly UrlPatternInput[];
+}
+
+// @public
+export type UrlPatternInput = GlobInput | RegExpInput;
 
 
 export * from "@crawlee/core";

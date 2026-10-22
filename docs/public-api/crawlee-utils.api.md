@@ -4,18 +4,13 @@
 
 ```ts
 
+import { ArgumentValidationError } from '@apify/validations';
 import type { BaseHttpClient } from '@crawlee/http-client';
 import type { CheerioAPI } from 'cheerio';
 import type { CrawleeLogger } from '@crawlee/types';
 import type { Dictionary } from '@crawlee/types';
-import type { z } from 'zod';
 
-// @public
-export class ArgumentValidationError extends Error {
-    constructor(error: z.ZodError, value: unknown, label?: string);
-    readonly cause: z.ZodError;
-    readonly issues: z.ZodError['issues'];
-}
+export { ArgumentValidationError }
 
 // @public
 const DISCORD_REGEX: RegExp;
@@ -66,6 +61,12 @@ export enum EnqueueStrategy {
 }
 
 // @public
+export function extractMicrodata(raw: string): Promise<MicrodataItem[]>;
+
+// @public (undocumented)
+export function extractMicrodata($: CheerioAPI): Promise<MicrodataItem[]>;
+
+// @public
 export function extractUrls(options: ExtractUrlsOptions): string[];
 
 // @public (undocumented)
@@ -95,14 +96,15 @@ const LINKEDIN_REGEX: RegExp;
 // @public
 const LINKEDIN_REGEX_GLOBAL: RegExp;
 
-// Not exported by the entry point; reachable only as a referenced type.
-// @public (undocumented)
-interface NestedSitemap {
-    // (undocumented)
-    loc: string;
-    // (undocumented)
-    originSitemapUrl: null;
+// @public
+export interface MicrodataItem {
+    id?: string;
+    properties: Record<string, MicrodataValue | MicrodataValue[]>;
+    type?: string[];
 }
+
+// @public
+export type MicrodataValue = string | MicrodataItem;
 
 // @public (undocumented)
 export interface OpenGraphProperty {
@@ -126,9 +128,6 @@ export function parseOpenGraph(raw: string, additionalProperties?: OpenGraphProp
 
 // @public (undocumented)
 export function parseOpenGraph($: CheerioAPI, additionalProperties?: OpenGraphProperty[]): Promise<Dictionary<OpenGraphResult>>;
-
-// @public (undocumented)
-export function parseSitemap<T extends ParseSitemapOptions>(initialSources: SitemapSource[], proxyUrl?: string, options?: T): AsyncIterable<T['emitNestedSitemaps'] extends true ? SitemapUrl | NestedSitemap : SitemapUrl>;
 
 // @public (undocumented)
 export interface ParseSitemapOptions {
@@ -185,36 +184,6 @@ export class Sitemap {
     static tryCommonNames(url: string, proxyUrl?: string, parseSitemapOptions?: ParseSitemapOptions): Promise<Sitemap>;
     // (undocumented)
     readonly urls: string[];
-}
-
-// Not exported by the entry point; reachable only as a referenced type.
-// @public (undocumented)
-type SitemapSource = ({
-    type: 'url';
-    url: string;
-} | {
-    type: 'raw';
-    content: string;
-}) & {
-    depth?: number;
-};
-
-// @public (undocumented)
-export type SitemapUrl = SitemapUrlData & {
-    originSitemapUrl: string;
-};
-
-// Not exported by the entry point; reachable only as a referenced type.
-// @public (undocumented)
-interface SitemapUrlData {
-    // (undocumented)
-    changefreq?: 'always' | 'hourly' | 'daily' | 'weekly' | 'monthly' | 'yearly' | 'never';
-    // (undocumented)
-    lastmod?: Date;
-    // (undocumented)
-    loc: string;
-    // (undocumented)
-    priority?: number;
 }
 
 // @public

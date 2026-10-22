@@ -4,41 +4,35 @@
 
 ```ts
 
+import type { AddRequestsBatchedResult } from '@crawlee/basic';
+import type { AnyNode } from 'domhandler';
 import type { Awaitable } from '@crawlee/types';
 import { BasicCrawler } from '@crawlee/basic';
 import { BasicCrawlerOptions } from '@crawlee/basic';
+import type { Cheerio } from 'cheerio';
 import type { CheerioAPI } from 'cheerio';
-import { ConcurrencySystem } from '@crawlee/basic';
 import type { ConcurrencySystemOptions } from '@crawlee/basic';
 import { ContextPipeline } from '@crawlee/basic';
-import type { ContextPipeline as ContextPipeline_2 } from '@crawlee/core';
 import type { CrawlingContext } from '@crawlee/basic';
-import type { CrawlingContext as CrawlingContext_2 } from '@crawlee/core';
+import type { CrawlingRequest } from '@crawlee/basic';
 import type { Dictionary } from '@crawlee/types';
+import type { EnqueueLinksOptions } from '@crawlee/basic';
 import { ErrorHandler } from '@crawlee/basic';
+import type { ExtractLinksOptions } from '@crawlee/basic';
 import { GetUserDataFromRequest } from '@crawlee/basic';
 import type { JsonValue } from 'type-fest';
-import { LoadedRequest } from '@crawlee/core';
-import { Request as Request_2 } from '@crawlee/basic';
-import type { Request as Request_3 } from '@crawlee/core';
+import type { LoadedRequest } from '@crawlee/basic';
 import { RequestHandler } from '@crawlee/basic';
 import type { RequireContextPipeline } from '@crawlee/basic';
 import { RouterHandler } from '@crawlee/basic';
 import { RouterRoutes } from '@crawlee/basic';
 import { RouteSchemas } from '@crawlee/basic';
 import { RoutesFromSchemas } from '@crawlee/basic';
-import { Transform } from 'node:stream';
-
-// @public
-export function ByteCounterStream(input: {
-    logTransferredBytes: (transferredBytes: number) => void;
-    loggingInterval?: number;
-}): Transform;
 
 // Not exported by the entry point; reachable only as a referenced type.
 // @public (undocumented)
 interface CrawlingContextWithResponse<UserData extends Dictionary = any> extends CrawlingContext<UserData> {
-    request: LoadedRequest<Request_2<UserData>>;
+    request: LoadedRequest<CrawlingRequest<UserData>>;
     response: Response;
 }
 
@@ -61,31 +55,72 @@ export function createHttpRouter<Context extends HttpCrawlingContext = HttpCrawl
 export function createHttpRouter<Context extends HttpCrawlingContext = HttpCrawlingContext, const Schemas extends RouteSchemas = RouteSchemas>(schemas: Schemas): RouterHandler<Context, RoutesFromSchemas<Schemas>>;
 
 // @public
-export class FileDownload extends BasicCrawler<FileDownloadCrawlingContext> {
-    constructor(options?: BasicCrawlerOptions<FileDownloadCrawlingContext>);
+export class DOMCrawler<Parsed extends DOMParseResult = DOMParseResult, Selection extends ArrayLike<unknown> = ArrayLike<unknown>, Single = unknown, ContextExtension = Dictionary<never>, ExtendedContext extends DOMCrawlingContext<Parsed, Selection, Single> = DOMCrawlingContext<Parsed, Selection, Single> & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<DOMCrawlingContext<Parsed, Selection, Single>['request']>>, StatisticStateExtension extends object = {}> extends HttpCrawler<DOMCrawlingContext<Parsed, Selection, Single>, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
+    constructor(options: DOMCrawlerOptions<Parsed, Selection, Single, ContextExtension, ExtendedContext, Routes, StatisticStateExtension>);
     // (undocumented)
-    protected buildContextPipeline(): ContextPipeline_2<CrawlingContext_2, FileDownloadCrawlingContext>;
+    protected buildContextPipeline(): ContextPipeline<CrawlingContext, DOMCrawlingContext<Parsed, Selection, Single>>;
 }
 
 // @public (undocumented)
-export interface FileDownloadCrawlingContext<UserData extends Dictionary = any> extends CrawlingContext_2<UserData> {
+export interface DOMCrawlerOptions<Parsed extends DOMParseResult = DOMParseResult, Selection extends ArrayLike<unknown> = ArrayLike<unknown>, Single = unknown, ContextExtension = Dictionary<never>, ExtendedContext extends DOMCrawlingContext<Parsed, Selection, Single> = DOMCrawlingContext<Parsed, Selection, Single> & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, any>, StatisticStateExtension extends object = {}> extends Omit<HttpCrawlerOptions<DOMCrawlingContext<Parsed, Selection, Single>, ContextExtension, ExtendedContext, Routes, StatisticStateExtension>, 'contextPipelineBuilder'> {
+    parser: DOMParser_2<Parsed, Selection, Single>;
+}
+
+// @public (undocumented)
+export type DOMCrawlingContext<Parsed extends DOMParseResult = DOMParseResult, Selection extends ArrayLike<unknown> = ArrayLike<unknown>, Single = unknown, UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
+JSONData extends Dictionary = any> = Omit<InternalHttpCrawlingContext<UserData, JSONData>, keyof DOMCrawlingHelpers> & Parsed & DOMCrawlingHelpers<Selection, Single>;
+
+// @public (undocumented)
+export interface DOMCrawlingHelpers<Selection extends ArrayLike<unknown> = ArrayLike<unknown>, Single = unknown> {
+    enqueueLinks(options?: EnqueueLinksOptions): Promise<AddRequestsBatchedResult>;
+    extractLinks(options?: ExtractLinksOptions): Promise<string[]>;
+    parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioAPI>;
+    querySelectorAll(selector: string, timeoutMs?: number): Promise<Selection>;
+    querySelectorOne(selector: string, timeoutMs?: number): Promise<Single>;
+    waitForSelector(selector: string, timeoutMs?: number): Promise<void>;
+}
+
+// @public
+interface DOMParser_2<Parsed extends DOMParseResult, Selection extends ArrayLike<unknown> = ArrayLike<unknown>, Single = unknown> {
+    cleanup?(parsed: Parsed): Awaitable<void>;
+    extractLinks(parsed: Parsed, selector: string, baseUrl: string): Awaitable<string[]>;
+    readonly mutable?: boolean;
+    // (undocumented)
+    parse(context: InternalHttpCrawlingContext): Awaitable<Parsed>;
+    readonly placeholderMembers: Record<keyof Parsed & string, true>;
+    querySelectorAll(parsed: Parsed, selector: string): Awaitable<Selection>;
+    querySelectorOne(parsed: Parsed, selector: string): Awaitable<Single | undefined>;
+    toCheerio?(parsed: Parsed): Awaitable<CheerioAPI>;
+}
+export { DOMParser_2 as DOMParser }
+
+// @public
+export interface DOMParseResult {
+    // (undocumented)
+    body: string;
+}
+
+// @public
+export class FileDownload extends BasicCrawler<FileDownloadCrawlingContext> {
+    constructor(options?: Omit<BasicCrawlerOptions<FileDownloadCrawlingContext>, 'contextPipelineBuilder'>);
+}
+
+// @public (undocumented)
+export interface FileDownloadCrawlingContext<UserData extends Dictionary = any> extends CrawlingContext<UserData> {
     // (undocumented)
     contentType: {
         type: string;
         encoding: BufferEncoding;
     };
     // (undocumented)
-    request: LoadedRequest<Request_3<UserData>>;
+    request: LoadedRequest<CrawlingRequest<UserData>>;
     // (undocumented)
     response: Response;
 }
 
 // @public (undocumented)
 export type FileDownloadErrorHandler<UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-ContextExtension = Dictionary<never>> = ErrorHandler<CrawlingContext_2, FileDownloadCrawlingContext<UserData> & ContextExtension>;
-
-// @public (undocumented)
-export type FileDownloadHook<UserData extends Dictionary = any> = InternalHttpHook<FileDownloadCrawlingContext<UserData>>;
+ContextExtension = Dictionary<never>> = ErrorHandler<CrawlingContext, FileDownloadCrawlingContext<UserData> & ContextExtension>;
 
 // @public (undocumented)
 export type FileDownloadRequestHandler<UserData extends Dictionary = any> = RequestHandler<FileDownloadCrawlingContext<UserData>>;
@@ -98,11 +133,6 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any> =
     constructor(options?: HttpCrawlerOptions<Context, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> & RequireContextPipeline<InternalHttpCrawlingContext, Context>);
     // (undocumented)
     protected buildContextPipeline(): ContextPipeline<CrawlingContext, InternalHttpCrawlingContext>;
-    protected createDefaultConcurrencySystem(options: ConcurrencySystemOptions): ConcurrencySystem;
-    // (undocumented)
-    protected getNavigationTimeoutMillis(): number;
-    // (undocumented)
-    protected isRequestBlocked(crawlingContext: InternalHttpCrawlingContext): Promise<string | false>;
 }
 
 // @public (undocumented)
@@ -111,7 +141,7 @@ export interface HttpCrawlerOptions<Context extends InternalHttpCrawlingContext 
     forceResponseEncoding?: string;
     ignoreTlsErrors?: boolean;
     navigationTimeoutSecs?: number;
-    postNavigationHooks?: ((crawlingContext: CrawlingContextWithResponse & ContextExtension) => Awaitable<void | Partial<CrawlingContextWithResponse>>)[];
+    postNavigationHooks?: InternalHttpHook<CrawlingContextWithResponse, ContextExtension>[];
     preNavigationHooks?: InternalHttpHook<CrawlingContext<any>, ContextExtension>[];
     saveResponseCookies?: boolean;
     suggestResponseEncoding?: string;
@@ -119,16 +149,16 @@ export interface HttpCrawlerOptions<Context extends InternalHttpCrawlingContext 
 
 // @public (undocumented)
 export interface HttpCrawlingContext<UserData extends Dictionary = any, JSONData extends JsonValue = any> extends InternalHttpCrawlingContext<UserData, JSONData> {
+    // (undocumented)
+    querySelectorAll(selector: string, timeoutMs?: number): Promise<Cheerio<AnyNode>>;
+    // (undocumented)
+    querySelectorOne(selector: string, timeoutMs?: number): Promise<Cheerio<AnyNode>>;
 }
 
 // @public (undocumented)
 export type HttpErrorHandler<UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
 JSONData extends JsonValue = any, // with default to Dictionary we cant use a typed router in untyped crawler
 ContextExtension = Dictionary<never>> = ErrorHandler<CrawlingContext, HttpCrawlingContext<UserData, JSONData> & ContextExtension>;
-
-// @public (undocumented)
-export type HttpHook<UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-JSONData extends JsonValue = any> = InternalHttpHook<HttpCrawlingContext<UserData, JSONData>>;
 
 // @public (undocumented)
 export type HttpRequestHandler<UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
@@ -144,18 +174,13 @@ JSONData extends JsonValue = any> extends CrawlingContextWithResponse<UserData> 
     };
     json: JSONData;
     parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioAPI>;
+    querySelectorAll(selector: string, timeoutMs?: number): Promise<ArrayLike<unknown>>;
+    querySelectorOne(selector: string, timeoutMs?: number): Promise<unknown>;
     waitForSelector(selector: string, timeoutMs?: number): Promise<void>;
 }
 
 // @public (undocumented)
 export type InternalHttpHook<Context, ContextExtension = {}> = (crawlingContext: Context & ContextExtension) => Awaitable<void | Partial<Context>>;
-
-// @public
-export function MinimumSpeedStream(input: {
-    minSpeedKbps: number;
-    historyLengthMs?: number;
-    checkProgressInterval?: number;
-}): Transform;
 
 
 export * from "@crawlee/basic";

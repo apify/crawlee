@@ -1,11 +1,12 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 
-import type { Awaitable, Dictionary } from '@crawlee/types';
+import type { Awaitable, Dictionary, RequestSchema } from '@crawlee/types';
 
 import { addTimeoutToPromise, storage as timeoutStorage, tryCancel } from '@apify/timeout';
 
-import { serviceLocator } from '../service_locator.js';
-import type { RecordOptions } from './key_value_store.js';
+import { serviceLocator } from '../service-locator.js';
+import { AfterCommitError, NonRetryableError } from '../errors.js';
+import type { RecordOptions } from './key-value-store.js';
 
 /**
  * Governs whether writes of a given storage type performed inside a {@apilink StorageTransaction} are
@@ -53,6 +54,7 @@ export interface TransactionParticipant {
 
 /**
  * A single dataset write (`pushData`) recorded in a transaction journal.
+ * @internal
  */
 export interface DatasetJournalEntry {
     type: 'dataset';
@@ -66,6 +68,7 @@ export interface DatasetJournalEntry {
 
 /**
  * A single key-value store write (`setValue`) recorded in a transaction journal.
+ * @internal
  */
 export interface KeyValueStoreJournalEntry {
     type: 'keyValueStore';
@@ -80,6 +83,7 @@ export interface KeyValueStoreJournalEntry {
 
 /**
  * A request recorded in a transaction journal.
+ * @internal
  */
 export interface JournaledRequest {
     url: string;
@@ -89,11 +93,12 @@ export interface JournaledRequest {
      * A full JSON snapshot of the request for the commit replay. Only present for buffered additions —
      * deduplicated and write-through ones are journaled for introspection only.
      */
-    snapshot?: Dictionary;
+    snapshot?: RequestSchema;
 }
 
 /**
  * A batch of request queue additions recorded in a transaction journal.
+ * @internal
  */
 export interface RequestQueueJournalEntry {
     type: 'requestQueue';
@@ -105,6 +110,7 @@ export interface RequestQueueJournalEntry {
     writeThrough: boolean;
 }
 
+/** @internal */
 export type JournalEntry = DatasetJournalEntry | KeyValueStoreJournalEntry | RequestQueueJournalEntry;
 
 /**
@@ -163,11 +169,13 @@ const COMMIT_ORDER: JournalEntry['type'][] = ['keyValueStore', 'requestQueue', '
  * handler unless `transactionalStorage: false` is set.
  */
 export class StorageTransaction implements StorageTransactionView {
-    /** The ordered, append-only journal — the source of truth for commit, introspection and reads. */
+    /**
+     * The ordered, append-only journal — the source of truth for commit, introspection and reads.
+     * @internal
+     */
     readonly journal: JournalEntry[] = [];
 
-    /** Per-storage-type write policy. */
-    readonly policy: StorageWritePolicy;
+    readonly #policy: StorageWritePolicy;
 
     readonly #commitTimeoutMillis: number;
 
@@ -175,10 +183,21 @@ export class StorageTransaction implements StorageTransactionView {
 
     #disposed = false;
 
+    /** Callbacks registered via `afterCommit()`, run in registration order once a commit has been attempted. */
+    readonly #afterCommitCallbacks: ((error?: Error) => Awaitable<void>)[] = [];
+
     /** @internal */
     constructor(options: StorageTransactionOptions = {}) {
-        this.policy = { ...DEFAULT_STORAGE_WRITE_POLICY, ...options.policy };
+        this.#policy = { ...DEFAULT_STORAGE_WRITE_POLICY, ...options.policy };
         this.#commitTimeoutMillis = options.commitTimeoutMillis ?? DEFAULT_COMMIT_TIMEOUT_MILLIS;
+    }
+
+    /**
+     * Per-storage-type write policy.
+     * @internal
+     */
+    get policy(): StorageWritePolicy {
+        return this.#policy;
     }
 
     get state(): StorageTransactionState {
@@ -211,6 +230,20 @@ export class StorageTransaction implements StorageTransactionView {
     }
 
     /**
+     * Registers a callback to run once a commit has been attempted, whether it succeeded (`error` is
+     * `undefined`) or failed - the only point at which a deferred write can be reacted to where it was
+     * made. Callbacks run in registration order; the first to throw propagates, the rest do not run, and
+     * on a failed commit its error replaces the commit error. Not run on rollback: nothing was written.
+     */
+    afterCommit(callback: (error?: Error) => Awaitable<void>): void {
+        if (!this.isActive) {
+            throw new Error(`Cannot register a commit callback on a transaction in the '${this.#state}' state`);
+        }
+
+        this.#afterCommitCallbacks.push(callback);
+    }
+
+    /**
      * Replays the journaled writes into real storage. A no-op unless the transaction is `open`.
      *
      * The transaction transitions to `committing` *before* anything is flushed, so a commit that throws
@@ -232,19 +265,41 @@ export class StorageTransaction implements StorageTransactionView {
             // handler that succeeded. Hence a fresh timeout context, which also provides the time bound.
             await timeoutStorage.exit(async () =>
                 addTimeoutToPromise(
-                    async () => this.flush(),
+                    async () => this.#flush(),
                     this.#commitTimeoutMillis,
                     `Committing the storage transaction timed out after ${this.#commitTimeoutMillis / 1000} seconds.`,
                 ),
             );
-            this.#state = 'committed';
         } catch (error) {
             this.#state = 'failed';
-            throw error;
+            // Callbacks are handed an `Error`, so a backend that rejects with anything else gets wrapped.
+            const commitError = error instanceof Error ? error : new Error(String(error), { cause: error });
+
+            // A callback that throws here propagates instead: it was handed the failure and decided what
+            // the request should fail with.
+            await this.#runAfterCommitCallbacks(commitError);
+            throw commitError;
+        }
+
+        this.#state = 'committed';
+
+        try {
+            await this.#runAfterCommitCallbacks();
+        } catch (error) {
+            throw error instanceof NonRetryableError ? error : new AfterCommitError(error);
         }
     }
 
-    private async flush(): Promise<void> {
+    /** Fresh timeout context for the same reason as the flush. */
+    async #runAfterCommitCallbacks(error?: Error): Promise<void> {
+        await timeoutStorage.exit(async () => {
+            for (const callback of this.#afterCommitCallbacks) {
+                await callback(error);
+            }
+        });
+    }
+
+    async #flush(): Promise<void> {
         // Each participating frontend replays all of its buffered entries in one call. Frontends are
         // ordered by storage type: key-value stores and request queues first (idempotent under retry),
         // datasets last (not idempotent), minimizing the blast radius of a partial commit failure.
@@ -282,9 +337,10 @@ export class StorageTransaction implements StorageTransactionView {
     }
 
     /**
-     * Releases the journal and the write-time snapshots it holds. Must be called for *every* terminal
-     * state, `failed` included. Idempotent, never throws, and does not change `state`. Any
-     * {@apilink StorageTransactionView} of this transaction is only valid until this is called.
+     * Releases the journal, the write-time snapshots it holds and any registered commit callbacks. Must
+     * be called for *every* terminal state, `failed` included. Idempotent, never throws, and does not
+     * change `state`. Any {@apilink StorageTransactionView} of this transaction is only valid until this
+     * is called.
      */
     dispose(): void {
         if (this.#disposed) {
@@ -305,6 +361,7 @@ export class StorageTransaction implements StorageTransactionView {
 
         this.#disposed = true;
         this.journal.length = 0;
+        this.#afterCommitCallbacks.length = 0;
     }
 
     get datasetItems(): { item: Dictionary; datasetId: string }[] {

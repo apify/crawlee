@@ -1,5 +1,5 @@
 import { CheerioCrawler } from '@crawlee/cheerio';
-import { Statistics } from '@crawlee/core';
+import { Statistics } from '@crawlee/basic';
 import { sleep } from '@crawlee/utils';
 import { Actor } from 'apify';
 

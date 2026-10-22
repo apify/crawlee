@@ -12,6 +12,7 @@ export class PlaywrightController extends BrowserController<
     SafeParameters<BrowserType['launch']>[0],
     Browser
 > {
+    /** @internal */
     normalizeProxyOptions(proxyUrl: string | undefined, pageOptions: any): Record<string, unknown> {
         if (!proxyUrl) {
             return {};
@@ -72,10 +73,10 @@ export class PlaywrightController extends BrowserController<
         try {
             const page = await this.browser.newPage(contextOptions);
 
-            page.once('close', async () => {
-                this.activePages--;
+            this.registerPageTeardown(page, close);
 
-                await close();
+            page.once('close', () => {
+                this.registerPageClosed(page);
             });
 
             tryCancel();

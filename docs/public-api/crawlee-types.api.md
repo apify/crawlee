@@ -9,6 +9,9 @@ import type { Readable } from 'node:stream';
 // @public (undocumented)
 export type AllowedHttpMethods = 'GET' | 'HEAD' | 'POST' | 'PUT' | 'DELETE' | 'TRACE' | 'OPTIONS' | 'CONNECT' | 'PATCH' | 'get' | 'head' | 'post' | 'put' | 'delete' | 'trace' | 'options' | 'connect' | 'patch';
 
+// @public (undocumented)
+export type Awaitable<T> = T | PromiseLike<T>;
+
 // @public
 export interface BaseHttpClient {
     sendRequest(request: Request, options?: SendRequestOptions): Promise<Response>;
@@ -23,12 +26,7 @@ export interface BatchAddRequestsResult {
 }
 
 // @public (undocumented)
-export interface BrowserLikeResponse {
-    // (undocumented)
-    headers(): Dictionary<string | string[]>;
-    // (undocumented)
-    url(): string;
-}
+export type Constructor<T = unknown> = new (...args: any[]) => T;
 
 // @public (undocumented)
 export interface Cookie {
@@ -96,17 +94,17 @@ export interface CookieJarSetCookieOptions {
 // @public
 export interface CrawleeLogger {
     child(options: Partial<CrawleeLoggerOptions>): CrawleeLogger;
-    debug(message: string, data?: Record<string, unknown>): void;
+    debug(message: string, data?: Record<string, unknown>, options?: LogOptions): void;
     deprecated(message: string): void;
-    error(message: string, data?: Record<string, unknown>): void;
+    error(message: string, data?: Record<string, unknown>, options?: LogOptions): void;
     exception(exception: Error, message: string, data?: Record<string, unknown>): void;
     getOptions(): CrawleeLoggerOptions;
-    info(message: string, data?: Record<string, unknown>): void;
+    info(message: string, data?: Record<string, unknown>, options?: LogOptions): void;
     logWithLevel(level: number, message: string, data?: Record<string, unknown>): void;
-    perf(message: string, data?: Record<string, unknown>): void;
+    perf(message: string, data?: Record<string, unknown>, options?: LogOptions): void;
     setOptions(options: Partial<CrawleeLoggerOptions>): void;
-    softFail(message: string, data?: Record<string, unknown>): void;
-    warning(message: string, data?: Record<string, unknown>): void;
+    softFail(message: string, data?: Record<string, unknown>, options?: LogOptions): void;
+    warning(message: string, data?: Record<string, unknown>, options?: LogOptions): void;
     warningOnce(message: string): void;
 }
 
@@ -164,33 +162,17 @@ export interface HttpRequest {
     // (undocumented)
     followRedirect?: boolean | ((response: any) => boolean);
     // (undocumented)
-    headerGenerator?: {
-        getHeaders: (options: Record<string, unknown>) => Record<string, string>;
-    };
-    // (undocumented)
-    headerGeneratorOptions?: Record<string, unknown>;
-    // (undocumented)
     headers?: Headers;
-    // (undocumented)
-    insecureHTTPParser?: boolean;
-    // (undocumented)
-    maxRedirects?: number;
     // (undocumented)
     method?: AllowedHttpMethods;
     // (undocumented)
     proxyUrl?: string;
     // (undocumented)
-    sessionToken?: object;
-    // (undocumented)
     signal?: AbortSignal;
-    // (undocumented)
-    throwHttpErrors?: boolean;
     // (undocumented)
     timeout?: number;
     // (undocumented)
     url: string | URL;
-    // (undocumented)
-    useHeaderGenerator?: boolean;
 }
 
 // @public
@@ -220,6 +202,7 @@ export interface ISession {
     fingerprint?: SessionFingerprint;
     // (undocumented)
     readonly id: string;
+    isBlocked(): boolean;
     isUsable(): boolean;
     markBad(): void;
     markGood(): void;
@@ -310,6 +293,11 @@ export interface KeyValueStoreRecord {
 export type KeyValueStoreRecordInputValue = Buffer | ArrayBuffer | ArrayBufferView | string | NodeJS.ReadableStream | ReadableStream;
 
 // @public
+export interface LogOptions {
+    once?: boolean;
+}
+
+// @public
 export interface NewPageOptions {
     id?: string;
     session?: ISession;
@@ -360,15 +348,10 @@ export interface QueueOperationInfo {
 }
 
 // @public
-export type RedirectHandler = (redirectResponse: Response, updatedRequest: {
-    url?: string | URL;
-    headers: Headers;
-}) => void;
-
-// @public
 export interface RequestQueueBackend {
     addBatchOfRequests(requests: RequestSchema[], options?: RequestQueueOperationOptions): Promise<BatchAddRequestsResult>;
     drop(): Promise<void>;
+    extendRequestProcessingTimeSecs?(requestId: string, secs: number): Promise<boolean>;
     fetchNextRequest(): Promise<UpdateRequestSchema | undefined>;
     getMetadata(): Promise<RequestQueueInfo>;
     getRequest(uniqueKey: string): Promise<UpdateRequestSchema | undefined>;
@@ -530,36 +513,6 @@ export interface SessionFingerprint {
 }
 
 // @public
-export interface SessionState {
-    // (undocumented)
-    cookieJar: SerializedCookieJar;
-    // (undocumented)
-    createdAt: string;
-    // (undocumented)
-    errorScore: number;
-    // (undocumented)
-    errorScoreDecrement: number;
-    // (undocumented)
-    expiresAt: string;
-    // (undocumented)
-    fingerprint?: SessionFingerprint;
-    // (undocumented)
-    id: string;
-    // (undocumented)
-    maxErrorScore: number;
-    // (undocumented)
-    maxUsageCount: number;
-    // (undocumented)
-    proxyInfo?: ProxyInfo;
-    // (undocumented)
-    retired: boolean;
-    // (undocumented)
-    usageCount: number;
-    // (undocumented)
-    userData: object;
-}
-
-// @public
 export interface SetStatusMessageOptions {
     isStatusMessageTerminal?: boolean;
     level?: 'DEBUG' | 'INFO' | 'WARNING' | 'ERROR';
@@ -599,12 +552,6 @@ export type StorageIdentifier = {
     name?: never;
     alias?: never;
 };
-
-// @public (undocumented)
-export interface StreamOptions extends SendRequestOptions {
-    // (undocumented)
-    onRedirect?: RedirectHandler;
-}
 
 // @public (undocumented)
 export interface UnprocessedRequest {

@@ -1,5 +1,6 @@
 type PromiseVoid = () => Promise<void>;
 
+/** @internal */
 export interface AnonymizeProxySugarOptions {
     ignoreProxyCertificate?: boolean;
 }

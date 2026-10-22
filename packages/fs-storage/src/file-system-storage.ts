@@ -6,6 +6,7 @@ import type { CrawleeLogger } from '@crawlee/types';
 import { parseArgument, schemas } from '@crawlee/utils/internal';
 import { z } from 'zod';
 
+import type { AdoptionCandidate } from '@crawlee/fs-storage-native';
 import { DatasetBackend } from './resource-clients/dataset.js';
 import { KeyValueStoreBackend } from './resource-clients/key-value-store.js';
 import { RequestQueueBackend } from './resource-clients/request-queue.js';
@@ -32,6 +33,26 @@ const DEFAULT_STORAGE_ALIAS = '__default__';
 /** The directory the default storage lives in, one level below `datasets` / `key_value_stores` / etc. */
 const DEFAULT_STORAGE_DIRECTORY = 'default';
 
+/**
+ * Content types declared for adopted files. The native client infers nothing from extensions, and
+ * neither do we beyond this: a `.json` file is JSON, anything else is bytes for the
+ * {@apilink KeyValueStore} frontend to make sense of.
+ */
+const ADOPTED_JSON_CONTENT_TYPE = 'application/json; charset=utf-8';
+const ADOPTED_BINARY_CONTENT_TYPE = 'application/octet-stream';
+
+/** What the key-value store hooks of {@link FileSystemStorageBackend} learn about the store at hand. */
+export interface KeyValueStoreHookOptions {
+    /** Whether the store is the run's default key-value store. */
+    isDefaultStore: boolean;
+}
+
+/** A file-system key-value store backend as seen by {@link FileSystemStorageBackend.purgeKeyValueStore}. */
+export interface PurgeableKeyValueStoreBackend extends storage.KeyValueStoreBackend {
+    /** Remove every record from the store except the given keys. */
+    purgeExcept(keys: string[]): Promise<void>;
+}
+
 export interface FileSystemStorageOptions {
     /**
      * Path to directory where the data will be saved.
@@ -40,6 +61,8 @@ export interface FileSystemStorageOptions {
 
     /**
      * Optional logger for FileSystemStorageBackend warnings.
+     *
+     * @internal
      */
     logger?: CrawleeLogger;
 
@@ -70,13 +93,12 @@ export interface FileSystemStorageOptions {
  * `teardown` can operate over them), and exposing them through the `@crawlee/types` interfaces.
  */
 export class FileSystemStorageBackend implements storage.StorageBackend {
-    readonly localDataDirectory: string;
-    readonly datasetsDirectory: string;
-    readonly keyValueStoresDirectory: string;
-    readonly requestQueuesDirectory: string;
-    readonly logger?: CrawleeLogger;
-    readonly requestQueueAccess: 'single' | 'shared';
-
+    readonly #localDataDirectory: string;
+    readonly #datasetsDirectory: string;
+    readonly #keyValueStoresDirectory: string;
+    readonly #requestQueuesDirectory: string;
+    readonly #logger?: CrawleeLogger;
+    readonly #requestQueueAccess: 'single' | 'shared';
     readonly #keyValueStoreBackendCache: KeyValueStoreBackend[] = [];
     readonly #datasetBackendCache: DatasetBackend[] = [];
     readonly #requestQueueBackendCache: RequestQueueBackend[] = [];
@@ -87,13 +109,13 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
             fileSystemStorageOptionsSchema,
         );
 
-        this.logger = logger;
-        this.requestQueueAccess = requestQueueAccess;
+        this.#logger = logger;
+        this.#requestQueueAccess = requestQueueAccess;
 
-        this.localDataDirectory = localDataDirectory;
-        this.datasetsDirectory = resolve(this.localDataDirectory, 'datasets');
-        this.keyValueStoresDirectory = resolve(this.localDataDirectory, 'key_value_stores');
-        this.requestQueuesDirectory = resolve(this.localDataDirectory, 'request_queues');
+        this.#localDataDirectory = localDataDirectory;
+        this.#datasetsDirectory = resolve(this.#localDataDirectory, 'datasets');
+        this.#keyValueStoresDirectory = resolve(this.#localDataDirectory, 'key_value_stores');
+        this.#requestQueuesDirectory = resolve(this.#localDataDirectory, 'request_queues');
     }
 
     /**
@@ -102,7 +124,7 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
      * partitions, by including the storage directory in the cache key.
      */
     getStorageBackendCacheKey(): string {
-        return `FileSystemStorageBackend:${resolve(this.localDataDirectory)}`;
+        return `FileSystemStorageBackend:${resolve(this.#localDataDirectory)}`;
     }
 
     static #resolveStorageKey(options: { id?: string; name?: string; alias?: string }): {
@@ -139,12 +161,12 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
 
         const nativeBackend = await (
             await importNativeModule()
-        ).FileSystemDatasetClient.open(id, name, alias, this.localDataDirectory);
+        ).FileSystemDatasetClient.open(id, name, alias, this.#localDataDirectory);
         const newStore = await DatasetBackend.create({
             name: alias ? undefined : (name ?? cacheKey),
             cacheKey,
             nativeBackend,
-            logger: this.logger,
+            logger: this.#logger,
         });
         this.#datasetBackendCache.push(newStore);
 
@@ -166,12 +188,20 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
 
         const nativeBackend = await (
             await importNativeModule()
-        ).FileSystemKeyValueStoreClient.open(id, name, alias, this.localDataDirectory);
+        ).FileSystemKeyValueStoreClient.open(
+            id,
+            name,
+            alias,
+            this.#localDataDirectory,
+            // useTestClock — always real wall-clock outside of native tests.
+            undefined,
+            this.keyValueStoreAdoptionCandidates({ isDefaultStore: cacheKey === DEFAULT_STORAGE_DIRECTORY }),
+        );
         const newStore = await KeyValueStoreBackend.create({
             name: alias ? undefined : (name ?? cacheKey),
             cacheKey,
             nativeBackend,
-            logger: this.logger,
+            logger: this.#logger,
         });
         this.#keyValueStoreBackendCache.push(newStore);
 
@@ -197,20 +227,56 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
             id,
             name,
             alias,
-            this.localDataDirectory,
+            this.#localDataDirectory,
             // useTestClock — always real wall-clock outside of native tests.
             undefined,
-            this.requestQueueAccess,
+            this.#requestQueueAccess,
         );
         const newStore = await RequestQueueBackend.create({
             name: alias ? undefined : (name ?? cacheKey),
             cacheKey,
             nativeBackend,
-            logger: this.logger,
+            logger: this.#logger,
         });
         this.#requestQueueBackendCache.push(newStore);
 
         return newStore;
+    }
+
+    /**
+     * What the native `open` may turn into records: value files sitting in the store directory with no
+     * metadata sidecar, written out-of-band by a CLI, a project template, a v3 Crawlee or a text editor.
+     * Each becomes a record keyed by its filename, with the content type derived from the extension alone.
+     *
+     * Subclasses may claim specific files under a key of their own by prepending candidates — the Apify
+     * SDK adopts a bare `INPUT` or `INPUT.json` in the default store as the record `INPUT` this way.
+     *
+     * Once adopted, the file is an ordinary record: readable, listed, deletable, and — in a run-scoped
+     * store — purged on start unless {@link purgeKeyValueStore} spares it. Files adoption skips (dotfiles)
+     * are purged all the same: the purge sweeps the directory and keeps only the store metadata and the
+     * spared keys.
+     *
+     */
+    protected keyValueStoreAdoptionCandidates(_options: KeyValueStoreHookOptions): AdoptionCandidate[] {
+        return [
+            {
+                files: [
+                    { filename: '*.json', contentType: ADOPTED_JSON_CONTENT_TYPE },
+                    { filename: '*', contentType: ADOPTED_BINARY_CONTENT_TYPE },
+                ],
+            },
+        ];
+    }
+
+    /**
+     * Empties one run-scoped key-value store during {@link purge}. Subclasses may spare some keys of the
+     * default store with {@link PurgeableKeyValueStoreBackend.purgeExcept} — the Apify SDK keeps its run input.
+     */
+    protected async purgeKeyValueStore(
+        store: PurgeableKeyValueStoreBackend,
+        _options: KeyValueStoreHookOptions,
+    ): Promise<void> {
+        await store.purge();
     }
 
     async storageExists(id: string, type: 'Dataset' | 'KeyValueStore' | 'RequestQueue'): Promise<boolean> {
@@ -220,15 +286,15 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
         switch (type) {
             case 'Dataset':
                 backends = this.#datasetBackendCache;
-                baseDir = this.datasetsDirectory;
+                baseDir = this.#datasetsDirectory;
                 break;
             case 'KeyValueStore':
                 backends = this.#keyValueStoreBackendCache;
-                baseDir = this.keyValueStoresDirectory;
+                baseDir = this.#keyValueStoresDirectory;
                 break;
             case 'RequestQueue':
                 backends = this.#requestQueueBackendCache;
-                baseDir = this.requestQueuesDirectory;
+                baseDir = this.#requestQueuesDirectory;
                 break;
             default:
                 return false;
@@ -309,18 +375,17 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
     async purge(): Promise<void> {
         await Promise.all([
             this.#purgeRunScopedStorages(
-                this.keyValueStoresDirectory,
+                this.#keyValueStoresDirectory,
                 async (alias) => this.createKeyValueStoreBackend({ alias }) as Promise<KeyValueStoreBackend>,
-                // Only the default store holds the run input, so it is the only one that keeps `INPUT`.
-                async (store, isDefault) => (isDefault ? store.purgeExceptInput() : store.purge()),
+                async (store, isDefault) => this.purgeKeyValueStore(store, { isDefaultStore: isDefault }),
             ),
             this.#purgeRunScopedStorages(
-                this.datasetsDirectory,
+                this.#datasetsDirectory,
                 async (alias) => this.createDatasetBackend({ alias }) as Promise<DatasetBackend>,
                 async (store) => store.purge(),
             ),
             this.#purgeRunScopedStorages(
-                this.requestQueuesDirectory,
+                this.#requestQueuesDirectory,
                 async (alias) => this.createRequestQueueBackend({ alias }) as Promise<RequestQueueBackend>,
                 async (store) => store.purge(),
             ),

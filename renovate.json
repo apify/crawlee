@@ -33,6 +33,11 @@
 			"enabled": false
 		},
 		{
+			"description": "tsx 4.21.1+ breaks chaining with the OpenTelemetry module hook (silent exit until 4.22.2, unresolved `.js` -> `.ts` re-exports since 4.22.3)",
+			"matchPackageNames": ["tsx"],
+			"allowedVersions": "<=4.21.0"
+		},
+		{
 			"matchPackageNames": [
 				"@apify/*",
 				"@crawlee/*",

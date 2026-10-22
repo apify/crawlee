@@ -3,7 +3,7 @@
     "version": "4.0.0",
     "description": "impit-based HTTP client implementation for Crawlee. Impersonates browser requests to avoid bot detection.",
     "engines": {
-        "node": ">=22.0.0"
+        "node": ">=22.13.0"
     },
     "type": "module",
     "exports": {
@@ -47,7 +47,8 @@
         "access": "public"
     },
     "dependencies": {
-        "@apify/datastructures": "^2.0.3",
+        "@apify/datastructures": "^3.0.1",
+        "@crawlee/core": "workspace:*",
         "@crawlee/http-client": "workspace:*",
         "@crawlee/types": "workspace:*",
         "impit": "^0.14.2",

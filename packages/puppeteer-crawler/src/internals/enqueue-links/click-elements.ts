@@ -6,7 +6,6 @@ import type {
     RequestTransform,
     SkippedRequestCallback,
     UrlPatternInput,
-    UrlPatternObject,
 } from '@crawlee/browser';
 import {
     applyRequestTransform,
@@ -20,11 +19,10 @@ import {
 } from '@crawlee/browser';
 import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
 import { parseArgument, schemas } from '@crawlee/utils/internal';
-// @ts-ignore This only throws when compiled against puppeteer 25+ (ESM only), we only import types, so its alllll gooooood
 import type { ClickOptions, Frame, HTTPRequest as PuppeteerRequest, Page, Target } from 'puppeteer';
 import { z } from 'zod';
 
-import { addInterceptRequestHandler, removeInterceptRequestHandler } from '../utils/puppeteer_request_interception.js';
+import { addInterceptRequestHandler, removeInterceptRequestHandler } from '../utils/puppeteer-request-interception.js';
 
 const STARTING_Z_INDEX = 2147400000;
 const getLog = () => serviceLocator.getChildLog('Puppeteer Click Elements');
@@ -200,7 +198,7 @@ export interface EnqueueLinksByClickingElementsOptions {
  * **Example usage**
  *
  * ```javascript
- * await utils.puppeteer.enqueueLinksByClickingElements({
+ * await puppeteerUtils.enqueueLinksByClickingElements({
  *   page,
  *   requestManager,
  *   selector: 'a.product-detail',
@@ -240,8 +238,8 @@ export async function enqueueLinksByClickingElements(
     const maxWaitForPageIdleMillis = maxWaitForPageIdleSecs * 1000;
     const hasOnSkippedRequest = onSkippedRequest !== undefined;
 
-    const urlExcludePatternObjects: UrlPatternObject[] = exclude?.length ? constructUrlPatternObjects(exclude) : [];
-    const urlPatternObjects: UrlPatternObject[] = include?.length ? constructUrlPatternObjects(include) : [];
+    const urlExcludePatternObjects = exclude?.length ? constructUrlPatternObjects(exclude) : [];
+    const urlPatternObjects = include?.length ? constructUrlPatternObjects(include) : [];
 
     const interceptedRequests = await clickElementsAndInterceptNavigationRequests({
         page,
@@ -300,6 +298,8 @@ interface ClickElementsAndInterceptNavigationRequestsOptions extends WaitForPage
  * Clicks all elements of given page matching given selector.
  * Catches and intercepts all initiated navigation requests and opened pages.
  * Returns a list of all target URLs.
+ *
+ * Not part of the public API — exported only so tests can import this module directly.
  * @ignore
  */
 export async function clickElementsAndInterceptNavigationRequests(
@@ -393,7 +393,7 @@ function createTargetCreatedHandler(page: Page, requests: Set<string>): (target:
  * We're only interested in pages created by the page we're currently clicking in.
  * There will generally be a lot of other targets being created in the browser.
  */
-export function isTargetRelevant(page: Page, target: Target): boolean {
+function isTargetRelevant(page: Page, target: Target): boolean {
     // oxlint-disable-next-line typescript/no-deprecated -- the non-deprecated replacement (opener.page()) is async and would force every call site to await, including EventEmitter callbacks
     return target.type() === 'page' && page.target() === target.opener();
 }
@@ -451,6 +451,8 @@ async function preventHistoryNavigation(page: Page): Promise<unknown> {
  * so we first move them to the top of the page's stacking context and then click.
  * We do all in series to prevent elements from hiding one another. Therefore,
  * for large element sets, this will take considerable amount of time.
+ *
+ * Not part of the public API — exported only so tests can import this module directly.
  * @ignore
  */
 export async function clickElements(

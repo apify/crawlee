@@ -4,49 +4,21 @@ import { dirname } from 'node:path';
 import type {
     AddRequestsBatchedOptions,
     AddRequestsBatchedResult,
-    AutoscaledPoolOptions,
-    ConcurrencySystemOptions,
     CrawleeLogger,
-    CrawlingContext,
     DatasetExportOptions,
-    EnqueueUrlsOptions,
     EventStatusMessageData,
-    FinalStatistics,
-    GetUserDataFromRequest,
-    IConcurrencySystem,
     IProxyConfiguration,
     IRequestLoader,
     IRequestManager,
-    IStatistics,
     RequestOptions,
     RequestsLike,
-    RouterHandler,
-    RouterRoutes,
-    SkippedRequestCallback,
-    SkippedRequestReason,
     Source,
-    StatisticState,
     StorageIdentifier,
     StorageWritePolicy,
-    TaskLoopOptions,
-    TypedRequestsLike,
-    UrlPatternObject,
 } from '@crawlee/core';
 import {
-    applyRequestTransform,
-    AutoscaledPool,
     bindMethodsToServiceLocator,
-    BLOCKED_STATUS_CODES,
-    buildEnqueueStrategyPatterns,
-    ConcurrencySystem,
     Configuration,
-    constructUrlPatternObjects,
-    ContextPipeline,
-    ContextPipelineCleanupError,
-    ContextPipelineInitializationError,
-    ContextPipelineInterruptedError,
-    createRequestOptions,
-    createSkippedRequestArgs,
     createStorageTransaction,
     Request,
     CriticalError,
@@ -55,33 +27,17 @@ import {
     EnqueueStrategy,
     EventManager,
     EventType,
-    filterRequestOptionsByPatterns,
     getObjectType,
     KeyValueStore,
     log,
-    mergeCookies,
-    MissingSessionError,
-    NavigationSkippedError,
     NonRetryableError,
     OwnedOrInjected,
-    PersistentRateLimitError,
     purgeDefaultStorages,
-    RequestHandlerError,
-    parseRetryAfterHeader,
-    RequestThrottledError,
     RequestManagerTandem,
     RequestQueue,
-    RequestState,
-    RetryRequestError,
-    Router,
     ServiceLocator,
     serviceLocator,
-    Session,
     SessionError,
-    SessionPool,
-    Statistics,
-    ThrottlingRequestManager,
-    validateUserData,
     validators,
     withDirectStorageAccess,
 } from '@crawlee/core';
@@ -91,7 +47,6 @@ import type {
     Dictionary,
     ISession,
     ISessionPool,
-    ProxyInfo,
     SetStatusMessageOptions,
     StorageBackend,
 } from '@crawlee/types';
@@ -105,14 +60,55 @@ import { LruCache } from '@apify/datastructures';
 import { addTimeoutToPromise, extendTimeout, storage as timeoutStorage, TimeoutError, tryCancel } from '@apify/timeout';
 import { cryptoRandomObjectId } from '@apify/utilities';
 
+import type { AutoscaledPoolOptions, TaskLoopPredicates } from './autoscaling/autoscaled-pool.js';
+import type { ConcurrencySystemOptions, IConcurrencySystem } from './autoscaling/concurrency-system.js';
+import { ConcurrencySystem } from './autoscaling/concurrency-system.js';
+import type { FinalStatistics } from './autoscaling/system-status.js';
+import { mergeCookies } from './cookie-utils.js';
+import type { CleanupRegistrar } from './crawlers/context-pipeline.js';
+import { ContextPipeline } from './crawlers/context-pipeline.js';
+import type { CrawlingContext, TypedRequestsLike } from './crawlers/crawler-commons.js';
+import type { CrawlingRequestData, SkippedRequestReason } from './crawling-request.js';
+import { CrawlingRequest, RequestState } from './crawling-request.js';
+import {
+    ContextPipelineCleanupError,
+    ContextPipelineInterruptedError,
+    MissingSessionError,
+    NavigationSkippedError,
+    PersistentRateLimitError,
+    ContextPipelineInitializationError,
+    RequestHandlerError,
+    RequestThrottledError,
+    RetryRequestError,
+} from './errors.js';
+import type { IStatistics, StatisticState } from './crawlers/statistics.js';
+import { Statistics } from './crawlers/statistics.js';
+import type { EnqueueUrlsOptions, SkippedRequestCallback } from './enqueue-links/index.js';
+import {
+    applyRequestTransform,
+    buildEnqueueStrategyPatterns,
+    constructUrlPatternObjects,
+    createRequestOptions,
+    createSkippedRequestArgs,
+    filterRequestOptionsByPatterns,
+} from './enqueue-links/index.js';
+import { parseRetryAfterHeader } from './http.js';
+import { CrawlerRun } from './crawler-run.js';
 import {
     extendTimeoutKey,
     navigationDeadlineKey,
     raceWithTimeout,
     type RequestTimeoutContext,
+    suspendTimeoutKey,
     timeoutExpiredKey,
 } from './request-timeout.js';
 import { createSendRequest } from './send-request.js';
+import type { GetUserDataFromRequest, RouterHandler, RouterRoutes } from './router.js';
+import { Router, validateUserData } from './router.js';
+import { BLOCKED_STATUS_CODES } from './session-pool/consts.js';
+import { Session } from './session-pool/session.js';
+import { SessionPool } from './session-pool/session-pool.js';
+import { ThrottlingRequestManager } from './throttling-request-manager.js';
 
 class LazyDefaultHttpClient extends BaseHttpClient {
     readonly #delegatePromise: Promise<BaseHttpClient>;
@@ -152,8 +148,6 @@ export interface BasicCrawlingContext<UserData extends Dictionary = Dictionary> 
  */
 const SAFE_MIGRATION_WAIT_MILLIS = 20000;
 
-const deferredCleanupKey = Symbol('deferredCleanup');
-
 // The request timeout plumbing (the window helper, the context symbols, and the race) lives in its own module.
 export { navigationDeadlineKey, remainingNavigationWindowMillis } from './request-timeout.js';
 
@@ -187,7 +181,7 @@ const addRequestsOptionsSchema = z.looseObject({
 });
 
 /** The in-flight context, carrying the timeout slots ({@apilink raceWithTimeout} hangs its extender on them). */
-type PendingCrawlingContext = { request: Request } & Partial<CrawlingContext> & RequestTimeoutContext;
+type PendingCrawlingContext = { request: CrawlingRequest } & Partial<CrawlingContext> & RequestTimeoutContext;
 
 export type RequestHandler<Context extends CrawlingContext = CrawlingContext> = (inputs: Context) => Awaitable<void>;
 
@@ -248,7 +242,7 @@ export interface BasicCrawlerOptions<
      * To make this work, we should **always**
      * let our function throw exceptions rather than catch them.
      * The exceptions are logged to the request using the
-     * {@apilink Request.pushErrorMessage|`Request.pushErrorMessage()`} function.
+     * {@apilink CrawlingRequest.pushErrorMessage|`request.pushErrorMessage()`} function.
      */
     requestHandler?: RouterHandler<ExtendedContext, Routes> | RequestHandler<ExtendedContext>;
 
@@ -382,7 +376,7 @@ export interface BasicCrawlerOptions<
      * Concurrency is configured elsewhere — through the `minConcurrency`/`maxConcurrency`/`maxRequestsPerMinute`
      * shortcuts, or a {@apilink BasicCrawlerOptions.concurrencySystem|`concurrencySystem`} for finer control.
      */
-    taskLoopOptions?: TaskLoopOptions;
+    taskLoopOptions?: TaskLoopPredicates;
 
     /**
      * A pre-configured concurrency governor — the component that decides whether there is free compute for one more
@@ -436,7 +430,16 @@ export interface BasicCrawlerOptions<
     /**
      * Allows to keep the crawler alive even if the {@apilink RequestQueue} gets empty.
      * By default, the `crawler.run()` will resolve once the queue is empty. With `keepAlive: true` it will keep running,
-     * waiting for more requests to come. Use `crawler.stop()` to exit the crawler gracefully, or `crawler.teardown()` to stop it immediately.
+     * waiting for more requests to come.
+     *
+     * `crawler.stop()` only stops the crawler from dispatching new requests — it does not wait for or drain
+     * requests already sitting in the queue. If this crawler is fed by another crawler or an external producer,
+     * calling `stop()` as soon as the producer finishes can abandon requests the producer already enqueued but
+     * this crawler had not yet picked up.
+     *
+     * To shut down only once the queue is genuinely empty and the producer has stopped, override
+     * {@apilink BasicCrawlerOptions.taskLoopOptions|`taskLoopOptions.isFinishedFunction`} to check both
+     * `(await requestManager.checkReadiness()).status === 'finished'` and the producer's own running/finished flag.
      */
     keepAlive?: boolean;
 
@@ -507,7 +510,8 @@ export interface BasicCrawlerOptions<
      * 1. based on robots.txt file,
      * 2. because they don't match enqueueLinks filters,
      * 3. because they are redirected to a URL that doesn't match the enqueueLinks strategy,
-     * 4. or because the {@apilink BasicCrawlerOptions.maxRequestsPerCrawl|`maxRequestsPerCrawl`} limit has been reached
+     * 4. because the {@apilink BasicCrawlerOptions.maxRequestsPerCrawl|`maxRequestsPerCrawl`} limit has been reached,
+     * 5. or by {@apilink RestrictedCrawlingContext.skipRequest|`context.skipRequest()`}.
      */
     onSkippedRequest?: SkippedRequestCallback;
 
@@ -713,8 +717,7 @@ export class BasicCrawler<
      * request queue; subsequent ones get their own queue via a unique alias so they don't
      * collide.
      */
-    // kept as TS-private: tests reset the counter at runtime
-    private static instanceCount = 0;
+    static #instanceCount = 0;
 
     /**
      * Tracks crawler instances that accessed shared state without having an explicit id.
@@ -733,12 +736,16 @@ export class BasicCrawler<
         return this.#statisticsDep.value;
     }
 
+    #requestManager?: IRequestManager;
+
     /**
      * The main request-handling component of the crawler. It manages the requests that the crawler processes,
      * combining any provided request loader and/or queue. It's initialized during the crawler startup or lazily
      * via {@apilink BasicCrawler.getRequestManager|`getRequestManager()`}.
      */
-    protected requestManager?: IRequestManager;
+    protected get requestManager(): IRequestManager | undefined {
+        return this.#requestManager;
+    }
 
     /** Backs the {@apilink BasicCrawler.sessionPool|`sessionPool`} getter. */
     #sessionPoolDep: OwnedOrInjected<ISessionPool, SessionPool>;
@@ -765,39 +772,41 @@ export class BasicCrawler<
      */
     readonly #resolveConcurrencySystem: () => OwnedOrInjected<IConcurrencySystem, ConcurrencySystem>;
 
-    /** As resolved by `init()`. Absent until the first run, so a `teardown()` before it is a no-op. */
-    #concurrencySystemDep?: OwnedOrInjected<IConcurrencySystem, ConcurrencySystem>;
+    /** The last run started on this instance. It outlives the run, so anything that drives one goes through `#liveRun`. */
+    #run?: CrawlerRun;
+
+    #concurrencySystem: OwnedOrInjected<IConcurrencySystem, ConcurrencySystem> | undefined;
+
+    /** The run in progress, if any — a finished run is history and cannot be driven. */
+    get #liveRun(): CrawlerRun | undefined {
+        return this.#run?.isLive === true ? this.#run : undefined;
+    }
+
+    /** The run whose task loop is dispatching, if any — only that one can be paused and resumed. */
+    get #dispatchingRun(): CrawlerRun | undefined {
+        return this.#liveRun?.isDispatching === true ? this.#liveRun : undefined;
+    }
+
+    /** Whether a {@apilink BasicCrawler.run|`run()`} is in progress on this instance. */
+    get running(): boolean {
+        return this.#liveRun !== undefined;
+    }
 
     /**
-     * The concurrency governor this run is booking its requests against — either the
+     * The concurrency governor the run in progress is booking its requests against — either the
      * {@apilink BasicCrawlerOptions.concurrencySystem|`concurrencySystem`} that was injected, or the default the
      * crawler built for itself. Read it for telemetry: `desiredConcurrency`, `currentConcurrency`, `isRunning`.
      *
-     * > *NOTE:* `undefined` until {@apilink BasicCrawler.run|`crawler.run()`} has resolved it. A crawler-owned default
-     * is also rebuilt for every run, so the instance is not stable across runs.
+     * > *NOTE:* `undefined` outside a run, and a crawler-owned default is rebuilt for every run — so read it
+     * during a run rather than caching it across runs.
      *
      * {@apilink IConcurrencySystem} is deliberately read-only. Tuning concurrency *while a crawl is running* means
      * owning the instance: build a {@apilink ConcurrencySystem} yourself and inject it, then set
      * `minConcurrency`/`maxConcurrency`/`desiredConcurrency` on your own reference.
      */
     get concurrencySystem(): IConcurrencySystem | undefined {
-        return this.#concurrencySystemDep?.maybeValue;
+        return this.#concurrencySystem?.value;
     }
-
-    /**
-     * The task loop that dispatches this run's requests. Private on purpose — it is a bare parallel task runner with
-     * no configuration left of its own (see {@apilink ConcurrencySystem}), and everything a caller legitimately did
-     * with it now has a crawler-level counterpart: {@apilink BasicCrawler.pause|`pause()`},
-     * {@apilink BasicCrawler.resume|`resume()`}, {@apilink BasicCrawler.teardown|`teardown()`} and
-     * {@apilink BasicCrawler.concurrencySystem|`concurrencySystem`}.
-     */
-    #autoscaledPool?: AutoscaledPool;
-
-    /** A pending nudge of the task loop, armed when the request manager announces when it will have work again. */
-    #taskLoopWakeTimer?: NodeJS.Timeout;
-
-    /** When the pending wake-up is due, so an earlier one can replace a later one. */
-    #taskLoopWakeAt = 0;
 
     /**
      * A reference to the underlying {@apilink IProxyConfiguration} instance that manages the crawler's proxies.
@@ -814,7 +823,7 @@ export class BasicCrawler<
         Routes
     >;
 
-    #basicContextPipeline?: ContextPipeline<{ request: Request }, CrawlingContext>;
+    #basicContextPipeline?: ContextPipeline<{ request: CrawlingRequest }, CrawlingContext>;
 
     /**
      * The basic part of the context pipeline. Unlike the subclass pipeline, this
@@ -822,30 +831,31 @@ export class BasicCrawler<
      * pipelines expect the basic crawler fields to already be present in the context at runtime.
      *
      * Context built with this pipeline can be passed into multiple crawler pipelines at once.
-     * This is used e.g. in the {@apilink AdaptivePlaywrightCrawler|`AdaptivePlaywrightCrawler`}.
      */
-    get basicContextPipeline(): ContextPipeline<{ request: Request }, CrawlingContext> {
-        if (this.#basicContextPipeline === undefined) {
-            this.#basicContextPipeline = this.buildBasicContextPipeline();
-        }
+    get #basicPipeline(): ContextPipeline<{ request: CrawlingRequest }, CrawlingContext> {
+        this.#basicContextPipeline ??= this.#buildBasicContextPipeline();
 
         return this.#basicContextPipeline;
     }
 
     #contextPipeline?: ContextPipeline<CrawlingContext, ExtendedContext>;
 
+    /** @internal */
     get contextPipeline(): ContextPipeline<CrawlingContext, ExtendedContext> {
         if (this.#contextPipeline === undefined) {
-            this.#contextPipeline = this.buildFinalContextPipeline();
+            this.#contextPipeline = this.#buildFinalContextPipeline();
         }
 
         return this.#contextPipeline;
     }
 
-    running = false;
-    hasFinishedBefore = false;
-    #unexpectedStop = false;
     #teardownRequested = false;
+    #hasFinishedBefore = false;
+
+    /** Whether a `run()` on this instance has already finished - a repeated one continues where it left off. */
+    get hasFinishedBefore(): boolean {
+        return this.#hasFinishedBefore;
+    }
 
     #log!: CrawleeLogger;
 
@@ -860,20 +870,10 @@ export class BasicCrawler<
     protected readonly internalTimeoutMillis: number;
     readonly #maxRequestRetries: number;
     readonly #maxCrawlDepth?: number;
-    /**
-     * How much of {@apilink BasicCrawler.requestManager} the crawler may empty between repeated `run()` calls.
-     *
-     * - `all` — nothing under it came from the caller, so one `purge()` on the outside covers everything.
-     * - `none` — the caller supplied it and the crawler put nothing of its own inside.
-     * - `ambiguous` — the caller supplied it, but `sameDomainDelaySecs` put the crawler's own per-domain queues
-     *   underneath: purging empties the caller's storage too, skipping leaves ours stale. A repeated `run()` asks
-     *   rather than guessing.
-     */
-    readonly #purgeableExtent: 'all' | 'none' | 'ambiguous';
     readonly #maxRequestsPerCrawl?: number;
 
-    private get handledRequestsCount(): number {
-        return this.statistics.state.requestsFinished + this.statistics.state.requestsFailed;
+    get #handledRequestsCount(): number {
+        return this.statistics.state.requestsSucceeded + this.statistics.state.requestsFailed;
     }
 
     #statusMessageLoggingInterval: number;
@@ -896,8 +896,6 @@ export class BasicCrawler<
     /** The resolved per-storage-type write policy overrides forwarded to each request's transaction. */
     readonly #storageWritePolicy: Partial<StorageWritePolicy>;
     readonly #onSkippedRequest?: SkippedRequestCallback;
-    #closeEvents?: boolean;
-    #loggedPerRun = new Set<string>();
     readonly #robotsTxtFileCache: LruCache<RobotsTxtFile>;
     readonly #identity: CrawlerIdentity;
     readonly #contextPipelineOptions: {
@@ -1081,7 +1079,7 @@ export class BasicCrawler<
             // Initialize the Configuration instance to avoid lazy loading in the components
             serviceLocator.getConfiguration();
 
-            const instanceIndex = BasicCrawler.instanceCount++;
+            const instanceIndex = BasicCrawler.#instanceCount++;
             this.#identity = { instanceIndex, hasExplicitId: id !== undefined, id: id ?? String(instanceIndex) };
 
             if (requestManager !== undefined && (requestList !== undefined || requestQueue !== undefined)) {
@@ -1106,14 +1104,6 @@ export class BasicCrawler<
 
             const pacerNeeded = sameDomainDelaySecs > 0 && !floorTaken;
 
-            // Our per-domain queues under a manager the caller owns is the case with no right answer; a floor
-            // it took leaves nothing of ours behind. See `#purgeableExtent`.
-            if (suppliedManager === undefined) {
-                this.#purgeableExtent = 'all';
-            } else {
-                this.#purgeableExtent = pacerNeeded ? 'ambiguous' : 'none';
-            }
-
             // Built here rather than at first use so it can sit *inside* the tandem below, which is where a
             // loader's transferred requests pass through it.
             const writableManager = pacerNeeded
@@ -1123,20 +1113,19 @@ export class BasicCrawler<
                       throttleBy: 'registrableDomain',
                       persistStateKey: `CRAWLEE_THROTTLED_DOMAINS_${this.#identity.id}`,
                       // A factory, because the default queue is only opened on first use.
-                      inner: suppliedManager ?? (() => this.openOwnedRequestQueue()),
+                      inner: suppliedManager ?? (() => this.#openOwnedRequestQueue()),
                   })
                 : suppliedManager;
 
             if (requestList !== undefined) {
-                // The list is read first, while new requests still have somewhere writable to go; the tandem also
-                // forwards `persistState()` to the loader.
-                this.requestManager = new RequestManagerTandem(
+                // The list is read first, while new requests still have somewhere writable to go.
+                this.#requestManager = new RequestManagerTandem(
                     requestList,
-                    writableManager ?? (() => this.openOwnedRequestQueue()),
+                    writableManager ?? (() => this.#openOwnedRequestQueue()),
                 );
             } else if (writableManager !== undefined) {
                 // A RequestQueue is itself a request manager.
-                this.requestManager = writableManager;
+                this.#requestManager = writableManager;
             }
 
             this.httpClient = httpClient ?? new LazyDefaultHttpClient({ logger: this.log });
@@ -1208,8 +1197,9 @@ export class BasicCrawler<
                         createSessionFunction: async (opts) =>
                             new Session({
                                 ...opts?.sessionOptions,
-                                proxyInfo:
-                                    opts?.sessionOptions?.proxyInfo ?? (await this.proxyConfiguration?.newProxyInfo()),
+                                proxyInfo: this.proxyConfiguration
+                                    ? await this.proxyConfiguration.newProxyInfo(opts?.sessionOptions?.proxyInfo)
+                                    : opts?.sessionOptions?.proxyInfo,
                             }),
                     }),
             );
@@ -1231,7 +1221,7 @@ export class BasicCrawler<
             this.#maxRequestsPerCrawl = maxRequestsPerCrawl;
 
             const isMaxPagesExceeded = () =>
-                this.#maxRequestsPerCrawl && this.#maxRequestsPerCrawl <= this.handledRequestsCount;
+                this.#maxRequestsPerCrawl && this.#maxRequestsPerCrawl <= this.#handledRequestsCount;
 
             // eslint-disable-next-line prefer-const
             let { isFinishedFunction, isTaskReadyFunction } = taskLoopOptions;
@@ -1248,56 +1238,41 @@ export class BasicCrawler<
                     const source = this.requestManager;
                     if (!source) throw new Error('Request provider is not initialized!');
 
-                    const request = await this.resolveRequest();
+                    const request = await this.#resolveRequest();
                     if (!request) {
                         return;
                     }
 
                     // Started here, rather than in `handleRequest`, so that a failure during context pipeline
                     // initialization (e.g. a browser page timing out before the request handler ever runs) is
-                    // still accounted for by `failJob` below - which is a no-op without a matching `startJob`.
-                    this.statistics.startJob(request.id || request.uniqueKey);
+                    // still accounted for by `recordRequestFailure` below - which is a no-op without a
+                    // matching `recordRequestStart`.
+                    this.statistics.recordRequestStart(request.id || request.uniqueKey);
 
-                    const crawlingContext = { request } as { request: Request } & Partial<CrawlingContext>;
+                    const crawlingContext: PendingCrawlingContext = { request };
+
                     try {
                         // The transaction spans the whole pipeline call, covering the navigation hooks
-                        // and `extendContext` too; `handleRequest` drives its outcome explicitly.
+                        // and `extendContext` too; `handleRequest` commits it and `handleRequestFailure` rolls it back.
                         await this.runInStorageTransaction(
                             async () =>
                                 // Navigation, the navigation hooks and the request handler are timed individually, but the
                                 // phases between them are not, so a request could still get stuck indefinitely. This is the
                                 // catch-all for that - see `raceWithTimeout` for why it is a bare timer, not a timeout frame.
-                                await this.withRequestTimeout(
+                                await this.#withRequestTimeout(
                                     crawlingContext,
-                                    this.basicContextPipeline
-                                        .chain(this.contextPipeline)
-                                        .call(crawlingContext, (ctx) => this.handleRequest(ctx, source, request)),
+                                    this.#basicPipeline.chain(this.contextPipeline).call(
+                                        crawlingContext,
+                                        (ctx) => this.handleRequest(ctx, source, request),
+                                        (error) => this.#handleRequestFailure(error, crawlingContext, source, request),
+                                    ),
                                 ),
                         );
                     } catch (error) {
-                        // ContextPipelineInterruptedError means the request was intentionally skipped
-                        // (e.g., doesn't match enqueue strategy after redirect). Just return gracefully.
-                        if (error instanceof ContextPipelineInterruptedError) {
-                            this.statistics.discardJob(request.id || request.uniqueKey);
-                            await this.timeoutAndRetry(
-                                async () => this.requestManager?.markRequestAsHandled(request),
-                                this.internalTimeoutMillis,
-                                `Marking request ${crawlingContext.request.url} (${crawlingContext.request.id}) as handled timed out after ${
-                                    this.internalTimeoutMillis / 1e3
-                                } seconds.`,
-                            );
-                            return;
-                        }
-
-                        // If the error happened during pipeline initialization (e.g., navigation timeout, session/proxy error,
-                        // i.e. not in user's requestHandler), handle it through the normal error flow. A bare `TimeoutError`
-                        // here is the internal timeout above firing - anything else thrown inside the pipeline arrives wrapped.
-                        const isPipelineError =
-                            error instanceof ContextPipelineInitializationError ||
-                            error instanceof SessionError ||
-                            error instanceof TimeoutError;
-                        if (isPipelineError) {
-                            const unwrappedError = this.unwrapError(error);
+                        // The internal timeout above fired, or `handleRequestFailure` threw a `SessionError` - both
+                        // take the normal error flow. Anything else is fatal.
+                        if (error instanceof SessionError || crawlingContext[timeoutExpiredKey]?.()) {
+                            const unwrappedError = this.#unwrapError(error);
 
                             await this.requestFunctionErrorHandler(
                                 unwrappedError,
@@ -1305,32 +1280,17 @@ export class BasicCrawler<
                                 request,
                                 this.requestManager!,
                             );
-                            // SessionError already retired the session in `requestFunctionErrorHandler`;
-                            // skip `markBad` to avoid double-counting usage/error score.
-                            if (!this.errorAbsolvesSession(unwrappedError)) {
+                            if (!this.#errorAbsolvesSession(unwrappedError)) {
                                 crawlingContext.session?.markBad();
                             }
                             return;
                         }
-                        throw this.unwrapError(error);
-                    } finally {
-                        // Run request-scoped deferred cleanups only after the whole request lifecycle - including the user's error handler - has finished.
-                        const deferredCleanup =
-                            (crawlingContext as Partial<Record<typeof deferredCleanupKey, (() => Promise<unknown>)[]>>)[
-                                deferredCleanupKey
-                            ] ?? [];
-                        await Promise.all(
-                            deferredCleanup.map((fn) =>
-                                fn().catch((cleanupError) =>
-                                    this.log.debug('Error in deferred cleanup', { error: cleanupError }),
-                                ),
-                            ),
-                        );
+                        throw this.#unwrapError(error);
                     }
                 },
                 isTaskReadyFunction: async () => {
                     if (isMaxPagesExceeded()) {
-                        this.logOncePerRun(
+                        this.#liveRun?.logOnce(
                             'shuttingDown',
                             'Crawler reached the maxRequestsPerCrawl limit of ' +
                                 `${this.#maxRequestsPerCrawl} requests and will shut down soon. Requests that are in progress will be allowed to finish.`,
@@ -1338,8 +1298,8 @@ export class BasicCrawler<
                         return false;
                     }
 
-                    if (this.#unexpectedStop) {
-                        this.logOncePerRun(
+                    if (this.#run?.stopRequested) {
+                        this.#liveRun?.logOnce(
                             'shuttingDown',
                             'No new requests are allowed because the `stop()` method has been called. ' +
                                 'Ongoing requests will be allowed to complete.',
@@ -1347,26 +1307,26 @@ export class BasicCrawler<
                         return false;
                     }
 
-                    return isTaskReadyFunction ? await isTaskReadyFunction() : await this.isTaskReadyFunction();
+                    return isTaskReadyFunction ? await isTaskReadyFunction() : await this.#isTaskReadyFunction();
                 },
                 isFinishedFunction: async () => {
                     if (isMaxPagesExceeded()) {
                         this.log.info(
                             `Earlier, the crawler reached the maxRequestsPerCrawl limit of ${this.#maxRequestsPerCrawl} requests ` +
                                 'and all requests that were in progress at that time have now finished. ' +
-                                `In total, the crawler processed ${this.handledRequestsCount} requests and will shut down.`,
+                                `In total, the crawler processed ${this.#handledRequestsCount} requests and will shut down.`,
                         );
                         return true;
                     }
 
-                    if (this.#unexpectedStop) {
+                    if (this.#run?.stopRequested) {
                         this.log.info(
                             'The crawler has finished all the remaining ongoing requests and will shut down now.',
                         );
                         return true;
                     }
 
-                    // `maybeFinish()` calls this only once nothing is in flight (`autoscaled_pool.ts`) - the point
+                    // `maybeFinish()` calls this only once nothing is in flight (`autoscaled-pool.ts`) - the point
                     // where a crawl that cannot progress becomes distinguishable from one that is merely waiting,
                     // and the only place where throwing does not abandon requests mid-processing.
                     const state = await this.requestManager?.checkReadiness();
@@ -1440,43 +1400,26 @@ export class BasicCrawler<
      * Builds the basic context pipeline that transforms `{ request }` into a full `CrawlingContext`.
      * This handles base context creation, session resolution, and context helpers.
      */
-    private buildBasicContextPipeline(): ContextPipeline<{ request: Request }, CrawlingContext> {
-        return ContextPipeline.create<{ request: Request }>()
-            .compose({ action: this.checkRobotsTxt.bind(this) })
-            .compose({ action: (context) => this.createBaseContext(context) })
-            .compose({ action: this.resolveSession.bind(this) })
-            .compose({ action: this.createContextHelpers.bind(this) });
+    #buildBasicContextPipeline(): ContextPipeline<{ request: CrawlingRequest }, CrawlingContext> {
+        return ContextPipeline.create<{ request: CrawlingRequest }>()
+            .compose(this.#checkRobotsTxt.bind(this))
+            .compose(this.#createBaseContext.bind(this))
+            .compose(this.#resolveSession.bind(this))
+            .compose(this.#createContextHelpers.bind(this));
     }
 
-    private async checkRobotsTxt({ request }: { request: Request }) {
-        if (!(await this.isAllowedBasedOnRobotsTxtFile(request.url))) {
+    async #checkRobotsTxt({ request }: { request: CrawlingRequest }) {
+        if (!(await this.#isAllowedBasedOnRobotsTxtFile(request.url))) {
             this.log.warning(
                 `Skipping request ${request.url} (${request.id}) because it is disallowed based on robots.txt`,
             );
-            request.state = RequestState.SKIPPED;
-            request.noRetry = true;
-            await this.#handleSkippedRequest({
-                request,
-                reason: 'robotsTxt',
-            });
-
-            throw new ContextPipelineInterruptedError(`Skipping request ${request.url} as disallowed by robots.txt`);
+            throw new ContextPipelineInterruptedError('robotsTxt');
         }
 
         return {};
     }
 
-    /**
-     * Builds the subclass-specific context pipeline that transforms a `CrawlingContext` into the crawler's target context type.
-     * Subclasses should override this to add their own pipeline stages.
-     */
-    protected buildContextPipeline(): ContextPipeline<CrawlingContext, CrawlingContext> {
-        return ContextPipeline.create<CrawlingContext>();
-    }
-
-    private createBaseContext(context: PendingCrawlingContext) {
-        const deferredCleanup: (() => Promise<unknown>)[] = [];
-
+    #createBaseContext(context: PendingCrawlingContext, onCleanup: CleanupRegistrar) {
         return {
             id: cryptoRandomObjectId(10),
             log: this.log,
@@ -1484,7 +1427,26 @@ export class BasicCrawler<
             useState: this.useState.bind(this),
             getKeyValueStore: async (identifier?: string | StorageIdentifier) => KeyValueStore.open(identifier),
             registerDeferredCleanup: (cleanup: () => Promise<unknown>) => {
-                deferredCleanup.push(cleanup);
+                onCleanup(async () => {
+                    try {
+                        await cleanup();
+                    } catch (error) {
+                        this.log.debug('Error in deferred cleanup', { error });
+                    }
+                });
+            },
+            afterStorageCommit: (callback: (error?: Error) => Awaitable<void>) => {
+                const transaction = currentStorageTransaction();
+
+                if (transaction === undefined) {
+                    throw new Error(
+                        'afterStorageCommit() needs an active storage transaction, and there is none. ' +
+                            "With `transactionalStorage: false` the request's writes are applied as they are " +
+                            'made, so they throw at the call site instead of at commit time.',
+                    );
+                }
+
+                transaction.afterCommit(callback);
             },
             extendTimeout: (secs: number) => {
                 const extraMillis = secs * 1000;
@@ -1498,33 +1460,51 @@ export class BasicCrawler<
                 if (context[navigationDeadlineKey] !== undefined) {
                     context[navigationDeadlineKey] += extraMillis;
                 }
+
+                // Extension failure must not fail the request that asked for more time.
+                this.requestManager?.extendRequestProcessingTimeSecs?.(context.request, secs)?.catch((error) => {
+                    this.log.debug('Extending the request processing time failed', { url: context.request.url, error });
+                });
             },
-            [deferredCleanupKey]: deferredCleanup,
+            skipRequest: (message?: string): never => {
+                this.log.debug(
+                    `Skipping request ${context.request.url} (${context.request.id})${message ? `: ${message}` : ''}`,
+                );
+                throw new ContextPipelineInterruptedError('manual', message);
+            },
         };
     }
 
-    private async resolveRequest(): Promise<Request | null> {
-        const request = await this.timeoutAndRetry(
-            this.fetchNextRequest.bind(this),
+    /**
+     * Fetches the next request and rebuilds it as a {@apilink CrawlingRequest}. A copy rather than the manager's
+     * instance: managers key on `uniqueKey`/`id`, and it is this copy that flows back into `reclaimRequest` /
+     * `markRequestAsHandled`, so nothing observes the difference.
+     */
+    async #resolveRequest(): Promise<CrawlingRequest | null> {
+        const fetched = await this.#timeoutAndRetry(
+            this.#fetchNextRequest.bind(this),
             this.internalTimeoutMillis,
             `Fetching next request timed out after ${this.internalTimeoutMillis / 1e3} seconds.`,
         );
 
-        // Reset loadedUrl so an old one is not carried over to retries.
-        if (request) {
-            request.loadedUrl = undefined;
+        if (!fetched) {
+            return null;
         }
+
+        const request = CrawlingRequest.fromSchema(fetched);
+        // Reset loadedUrl so an old one is not carried over to retries.
+        request.loadedUrl = undefined;
 
         return request;
     }
 
-    private async resolveSession({ request }: { request: Request }) {
-        const session = await this.timeoutAndRetry(
+    async #resolveSession({ request }: { request: CrawlingRequest }) {
+        const session = await this.#timeoutAndRetry(
             async () => {
                 const existingSession = await this.sessionPool.getSession(request.sessionId);
 
                 if (!existingSession) {
-                    throw new ContextPipelineInitializationError(new MissingSessionError(request.sessionId));
+                    throw new MissingSessionError(request.sessionId);
                 }
 
                 return existingSession;
@@ -1536,7 +1516,7 @@ export class BasicCrawler<
         return { session, proxyInfo: session?.proxyInfo };
     }
 
-    private async createContextHelpers({ request, session }: { request: Request; session: ISession }) {
+    async #createContextHelpers({ request, session }: { request: CrawlingRequest; session: ISession }) {
         const addRequests: CrawlingContext['addRequests'] = async (requests, options = {}) => {
             const newCrawlDepth = request!.crawlDepth + 1;
             const requestsGenerator = this.addCrawlDepthRequestGenerator(requests, newCrawlDepth);
@@ -1549,9 +1529,9 @@ export class BasicCrawler<
         return { addRequests, sendRequest };
     }
 
-    private buildFinalContextPipeline(): ContextPipeline<CrawlingContext, ExtendedContext> {
+    #buildFinalContextPipeline(): ContextPipeline<CrawlingContext, ExtendedContext> {
         const subclassPipeline = (this.#contextPipelineOptions.contextPipelineBuilder?.() ??
-            this.buildContextPipeline()) as ContextPipeline<CrawlingContext, Context>;
+            ContextPipeline.create<CrawlingContext>()) as ContextPipeline<CrawlingContext, Context>;
 
         // `extendContext` runs *before* the subclass navigation pipeline (which includes the
         // pre/post-navigation hooks). This makes the extension visible to those hooks and to the
@@ -1567,7 +1547,7 @@ export class BasicCrawler<
         let contextPipeline: ContextPipeline<CrawlingContext, Context>;
         if (extendContext !== undefined) {
             contextPipeline = ContextPipeline.create<CrawlingContext>()
-                .compose({ action: async (context) => await extendContext(context) })
+                .compose(async (context) => await extendContext(context))
                 .chain(
                     subclassPipeline as unknown as ContextPipeline<
                         CrawlingContext & ContextExtension,
@@ -1578,23 +1558,15 @@ export class BasicCrawler<
             contextPipeline = subclassPipeline;
         }
 
-        contextPipeline = contextPipeline.compose({
-            action: async (context) => {
-                const { request } = context;
-                if (request && !this.requestMatchesEnqueueStrategy(request)) {
-                    // eslint-disable-next-line dot-notation
-                    const message = `Skipping request ${request.id} (starting url: ${request.url} -> loaded url: ${request.loadedUrl}) because it does not match the enqueue strategy (${request['enqueueStrategy']}).`;
-                    this.log.debug(message);
-
-                    request.noRetry = true;
-                    request.state = RequestState.SKIPPED;
-
-                    await this.#handleSkippedRequest({ request, reason: 'redirect' });
-
-                    throw new ContextPipelineInterruptedError(message);
-                }
-                return context;
-            },
+        contextPipeline = contextPipeline.compose(async (context) => {
+            const { request } = context;
+            if (request && !this.#requestMatchesEnqueueStrategy(request)) {
+                // eslint-disable-next-line dot-notation
+                const message = `Skipping request ${request.id} (starting url: ${request.url} -> loaded url: ${request.loadedUrl}) because it does not match the enqueue strategy (${request['enqueueStrategy']}).`;
+                this.log.debug(message);
+                throw new ContextPipelineInterruptedError('redirect');
+            }
+            return context;
         });
 
         return contextPipeline as ContextPipeline<CrawlingContext, ExtendedContext>;
@@ -1607,7 +1579,7 @@ export class BasicCrawler<
      * @param error The error to check.
      */
     protected isProxyError(error: Error): boolean {
-        return ROTATE_PROXY_ERRORS.some((x: string) => (this.getMessageFromError(error) as any)?.includes(x));
+        return ROTATE_PROXY_ERRORS.some((x: string) => this.getMessageFromError(error).includes(x));
     }
 
     /**
@@ -1640,7 +1612,7 @@ export class BasicCrawler<
         } satisfies EventStatusMessageData);
     }
 
-    private getPeriodicLogger() {
+    #getPeriodicLogger() {
         let previousState = { ...this.statistics.state };
 
         const getOperationMode = (): { mode: 'ERROR' | 'REGULAR'; failedDelta: number } => {
@@ -1666,7 +1638,7 @@ export class BasicCrawler<
                 message = `Experiencing problems, ${failedDelta} failed requests in the past ${this.#statusMessageLoggingInterval} seconds.`;
             } else {
                 const total = await this.requestManager?.getTotalCount();
-                message = `Crawled ${this.statistics.state.requestsFinished}${total ? `/${total}` : ''} pages, ${
+                message = `Crawled ${this.statistics.state.requestsSucceeded}${total ? `/${total}` : ''} pages, ${
                     this.statistics.state.requestsFailed
                 } failed requests, desired concurrency ${this.concurrencySystem?.desiredConcurrency ?? 0}.`;
             }
@@ -1696,8 +1668,12 @@ export class BasicCrawler<
      * We can use the `requests` parameter to enqueue the initial requests — it is a shortcut for
      * running {@apilink BasicCrawler.addRequests|`crawler.addRequests()`} before {@apilink BasicCrawler.run|`crawler.run()`}.
      *
+     * Calling `run()` again on the same instance keeps crawling the same request manager - requests the previous
+     * run handled (a failed one counts as handled) are not processed again. Purge the queue or open a fresh one
+     * if that is what you want.
+     *
      * @param [requests] The requests to add.
-     * @param [options] Options for the request queue.
+     * @param [options] Options for adding the initial requests.
      */
     async run(requests?: TypedRequestsLike<Routes>, options?: CrawlerRunOptions): Promise<FinalStatistics> {
         // A crawl is the top level of its own transaction and timeout scope, not a participant in the caller's.
@@ -1710,56 +1686,46 @@ export class BasicCrawler<
                 }
                 this.#teardownRequested = false;
 
-                const { purgeRequestQueue, ...addRequestsOptions } = options ?? {};
-
-                if (this.hasFinishedBefore) {
-                    // When executing the run method for the second time explicitly,
-                    // we need to purge the RQ to allow processing the same requests again — this is important so users can
-                    // pass in failed requests back to the `crawler.run()`, otherwise they would be considered as handled and
-                    // ignored — as a failed request is still handled.
-                    // `purgeRequestQueue` unset purges only storage the crawler opened itself (see `#purgeableExtent`);
-                    // `true` also purges a caller-supplied manager, `false` purges nothing.
-                    if (purgeRequestQueue === undefined && this.#purgeableExtent === 'ambiguous') {
-                        throw new Error(
-                            'Cannot decide what to purge before running again: `sameDomainDelaySecs` paces the request ' +
-                                'manager you supplied, so the per-domain queues that have to be emptied are the ' +
-                                "crawler's while the manager underneath them is yours. Say which you want: " +
-                                '`run(requests, { purgeRequestQueue: true })` empties both, `false` empties neither.',
-                        );
-                    }
-
-                    if (
-                        purgeRequestQueue !== false &&
-                        (this.#purgeableExtent === 'all' || purgeRequestQueue === true)
-                    ) {
-                        // One call from the outside in reaches everything the manager wraps, a pacer's per-domain queues
-                        // included.
-                        await this.requestManager?.purge?.();
-                    }
-
+                if (this.#hasFinishedBefore) {
                     // A supplied statistics instance keeps whatever state it was handed - only wipe a default we built.
                     await this.#statisticsDep.ifOwned(async (stats) => {
                         stats.reset();
                         await stats.resetStore();
                     });
-                    await this.#sessionPoolDep.ifOwned((pool) => pool.resetStore());
+                    // A session pool the crawler built follows the same blank-slate rule as its statistics.
+                    await this.#sessionPoolDep.ifOwned(async (pool) => {
+                        pool.reset();
+                        await pool.resetStore();
+                    });
                 }
 
-                this.#unexpectedStop = false;
-                this.running = true;
-                this.#loggedPerRun.clear();
-
-                await purgeDefaultStorages({
-                    onlyPurgeOnce: true,
-                    storageBackend: serviceLocator.getStorageBackend(),
-                    configuration: serviceLocator.getConfiguration(),
+                // An owned governor is rebuilt for every run, so it always starts from a clean slate — stale
+                // resource snapshots or a previous run's scaled desired concurrency would otherwise distort this
+                // run's scaling. An injected one is long-lived and its lifecycle belongs to the caller.
+                this.#concurrencySystem = this.#resolveConcurrencySystem();
+                const run = new CrawlerRun({
+                    log: this.log,
+                    concurrencySystem: this.#concurrencySystem.value,
+                    taskLoopOptions: this.#taskLoopOptions,
+                    consumer: this.#identity,
                 });
 
-                if (requests) {
-                    await this.addRequests(requests, addRequestsOptions);
-                }
+                this.#run = run;
 
                 try {
+                    await purgeDefaultStorages({
+                        onlyPurgeOnce: true,
+                        storageBackend: serviceLocator.getStorageBackend(),
+                        configuration: serviceLocator.getConfiguration(),
+                    });
+
+                    if (requests) {
+                        await this.addRequests(requests, options);
+                    }
+
+                    // An injected governor is the caller's to run; an owned one is started here and stopped again
+                    // below if the startup fails. Either way the task loop rejects one that is not running.
+                    await this.#concurrencySystem.ifOwned((system) => system.start());
                     await this.init();
                     await this.statistics.startCapturing();
                 } catch (error) {
@@ -1772,23 +1738,24 @@ export class BasicCrawler<
                     });
 
                     // The run never began, so let the instance be run again instead of leaving it wedged as `running`.
-                    this.running = false;
+                    await run.finish();
+                    await this.#concurrencySystem.ifOwned((system) => system.stop());
                     throw error;
                 }
 
-                const periodicLogger = this.getPeriodicLogger();
+                const periodicLogger = this.#getPeriodicLogger();
                 this.setStatusMessage('Starting the crawler.', { level: 'INFO' });
 
                 const sigintHandler = async () => {
                     this.log.warning(
                         'Pausing... Press CTRL+C again to force exit. To resume, do: CRAWLEE_PURGE_ON_START=0 npm start',
                     );
-                    await this.pauseOnMigration();
-                    await this.#autoscaledPool!.abort();
+                    await this.#pauseOnMigration();
+                    await run.abort();
                 };
 
                 // Attach a listener to handle migration and aborting events gracefully.
-                const boundPauseOnMigration = this.pauseOnMigration.bind(this);
+                const boundPauseOnMigration = this.#pauseOnMigration.bind(this);
                 process.once('SIGINT', sigintHandler);
                 const eventManager = serviceLocator.getEventManager();
                 eventManager.on(EventType.MIGRATING, boundPauseOnMigration);
@@ -1797,7 +1764,7 @@ export class BasicCrawler<
                 let stats = {} as FinalStatistics;
 
                 try {
-                    if (!this.#teardownRequested) await this.#autoscaledPool!.run();
+                    if (!this.#teardownRequested) await run.dispatchRequests();
                 } finally {
                     await this.statistics.stopCapturing();
                     await this.teardown();
@@ -1808,12 +1775,32 @@ export class BasicCrawler<
 
                     const finalStats = this.statistics.calculate();
                     stats = {
-                        requestsFinished: this.statistics.state.requestsFinished,
+                        requestsSucceeded: this.statistics.state.requestsSucceeded,
                         requestsFailed: this.statistics.state.requestsFailed,
                         retryHistogram: this.statistics.requestRetryHistogram,
                         ...finalStats,
                     };
                     this.log.info('Final request statistics:', stats as unknown as Record<string, unknown>);
+
+                    // A crawl that did nothing while the manager holds only handled requests is a mistake whoever
+                    // handled them - this run, another crawler on the same queue, or a previous process. Starting
+                    // against handled requests is not: that is what resuming a crawl looks like.
+                    if (stats.requestsSucceeded + stats.requestsFailed === 0) {
+                        // Never let the diagnostic itself break the run.
+                        const alreadyHandled = (await this.requestManager?.getHandledCount().catch(() => 0)) ?? 0;
+
+                        if (alreadyHandled > 0) {
+                            this.log.warningOnce(
+                                'This crawl processed no requests - the request manager holds ' +
+                                    `${alreadyHandled} request${alreadyHandled === 1 ? '' : 's'}, all of them ` +
+                                    'already handled, and a failed request counts as handled too. Nothing ' +
+                                    'empties a queue between runs, so to crawl them again, purge it ' +
+                                    '(`await queue.purge()`) or use a fresh one (e.g. ' +
+                                    '`RequestQueue.open({ alias: "second-run" })`) with a freshly created ' +
+                                    'crawler instance.',
+                            );
+                        }
+                    }
 
                     if (this.statistics.errorTracker.total !== 0) {
                         const prettify = ([count, info]: [number, string[]]) =>
@@ -1841,14 +1828,15 @@ export class BasicCrawler<
 
                     periodicLogger.stop();
                     this.setStatusMessage(
-                        `Finished! Total ${this.statistics.state.requestsFinished + this.statistics.state.requestsFailed} requests: ${
-                            this.statistics.state.requestsFinished
+                        `Finished! Total ${this.statistics.state.requestsSucceeded + this.statistics.state.requestsFailed} requests: ${
+                            this.statistics.state.requestsSucceeded
                         } succeeded, ${this.statistics.state.requestsFailed} failed.`,
                         { isStatusMessageTerminal: true, level: 'INFO' },
                     );
 
-                    this.running = false;
-                    this.hasFinishedBefore = true;
+                    await run.finish();
+                    await this.#concurrencySystem.ifOwned((system) => system.stop());
+                    this.#hasFinishedBefore = true;
                 }
 
                 return stats;
@@ -1864,11 +1852,14 @@ export class BasicCrawler<
      * To stop the crawler immediately, use {@apilink BasicCrawler.teardown|`crawler.teardown()`} instead.
      */
     stop(reason = 'The crawler has been gracefully stopped.'): void {
-        if (this.#unexpectedStop) {
+        const run = this.#liveRun;
+
+        if (run === undefined) {
+            this.log.warning('Cannot stop a crawler that is not running.');
             return;
         }
-        this.log.info(reason);
-        this.#unexpectedStop = true;
+
+        run.stop(reason);
     }
 
     /**
@@ -1880,12 +1871,14 @@ export class BasicCrawler<
      * throughout, since a shared one may still be serving other crawlers.
      */
     async pause(timeoutSecs?: number): Promise<void> {
-        if (!this.#autoscaledPool) {
+        const run = this.#dispatchingRun;
+
+        if (run === undefined) {
             this.log.warning('Cannot pause a crawler that is not running.');
             return;
         }
 
-        await this.#autoscaledPool.pause(timeoutSecs);
+        await run.pause(timeoutSecs);
     }
 
     /**
@@ -1893,12 +1886,14 @@ export class BasicCrawler<
      * again. A no-op on a crawler that is not paused.
      */
     resume(): void {
-        if (!this.#autoscaledPool) {
+        const run = this.#dispatchingRun;
+
+        if (run === undefined) {
             this.log.warning('Cannot resume a crawler that is not running.');
             return;
         }
 
-        this.#autoscaledPool.resume();
+        run.resume();
     }
 
     /**
@@ -1906,8 +1901,8 @@ export class BasicCrawler<
      * if none has been configured or opened yet.
      */
     async getRequestManager(): Promise<IRequestManager> {
-        if (!this.requestManager) {
-            this.requestManager = await this.openOwnedRequestQueue();
+        if (!this.#requestManager) {
+            this.#requestManager = await this.#openOwnedRequestQueue();
         }
 
         // Apply the processing-time hint here (an async lifecycle point) rather than in the constructor,
@@ -1915,10 +1910,10 @@ export class BasicCrawler<
         // but guard so we do not re-issue it on every call.
         if (!this.#requestManagerTimeoutsApplied) {
             this.#requestManagerTimeoutsApplied = true;
-            await this.applyRequestManagerTimeouts(this.requestManager);
+            await this.#applyRequestManagerTimeouts(this.#requestManager);
         }
 
-        return this.requestManager;
+        return this.#requestManager;
     }
 
     /**
@@ -1931,9 +1926,8 @@ export class BasicCrawler<
 
     /**
      * Opens the default {@apilink RequestQueue} — the crawler's own, read from when the caller supplied nothing.
-     * @private
      */
-    private async openOwnedRequestQueue(): Promise<RequestQueue> {
+    async #openOwnedRequestQueue(): Promise<RequestQueue> {
         // The first crawler instance uses the default queue (null identifier);
         // subsequent instances get their own queue via a unique alias so they don't collide.
         const identifier = this.#identity.instanceIndex === 0 ? null : { alias: `__default_${this.#identity.id}__` };
@@ -1948,7 +1942,7 @@ export class BasicCrawler<
      * request from being handed out a second time while it is still being processed — and it works
      * regardless of whether the manager is a plain {@apilink RequestQueue} or a `RequestManagerTandem`.
      */
-    private async applyRequestManagerTimeouts(requestManager: IRequestManager): Promise<void> {
+    async #applyRequestManagerTimeouts(requestManager: IRequestManager): Promise<void> {
         // A router route may hold a request for longer than the crawler's own timeout, and we cannot know
         // which routes a run will hit, so reserve for the longest one any route asked for. The hint is
         // raise-only, so erring high here is safe.
@@ -1965,7 +1959,7 @@ export class BasicCrawler<
      * the request's label. Applied by the crawler on the add paths it owns — `crawler.addRequests`,
      * `crawler.run`, `context.addRequests` and `context.enqueueLinks`.
      */
-    private async validateRequestUserData(source: Source | string): Promise<void> {
+    async #validateRequestUserData(source: Source | string): Promise<void> {
         if (typeof source === 'string') {
             return;
         }
@@ -2025,7 +2019,9 @@ export class BasicCrawler<
 
         const limit = Math.max(
             0,
-            this.#maxRequestsPerCrawl - this.handledRequestsCount - (await this.#getPendingRequestCountApproximation()),
+            this.#maxRequestsPerCrawl -
+                this.#handledRequestsCount -
+                (await this.#getPendingRequestCountApproximation()),
         );
 
         return Math.min(limit, explicitLimit ?? Infinity);
@@ -2035,30 +2031,27 @@ export class BasicCrawler<
         // A skipped request is a *successful* outcome, but the interrupt still unwinds through the
         // transaction scope, which rolls back - so the skip bookkeeping must write directly.
         await withDirectStorageAccess(async () => {
+            // Enqueueing happens outside a run too - `addRequests()` before the first `run()` - so these dedupe
+            // against the logger for the crawler's lifetime rather than per run.
             if (options.reason === 'limit') {
-                this.logOncePerRun(
-                    'maxRequestsPerCrawl',
+                this.log.info(
                     'The number of requests enqueued by the crawler reached the maxRequestsPerCrawl limit of ' +
                         `${this.#maxRequestsPerCrawl} requests and no further requests will be added.`,
+                    undefined,
+                    { once: true },
                 );
             }
 
             if (options.reason === 'depth') {
-                this.logOncePerRun(
-                    'maxCrawlDepth',
+                this.log.info(
                     `The crawler reached the maxCrawlDepth limit of ${this.#maxCrawlDepth} and no further requests will be enqueued.`,
+                    undefined,
+                    { once: true },
                 );
             }
 
             await this.#onSkippedRequest?.(options);
         });
-    }
-
-    private logOncePerRun(key: string, message: string, level: 'info' | 'warning' = 'info'): void {
-        if (!this.#loggedPerRun.has(key)) {
-            this.log[level](message);
-            this.#loggedPerRun.add(key);
-        }
     }
 
     /**
@@ -2095,27 +2088,21 @@ export class BasicCrawler<
         // its own per-item validation below, and validating an absent label/userData here would spuriously
         // check them against a registered default-route schema.
         if (options.label !== undefined || options.userData !== undefined) {
-            await this.validateRequestUserData({ label: options.label, userData: options.userData });
+            await this.#validateRequestUserData({ label: options.label, userData: options.userData });
         }
 
         const requestLimit = await this.#calculateEnqueuedRequestLimit(options.limit);
 
         const strategy = options.strategy ?? EnqueueStrategy.All;
-        const urlExcludePatternObjects: UrlPatternObject[] = options.exclude?.length
-            ? constructUrlPatternObjects(options.exclude)
-            : [];
-        const urlPatternObjects: UrlPatternObject[] = options.include?.length
-            ? constructUrlPatternObjects(options.include)
-            : [];
+        const urlExcludePatternObjects = options.exclude?.length ? constructUrlPatternObjects(options.exclude) : [];
+        const urlPatternObjects = options.include?.length ? constructUrlPatternObjects(options.include) : [];
         // The strategy always applies, even when `include` patterns are provided - the two are AND-ed together
         // (a URL must match an `include` pattern *and* satisfy the strategy). This mirrors crawlee-python.
-        const enqueueStrategyPatterns: UrlPatternObject[] = options.baseUrl
-            ? buildEnqueueStrategyPatterns(options.baseUrl, strategy)
-            : [];
+        const enqueueStrategyPatterns = options.baseUrl ? buildEnqueueStrategyPatterns(options.baseUrl, strategy) : [];
 
-        const isAllowedBasedOnRobotsTxtFile = this.isAllowedBasedOnRobotsTxtFile.bind(this);
+        const isAllowedBasedOnRobotsTxtFile = this.#isAllowedBasedOnRobotsTxtFile.bind(this);
         const maxCrawlDepth = this.#maxCrawlDepth;
-        const validateRequestUserData = this.validateRequestUserData.bind(this);
+        const validateRequestUserData = this.#validateRequestUserData.bind(this);
 
         const allSkipped: { source: string | Source; reason: SkippedRequestReason }[] = [];
         // A skipped source (which can carry arbitrary userData) is only retained if something reads it -
@@ -2208,7 +2195,7 @@ export class BasicCrawler<
 
                 if (options.transformRequestFunction) {
                     const transformed = applyRequestTransform([finalOptions], options.transformRequestFunction, (r) =>
-                        allSkipped.push({ source: keepSkippedSource(r), reason: r.skippedReason ?? 'transform' }),
+                        allSkipped.push({ source: keepSkippedSource(r), reason: 'transform' }),
                     );
 
                     if (transformed.length === 0) {
@@ -2341,18 +2328,24 @@ export class BasicCrawler<
      * Initializes the crawler.
      */
     protected async init(): Promise<void> {
+        const run = this.#liveRun;
+
+        if (run === undefined) {
+            throw new Error('There is no crawl in progress - `run()` is the only thing that starts one.');
+        }
+
         const eventManager = serviceLocator.getEventManager();
 
         if (!eventManager.isInitialized()) {
             await eventManager.init();
-            this.#closeEvents = true;
+            run.ownsEventManager = true;
         }
 
         // Warn once at startup if the internal timeout is shorter than the phases it is meant to outlast. It is
         // floored per request so it will not actually cut them short, but the configured value is then effectively
         // ignored, which is worth flagging. Checked here (not in the constructor) because a subclass sets its
         // navigation timeout only after `super()`.
-        const phasesMillis = this.getNavigationTimeoutMillis() + this.resolveRequestHandlerTimeoutMillis(undefined);
+        const phasesMillis = this.getNavigationTimeoutMillis() + this.#resolveRequestHandlerTimeoutMillis(undefined);
         if (this.internalTimeoutMillis < phasesMillis) {
             this.log.warning(
                 `CRAWLEE_INTERNAL_TIMEOUT (${this.internalTimeoutMillis / 1000}s) is shorter than the navigation ` +
@@ -2360,18 +2353,6 @@ export class BasicCrawler<
                     `so it does not cut them short.`,
             );
         }
-
-        // An owned governor is rebuilt (and started) for every run, so it always starts from a clean slate — stale
-        // resource snapshots or a previous run's scaled desired concurrency would otherwise distort this run's
-        // scaling. An injected one is long-lived and its lifecycle belongs to the caller.
-        this.#concurrencySystemDep = this.#resolveConcurrencySystem();
-        await this.#concurrencySystemDep.ifOwned((system) => system.start());
-
-        this.#autoscaledPool = new AutoscaledPool({
-            ...this.#taskLoopOptions,
-            concurrencySystem: this.#concurrencySystemDep.value,
-            consumer: this.#identity,
-        });
 
         await this.getRequestManager();
     }
@@ -2391,9 +2372,10 @@ export class BasicCrawler<
      * request, a per-route override, or a low `CRAWLEE_INTERNAL_TIMEOUT` is not cut short mid-phase. It takes
      * whichever is larger: the configured internal timeout, or this request's combined phase budget.
      */
-    private async withRequestTimeout(crawlingContext: PendingCrawlingContext, work: Promise<void>): Promise<void> {
+    async #withRequestTimeout(crawlingContext: PendingCrawlingContext, work: Promise<void>): Promise<void> {
         const { request } = crawlingContext;
-        const phasesMillis = this.getNavigationTimeoutMillis() + this.resolveRequestHandlerTimeoutMillis(request.label);
+        const phasesMillis =
+            this.getNavigationTimeoutMillis() + this.#resolveRequestHandlerTimeoutMillis(request.label);
         const timeoutMillis = Math.max(this.internalTimeoutMillis, phasesMillis);
 
         await raceWithTimeout(crawlingContext, work, { timeoutMillis, requestId: request.id });
@@ -2406,18 +2388,18 @@ export class BasicCrawler<
      * @param label The request's route label, or `undefined` for the default route / no specific request.
      * @param fallbackMillis Timeout to use when no route overrides it.
      */
-    private resolveRequestHandlerTimeoutMillis(
+    #resolveRequestHandlerTimeoutMillis(
         label: string | undefined,
         fallbackMillis = this.#requestHandlerTimeoutMillis,
     ): number {
-        return this.getRouteTimeoutMillis(label) ?? fallbackMillis;
+        return this.#getRouteTimeoutMillis(label) ?? fallbackMillis;
     }
 
     /**
      * The timeout the router route with the given label asked for, or `undefined` when it did not override one
      * (or the request handler is not a router at all).
      */
-    private getRouteTimeoutMillis(label: string | undefined): number | undefined {
+    #getRouteTimeoutMillis(label: string | undefined): number | undefined {
         const getTimeoutSecs = (this.requestHandler as Partial<RouterHandler>).getTimeoutSecs;
 
         if (typeof getTimeoutSecs !== 'function') {
@@ -2430,7 +2412,7 @@ export class BasicCrawler<
     }
 
     protected async runRequestHandler(crawlingContext: ExtendedContext): Promise<void> {
-        const timeoutMillis = this.resolveRequestHandlerTimeoutMillis(crawlingContext.request.label);
+        const timeoutMillis = this.#resolveRequestHandlerTimeoutMillis(crawlingContext.request.label);
 
         await addTimeoutToPromise(
             async () => this.requestHandler(crawlingContext),
@@ -2441,9 +2423,10 @@ export class BasicCrawler<
 
     /**
      * Runs `callback` inside a {@apilink StorageTransaction}, unless transactional storage is disabled.
-     * Deliberately does **not** commit on return - `handleRequest` swallows request handler failures, so
-     * a normal return says nothing about success. `handleRequest` owns the outcome.
+     * Deliberately does **not** commit on return - the pipeline hands failures to `handleRequestFailure`, so a
+     * normal return says nothing about success. `handleRequest` commits on success.
      */
+    // oxlint-disable-next-line crawlee/prefer-private-fields -- accessed by tests
     private async runInStorageTransaction<T>(callback: () => Promise<T>): Promise<T> {
         if (!this.#transactionalStorageEnabled) {
             return callback();
@@ -2461,7 +2444,7 @@ export class BasicCrawler<
             return result;
         } finally {
             if (transaction.state === 'open') {
-                // `handleRequest` commits or rolls back on every normal path, so an open transaction on
+                // `handleRequest` commits or `handleRequestFailure` rolls back on every normal path, so an open transaction on
                 // a normal return is a wiring bug; on a propagating throw (a pipeline-level failure) it is
                 // expected. Either way, discard the unvalidated writes; only the former is worth flagging.
                 if (!threw) {
@@ -2490,7 +2473,7 @@ export class BasicCrawler<
         }
     }
 
-    private async isAllowedBasedOnRobotsTxtFile(url: string): Promise<boolean> {
+    async #isAllowedBasedOnRobotsTxtFile(url: string): Promise<boolean> {
         if (!this.#respectRobotsTxtFile) {
             return true;
         }
@@ -2501,7 +2484,7 @@ export class BasicCrawler<
         if (robotsTxtFile) {
             const crawlDelay = robotsTxtFile.getCrawlDelay(userAgent);
             if (crawlDelay !== undefined) {
-                this.applyCrawlDelay(url, crawlDelay);
+                this.#applyCrawlDelay(url, crawlDelay);
             }
         }
 
@@ -2527,20 +2510,18 @@ export class BasicCrawler<
         }
 
         const domain = hostnameOrUrl(url);
-        this.logOncePerRun(
-            `rateLimitNotThrottled:${domain}`,
+        this.log.warningOnce(
             `"${domain}" responded with HTTP 429 (Too Many Requests), but the crawler's request manager does not ` +
                 'pace that domain, so the response is handled like any other, with no per-domain delay. Set ' +
                 `\`sameDomainDelaySecs\`, or pass a \`ThrottlingRequestManager\` covering "${domain}" as ` +
                 '`requestManager`, to honour `Retry-After` and apply exponential backoff instead.',
-            'warning',
         );
 
         return false;
     }
 
     /** Hands a robots.txt `Crawl-delay` to the request manager, warning if it will not be honoured. */
-    private applyCrawlDelay(url: string, delaySeconds: number): void {
+    #applyCrawlDelay(url: string, delaySeconds: number): void {
         // robots.txt is per-origin; `hostname` is the closest pacing scope and errs wide (http and https to one
         // host share a clock).
         if (
@@ -2555,16 +2536,15 @@ export class BasicCrawler<
         }
 
         const domain = hostnameOrUrl(url);
-        this.logOncePerRun(
-            `crawlDelayIgnored:${domain}`,
+        this.log.warningOnce(
             `robots.txt for "${domain}" defines a crawl-delay of ${delaySeconds}s, but the crawler's request ` +
                 'manager does not pace that domain, so its requests will not be paced. Set ' +
                 `\`sameDomainDelaySecs\`, or pass a \`ThrottlingRequestManager\` covering "${domain}" as ` +
                 '`requestManager`.',
-            'warning',
         );
     }
 
+    /** @internal */
     protected async getRobotsTxtFileForUrl(url: string): Promise<RobotsTxtFile | undefined> {
         if (!this.#respectRobotsTxtFile) {
             return undefined;
@@ -2588,10 +2568,11 @@ export class BasicCrawler<
         }
     }
 
-    private async pauseOnMigration() {
-        if (this.#autoscaledPool) {
-            // if run wasn't called, this is going to crash
-            await this.#autoscaledPool.pause(SAFE_MIGRATION_WAIT_MILLIS).catch((err) => {
+    async #pauseOnMigration() {
+        const run = this.#dispatchingRun;
+
+        if (run) {
+            await run.pause(SAFE_MIGRATION_WAIT_MILLIS).catch((err) => {
                 if (err.message.includes('running tasks did not finish')) {
                     this.log.error(
                         'The crawler was paused due to migration to another host, ' +
@@ -2603,36 +2584,15 @@ export class BasicCrawler<
             });
         }
 
-        const requestManagerPersistPromise = (async () => {
-            // The request manager persists its read-only loader's state, if it has one that supports
-            // persistence (e.g. a tandem wrapping a `RequestList`). For a plain `RequestQueue`, this is a no-op.
-            if (this.requestManager?.persistState) {
-                if ((await this.requestManager.checkReadiness()).status === 'finished') return;
-                await this.requestManager.persistState().catch((err) => {
-                    if (err.message.includes('Cannot persist state.')) {
-                        this.log.error(
-                            "The crawler attempted to persist its request list's state and failed due to missing or " +
-                                'invalid configuration. Make sure to use either RequestList.open() or the "stateKeyPrefix" option of RequestList ' +
-                                'constructor to ensure your crawling state is persisted through host migrations and restarts.',
-                        );
-                    } else {
-                        this.log.exception(
-                            err,
-                            'An unexpected error occurred when the crawler ' +
-                                "attempted to persist its request list's state.",
-                        );
-                    }
-                });
-            }
-        })();
-
-        await Promise.all([requestManagerPersistPromise, this.statistics.persistState?.()]);
+        // Captures the statistics changed while draining above. No PERSIST_STATE event is tied to the drain:
+        // the periodic one is unrelated, and the one the platform emits on migration arrives before any of this.
+        await this.statistics.persistState?.();
     }
 
     /**
      * Fetches the next request to process from the underlying request provider.
      */
-    private async fetchNextRequest() {
+    async #fetchNextRequest() {
         if (this.requestManager === undefined) {
             throw new Error(`fetchNextRequest called on an uninitialized crawler`);
         }
@@ -2640,8 +2600,13 @@ export class BasicCrawler<
         return this.requestManager.fetchNextRequest();
     }
 
-    /** Handles a single request - runs the request handler with retries, error handling, and lifecycle management. */
-    private async handleRequest(crawlingContext: ExtendedContext, requestSource: IRequestManager, request: Request) {
+    /** Runs the request handler and marks the request as handled. Failures are left to `handleRequestFailure`. */
+    // oxlint-disable-next-line crawlee/prefer-private-fields -- patched by @crawlee/otel
+    private async handleRequest(
+        crawlingContext: ExtendedContext,
+        requestSource: IRequestManager,
+        request: CrawlingRequest,
+    ) {
         // An earlier phase we cannot cancel (e.g. a slow `extendContext`) may have run past the internal timeout,
         // which already failed the request in `runTaskFunction`. Bail before running the handler so it does not
         // execute (and re-report) on top of a request the crawler has already moved past.
@@ -2649,91 +2614,128 @@ export class BasicCrawler<
             return;
         }
 
-        const statisticsId = request.id || request.uniqueKey;
+        request.state = RequestState.REQUEST_HANDLER;
+        await this.runRequestHandler(crawlingContext);
 
+        // Commit *before* marking the request as handled, so a commit failure fails the request and
+        // it is retried. This also closes the transaction, so everything below passes through.
         // Opened by `runInStorageTransaction`; absent when disabled or when the subclass opens its own.
-        const transaction = currentStorageTransaction();
+        await currentStorageTransaction()?.commit();
 
-        let isRequestLocked = true;
+        await this.#timeoutAndRetry(
+            async () => requestSource.markRequestAsHandled(request!),
+            this.internalTimeoutMillis,
+            `Marking request ${request.url} (${request.id}) as handled timed out after ${
+                this.internalTimeoutMillis / 1e3
+            } seconds.`,
+        );
+
+        this.statistics.recordRequestSuccess(request.id || request.uniqueKey, request.retryCount);
+
+        // reclaim session if request finishes successfully
+        request.state = RequestState.DONE;
+        crawlingContext.session.markGood();
+    }
+
+    /**
+     * Handles a request that failed anywhere in the context pipeline - a middleware (e.g. navigation or its hooks)
+     * or `handleRequest`. Runs inside the pipeline call, so the cleanups (e.g. closing the page) only fire after the
+     * error handler has seen the context.
+     */
+    async #handleRequestFailure(
+        rawError: unknown,
+        crawlingContext: PendingCrawlingContext,
+        requestSource: IRequestManager,
+        request: CrawlingRequest,
+    ) {
+        // Roll back *before* any error handler runs - error handlers write to real storage precisely
+        // because the transaction is already closed. A no-op when the commit in `handleRequest` succeeded.
+        currentStorageTransaction()?.rollback();
+
+        const resumeRequestTimeout = crawlingContext[suspendTimeoutKey]?.();
 
         try {
-            request.state = RequestState.REQUEST_HANDLER;
-            await this.runRequestHandler(crawlingContext);
+            const unwrappedError = this.#unwrapError(rawError);
+            // A failing or timed out `onSkippedRequest` makes this an ordinary failure, so the request gets retried.
+            const err =
+                unwrappedError instanceof ContextPipelineInterruptedError
+                    ? await this.#trySkipRequest(unwrappedError, request, requestSource)
+                    : unwrappedError;
 
-            // Commit *before* marking the request as handled, so a commit failure fails the request and
-            // it is retried. This also closes the transaction, so everything below passes through.
-            await transaction?.commit();
+            if (err) {
+                await this.#runErrorHandler(err, crawlingContext as CrawlingContext, requestSource, request);
+            }
+        } finally {
+            resumeRequestTimeout?.();
+        }
+    }
 
-            await this.timeoutAndRetry(
-                async () => requestSource.markRequestAsHandled(request!),
+    async #runErrorHandler(
+        err: Error,
+        context: CrawlingContext,
+        requestSource: IRequestManager,
+        request: CrawlingRequest,
+    ) {
+        const retryCountBefore = request.retryCount;
+
+        try {
+            request.state = RequestState.ERROR_HANDLER;
+            await addTimeoutToPromise(
+                async () => this.requestFunctionErrorHandler(err, context, request, requestSource),
                 this.internalTimeoutMillis,
-                `Marking request ${request.url} (${request.id}) as handled timed out after ${
+                `Handling request failure of ${request.url} (${request.id}) timed out after ${
                     this.internalTimeoutMillis / 1e3
                 } seconds.`,
             );
-            isRequestLocked = false; // markRequestAsHandled succeeded and unlocked the request
-
-            this.statistics.finishJob(statisticsId, request.retryCount);
-
-            // reclaim session if request finishes successfully
-            request.state = RequestState.DONE;
-            crawlingContext.session.markGood();
-        } catch (rawError) {
-            // Roll back *before* any error handler runs - error handlers write to real storage precisely
-            // because the transaction is already closed. A no-op when the commit above succeeded.
-            transaction?.rollback();
-
-            const err = this.unwrapError(rawError);
-
-            try {
-                request.state = RequestState.ERROR_HANDLER;
-                await addTimeoutToPromise(
-                    async () => this.requestFunctionErrorHandler(err, crawlingContext, request, requestSource),
-                    this.internalTimeoutMillis,
-                    `Handling request failure of ${request.url} (${request.id}) timed out after ${
-                        this.internalTimeoutMillis / 1e3
-                    } seconds.`,
-                );
-                if (!(err instanceof CriticalError)) {
-                    isRequestLocked = false; // requestFunctionErrorHandler calls either markRequestAsHandled or reclaimRequest
-                }
+            // The error handler may have set `SKIPPED`; TS keeps the narrowing from the assignment above.
+            if ((request.state as RequestState) !== RequestState.SKIPPED) {
                 request.state = RequestState.DONE;
-            } catch (secondaryError: any) {
-                const unwrappedSecondaryError = this.unwrapError(secondaryError) as any;
+            }
+        } catch (secondaryError) {
+            const unwrappedSecondaryError = this.#unwrapError(secondaryError);
+            const timedOut = unwrappedSecondaryError instanceof TimeoutError;
+            request.state = RequestState.ERROR;
 
-                if (
-                    !unwrappedSecondaryError.triggeredFromUserHandler &&
-                    // avoid reprinting the same critical error multiple times, as it will be printed by Nodejs at the end anyway
-                    !(unwrappedSecondaryError instanceof CriticalError)
-                ) {
-                    const apifySpecific = process.env.APIFY_IS_AT_HOME
-                        ? `This may have happened due to an internal error of Apify's API or due to a misconfigured crawler.`
-                        : '';
-                    this.log.exception(
-                        unwrappedSecondaryError as Error,
-                        'An exception occurred during handling of failed request. ' +
-                            `This places the crawler and its underlying storages into an unknown state and crawling will be terminated. ${apifySpecific}`,
-                    );
+            if (timedOut) {
+                // Not worth crashing the crawler over. The request's state is unknown, so it gets retried - and the
+                // retry is counted, so that an error handler that always times out does not retry it forever.
+                this.log.warning(unwrappedSecondaryError.message);
+                if (request.retryCount === retryCountBefore) {
+                    request.retryCount++;
                 }
-                request.state = RequestState.ERROR;
+            } else if (!(unwrappedSecondaryError instanceof CriticalError)) {
+                // avoid reprinting the same critical error multiple times, as it will be printed by Nodejs at the end anyway
+                const apifySpecific = process.env.APIFY_IS_AT_HOME
+                    ? `This may have happened due to an internal error of Apify's API or due to a misconfigured crawler.`
+                    : '';
+                this.log.exception(
+                    unwrappedSecondaryError,
+                    'An exception occurred during handling of failed request. ' +
+                        `This places the crawler and its underlying storages into an unknown state and crawling will be terminated. ${apifySpecific}`,
+                );
+            }
+
+            // Safety net - the error handler neither marked the request as handled nor reclaimed it (e.g. after a
+            // CriticalError). Reclaiming a request that is no longer in progress is a harmless no-op on the storage backend.
+            try {
+                await addTimeoutToPromise(
+                    async () => requestSource.reclaimRequest(request),
+                    this.internalTimeoutMillis,
+                    `Reclaiming request ${request.url} (${request.id}) timed out.`,
+                );
+            } catch {
+                // The request was never in progress, or could not be reclaimed. Either way it's fine.
+            }
+
+            if (!timedOut) {
                 throw unwrappedSecondaryError;
             }
-            // decrease the session score if the request fails (but the error handler did not throw);
-            // skip when the error is a SessionError, which already retired the session
-            if (!this.errorAbsolvesSession(err)) {
-                crawlingContext.session.markBad();
-            }
-        } finally {
-            // Safety net - return the request to the queue if nobody managed to mark it as handled
-            // or reclaim it before (e.g. after a CriticalError). Reclaiming a request that is no longer
-            // in progress is a harmless no-op on the storage backend.
-            if (isRequestLocked && requestSource instanceof RequestQueue) {
-                try {
-                    await requestSource.reclaimRequest(request);
-                } catch {
-                    // The request was never in progress, or could not be reclaimed. Either way it's fine.
-                }
-            }
+        }
+
+        // decrease the session score if the request fails (but the error handler did not throw);
+        // skip when the error is a SessionError, which already retired the session
+        if (!this.#errorAbsolvesSession(err)) {
+            context.session?.markBad();
         }
     }
 
@@ -2748,6 +2750,10 @@ export class BasicCrawler<
         for await (const request of requests) {
             if (typeof request === 'string') {
                 yield { url: request, crawlDepth: newRequestDepth };
+            } else if (request instanceof Request) {
+                const crawlee: CrawlingRequestData = ((request.userData as Dictionary).__crawlee ??= {});
+                crawlee.crawlDepth ??= newRequestDepth;
+                yield request;
             } else {
                 request.crawlDepth ??= newRequestDepth;
                 yield request;
@@ -2759,7 +2765,7 @@ export class BasicCrawler<
      * Run async callback with given timeout and retry. Returns the result of the callback.
      * @ignore
      */
-    private async timeoutAndRetry<T>(
+    async #timeoutAndRetry<T>(
         handler: () => Promise<T>,
         timeout: number,
         error: Error | string,
@@ -2772,7 +2778,7 @@ export class BasicCrawler<
             if (retried <= maxRetries) {
                 // we retry on any error, not just timeout
                 this.log.warning(`${(e as Error).message} (retrying ${retried}/${maxRetries})`);
-                return this.timeoutAndRetry(handler, timeout, error, maxRetries, retried + 1);
+                return this.#timeoutAndRetry(handler, timeout, error, maxRetries, retried + 1);
             }
 
             throw e;
@@ -2783,7 +2789,7 @@ export class BasicCrawler<
      * Whether the request manager has a request ready for processing. A manager that is only `waiting` also gets a
      * wake-up scheduled, so a paced crawl resumes on its clock rather than on the task loop's polling interval.
      */
-    private async isTaskReadyFunction() {
+    async #isTaskReadyFunction() {
         if (this.requestManager === undefined) {
             return false;
         }
@@ -2791,55 +2797,23 @@ export class BasicCrawler<
         const state = await this.requestManager.checkReadiness();
 
         if (state.status === 'waiting' && state.readyAt !== undefined) {
-            this.#scheduleTaskLoopWake(state.readyAt);
+            this.#run?.scheduleWake(state.readyAt);
         }
 
         return state.status === 'ready';
     }
 
     /**
-     * Nudges the task loop at `readyAt`, on a single timer that only an earlier one replaces. The pool polls anyway
-     * every `maybeRunIntervalSecs` (0.5s by default), so this only shortens the wait - hence one timer rather than
-     * one per probe, and `unref`'d so it never keeps the process alive.
-     */
-    #scheduleTaskLoopWake(readyAt: number): void {
-        if (this.#taskLoopWakeTimer !== undefined) {
-            if (this.#taskLoopWakeAt <= readyAt) {
-                return;
-            }
-            clearTimeout(this.#taskLoopWakeTimer);
-        }
-
-        this.#taskLoopWakeAt = readyAt;
-        this.#taskLoopWakeTimer = setTimeout(
-            () => {
-                this.#taskLoopWakeTimer = undefined;
-                void this.#autoscaledPool?.notify();
-            },
-            Math.max(0, readyAt - Date.now()),
-        );
-        this.#taskLoopWakeTimer.unref();
-    }
-
-    /** Drops a pending task-loop wake-up, so a finished run leaves no timer behind. */
-    #clearTaskLoopWake(): void {
-        if (this.#taskLoopWakeTimer !== undefined) {
-            clearTimeout(this.#taskLoopWakeTimer);
-            this.#taskLoopWakeTimer = undefined;
-        }
-    }
-
-    /**
      * Unwraps errors thrown by the context pipeline to get the actual user error.
-     * RequestHandlerError and ContextPipelineInitializationError wrap the actual error.
+     * RequestHandlerError, ContextPipelineInitializationError and ContextPipelineCleanupError wrap the actual error.
      */
-    private unwrapError(error: unknown): Error {
+    #unwrapError(error: unknown): Error {
         if (
             error instanceof RequestHandlerError ||
             error instanceof ContextPipelineInitializationError ||
             error instanceof ContextPipelineCleanupError
         ) {
-            return this.unwrapError(error.cause);
+            return this.#unwrapError(error.cause);
         }
         return error as Error;
     }
@@ -2849,20 +2823,21 @@ export class BasicCrawler<
      *
      * @param request The request object, passed separately to circumvent potential dynamic logic in crawlingContext.request
      */
+    // oxlint-disable-next-line crawlee/prefer-private-fields -- patched by @crawlee/otel
     private async requestFunctionErrorHandler(
         error: Error,
         crawlingContext: CrawlingContext,
-        request: Request,
+        request: CrawlingRequest,
         source: IRequestManager,
     ): Promise<void> {
         if (error instanceof RequestThrottledError) {
-            // The domain told us to come back later, so the request was never really attempted. Put it back
-            // without recording a failure - it costs neither a retry nor session reputation.
+            // The domain told us to come back later, so the request was never really attempted. Put it back where
+            // it was, without recording a failure - it costs neither a retry nor session reputation.
             this.log.debug(`Deferring request because its domain is rate-limiting us. ${error.message}`, {
                 id: request.id,
                 url: request.url,
             });
-            await source.reclaimRequest(request, { forefront: request.userData?.__crawlee?.forefront });
+            await source.reclaimRequest(request, { forefront: true });
             return;
         }
 
@@ -2872,14 +2847,30 @@ export class BasicCrawler<
             throw error;
         }
 
-        const shouldRetryRequest = this.canRequestBeRetried(request, error);
+        const shouldRetryRequest = this.#canRequestBeRetried(request, error);
 
         if (shouldRetryRequest) {
             await this.statistics.errorTrackerRetry.addAsync(error, crawlingContext);
-            await this.#errorHandler?.(
-                crawlingContext as CrawlingContext & Partial<ExtendedContext>, // valid cast - ExtendedContext transitively extends CrawlingContext
-                error,
-            );
+            try {
+                await this.#errorHandler?.(
+                    crawlingContext as CrawlingContext & Partial<ExtendedContext>, // valid cast - ExtendedContext transitively extends CrawlingContext
+                    error,
+                );
+            } catch (handlerError) {
+                if (handlerError instanceof ContextPipelineInterruptedError) {
+                    const skipError = await this.#trySkipRequest(handlerError, request, source);
+                    if (!skipError) {
+                        return;
+                    }
+                    // Retry for the original error. Routing `skipError` through `errorHandler` again
+                    // would loop forever with a handler that always skips.
+                    this.log.warning(`Skipping request ${request.url} failed, retrying it instead.`, {
+                        error: skipError.message,
+                    });
+                } else {
+                    throw handlerError;
+                }
+            }
 
             if (error instanceof SessionError) {
                 crawlingContext.session?.retire();
@@ -2899,7 +2890,7 @@ export class BasicCrawler<
                     retryCount,
                 });
 
-                await source.reclaimRequest(request, { forefront: request.userData?.__crawlee?.forefront });
+                await source.reclaimRequest(request);
                 return;
             }
         }
@@ -2922,11 +2913,40 @@ export class BasicCrawler<
         // or failed more than retryCount times and will not be retried anymore.
         // Mark the request as failed and do not retry.
         await source.markRequestAsHandled(request);
-        this.statistics.failJob(request.id || request.uniqueKey, request.retryCount);
+        this.statistics.recordRequestFailure(request.id || request.uniqueKey, request.retryCount);
 
         await this.handleFailedRequestHandler(crawlingContext, error); // This function prints an error message.
     }
 
+    /** Settles a skipped request. Returns the error that prevented that, leaving the request untouched if `onSkippedRequest` failed. */
+    async #trySkipRequest(
+        error: ContextPipelineInterruptedError,
+        request: CrawlingRequest,
+        source: IRequestManager,
+    ): Promise<Error | undefined> {
+        try {
+            await addTimeoutToPromise(
+                async () => this.#handleSkippedRequest({ request, reason: error.reason, message: error.skipMessage }),
+                this.internalTimeoutMillis,
+                `onSkippedRequest for ${request.url} (${request.id}) timed out after ${this.internalTimeoutMillis / 1e3} seconds.`,
+            );
+            request.state = RequestState.SKIPPED;
+            request.noRetry = true;
+            await this.#timeoutAndRetry(
+                async () => source.markRequestAsHandled(request),
+                this.internalTimeoutMillis,
+                `Marking request ${request.url} (${request.id}) as handled timed out after ${
+                    this.internalTimeoutMillis / 1e3
+                } seconds.`,
+            );
+            this.statistics.discardRequestRecord(request.id || request.uniqueKey);
+            return undefined;
+        } catch (settleError) {
+            return this.#unwrapError(settleError);
+        }
+    }
+
+    // oxlint-disable-next-line crawlee/prefer-private-fields -- patched by @crawlee/otel
     private async handleFailedRequestHandler(crawlingContext: CrawlingContext, error: Error): Promise<void> {
         // Always log the last error regardless if the user provided a failedRequestHandler
         const { id, url, method, uniqueKey } = crawlingContext.request;
@@ -2934,10 +2954,15 @@ export class BasicCrawler<
 
         this.log.error(`Request failed and reached maximum retries. ${message}`, { id, url, method, uniqueKey });
 
-        if (this.#failedRequestHandler) {
+        try {
             await this.#failedRequestHandler?.(
                 crawlingContext as CrawlingContext & Partial<ExtendedContext>, // valid cast - ExtendedContext transitively extends CrawlingContext
                 error,
+            );
+        } catch (handlerError) {
+            if (!(handlerError instanceof ContextPipelineInterruptedError)) throw handlerError;
+            this.log.warning(
+                `skipRequest() has no effect in failedRequestHandler, request ${url} (${id}) has already failed.`,
             );
         }
     }
@@ -2947,7 +2972,7 @@ export class BasicCrawler<
      * @param error The error received
      * @returns The message to be logged
      */
-    protected getMessageFromError(error: Error, forceStack = false) {
+    protected getMessageFromError(error: Error, forceStack = false): string {
         if ([TypeError, SyntaxError, ReferenceError].some((type) => error instanceof type)) {
             forceStack = true;
         }
@@ -2958,7 +2983,8 @@ export class BasicCrawler<
         const userLine = stackLines.find((line) => line.includes(baseDir) && !line.includes('node_modules'));
 
         if (error instanceof TimeoutError) {
-            return process.env.CRAWLEE_VERBOSE_LOG ? error.stack : error.message || error; // stack in timeout errors does not really help
+            // stack in timeout errors does not really help
+            return (process.env.CRAWLEE_VERBOSE_LOG && error.stack) || error.message;
         }
 
         return process.env.CRAWLEE_VERBOSE_LOG || forceStack
@@ -2970,11 +2996,15 @@ export class BasicCrawler<
      * Whether the session should be spared for this error - either because it was already retired, or because the
      * failure says nothing about the session (a rate limit is a property of the domain).
      */
-    private errorAbsolvesSession(error: Error): boolean {
-        return error instanceof SessionError || error instanceof RequestThrottledError;
+    #errorAbsolvesSession(error: Error): boolean {
+        return (
+            error instanceof SessionError ||
+            error instanceof RequestThrottledError ||
+            error instanceof ContextPipelineInterruptedError
+        );
     }
 
-    private canRequestBeRetried(request: Request, error: Error) {
+    #canRequestBeRetried(request: CrawlingRequest, error: Error) {
         // Request should never be retried, or the error encountered makes it not able to be retried.
         if (request.noRetry || error instanceof NonRetryableError) {
             return false;
@@ -2991,31 +3021,50 @@ export class BasicCrawler<
     }
 
     /**
-     * Stops the crawler immediately.
+     * Ends the run in progress immediately, without waiting for the requests already in flight.
      *
-     * This method doesn't wait for currently active requests to finish.
+     * This runs at the end of every {@apilink BasicCrawler.run|`run()`}, so what it releases is per-run only, and
+     * a repeated `run()` has to find everything it needs either intact or re-establishable. What outlives a run is
+     * released by {@apilink BasicCrawler.destroy|`destroy()`} instead.
      *
      * To stop the crawler gracefully (waiting for all running requests to finish), use {@apilink BasicCrawler.stop|`crawler.stop()`} instead.
      */
     async teardown(): Promise<void> {
         this.#teardownRequested = true;
 
+        const eventManager = serviceLocator.getEventManager();
+        const ownsEventManager = this.#run?.ownsEventManager === true;
+
+        // First, so that the pool writes its final state once - its teardown stops it listening before the
+        // persistence event below goes out.
+        await this.#sessionPoolDep.ifOwned(async (pool) => pool.teardown());
+
         // When this crawler initialized the event manager, its close() call emits
         // the final persistence event after the crawler-specific state has been
         // saved. External event managers still need an explicit event here.
-        if (!this.#closeEvents) {
-            serviceLocator.getEventManager().emit(EventType.PERSIST_STATE, { isMigrating: false });
+        if (!ownsEventManager) {
+            eventManager.emit(EventType.PERSIST_STATE, { isMigrating: false });
         }
 
-        await this.#sessionPoolDep.ifOwned(async (pool) => pool.teardown({ persistState: this.#closeEvents ?? false }));
-
-        if (this.#closeEvents) {
-            await serviceLocator.getEventManager().close();
+        if (ownsEventManager) {
+            await eventManager.close();
         }
 
-        this.#clearTaskLoopWake();
-        await this.#autoscaledPool?.abort();
-        await this.#concurrencySystemDep?.ifOwned((system) => system.stop());
+        await this.#run?.end();
+    }
+
+    /**
+     * Releases what the crawler owns beyond a single run — in the browser crawlers, the browser pool. A finished
+     * `run()` has already released everything a run owns, so this is only needed before dropping a crawler you
+     * could otherwise have run again.
+     */
+    async destroy(): Promise<void> {
+        // An abandoned run - one whose `run()` never returned - would otherwise keep dispatching requests.
+        await this.#run?.end();
+    }
+
+    async [Symbol.asyncDispose](): Promise<void> {
+        await this.destroy();
     }
 
     protected getCookieHeaderFromRequest(request: Request) {
@@ -3029,7 +3078,7 @@ export class BasicCrawler<
         return request.headers?.Cookie || request.headers?.cookie || '';
     }
 
-    private requestMatchesEnqueueStrategy(request: Request) {
+    #requestMatchesEnqueueStrategy(request: CrawlingRequest) {
         // If `skipNavigation` was used, just return `true`
         try {
             // eslint-disable-next-line @typescript-eslint/no-unused-expressions
@@ -3044,8 +3093,7 @@ export class BasicCrawler<
 
         const { url, loadedUrl } = request;
 
-        // eslint-disable-next-line dot-notation -- private access
-        const strategy = request['enqueueStrategy'];
+        const strategy = request.enqueueStrategy;
 
         // No strategy set, so we assume it matches, or it was added outside of enqueueLinks
         if (!strategy) {
@@ -3088,29 +3136,11 @@ export class BasicCrawler<
     }
 }
 
-export interface CreateContextOptions {
-    request: Request;
-    session: ISession;
-    proxyInfo?: ProxyInfo;
-}
-
 export interface CrawlerAddRequestsOptions extends AddRequestsBatchedOptions, EnqueueUrlsOptions {}
 
 export interface CrawlerAddRequestsResult extends AddRequestsBatchedResult {}
 
-export interface CrawlerRunOptions extends CrawlerAddRequestsOptions {
-    /**
-     * Controls whether the request queue is purged between repeated `run()` calls on the same crawler instance.
-     * Purging clears all requests and resets internal counters, allowing the same URLs to be processed again.
-     *
-     * - **`undefined`** (default) — only the crawler's own (auto-created) queue is purged.
-     *   A user-supplied `requestQueue` is left untouched.
-     * - **`true`** — the queue is always purged, even if it was supplied by the user.
-     * - **`false`** — nothing is purged. Only genuinely new requests will be processed;
-     *   note that even a failed request is considered handled.
-     */
-    purgeRequestQueue?: boolean;
-}
+export interface CrawlerRunOptions extends CrawlerAddRequestsOptions {}
 
 /** The hostname of `url`, falling back to the whole string when it is not parseable - for log messages only. */
 function hostnameOrUrl(url: string): string {

@@ -4,8 +4,8 @@ import { parseArgument, schemas } from '@crawlee/utils/internal';
 import type { BrowserType, LaunchOptions } from 'playwright';
 import { z } from 'zod';
 
-import type { StagehandOptions } from './stagehand-crawler';
-import { StagehandPlugin } from './stagehand-plugin';
+import type { StagehandOptions } from './stagehand-crawler.js';
+import { StagehandPlugin } from './stagehand-plugin.js';
 
 /**
  * Launch context for Stagehand crawler with AI-specific options.
@@ -16,11 +16,6 @@ export interface StagehandLaunchContext extends BrowserLaunchContext<LaunchOptio
      * These will be passed to Stagehand's localBrowserLaunchOptions after fingerprinting is applied.
      */
     launchOptions?: LaunchOptions & Parameters<BrowserType['launchPersistentContext']>[1];
-
-    /**
-     * Stagehand-specific configuration for AI operations.
-     */
-    stagehandOptions?: StagehandOptions;
 
     /**
      * URL to a HTTP proxy server. It must define the port number,
@@ -37,24 +32,6 @@ export interface StagehandLaunchContext extends BrowserLaunchContext<LaunchOptio
      * @default false
      */
     useChrome?: boolean;
-
-    /**
-     * With this option selected, all pages will be opened in a new incognito browser context.
-     * @default false
-     */
-    useIncognitoPages?: boolean;
-
-    /**
-     * Sets the User Data Directory path.
-     * The user data directory contains profile data such as history, bookmarks, and cookies.
-     */
-    userDataDir?: string;
-
-    /**
-     * By default this function uses `require("playwright").chromium`.
-     * If you want to use a different browser you can pass it by this property.
-     */
-    launcher?: BrowserType;
 }
 
 /**
@@ -84,7 +61,9 @@ export class StagehandLauncher extends BrowserLauncher<StagehandPlugin> {
      * All StagehandLauncher parameters are passed via the launchContext object.
      */
     constructor(
-        launchContext: StagehandLaunchContext = {},
+        // `stagehandOptions` is not part of the public `StagehandLaunchContext`: it is how
+        // `stagehandBrowserPool()` threads the crawler's resolved Stagehand options through the launcher.
+        launchContext: StagehandLaunchContext & { stagehandOptions?: StagehandOptions } = {},
         override readonly configuration = Configuration.getGlobalConfiguration(),
     ) {
         const parsedContext = parseArgument(launchContext, StagehandLauncher.optionsSchema, 'StagehandLaunchContext');

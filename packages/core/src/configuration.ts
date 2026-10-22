@@ -1,17 +1,10 @@
-import { EventEmitter } from 'node:events';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { z } from 'zod';
 
 import { log, LogLevel } from './log.js';
-import { serviceLocator } from './service_locator.js';
-
-// Crawlee attaches many listeners to shared EventEmitters (one per crawler/session/autoscaled pool),
-// which can exceed Node's default limit of 10 and trigger spurious MaxListenersExceededWarning logs.
-// Raising the global default avoids false positives; real leaks will still manifest as unbounded growth.
-// TODO: tracked in https://github.com/apify/crawlee/issues/3615 — find a less side-effecting place for this.
-EventEmitter.defaultMaxListeners = 50;
+import { serviceLocator } from './service-locator.js';
 
 // --- Field definition helpers ---
 
@@ -52,14 +45,8 @@ const logLevelSchema = z.preprocess((val) => {
 // --- Crawlee config field definitions ---
 
 export const crawleeConfigFields = {
-    /** @default 'default' */
-    defaultDatasetId: field(z.string().default('default'), 'CRAWLEE_DEFAULT_DATASET_ID'),
     /** @default true */
     purgeOnStart: field(coerceBoolean.default(true), 'CRAWLEE_PURGE_ON_START'),
-    /** @default 'default' */
-    defaultKeyValueStoreId: field(z.string().default('default'), 'CRAWLEE_DEFAULT_KEY_VALUE_STORE_ID'),
-    /** @default 'default' */
-    defaultRequestQueueId: field(z.string().default('default'), 'CRAWLEE_DEFAULT_REQUEST_QUEUE_ID'),
     /** @default 0.95 */
     maxUsedCpuRatio: field(coerceNumber.default(0.95)),
     /** @default 0.25 */
@@ -74,8 +61,6 @@ export const crawleeConfigFields = {
     internalTimeoutMillis: field(coerceNumber.optional(), 'CRAWLEE_INTERNAL_TIMEOUT'),
     /** @default 1_000 */
     systemInfoIntervalMillis: field(coerceNumber.default(1_000)),
-    /** @default 'INPUT' */
-    inputKey: field(z.string().default('INPUT'), 'CRAWLEE_INPUT_KEY'),
     /** @default true */
     headless: field(coerceBoolean.default(true), 'CRAWLEE_HEADLESS'),
     /** @default false */
@@ -156,9 +141,6 @@ export interface Configuration extends ResolvedConfigValues {}
  * `memoryMbytes` | `CRAWLEE_MEMORY_MBYTES` | -
  * `logLevel` | `CRAWLEE_LOG_LEVEL` | -
  * `headless` | `CRAWLEE_HEADLESS` | `true`
- * `defaultDatasetId` | `CRAWLEE_DEFAULT_DATASET_ID` | `'default'`
- * `defaultKeyValueStoreId` | `CRAWLEE_DEFAULT_KEY_VALUE_STORE_ID` | `'default'`
- * `defaultRequestQueueId` | `CRAWLEE_DEFAULT_REQUEST_QUEUE_ID` | `'default'`
  * `persistStateIntervalMillis` | `CRAWLEE_PERSIST_STATE_INTERVAL_MILLIS` | `60_000`
  * `internalTimeoutMillis` | `CRAWLEE_INTERNAL_TIMEOUT` | -
  * `purgeOnStart` | `CRAWLEE_PURGE_ON_START` | `true`
@@ -169,7 +151,6 @@ export interface Configuration extends ResolvedConfigValues {}
  *
  * Key | Environment Variable | Default Value
  * ---|---|---
- * `inputKey` | `CRAWLEE_INPUT_KEY` | `'INPUT'`
  * `xvfb` | `CRAWLEE_XVFB` | `false`
  * `chromeExecutablePath` | `CRAWLEE_CHROME_EXECUTABLE_PATH` | -
  * `defaultBrowserPath` | `CRAWLEE_DEFAULT_BROWSER_PATH` | -
@@ -194,9 +175,9 @@ export class Configuration {
      */
     constructor(options: ConfigurationInput = {}) {
         const fields = (this.constructor as typeof Configuration).fields;
-        const fileOptions = Configuration.loadFileOptions();
-        this.#resolvedValues = Configuration.resolveAll(fields, options as Record<string, unknown>, fileOptions);
-        this.registerAccessors();
+        const fileOptions = Configuration.#loadFileOptions();
+        this.#resolvedValues = Configuration.#resolveAll(fields, options as Record<string, unknown>, fileOptions);
+        this.#registerAccessors();
 
         // Set the log level
         const logLevel = this.logLevel;
@@ -218,7 +199,7 @@ export class Configuration {
      * Resolves all field values once using the priority chain:
      * constructor options > env vars > crawlee.json > schema defaults.
      */
-    private static resolveAll(
+    static #resolveAll(
         fields: Record<string, ConfigField>,
         userOptions: Record<string, unknown>,
         fileOptions: Record<string, unknown>,
@@ -233,7 +214,7 @@ export class Configuration {
             }
 
             // 2. Environment variables
-            const envValue = Configuration.readEnvVar(fieldDef);
+            const envValue = Configuration.#readEnvVar(fieldDef);
             if (envValue != null) {
                 values[key] = fieldDef.schema.parse(envValue);
                 continue;
@@ -256,7 +237,7 @@ export class Configuration {
     /**
      * Registers getters (and throwing setters) on the instance for each field.
      */
-    private registerAccessors(): void {
+    #registerAccessors(): void {
         const fields = (this.constructor as typeof Configuration).fields;
         const descriptors: PropertyDescriptorMap = {};
 
@@ -279,7 +260,7 @@ export class Configuration {
      * Empty strings are treated as unset, falling through to crawlee.json or schema defaults.
      * (Crawlee v3 coerced `''` to `false`/`0`/`''` per type — v4 drops that for consistency.)
      */
-    private static readEnvVar(fieldDef: ConfigField): string | undefined {
+    static #readEnvVar(fieldDef: ConfigField): string | undefined {
         if (!fieldDef.envVar) return undefined;
         const envVars = Array.isArray(fieldDef.envVar) ? fieldDef.envVar : [fieldDef.envVar];
         for (const envVar of envVars) {
@@ -292,7 +273,7 @@ export class Configuration {
     /**
      * Loads config options from crawlee.json in the current working directory.
      */
-    private static loadFileOptions(): Record<string, unknown> {
+    static #loadFileOptions(): Record<string, unknown> {
         try {
             const file = readFileSync(join(process.cwd(), 'crawlee.json'));
             return JSON.parse(file.toString());

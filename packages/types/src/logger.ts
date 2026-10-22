@@ -7,6 +7,14 @@ export interface CrawleeLoggerOptions {
 }
 
 /**
+ * Options for a single log call.
+ */
+export interface LogOptions {
+    /** Log the message only the first time this logger sees that text, ignoring later calls with it. */
+    once?: boolean;
+}
+
+/**
  * Interface for Crawlee logger implementations.
  * This allows users to inject custom loggers (e.g., Winston, Pino) while maintaining
  * compatibility with the default `@apify/log` implementation.
@@ -30,7 +38,7 @@ export interface CrawleeLogger {
     /**
      * Logs an `ERROR` message.
      */
-    error(message: string, data?: Record<string, unknown>): void;
+    error(message: string, data?: Record<string, unknown>, options?: LogOptions): void;
 
     /**
      * Logs an `ERROR` level message with a nicely formatted exception.
@@ -40,32 +48,32 @@ export interface CrawleeLogger {
     /**
      * Logs a `SOFT_FAIL` level message.
      */
-    softFail(message: string, data?: Record<string, unknown>): void;
+    softFail(message: string, data?: Record<string, unknown>, options?: LogOptions): void;
 
     /**
      * Logs a `WARNING` level message.
      */
-    warning(message: string, data?: Record<string, unknown>): void;
+    warning(message: string, data?: Record<string, unknown>, options?: LogOptions): void;
 
     /**
-     * Logs a `WARNING` level message only once.
+     * Logs a `WARNING` level message only once. Shorthand for `warning(message, undefined, { once: true })`.
      */
     warningOnce(message: string): void;
 
     /**
      * Logs an `INFO` message.
      */
-    info(message: string, data?: Record<string, unknown>): void;
+    info(message: string, data?: Record<string, unknown>, options?: LogOptions): void;
 
     /**
      * Logs a `DEBUG` message.
      */
-    debug(message: string, data?: Record<string, unknown>): void;
+    debug(message: string, data?: Record<string, unknown>, options?: LogOptions): void;
 
     /**
      * Logs a `PERF` level message for performance tracking.
      */
-    perf(message: string, data?: Record<string, unknown>): void;
+    perf(message: string, data?: Record<string, unknown>, options?: LogOptions): void;
 
     /**
      * Logs given message only once as WARNING for deprecated features.
