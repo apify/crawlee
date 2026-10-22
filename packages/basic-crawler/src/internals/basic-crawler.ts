@@ -1683,20 +1683,6 @@ export class BasicCrawler<
                         'This crawler instance is already running, you can add more requests to it via `crawler.addRequests()`.',
                     );
                 }
-
-                if (this.#hasFinishedBefore) {
-                    // A supplied statistics instance keeps whatever state it was handed - only wipe a default we built.
-                    await this.#statisticsDep.ifOwned(async (stats) => {
-                        stats.reset();
-                        await stats.resetStore();
-                    });
-                    // A session pool the crawler built follows the same blank-slate rule as its statistics.
-                    await this.#sessionPoolDep.ifOwned(async (pool) => {
-                        pool.reset();
-                        await pool.resetStore();
-                    });
-                }
-
                 // An owned governor is rebuilt for every run, so it always starts from a clean slate — stale
                 // resource snapshots or a previous run's scaled desired concurrency would otherwise distort this
                 // run's scaling. An injected one is long-lived and its lifecycle belongs to the caller.
@@ -1711,6 +1697,19 @@ export class BasicCrawler<
                 this.#run = run;
 
                 try {
+                    if (this.#hasFinishedBefore) {
+                        // A supplied statistics instance keeps whatever state it was handed - only wipe a default we built.
+                        await this.#statisticsDep.ifOwned(async (stats) => {
+                            stats.reset();
+                            await stats.resetStore();
+                        });
+                        // A session pool the crawler built follows the same blank-slate rule as its statistics.
+                        await this.#sessionPoolDep.ifOwned(async (pool) => {
+                            pool.reset();
+                            await pool.resetStore();
+                        });
+                    }
+
                     await purgeDefaultStorages({
                         onlyPurgeOnce: true,
                         storageBackend: serviceLocator.getStorageBackend(),

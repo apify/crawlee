@@ -442,6 +442,94 @@ describe('BasicCrawler', () => {
         await crawler.run(['https://example.com/2']);
     });
 
+    describe('teardown during startup', () => {
+        test.each([
+            { label: 'a crawler-owned', injectSystem: false },
+            { label: 'an injected', injectSystem: true },
+        ])('settles run() with $label ConcurrencySystem', async ({ injectSystem }) => {
+            const initialized = Promise.withResolvers<void>();
+            const resumeInitialization = Promise.withResolvers<void>();
+
+            const concurrencySystem = injectSystem ? new ConcurrencySystem({ maxConcurrency: 1 }) : undefined;
+            await concurrencySystem?.start();
+
+            // Override the `init` method to allow weaving a teardown call into it reliably
+            const crawler = new (class DelayedStartupCrawler extends BasicCrawler {
+                protected override async init() {
+                    await super.init();
+                    initialized.resolve();
+                    await resumeInitialization.promise;
+                }
+            })({
+                keepAlive: true,
+                ...(concurrencySystem && { concurrencySystem }),
+                requestHandler: async () => {},
+            });
+
+            const runPromise = crawler.run().then(
+                () => 'resolved',
+                (error: Error) => `rejected: ${error.message}`,
+            );
+
+            await initialized.promise;
+            await crawler.teardown();
+            resumeInitialization.resolve();
+
+            const outcome = await Promise.race([runPromise, sleep(500).then(() => 'still pending')]);
+
+            // Without this, a regression would leak the pool interval into the following tests.
+            if (outcome === 'still pending') await crawler.teardown();
+            await concurrencySystem?.stop();
+
+            expect(outcome).toBe('resolved');
+        });
+
+        test('settles a repeated run() torn down while it resets the previous run state', async () => {
+            const crawler = new BasicCrawler({ keepAlive: true, requestHandler: async () => {} });
+            const firstRun = crawler.run();
+            await vitest.waitFor(() => expect(crawler.running).toBe(true));
+            await crawler.teardown();
+            await firstRun;
+
+            const resetStarted = Promise.withResolvers<void>();
+            const resumeReset = Promise.withResolvers<void>();
+            vitest.spyOn(crawler.statistics as Statistics, 'resetStore').mockImplementation(async () => {
+                resetStarted.resolve();
+                await resumeReset.promise;
+            });
+
+            const runPromise = crawler.run().then(
+                () => 'resolved',
+                (error: Error) => `rejected: ${error.message}`,
+            );
+
+            await resetStarted.promise;
+            await crawler.teardown();
+            resumeReset.resolve();
+
+            const outcome = await Promise.race([runPromise, sleep(500).then(() => 'still pending')]);
+
+            // Without this, a regression would leak the pool interval into the following tests.
+            if (outcome === 'still pending') await crawler.teardown();
+
+            expect(outcome).toBe('resolved');
+        });
+    });
+
+    test('teardown before run() does not cancel the next run', async () => {
+        const processed: string[] = [];
+        const crawler = new BasicCrawler({
+            requestHandler: async ({ request }) => {
+                processed.push(request.url);
+            },
+        });
+
+        await crawler.teardown();
+        await crawler.run(['https://example.com/after-teardown']);
+
+        expect(processed).toEqual(['https://example.com/after-teardown']);
+    });
+
     test('a startup that fails before the crawl leaves the instance runnable', async () => {
         const processed: string[] = [];
         const crawler = new BasicCrawler({
