@@ -59,7 +59,7 @@ describe('ImpitHttpClient', () => {
         const { fetch } = vi.mocked(Impit).mock.instances[0];
         const [, init] = vi.mocked(fetch).mock.calls[0];
         expect(init).toMatchObject({ signal });
-        expect(init?.timeout).toBeGreaterThan(24 * 60 * 60 * 1000);
+        expect(init?.timeout).toBeNull();
     });
 
     test('cancels the download when the abort signal fires after the response headers', async () => {
