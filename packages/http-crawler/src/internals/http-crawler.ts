@@ -377,6 +377,7 @@ export class HttpCrawler<
     #suggestResponseEncoding?: string;
     #forceResponseEncoding?: string;
     readonly #supportedMimeTypes: Set<string>;
+    readonly #downloadAbortControllers = new WeakMap<CrawlingRequest, AbortController>();
 
     /**
      * @internal
@@ -546,11 +547,15 @@ export class HttpCrawler<
         const { request, session } = crawlingContext;
         const proxyUrl = crawlingContext.proxyInfo?.url;
 
+        const downloadAbortController = new AbortController();
+        this.#downloadAbortControllers.set(request, downloadAbortController);
+
         // Bound the request by whatever is left of the shared navigation window (the pre-navigation hooks may
         // have already spent part of it), so it produces a clean navigation-timeout error rather than the raw
         // client abort.
         const httpResponse = await addTimeoutToPromise(
-            async () => this.#requestFunction({ request, session, proxyUrl }),
+            async () =>
+                this.#requestFunction({ request, session, proxyUrl, signal: downloadAbortController.signal }),
             Math.max(1, remainingNavigationWindowMillis(crawlingContext, this.#navigationTimeoutMillis)),
             `Navigation timed out after ${this.#navigationTimeoutMillis / 1000} seconds.`,
         );
@@ -632,7 +637,11 @@ export class HttpCrawler<
             async () => this.#parseResponse(crawlingContext.request, crawlingContext.response),
             remaining,
             `Navigation timed out after ${this.#navigationTimeoutMillis / 1000} seconds.`,
-        );
+        ).catch((error) => {
+            // Stop the download along with the read, so a body that never ends doesn't outlive the request.
+            this.#downloadAbortControllers.get(crawlingContext.request)?.abort();
+            throw error;
+        });
         tryCancel();
         const response = parsed.response!;
         const contentType = parsed.contentType!;
@@ -731,11 +740,11 @@ export class HttpCrawler<
      * on the request such as only downloading the request body if the
      * received content type matches text/html, application/xml, application/xhtml+xml.
      */
-    async #requestFunction({ request, session, proxyUrl }: RequestFunctionOptions): Promise<Response> {
+    async #requestFunction({ request, session, proxyUrl, signal }: RequestFunctionOptions): Promise<Response> {
         const opts = this.#getRequestOptions(request, proxyUrl);
 
         try {
-            return await this.#requestAsBrowser(opts, session);
+            return await this.#requestAsBrowser(opts, session, signal);
         } catch (e) {
             if (e instanceof Error && e.constructor.name === 'TimeoutError') {
                 this.#handleRequestTimeout(session);
@@ -923,7 +932,7 @@ export class HttpCrawler<
     /**
      * @internal wraps public utility for mocking purposes
      */
-    #requestAsBrowser = async (options: Dictionary<any>, session: ISession) => {
+    #requestAsBrowser = async (options: Dictionary<any>, session: ISession, signal: AbortSignal) => {
         const opts = processHttpRequestOptions({
             ...(options as any),
             responseType: 'text',
@@ -936,10 +945,11 @@ export class HttpCrawler<
 
         // Bind the request to the shared navigation window instead of a fixed per-request timeout, so
         // `extendTimeout()` can push the deadline and a fixed `AbortSignal.timeout` won't fire on its own and
-        // kill a lazily-read body mid-extension. This aborts the socket only during the header phase; the body
-        // read is bounded separately at the promise level (see `processHttpResponse`), so a slow-streaming body
-        // still fails cleanly with a navigation timeout, though the socket is left to close on its own.
+        // kill a lazily-read body mid-extension. The window's signal only covers the header phase; the body read is
+        // bounded separately (see `processHttpResponse`), which aborts `signal` when it fails, so a slow-streaming
+        // body still fails cleanly with a navigation timeout and its download stops too.
         const cancelSignal = storage.getStore()?.cancelTask.signal;
+        const requestSignal = cancelSignal ? AbortSignal.any([cancelSignal, signal]) : signal;
 
         const response = await this.httpClient.sendRequest(
             new Request(opts.url, {
@@ -953,7 +963,7 @@ export class HttpCrawler<
                 session,
                 cookieJar,
                 proxyUrl: opts.proxyUrl,
-                signal: cancelSignal,
+                signal: requestSignal,
                 timeoutMillis: cancelSignal ? undefined : opts.timeout,
                 ignoreTlsErrors: this.#ignoreTlsErrors,
             },
@@ -967,6 +977,7 @@ interface RequestFunctionOptions {
     request: CrawlingRequest;
     session: ISession;
     proxyUrl?: string;
+    signal: AbortSignal;
 }
 
 /**
