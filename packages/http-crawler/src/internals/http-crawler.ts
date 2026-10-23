@@ -554,8 +554,7 @@ export class HttpCrawler<
         // have already spent part of it), so it produces a clean navigation-timeout error rather than the raw
         // client abort.
         const httpResponse = await addTimeoutToPromise(
-            async () =>
-                this.#requestFunction({ request, session, proxyUrl, signal: downloadAbortController.signal }),
+            async () => this.#requestFunction({ request, session, proxyUrl, signal: downloadAbortController.signal }),
             Math.max(1, remainingNavigationWindowMillis(crawlingContext, this.#navigationTimeoutMillis)),
             `Navigation timed out after ${this.#navigationTimeoutMillis / 1000} seconds.`,
         );
