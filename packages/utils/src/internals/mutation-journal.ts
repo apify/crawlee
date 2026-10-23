@@ -55,9 +55,12 @@ export class MutationJournal {
             set: (object, key, next) => {
                 const had = Reflect.has(object, key);
                 const prev = Reflect.get(object, key);
-                this.#recordArrayLengthChange(object, key, had, next);
+                this.#recordArrayTruncation(object, key, next);
                 if (!Reflect.set(object, key, next)) return false;
-                if (!this.#closed) entry(key, { had, prev, next, deleted: false });
+                // An array's `length` is implied by its elements and never undone on its own.
+                if (!this.#closed && !(Array.isArray(object) && key === 'length')) {
+                    entry(key, { had, prev, next, deleted: false });
+                }
                 return true;
             },
             deleteProperty: (object, key) => {
@@ -74,41 +77,49 @@ export class MutationJournal {
     }
 
     /**
-     * Engines update an array's `length` as a side effect of index writes without a trap firing, and
-     * shrinking `length` drops elements. Both are recorded explicitly, *before* the write they belong to, so
-     * the reverse replay sees the restored `length` before it touches the elements.
+     * Shrinking an array's `length` drops elements without a trap firing for them. They are recorded as
+     * deletions, from the highest index down, so the reverse replay reinserts them from the lowest up.
      */
-    #recordArrayLengthChange(object: object, key: PropertyKey, had: boolean, next: unknown): void {
-        if (this.#closed || !Array.isArray(object)) return;
+    #recordArrayTruncation(object: object, key: PropertyKey, next: unknown): void {
+        if (this.#closed || !Array.isArray(object) || key !== 'length') return;
         const path = this.#paths.get(object)!;
 
-        if (key === 'length') {
-            for (let i = next as number; i < object.length; i++) {
-                if (i in object) {
-                    this.#entries.push({
-                        target: object,
-                        path,
-                        key: String(i),
-                        had: true,
-                        prev: object[i],
-                        next: undefined,
-                        deleted: true,
-                    });
-                }
+        for (let i = object.length - 1; i >= (next as number); i--) {
+            if (i in object) {
+                this.#entries.push({
+                    target: object,
+                    path,
+                    key: String(i),
+                    had: true,
+                    prev: object[i],
+                    next: undefined,
+                    deleted: true,
+                });
+            }
+        }
+    }
+
+    /**
+     * Restores one entry on `target`. Array elements are handled positionally - an added element is removed
+     * and a removed one reinserted, shifting the rest - so the result stays something a sequence of `push`
+     * and `splice` calls could have produced, even next to elements another writer added meanwhile.
+     */
+    static #undo(target: object, { key, had, deleted }: JournalEntry, value: unknown): void {
+        if (Array.isArray(target) && typeof key === 'string' && Number.isInteger(Number(key))) {
+            if (deleted) {
+                target.splice(Number(key), 0, value);
+            } else if (had) {
+                target[Number(key)] = value;
+            } else {
+                target.splice(Number(key), 1);
             }
             return;
         }
 
-        if (!had && typeof key === 'string' && Number.isInteger(Number(key)) && Number(key) >= object.length) {
-            this.#entries.push({
-                target: object,
-                path,
-                key: 'length',
-                had: true,
-                prev: object.length,
-                next: Number(key) + 1,
-                deleted: false,
-            });
+        if (had) {
+            Reflect.set(target, key, value);
+        } else {
+            Reflect.deleteProperty(target, key);
         }
     }
 
@@ -122,7 +133,8 @@ export class MutationJournal {
         this.close();
 
         for (let i = this.#entries.length - 1; i >= 0; i--) {
-            const { target, key, had, prev, next, deleted } = this.#entries[i];
+            const entry = this.#entries[i];
+            const { target, key, next, deleted } = entry;
             const untouched = deleted ? !Reflect.has(target, key) : Reflect.get(target, key) === next;
 
             if (!untouched) {
@@ -130,34 +142,34 @@ export class MutationJournal {
                 continue;
             }
 
-            if (had) {
-                Reflect.set(target, key, prev);
-            } else {
-                Reflect.deleteProperty(target, key);
-            }
+            MutationJournal.#undo(target, entry, entry.prev);
         }
 
         this.#entries.length = 0;
     }
 
     /**
-     * Applies the inverse of the recorded writes onto `root`, a copy of the tracked object, and returns it.
-     * The journal is left as it is. Restored values are cloned so the copy shares nothing with the original.
+     * Applies the inverse of the recorded writes onto `root`, a JSON copy of the tracked object, and returns
+     * it. The journal is left as it is. Restored values are JSON-cloned too, so the copy shares nothing with
+     * the original and non-JSON values drop out the same way on both.
+     *
+     * Entries are located by the path under which their object was *first* reached, so an object reachable
+     * through two paths is undone under the first one only.
      */
     undoOnto<T extends object>(root: T): T {
         for (let i = this.#entries.length - 1; i >= 0; i--) {
-            const { path, key, had, prev } = this.#entries[i];
-            const target = path.reduce<unknown>(
+            const entry = this.#entries[i];
+            const target = entry.path.reduce<unknown>(
                 (object, step) => (object as Record<PropertyKey, unknown>)?.[step],
                 root,
             );
             if (typeof target !== 'object' || target === null) continue;
 
-            if (had) {
-                Reflect.set(target, key, isTrackable(prev) ? structuredClone(prev) : prev);
-            } else {
-                Reflect.deleteProperty(target, key);
-            }
+            MutationJournal.#undo(
+                target,
+                entry,
+                isTrackable(entry.prev) ? JSON.parse(JSON.stringify(entry.prev)) : entry.prev,
+            );
         }
 
         return root;

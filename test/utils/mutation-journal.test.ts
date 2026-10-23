@@ -18,6 +18,33 @@ describe('MutationJournal', () => {
         expect(target).toEqual({ count: 0, nested: { keep: 1, drop: 2 }, list: ['a'] });
     });
 
+    test('undoes array writes positionally, so concurrent pushes leave no holes', () => {
+        const state = { visited: [] as string[] };
+        const a = new MutationJournal();
+        const b = new MutationJournal();
+
+        a.track(state).visited.push('a');
+        b.track(state).visited.push('b');
+        a.revert();
+
+        expect(state.visited).toEqual(['b']);
+    });
+
+    test('restores elements dropped by truncation, shift and splice', () => {
+        const target = { list: ['a', 'b', 'c', 'd'] };
+        const journal = new MutationJournal();
+        const proxy = journal.track(target);
+
+        proxy.list.shift();
+        proxy.list.splice(1, 1);
+        proxy.list.length = 1;
+
+        expect(target.list).toEqual(['b']);
+        journal.revert();
+
+        expect(target.list).toEqual(['a', 'b', 'c', 'd']);
+    });
+
     test('hands out Map and Set untracked: they keep working and their changes stay', () => {
         const target = { ids: new Set<string>(), byId: new Map<string, number>() };
         const journal = new MutationJournal();
