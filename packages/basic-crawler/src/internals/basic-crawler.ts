@@ -1461,7 +1461,7 @@ export class BasicCrawler<
                 }
 
                 // Extension failure must not fail the request that asked for more time.
-                this.requestManager?.extendRequestProcessingTimeSecs?.(context.request, secs)?.catch((error) => {
+                this.requestManager?.extendRequestProcessingTime?.(context.request, secs)?.catch((error) => {
                     this.log.debug('Extending the request processing time failed', { url: context.request.url, error });
                 });
             },
@@ -1903,7 +1903,7 @@ export class BasicCrawler<
         }
 
         // Apply the processing-time hint here (an async lifecycle point) rather than in the constructor,
-        // now that `setExpectedRequestProcessingTimeSecs` is async. The hint is raise-only and idempotent,
+        // now that `setExpectedRequestProcessingTime` is async. The hint is raise-only and idempotent,
         // but guard so we do not re-issue it on every call.
         if (!this.#requestManagerTimeoutsApplied) {
             this.#requestManagerTimeoutsApplied = true;
@@ -1946,7 +1946,7 @@ export class BasicCrawler<
         const maxRouteTimeoutSecs = (this.requestHandler as Partial<RouterHandler>).getMaxTimeoutSecs?.() ?? 0;
         const handlerTimeoutSecs = Math.max(this.#requestHandlerTimeoutMillis / 1000, maxRouteTimeoutSecs);
 
-        await requestManager.setExpectedRequestProcessingTimeSecs?.(Math.max(handlerTimeoutSecs + 5, 60));
+        await requestManager.setExpectedRequestProcessingTime?.(Math.max(handlerTimeoutSecs + 5, 60));
     }
 
     /**
