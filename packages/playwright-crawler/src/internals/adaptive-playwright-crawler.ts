@@ -23,6 +23,7 @@ import {
     ContextPipeline,
     ContextPipelineInitializationError,
     ContextPipelineInterruptedError,
+    navigationDeadlineKey,
     RequestHandlerError,
     resolveBaseUrlForEnqueueLinksFiltering,
     Router,
@@ -152,7 +153,10 @@ export interface AdaptivePlaywrightCrawlerContext<
     enqueueLinks(options?: EnqueueLinksOptions): Promise<unknown>;
 }
 
-interface AdaptiveHookContext extends Pick<AdaptivePlaywrightCrawlerContext, 'id' | 'session' | 'proxyInfo' | 'log'> {
+interface AdaptiveHookContext extends Pick<
+    AdaptivePlaywrightCrawlerContext,
+    'id' | 'session' | 'proxyInfo' | 'log' | 'extendTimeout'
+> {
     page?: Page;
     request: CrawlingRequest;
     gotoOptions?: PlaywrightGotoOptions;
@@ -192,6 +196,13 @@ export interface AdaptivePlaywrightCrawlerOptions<
             'preNavigationHooks' | 'postNavigationHooks' | 'contextPipelineBuilder'
         >,
         Pick<PlaywrightCrawlerOptions, 'launchContext' | 'headless' | 'browserPool' | 'remoteBrowser'> {
+    /**
+     * Timeout for the navigation phase of each attempt, in seconds, shared by the `preNavigationHooks`, the
+     * navigation and the `postNavigationHooks`. Applies to both the HTTP-only and the browser attempt. When not
+     * set, each attempt keeps its own default: 30 seconds for HTTP-only and 60 seconds for the browser.
+     */
+    navigationTimeoutSecs?: number;
+
     /**
      * Async functions that are sequentially evaluated before the navigation. Good for setting additional cookies.
      * The function accepts a subset of the crawling context. If you attempt to access the `page` property during HTTP-only crawling,
@@ -377,6 +388,7 @@ export class AdaptivePlaywrightCrawler<
             postNavigationHooks = [],
             extendContext,
             transactionalStorage,
+            navigationTimeoutSecs,
             launchContext,
             headless,
             browserPool,
@@ -486,6 +498,7 @@ export class AdaptivePlaywrightCrawler<
             preNavigationHooks,
             postNavigationHooks,
             extendContext,
+            navigationTimeoutSecs,
         });
 
         const browserCrawler = new PlaywrightCrawler({
@@ -494,6 +507,7 @@ export class AdaptivePlaywrightCrawler<
             preNavigationHooks: preNavigationHooks as unknown as PlaywrightHook[],
             postNavigationHooks: postNavigationHooks as unknown as PlaywrightHook[],
             extendContext,
+            navigationTimeoutSecs,
             launchContext,
             headless,
             browserPool,
@@ -624,16 +638,24 @@ export class AdaptivePlaywrightCrawler<
 
         const deferredCleanup: (() => Promise<unknown>)[] = [];
 
+        const subCrawlerContext = Object.defineProperties(
+            {},
+            Object.getOwnPropertyDescriptors(context),
+        ) as typeof context & { [navigationDeadlineKey]?: number };
+
         const attemptBoundContextHelpers = {
             useState: useStateFunction,
             log: this.#createLogProxy(context.log, logs),
             registerDeferredCleanup: (cleanup: () => Promise<unknown>) => deferredCleanup.push(cleanup),
+            // The sub-crawler pipeline keeps this attempt's navigation deadline on `subCrawlerContext`, but the
+            // outer `extendTimeout` only pushes the deadline it finds on `context`, so push this one as well.
+            extendTimeout: (secs: number) => {
+                context.extendTimeout(secs);
+                if (subCrawlerContext[navigationDeadlineKey] !== undefined) {
+                    subCrawlerContext[navigationDeadlineKey] += secs * 1000;
+                }
+            },
         };
-
-        const subCrawlerContext = Object.defineProperties(
-            {},
-            Object.getOwnPropertyDescriptors(context),
-        ) as typeof context;
 
         // Mark attempt-bound helpers as non-configurable so they survive the sub-crawler context pipeline
         // (which would otherwise override them with the sub-crawler's own versions, losing the binding).
