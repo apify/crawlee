@@ -1,3 +1,5 @@
+import { types } from 'node:util';
+
 import { CrawlingRequest } from '@crawlee/basic';
 import { MutationJournal } from '@crawlee/utils/internal';
 
@@ -43,6 +45,20 @@ describe('MutationJournal', () => {
         journal.revert();
 
         expect(target.list).toEqual(['a', 'b', 'c', 'd']);
+    });
+
+    test('a value read through a proxy and written back is stored unwrapped', () => {
+        const state = { seen: {} as Record<string, boolean>, items: [{ id: 1 }, { id: 2 }] };
+
+        for (let i = 0; i < 5000; i++) {
+            const p = new MutationJournal().track(state);
+            p.seen = p.seen || {};
+            p.items = p.items.filter(() => true);
+        }
+
+        expect(JSON.stringify(state)).toBe('{"seen":{},"items":[{"id":1},{"id":2}]}');
+        expect(types.isProxy(state.seen)).toBe(false);
+        expect(types.isProxy(state.items[0])).toBe(false);
     });
 
     test('hands out Map and Set untracked: they keep working and their changes stay', () => {

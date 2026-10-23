@@ -20,6 +20,29 @@ const isTrackable = (value: unknown): value is object =>
         value !== null &&
         (Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null));
 
+/** Every proxy any journal has handed out, keyed by the proxy. Shared, as a value read through one attempt's
+ * proxy may be written back through another's. */
+const proxyTargets = new WeakMap<object, object>();
+
+/**
+ * Replaces journal proxies in `value` with the objects behind them, in place for nested ones. A value read
+ * through a proxy and written back (`state.x = state.x ?? {}`) would otherwise store the proxy itself, and
+ * every later attempt would wrap it once more.
+ */
+function unwrap(value: unknown, seen = new Set<object>()): unknown {
+    const target = typeof value === 'object' && value !== null ? proxyTargets.get(value) : undefined;
+    if (target) return target;
+    if (!isTrackable(value) || seen.has(value)) return value;
+
+    seen.add(value);
+    for (const key of Object.keys(value)) {
+        const inner = (value as Record<string, unknown>)[key];
+        const unwrapped = unwrap(inner, seen);
+        if (unwrapped !== inner) (value as Record<string, unknown>)[key] = unwrapped;
+    }
+    return value;
+}
+
 /**
  * Records property writes made through the proxies it hands out, applying them to the real objects as
  * they happen, so that a losing attempt's writes can be undone afterwards - on the objects themselves
@@ -52,7 +75,8 @@ export class MutationJournal {
                 const value = Reflect.get(object, key);
                 return isTrackable(value) ? this.track(value, [...path, key]) : value;
             },
-            set: (object, key, next) => {
+            set: (object, key, rawNext) => {
+                const next = unwrap(rawNext);
                 const had = Reflect.has(object, key);
                 const prev = Reflect.get(object, key);
                 this.#recordArrayTruncation(object, key, next);
@@ -73,6 +97,7 @@ export class MutationJournal {
         });
 
         this.#proxies.set(target, proxy);
+        proxyTargets.set(proxy, target);
         return proxy;
     }
 
