@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 import type { Server } from 'node:http';
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
+import { Readable } from 'node:stream';
 
 import type {
     BasicCrawlerOptions,
@@ -2986,6 +2987,27 @@ describe('BasicCrawler', () => {
             await crawler.run([url]);
 
             expect(captured).toEqual([true]);
+        });
+
+        test('sends a request body', async () => {
+            const captured: string[] = [];
+
+            const crawler = new BasicCrawler({
+                httpClient: Object.assign(Object.create(BaseHttpClient.prototype) as BaseHttpClient, {
+                    async sendRequest(request: globalThis.Request) {
+                        captured.push(`${request.method} ${await request.text()}`);
+                        return new Response('ok');
+                    },
+                }),
+                async requestHandler({ sendRequest }) {
+                    await sendRequest();
+                    await sendRequest({ body: Readable.from(['b=2']) });
+                },
+            });
+
+            await crawler.run([{ url, method: 'POST', payload: 'a=1' }]);
+
+            expect(captured).toEqual(['POST a=1', 'POST b=2']);
         });
 
         test('proxyUrl TypeScript support', async () => {
