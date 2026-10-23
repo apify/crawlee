@@ -50,6 +50,49 @@ describe('ImpitHttpClient', () => {
         expect(Impit).toHaveBeenCalledWith(expect.objectContaining({ ignoreTlsErrors: true }));
     });
 
+    test('lets the abort signal decide when a request times out, not the 30 s impit default', async () => {
+        const httpClient = new ImpitHttpClient();
+        const { signal } = new AbortController();
+
+        await httpClient.sendRequest(new Request('http://example.com'), { signal });
+
+        const { fetch } = vi.mocked(Impit).mock.instances[0];
+        const [, init] = vi.mocked(fetch).mock.calls[0];
+        expect(init).toMatchObject({ signal });
+        expect(init?.timeout).toBeNull();
+    });
+
+    test('cancels the download when the abort signal fires after the response headers', async () => {
+        const cancel = vi.fn();
+        const body = new ReadableStream({ pull: async () => new Promise(() => {}), cancel });
+        vi.mocked(Impit).mockImplementationOnce(
+            class {
+                fetch = vi.fn(async () => new Response(body));
+            } as any,
+        );
+        const httpClient = new ImpitHttpClient();
+        const controller = new AbortController();
+
+        const response = await httpClient.sendRequest(new Request('http://example.com'), {
+            signal: controller.signal,
+        });
+        const reading = response.text();
+        controller.abort();
+
+        await expect(reading).rejects.toThrow();
+        await vi.waitFor(() => expect(cancel).toHaveBeenCalled());
+    });
+
+    test('keeps the impit default timeout when there is no abort signal', async () => {
+        const httpClient = new ImpitHttpClient();
+
+        await httpClient.sendRequest(new Request('http://example.com'));
+
+        const { fetch } = vi.mocked(Impit).mock.instances[0];
+        const [, init] = vi.mocked(fetch).mock.calls[0];
+        expect(init?.timeout).toBeUndefined();
+    });
+
     test('constructor-level browser takes precedence over the session fingerprint', async () => {
         const httpClient = new ImpitHttpClient({ browser: 'firefox144' });
         const session = { fingerprint: { browser: 'chrome' } } as ISession;

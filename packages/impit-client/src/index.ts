@@ -113,10 +113,20 @@ export class ImpitHttpClient extends BaseHttpClient {
             followRedirects: redirect === 'follow',
         });
 
-        const response = await impit.fetch(request, { signal: signal ?? undefined });
+        // The caller's signal carries the deadline (for crawlers, the navigation window that `extendTimeout()` can
+        // push out), so impit's 30 s default must not cut the request short. Without a signal, the default stays.
+        const response = await impit.fetch(request, {
+            signal: signal ?? undefined,
+            ...(signal ? { timeout: null } : {}),
+        });
+
+        // Once the headers are in, an aborted signal only stops impit's body reads, while the download itself keeps
+        // going. Piping the body through the signal cancels the download too.
+        const body =
+            signal && response.body ? response.body.pipeThrough(new TransformStream(), { signal }) : response.body;
 
         // todo - cast shouldn't be needed here, impit returns `Uint8Array`
-        return new ResponseWithUrl(response.body, response);
+        return new ResponseWithUrl(body, response);
     }
 
     #resolveImpitBrowser(fingerprint?: SessionFingerprint): ImpitBrowser | undefined {
