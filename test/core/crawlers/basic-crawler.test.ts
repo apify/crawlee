@@ -46,7 +46,7 @@ import {
 } from '@crawlee/basic';
 import type { StorageTransaction } from '@crawlee/core';
 import { currentStorageTransaction, MemoryStorageBackend } from '@crawlee/core';
-import { BaseHttpClient } from '@crawlee/http-client';
+import { BaseHttpClient, FetchHttpClient } from '@crawlee/http-client';
 import { FileSystemStorageBackend } from '@crawlee/fs-storage';
 import type { Dictionary, ISession, ProxyInfo } from '@crawlee/types';
 import { RobotsTxtFile, sleep } from '@crawlee/utils';
@@ -440,6 +440,94 @@ describe('BasicCrawler', () => {
         // A failed startup is not a run, so the crawler must not stay wedged as `running`.
         getRequestManager.mockRestore();
         await crawler.run(['https://example.com/2']);
+    });
+
+    describe('teardown during startup', () => {
+        test.each([
+            { label: 'a crawler-owned', injectSystem: false },
+            { label: 'an injected', injectSystem: true },
+        ])('settles run() with $label ConcurrencySystem', async ({ injectSystem }) => {
+            const initialized = Promise.withResolvers<void>();
+            const resumeInitialization = Promise.withResolvers<void>();
+
+            const concurrencySystem = injectSystem ? new ConcurrencySystem({ maxConcurrency: 1 }) : undefined;
+            await concurrencySystem?.start();
+
+            // Override the `init` method to allow weaving a teardown call into it reliably
+            const crawler = new (class DelayedStartupCrawler extends BasicCrawler {
+                protected override async init() {
+                    await super.init();
+                    initialized.resolve();
+                    await resumeInitialization.promise;
+                }
+            })({
+                keepAlive: true,
+                ...(concurrencySystem && { concurrencySystem }),
+                requestHandler: async () => {},
+            });
+
+            const runPromise = crawler.run().then(
+                () => 'resolved',
+                (error: Error) => `rejected: ${error.message}`,
+            );
+
+            await initialized.promise;
+            await crawler.teardown();
+            resumeInitialization.resolve();
+
+            const outcome = await Promise.race([runPromise, sleep(500).then(() => 'still pending')]);
+
+            // Without this, a regression would leak the pool interval into the following tests.
+            if (outcome === 'still pending') await crawler.teardown();
+            await concurrencySystem?.stop();
+
+            expect(outcome).toBe('resolved');
+        });
+
+        test('settles a repeated run() torn down while it resets the previous run state', async () => {
+            const crawler = new BasicCrawler({ keepAlive: true, requestHandler: async () => {} });
+            const firstRun = crawler.run();
+            await vitest.waitFor(() => expect(crawler.running).toBe(true));
+            await crawler.teardown();
+            await firstRun;
+
+            const resetStarted = Promise.withResolvers<void>();
+            const resumeReset = Promise.withResolvers<void>();
+            vitest.spyOn(crawler.statistics as Statistics, 'resetStore').mockImplementation(async () => {
+                resetStarted.resolve();
+                await resumeReset.promise;
+            });
+
+            const runPromise = crawler.run().then(
+                () => 'resolved',
+                (error: Error) => `rejected: ${error.message}`,
+            );
+
+            await resetStarted.promise;
+            await crawler.teardown();
+            resumeReset.resolve();
+
+            const outcome = await Promise.race([runPromise, sleep(500).then(() => 'still pending')]);
+
+            // Without this, a regression would leak the pool interval into the following tests.
+            if (outcome === 'still pending') await crawler.teardown();
+
+            expect(outcome).toBe('resolved');
+        });
+    });
+
+    test('teardown before run() does not cancel the next run', async () => {
+        const processed: string[] = [];
+        const crawler = new BasicCrawler({
+            requestHandler: async ({ request }) => {
+                processed.push(request.url);
+            },
+        });
+
+        await crawler.teardown();
+        await crawler.run(['https://example.com/after-teardown']);
+
+        expect(processed).toEqual(['https://example.com/after-teardown']);
     });
 
     test('a startup that fails before the crawl leaves the instance runnable', async () => {
@@ -3085,6 +3173,62 @@ describe('BasicCrawler', () => {
 
             // Should only have added the first request (allowed by robots.txt and within limit)
             expect(addRequestsBatchedSpy).toHaveBeenCalledOnce();
+        });
+
+        test('fetches robots.txt with browser-like headers through the crawler http client', async () => {
+            // Bot protection: only browser-like clients get the real robots.txt, others get a 403.
+            const server = http.createServer((req, res) => {
+                if (req.url !== '/robots.txt') {
+                    res.writeHead(200).end();
+                } else if (req.headers['user-agent']?.includes('Mozilla')) {
+                    res.end('User-agent: *\nDisallow: /private\n');
+                } else {
+                    res.writeHead(403).end();
+                }
+            });
+            await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+            const { port } = server.address() as AddressInfo;
+
+            const handled: string[] = [];
+            const crawler = new BasicCrawler({
+                respectRobotsTxtFile: true,
+                requestHandler: async ({ request }) => {
+                    handled.push(new URL(request.url).pathname);
+                },
+            });
+
+            try {
+                await crawler.run([`http://127.0.0.1:${port}/public`, `http://127.0.0.1:${port}/private`]);
+            } finally {
+                server.close();
+            }
+
+            expect(handled).toEqual(['/public']);
+        });
+
+        test('fetches robots.txt through the proxy of a crawler session', async () => {
+            const proxyUrl = 'http://proxy.example.com:8000';
+            const httpClient = new FetchHttpClient();
+            const sendRequest = vitest
+                .spyOn(httpClient, 'sendRequest')
+                .mockResolvedValue(new Response('User-agent: *\nDisallow: /private\n'));
+
+            const handled: string[] = [];
+            const crawler = new BasicCrawler({
+                respectRobotsTxtFile: true,
+                httpClient,
+                proxyConfiguration: new ProxyConfiguration({ proxyUrls: [proxyUrl] }),
+                requestHandler: async ({ request }) => {
+                    handled.push(new URL(request.url).pathname);
+                },
+            });
+
+            await crawler.run(['https://example.com/public', 'https://example.com/private']);
+
+            expect(sendRequest).toHaveBeenCalledOnce();
+            expect(sendRequest.mock.calls[0][1]?.session?.proxyInfo?.url).toBe(proxyUrl);
+            expect(sendRequest.mock.calls[0][1]?.timeoutMillis).toBeGreaterThan(0);
+            expect(handled).toEqual(['/public']);
         });
 
         describe('robots.txt crawl-delay', () => {
