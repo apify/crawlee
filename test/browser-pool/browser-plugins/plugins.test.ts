@@ -401,6 +401,17 @@ describe('Plugins', () => {
 
         test.each([
             ['socks5://user:pass@proxy.example.com:1080', 'socks5://proxy.example.com:1080'],
+            ['socks://user:pass@proxy.example.com:1080', 'socks://proxy.example.com:1080'],
+            ['http://user:pass@proxy.example.com:8080', 'http://proxy.example.com:8080'],
+        ])('PlaywrightPlugin.addProxyToLaunchOptions should set correct server for %s', async (proxyUrl, expectedServer) => {
+            const plugin = new PlaywrightPlugin(playwright.chromium);
+            const context = plugin.createLaunchContext({ proxyUrl });
+            await (plugin as any).addProxyToLaunchOptions(context);
+            expect(context.launchOptions!.proxy!.server).toEqual(expectedServer);
+        });
+
+        test.each([
+            ['socks5://user:pass@proxy.example.com:1080', 'socks5://proxy.example.com:1080'],
             ['http://user:pass@proxy.example.com:8080', 'http://proxy.example.com:8080'],
         ])('PuppeteerController should handle %s', (proxyUrl, expectedServer) => {
             const plugin = new PuppeteerPlugin(puppeteer);
