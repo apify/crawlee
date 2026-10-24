@@ -916,9 +916,8 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     /**
      * Reports whether anything can be dispatched right now, and if not, when — or why never.
      *
-     * One traversal of the domain clocks answers all of it: only domains whose delays have run out are probed,
-     * the rest merely contribute the moment they come due. Throttled requests count as outstanding work, so a
-     * crawler gated on this idles for the backoff instead of concluding it is done.
+     * Dispatchable domains are probed first. When nothing can be dispatched, cooling domains contribute their
+     * deadlines only while they still have outstanding work, so a finished crawl does not wait out a cooldown.
      *
      * `ready` from anywhere else outranks a stalling domain and is returned without looking at the stall clocks,
      * so one hopeless domain never ends a crawl making progress elsewhere. It cannot outrank itself, though -
@@ -929,13 +928,14 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
 
         const now = Date.now();
         const dispatchable: Promise<T>[] = [];
-        let readyAt: number | undefined;
+        const cooling: { subManager: Promise<T>; until: number }[] = [];
         let stallCandidates: DomainState[] | undefined;
 
         for (const state of this.#domainStates.values()) {
             // A `Crawl-delay` can give a domain a clock before its first request gives it a queue - nothing
             // to fetch from and nothing to wait for until then.
-            if (!this.#subManagers.has(state.domain)) {
+            const subManager = this.#subManagers.get(state.domain);
+            if (!subManager) {
                 continue;
             }
 
@@ -955,9 +955,9 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
             const until = throttledUntil(state);
 
             if (now >= until) {
-                dispatchable.push(this.#subManagers.get(state.domain)!);
-            } else if (readyAt === undefined || until < readyAt) {
-                readyAt = until;
+                dispatchable.push(subManager);
+            } else {
+                cooling.push({ subManager, until });
             }
         }
 
@@ -1002,8 +1002,10 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
             }
         }
 
-        if (readyAt !== undefined) {
-            return joinRequestSourceStatuses(probed, { status: 'waiting', readyAt });
+        for (const { subManager, until } of cooling.sort((a, b) => a.until - b.until)) {
+            if ((await (await subManager).checkReadiness()).status !== 'finished') {
+                return joinRequestSourceStatuses(probed, { status: 'waiting', readyAt: until });
+            }
         }
 
         // Batches still landing in the background are work nobody can see in a queue yet.
