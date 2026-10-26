@@ -11,7 +11,7 @@
         "@crawlee/playwright": "file:./packages/playwright-crawler",
         "@crawlee/types": "file:./packages/types",
         "@crawlee/utils": "file:./packages/utils",
-        "camoufox-js": "^0.11.0",
+        "camoufox": "^0.5.8",
         "playwright": "1.60.0"
     },
     "overrides": {
@@ -22,7 +22,7 @@
     },
     "scripts": {
         "start": "node main.js",
-        "postinstall": "camoufox-js fetch"
+        "postinstall": "camoufox fetch"
     },
     "type": "module",
     "license": "ISC"

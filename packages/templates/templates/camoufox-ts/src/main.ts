@@ -1,6 +1,6 @@
 // For more information, see https://crawlee.dev/
 import { Browser, ImpitHttpClient } from '@crawlee/impit-client';
-import { launchOptions } from 'camoufox-js';
+import { launchOptions } from 'camoufox';
 import { PlaywrightCrawler, playwrightBrowserPool, ProxyConfiguration } from 'crawlee';
 import { firefox } from 'playwright';
 
