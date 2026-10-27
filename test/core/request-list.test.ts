@@ -747,4 +747,38 @@ describe('Request', () => {
     test('alwaysEnqueue throws when combined with a custom uniqueKey', () => {
         expect(() => new Request({ url: 'https://example.com', uniqueKey: 'custom', alwaysEnqueue: true })).toThrow();
     });
+
+    test('fromSchema treats null fields of a stored request as unset', () => {
+        const request = Request.fromSchema({
+            id: 'id',
+            url: 'https://example.com',
+            uniqueKey: 'https://example.com',
+            method: 'GET',
+            payload: null,
+            noRetry: null,
+            retryCount: 0,
+            errorMessages: null,
+            headers: null,
+            userData: {},
+            handledAt: null,
+            loadedUrl: null,
+        });
+
+        expect(request).toMatchObject({ payload: undefined, noRetry: false, errorMessages: [], headers: {} });
+        expect(request).toMatchObject({ handledAt: undefined, loadedUrl: undefined });
+    });
+
+    test('fromSchema accepts what storages and the constructor accept beyond the declared types', () => {
+        const request = Request.fromSchema({
+            url: 'https://example.com',
+            uniqueKey: 'https://example.com',
+            method: 'POST',
+            payload: new Uint8Array([1]) as unknown as string,
+            errorMessages: [null] as unknown as string[],
+            handledAt: new Date('2026-01-01T00:00:00.000Z') as unknown as string,
+        });
+
+        expect(request).toMatchObject({ errorMessages: [null], handledAt: '2026-01-01T00:00:00.000Z' });
+        expect(request.payload).toBeInstanceOf(Uint8Array);
+    });
 });
