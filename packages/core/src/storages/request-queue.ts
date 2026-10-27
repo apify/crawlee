@@ -727,7 +727,19 @@ export class RequestQueue implements IStorage, IRequestManager {
         const schema = await this.backend.fetchNextRequest();
         if (!schema) return null;
 
-        return Request.fromSchema<T>(schema);
+        try {
+            return Request.fromSchema<T>(schema);
+        } catch (error) {
+            // The backend already handed the request out, so it would stay in progress forever.
+            const message = (error as Error).message;
+            this.log.error(`Request ${schema.url} could not be loaded and is marked as handled: ${message}`);
+            await this.backend.markRequestAsHandled({
+                ...schema,
+                errorMessages: [...(schema.errorMessages ?? []), message],
+                handledAt: new Date().toISOString(),
+            });
+            return null;
+        }
     }
 
     /**

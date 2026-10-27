@@ -1659,6 +1659,20 @@ describe('BasicCrawler', () => {
         vitest.restoreAllMocks();
     });
 
+    test('does not retry a failed fetchNextRequest, which might have already claimed a request', async () => {
+        const requestQueue = await RequestQueue.open();
+        await requestQueue.addRequest({ url: 'http://example.com/0' });
+
+        const fetchNextRequest = vitest
+            .spyOn(requestQueue, 'fetchNextRequest')
+            .mockRejectedValueOnce(new Error('Fetching failed'));
+
+        const crawler = new BasicCrawler({ requestQueue, requestHandler: async () => {} });
+
+        await expect(crawler.run()).rejects.toThrow('Fetching failed');
+        expect(fetchNextRequest).toHaveBeenCalledTimes(1);
+    });
+
     test('does not start a task while the request manager is not ready', async () => {
         const requestQueue = await RequestQueue.open({ id: 'xxx' });
         await requestQueue.addRequest({ url: 'https://example.com' });
