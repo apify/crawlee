@@ -1480,7 +1480,6 @@ export class BasicCrawler<
      * `markRequestAsHandled`, so nothing observes the difference.
      */
     async #resolveRequest(): Promise<CrawlingRequest | null> {
-        // Not retried - a failed fetch might have already claimed a request, which a retry would leave behind.
         const fetched = await addTimeoutToPromise(
             this.#fetchNextRequest.bind(this),
             this.internalTimeoutMillis,
