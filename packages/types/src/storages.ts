@@ -245,14 +245,14 @@ export interface RequestSchema {
     url: string;
     uniqueKey: string;
     method?: AllowedHttpMethods;
-    payload?: string;
-    noRetry?: boolean;
+    payload?: string | null;
+    noRetry?: boolean | null;
     retryCount?: number;
-    errorMessages?: string[];
-    headers?: Dictionary<string>;
+    errorMessages?: string[] | null;
+    headers?: Dictionary<string> | null;
     userData?: Dictionary;
-    handledAt?: string;
-    loadedUrl?: string;
+    handledAt?: string | null;
+    loadedUrl?: string | null;
 }
 
 export interface UpdateRequestSchema extends RequestSchema {

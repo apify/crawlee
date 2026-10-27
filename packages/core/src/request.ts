@@ -3,6 +3,7 @@ import crypto from 'node:crypto';
 
 import type { AllowedHttpMethods, Dictionary, RequestSchema } from '@crawlee/types';
 import type { EnqueueStrategy } from '@crawlee/utils';
+import type { SetNonNullable } from 'type-fest';
 import { z } from 'zod';
 
 import { cryptoRandomObjectId, normalizeUrl } from '@apify/utilities';
@@ -255,7 +256,11 @@ class CrawleeRequest<UserData extends Dictionary = Dictionary> {
      * {@apilink RequestOptions} object cannot carry. Subclasses get instances of themselves.
      */
     static fromSchema<UserData extends Dictionary = Dictionary>(schema: RequestSchema): CrawleeRequest<UserData> {
-        const { id, retryCount = 0, errorMessages = [], handledAt, loadedUrl, ...options } = schema;
+        // Storages return `null` for fields left unset by other clients, e.g. the Python SDK.
+        const setFields = Object.fromEntries(
+            Object.entries(schema).filter(([, value]) => value !== null),
+        ) as SetNonNullable<RequestSchema>;
+        const { id, retryCount = 0, errorMessages = [], handledAt, loadedUrl, ...options } = setFields;
         const request = new this(options as RequestOptions<UserData>);
         request.id = id;
         request.retryCount = retryCount;
