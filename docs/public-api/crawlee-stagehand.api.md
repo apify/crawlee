@@ -113,7 +113,9 @@ export type StagehandHook<UserData extends Dictionary = any> = BrowserHook<Stage
 
 // @public
 export interface StagehandLaunchContext extends BrowserLaunchContext<LaunchOptions, BrowserType> {
-    launchOptions?: LaunchOptions & Parameters<BrowserType['launchPersistentContext']>[1];
+    launchOptions?: LaunchOptions & Parameters<BrowserType['launchPersistentContext']>[1] & {
+        cdpUrl?: string;
+    };
     proxyUrl?: string;
     useChrome?: boolean;
 }
@@ -154,7 +156,7 @@ class StagehandPlugin extends BrowserPlugin<BrowserType, LaunchOptions, Browser>
     protected addProxyToLaunchOptions(launchContext: LaunchContext<BrowserType>): Promise<void>;
     createController(): BrowserController<BrowserType, LaunchOptions, Browser>;
     protected isChromiumBasedBrowser(): boolean;
-    protected _launch(launchContext: LaunchContext<BrowserType>): Promise<Browser>;
+    protected _launch(launchContext: LaunchContext<BrowserType, NonNullable<StagehandLaunchContext['launchOptions']>>): Promise<Browser>;
 }
 
 // Not exported by the entry point; reachable only as a referenced type.

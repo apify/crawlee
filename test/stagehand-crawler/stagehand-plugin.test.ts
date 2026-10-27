@@ -1,15 +1,21 @@
-import playwright from 'playwright';
+import { Stagehand } from '@browserbasehq/stagehand';
+import playwright, { chromium } from 'playwright';
 
+import { StagehandLauncher } from '../../packages/stagehand-crawler/src/internals/stagehand-launcher.js';
 import { StagehandPlugin } from '../../packages/stagehand-crawler/src/internals/stagehand-plugin.js';
 
 // Mock Stagehand
 vi.mock('@browserbasehq/stagehand', () => {
     return {
-        Stagehand: vi.fn().mockImplementation((config: any) => {
+        Stagehand: vi.fn().mockImplementation(function (config: any) {
             return {
                 init: vi.fn().mockResolvedValue(undefined),
                 close: vi.fn().mockResolvedValue(undefined),
-                connectURL: vi.fn().mockReturnValue('ws://localhost:9222/devtools/browser'),
+                connectURL: vi
+                    .fn()
+                    .mockReturnValue(
+                        config.localBrowserLaunchOptions?.cdpUrl ?? 'ws://localhost:9222/devtools/browser',
+                    ),
                 context: {
                     browser: vi.fn(() => null),
                 },
@@ -29,6 +35,7 @@ vi.mock('playwright', async () => {
                 close: vi.fn().mockResolvedValue(undefined),
                 contexts: vi.fn().mockReturnValue([]),
                 isConnected: vi.fn().mockReturnValue(true),
+                on: vi.fn(),
             }),
         },
     };
@@ -97,5 +104,50 @@ describe('StagehandPlugin', () => {
         const controller = plugin.createController();
 
         expect(controller).toBeDefined();
+    });
+
+    test.each([undefined, 'LOCAL'] as const)('forwards a static CDP URL with env %s', async (env) => {
+        const cdpUrl = 'ws://remote.example:9222/devtools/browser';
+        const launcher = new StagehandLauncher({
+            launchOptions: { cdpUrl },
+            stagehandOptions: { env },
+        });
+
+        await launcher.launch();
+
+        expect(Stagehand).toHaveBeenCalledWith(
+            expect.objectContaining({
+                env: 'LOCAL',
+                localBrowserLaunchOptions: expect.objectContaining({ cdpUrl }),
+            }),
+        );
+        expect(chromium.connectOverCDP).toHaveBeenCalledWith(cdpUrl);
+    });
+
+    test('preserves local launch options when no CDP URL is supplied', async () => {
+        const launcher = new StagehandLauncher({ launchOptions: { headless: false } });
+
+        await launcher.launch();
+
+        expect(Stagehand).toHaveBeenCalledWith(
+            expect.objectContaining({
+                localBrowserLaunchOptions: expect.objectContaining({ headless: false }),
+            }),
+        );
+        expect(chromium.connectOverCDP).toHaveBeenCalledWith('ws://localhost:9222/devtools/browser');
+    });
+
+    test('does not pass local launch options to Browserbase', async () => {
+        const launcher = new StagehandLauncher({
+            launchOptions: { cdpUrl: 'ws://remote.example:9222/devtools/browser' },
+            stagehandOptions: { env: 'BROWSERBASE' },
+        });
+
+        await launcher.launch();
+
+        expect(Stagehand).toHaveBeenCalledWith(
+            expect.objectContaining({ env: 'BROWSERBASE', localBrowserLaunchOptions: undefined }),
+        );
+        expect(chromium.connectOverCDP).toHaveBeenCalledWith('ws://localhost:9222/devtools/browser');
     });
 });

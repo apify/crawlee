@@ -15,7 +15,14 @@ export interface StagehandLaunchContext extends BrowserLaunchContext<LaunchOptio
      * Playwright launch options.
      * These will be passed to Stagehand's localBrowserLaunchOptions after fingerprinting is applied.
      */
-    launchOptions?: LaunchOptions & Parameters<BrowserType['launchPersistentContext']>[1];
+    launchOptions?: LaunchOptions &
+        Parameters<BrowserType['launchPersistentContext']>[1] & {
+            /**
+             * Static CDP URL of an existing Chromium browser to attach to instead of launching one.
+             * Used with the LOCAL environment. The browser remains running when Stagehand closes.
+             */
+            cdpUrl?: string;
+        };
 
     /**
      * URL to a HTTP proxy server. It must define the port number,
