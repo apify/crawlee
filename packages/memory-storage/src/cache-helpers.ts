@@ -295,8 +295,11 @@ export async function findRequestQueueByPossibleId(client: MemoryStorage, entryN
     let createdAt = new Date();
     let accessedAt = new Date();
     let modifiedAt = new Date();
-    let pendingRequestCount = 0;
-    let handledRequestCount = 0;
+    let pendingRequestCount: number | undefined;
+    let handledRequestCount: number | undefined;
+    // Counted from the request files, used when there is no metadata file (it is only written with `writeMetadata`)
+    let pendingInFiles = 0;
+    let handledInFiles = 0;
     const entries = new Set<string>();
     let forefrontRequestIds: string[] = [];
 
@@ -332,9 +335,15 @@ export async function findRequestQueueByPossibleId(client: MemoryStorage, entryN
                     try {
                         // Try parsing the file to ensure it's even valid to begin with
                         const fileContent = await readFile(resolve(requestQueueDir, entry.name), 'utf8');
-                        JSON.parse(fileContent);
+                        const request = JSON.parse(fileContent) as InternalRequest;
 
                         entries.add(entryName);
+
+                        if (request.orderNo === null) {
+                            handledInFiles++;
+                        } else {
+                            pendingInFiles++;
+                        }
                     } catch {
                         memoryStorageLog.warning(
                             `Request queue entry "${entry.name}" for store ${entryNameOrId} has invalid JSON content and will be ignored from the store.`,
@@ -366,8 +375,8 @@ export async function findRequestQueueByPossibleId(client: MemoryStorage, entryN
     newClient.accessedAt = accessedAt;
     newClient.createdAt = createdAt;
     newClient.modifiedAt = modifiedAt;
-    newClient.pendingRequestCount = pendingRequestCount;
-    newClient.handledRequestCount = handledRequestCount;
+    newClient.pendingRequestCount = pendingRequestCount ?? pendingInFiles;
+    newClient.handledRequestCount = handledRequestCount ?? handledInFiles;
     // @ts-expect-error - Assigning to private property
     newClient.forefrontRequestIds = forefrontRequestIds;
 
@@ -391,5 +400,6 @@ export async function findRequestQueueByPossibleId(client: MemoryStorage, entryN
 import { DatasetClient } from './resource-clients/dataset';
 import type { InternalKeyRecord } from './resource-clients/key-value-store';
 import { KeyValueStoreClient } from './resource-clients/key-value-store';
+import type { InternalRequest } from './resource-clients/request-queue';
 import { RequestQueueClient } from './resource-clients/request-queue';
 import { memoryStorageLog, resolveWithinDirectory } from './utils';
