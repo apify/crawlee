@@ -940,6 +940,38 @@ describe('AdaptivePlaywrightCrawler', () => {
             expect(seenUserData).toEqual([{ seeded: true }, { seeded: true }]);
             expect(browserRequest?.userData).toEqual({ seeded: true, attempts: 1 });
         });
+
+        test('the detection rerun (HTTP) does not see what the browser attempt wrote in afterStorageCommit', async () => {
+            const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+                detectionProbabilityRecommendation: 1,
+                renderingType: 'clientOnly',
+            });
+
+            const seen: Dictionary[] = [];
+            const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = async ({
+                request,
+                useState,
+                afterStorageCommit,
+            }) => {
+                const state = await useState<Dictionary>();
+                seen.push({ state: { ...state }, userData: { ...request.userData } });
+                afterStorageCommit(() => {
+                    state.stored = true;
+                    request.userData.stored = true;
+                });
+            };
+
+            const crawler = await makeOneshotCrawler({ requestHandler, renderingTypePredictor }, [
+                `http://${HOSTNAME}:${port}/static`,
+            ]);
+            await crawler.run();
+
+            expect(seen).toEqual([
+                { state: {}, userData: {} },
+                { state: {}, userData: {} },
+            ]);
+            expect(await (await KeyValueStore.open()).getValue('CRAWLEE_STATE')).toEqual({ stored: true });
+        });
     });
 
     test('should return deeply equal but not identical state objects across handler runs', async () => {
