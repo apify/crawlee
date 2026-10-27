@@ -138,6 +138,10 @@ describe('AdaptivePlaywrightCrawler', () => {
             res.setHeader('Location', 'https://google.com');
             res.send('Redirecting...');
         });
+
+        app.get('/plain', (_req, res) => {
+            res.status(200).type('text/plain').send('hello');
+        });
     });
     afterAll(async () => {
         server.close();
@@ -798,6 +802,144 @@ describe('AdaptivePlaywrightCrawler', () => {
         await crawler.run();
         // Reading through the KeyValueStore frontend parses the JSON value for us.
         expect(await (await KeyValueStore.open()).getValue('CRAWLEE_STATE')).toEqual({ count: 3 });
+    });
+
+    describe('writes of a discarded attempt', () => {
+        test('a rejected HTTP-only attempt does not affect retries of the browser attempt', async () => {
+            // The HTTP crawler rejects the content type with `request.noRetry = true` before the handler runs.
+            const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+                detectionProbabilityRecommendation: 0,
+                renderingType: 'static',
+            });
+
+            const requestHandler = vi.fn(async () => {
+                if (requestHandler.mock.calls.length === 1) throw new Error('a transient failure');
+            });
+            const failedRequestHandler = vi.fn();
+
+            const crawler = await makeOneshotCrawler(
+                { requestHandler, renderingTypePredictor, failedRequestHandler, maxRequestRetries: 1 },
+                [`http://${HOSTNAME}:${port}/plain`],
+            );
+            await crawler.run();
+
+            expect(requestHandler).toHaveBeenCalledTimes(2);
+            expect(failedRequestHandler).not.toHaveBeenCalled();
+        });
+
+        test('request and state writes of a failed HTTP-only attempt are not visible to the browser attempt', async () => {
+            const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+                detectionProbabilityRecommendation: 0,
+                renderingType: 'static',
+            });
+
+            const seenUserData: Dictionary[] = [];
+            const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = vi.fn(
+                async ({ request, useState }) => {
+                    seenUserData.push({ ...request.userData });
+                    const state = await useState({ count: 0, visited: [] as string[] });
+                    state.count++;
+                    state.visited.push(request.url);
+                    request.userData.attempts = (request.userData.attempts ?? 0) + 1;
+                    request.label = 'touched';
+                    if (seenUserData.length === 1) throw new Error('a transient failure');
+                },
+            );
+
+            const crawler = await makeOneshotCrawler({ requestHandler, renderingTypePredictor }, [
+                `http://${HOSTNAME}:${port}/static`,
+            ]);
+            await crawler.run();
+
+            expect(seenUserData).toEqual([{}, {}]);
+            expect(await (await KeyValueStore.open()).getValue('CRAWLEE_STATE')).toEqual({
+                count: 1,
+                visited: [`http://${HOSTNAME}:${port}/static`],
+            });
+        });
+
+        test('request writes made during a failed browser attempt are visible to the retry', async () => {
+            const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+                detectionProbabilityRecommendation: 0,
+                renderingType: 'clientOnly',
+            });
+
+            const seenAttempts: unknown[] = [];
+            const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = vi.fn(async ({ request }) => {
+                seenAttempts.push(request.userData.attempt);
+                request.userData.attempt = seenAttempts.length;
+                if (seenAttempts.length === 1) throw new Error('a transient failure');
+            });
+
+            const crawler = await makeOneshotCrawler({ requestHandler, renderingTypePredictor, maxRequestRetries: 1 }, [
+                `http://${HOSTNAME}:${port}/static`,
+            ]);
+            await crawler.run();
+
+            expect(seenAttempts).toEqual([undefined, 1]);
+        });
+
+        test('the detection rerun (HTTP) sees the live state in case the browser attempt never read it', async () => {
+            const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+                detectionProbabilityRecommendation: 1,
+                renderingType: 'clientOnly',
+            });
+            await (await KeyValueStore.open()).setValue('CRAWLEE_STATE', { seeded: true });
+
+            const seen: Dictionary[] = [];
+            const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = async (context) => {
+                // `page` throws in the HTTP-only run; the browser run never touches the state.
+                try {
+                    void context.page;
+                    return;
+                } catch {}
+
+                const state = await context.useState<Dictionary>({ fresh: true });
+                seen.push({ ...state });
+                state.rerun = true;
+                seen.push({ ...(await context.useState({ fresh: true })) });
+            };
+
+            const crawler = await makeOneshotCrawler({ requestHandler, renderingTypePredictor }, [
+                `http://${HOSTNAME}:${port}/static`,
+            ]);
+            await crawler.run();
+
+            expect(seen).toEqual([{ seeded: true }, { seeded: true, rerun: true }]);
+            expect(await (await KeyValueStore.open()).getValue('CRAWLEE_STATE')).toEqual({ seeded: true });
+        });
+
+        test('the detection rerun (HTTP) sees the request as it was before the browser attempt', async () => {
+            const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+                detectionProbabilityRecommendation: 1,
+                renderingType: 'clientOnly',
+            });
+
+            const seenUserData: Dictionary[] = [];
+            let browserRequest: Request | undefined;
+            const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = async (context) => {
+                seenUserData.push({ ...context.request.userData });
+                context.request.userData.attempts = (context.request.userData.attempts ?? 0) + 1;
+                try {
+                    void context.page;
+                    browserRequest = context.request;
+                } catch {}
+            };
+
+            const url = `http://${HOSTNAME}:${port}/static`;
+            const crawler = await makeOneshotCrawler(
+                {
+                    requestHandler,
+                    renderingTypePredictor,
+                    requestList: await RequestList.open({ sources: [{ url, userData: { seeded: true } }] }),
+                },
+                [],
+            );
+            await crawler.run();
+
+            expect(seenUserData).toEqual([{ seeded: true }, { seeded: true }]);
+            expect(browserRequest?.userData).toEqual({ seeded: true, attempts: 1 });
+        });
     });
 
     test('should return deeply equal but not identical state objects across handler runs', async () => {
