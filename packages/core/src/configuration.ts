@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
+import JSON5 from 'json5';
 import { z } from 'zod';
 
 import { log, LogLevel } from './log.js';
@@ -276,8 +277,8 @@ export class Configuration {
     static #loadFileOptions(): Record<string, unknown> {
         try {
             const file = readFileSync(join(process.cwd(), 'crawlee.json'), 'utf8');
-            // JSON.parse rejects a leading UTF-8 byte order mark, which some Windows tools write
-            return JSON.parse(file.replace(/^\uFEFF/, ''));
+            // JSON5 also handles a leading UTF-8 byte order mark, which some Windows tools write
+            return JSON5.parse(file);
         } catch {
             return {};
         }
