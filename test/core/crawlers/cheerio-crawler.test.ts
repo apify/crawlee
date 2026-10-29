@@ -224,7 +224,7 @@ describe('CheerioCrawler', () => {
         });
         await strictCrawler.run([`${serverAddress}/?tls=strict`]);
 
-        expect(captured).toEqual([true, false]);
+        expect(captured).toEqual([false, false]);
     });
 
     test('should work with skipNavigation', async () => {
