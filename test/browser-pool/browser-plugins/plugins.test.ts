@@ -117,6 +117,13 @@ const runPluginTest = <
             expect(context.userDataDir).toEqual('test');
         });
 
+        test.concurrent('should keep the port of a socks proxyUrl from plugin options', () => {
+            const plugin = new Plugin(library as never, { proxyUrl: 'socks5://127.0.0.1:1080' });
+            const context = plugin.createLaunchContext();
+
+            expect(context.proxyUrl).toEqual('socks5://127.0.0.1:1080');
+        });
+
         test.concurrent('should allow unsetting launchContext proxyUrl', () => {
             const plugin = new Plugin(library as never);
             const context = plugin.createLaunchContext();
@@ -403,12 +410,15 @@ describe('Plugins', () => {
             ['socks5://user:pass@proxy.example.com:1080', 'socks5://proxy.example.com:1080'],
             ['socks://user:pass@proxy.example.com:1080', 'socks://proxy.example.com:1080'],
             ['http://user:pass@proxy.example.com:8080', 'http://proxy.example.com:8080'],
-        ])('PlaywrightPlugin.addProxyToLaunchOptions should set correct server for %s', async (proxyUrl, expectedServer) => {
-            const plugin = new PlaywrightPlugin(playwright.chromium);
-            const context = plugin.createLaunchContext({ proxyUrl });
-            await (plugin as any).addProxyToLaunchOptions(context);
-            expect(context.launchOptions!.proxy!.server).toEqual(expectedServer);
-        });
+        ])(
+            'PlaywrightPlugin.addProxyToLaunchOptions should set correct server for %s',
+            async (proxyUrl, expectedServer) => {
+                const plugin = new PlaywrightPlugin(playwright.chromium);
+                const context = plugin.createLaunchContext({ proxyUrl });
+                await (plugin as any).addProxyToLaunchOptions(context);
+                expect(context.launchOptions!.proxy!.server).toEqual(expectedServer);
+            },
+        );
 
         test.each([
             ['socks5://user:pass@proxy.example.com:1080', 'socks5://proxy.example.com:1080'],
