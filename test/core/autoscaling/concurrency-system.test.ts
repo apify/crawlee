@@ -73,6 +73,42 @@ describe('ConcurrencySystem', () => {
             expect(system.currentConcurrency).toBe(1);
         });
 
+        test('hasCapacityForTask() keeps minConcurrency tasks running while the system is overloaded', async () => {
+            // Every sample reports overload, so the gating status is never idle.
+            const overloaded: LoadSignal = {
+                name: 'overloaded',
+                overloadedRatio: 0.5,
+                async start() {},
+                async stop() {},
+                getSample: () => [{ createdAt: new Date(), isOverloaded: true }],
+            };
+            const system = new ConcurrencySystem({
+                minConcurrency: 2,
+                maxConcurrency: 4,
+                desiredConcurrency: 4,
+                loadSignals: {
+                    memory: false,
+                    eventLoop: false,
+                    cpu: false,
+                    storageBackend: false,
+                    custom: [overloaded],
+                },
+            });
+            await system.start();
+            onTestFinished(async () => system.stop());
+
+            // Below the minimum the overload is ignored - the floor must keep running, or the pool would freeze.
+            expect(system.tryRegisterTaskStart()).toBe(true);
+            expect(system.tryRegisterTaskStart()).toBe(true);
+            expect(system.currentConcurrency).toBe(2);
+            // At the minimum the overload is what stops further tasks, well before the desired budget of 4.
+            expect(system.hasCapacityForTask()).toBe(false);
+            expect(system.tryRegisterTaskStart()).toBe(false);
+
+            system.registerTaskEnd();
+            expect(system.hasCapacityForTask()).toBe(true);
+        });
+
         test('maxTasksPerMinute === Infinity never limits', () => {
             const system = new ConcurrencySystem({
                 minConcurrency: 1000,
@@ -596,6 +632,56 @@ describe('ConcurrencySystem', () => {
 
             // The two pools together must never exceed the single shared budget.
             expect(combinedPeak).toBeLessThanOrEqual(4);
+        });
+
+        test('minConcurrency under overload is a machine-wide floor, not a per-pool one', async () => {
+            const overloaded: LoadSignal = {
+                name: 'overloaded',
+                overloadedRatio: 0.5,
+                async start() {},
+                async stop() {},
+                getSample: () => [{ createdAt: new Date(), isOverloaded: true }],
+            };
+            // One shared floor of 2 under permanent overload; two pools that would each happily run 4 in parallel.
+            const system = new ConcurrencySystem({
+                minConcurrency: 2,
+                maxConcurrency: 4,
+                desiredConcurrency: 4,
+                loadSignals: {
+                    memory: false,
+                    eventLoop: false,
+                    cpu: false,
+                    storageBackend: false,
+                    custom: [overloaded],
+                },
+            });
+
+            let combinedCurrent = 0;
+            let combinedPeak = 0;
+
+            const makePool = (id: string, taskCount: number) => {
+                let done = 0;
+                return new AutoscaledPool({
+                    concurrencySystem: system,
+                    consumer: { id },
+                    runTaskFunction: async () => {
+                        combinedCurrent++;
+                        combinedPeak = Math.max(combinedPeak, combinedCurrent);
+                        await sleep(5);
+                        done++;
+                        combinedCurrent--;
+                    },
+                    isFinishedFunction: async () => done >= taskCount,
+                    isTaskReadyFunction: async () => done < taskCount,
+                });
+            };
+
+            await system.start();
+            await Promise.all([makePool('first', 20).run(), makePool('second', 20).run()]);
+            await system.stop();
+
+            // The floor is shared: the two pools together keep exactly `minConcurrency` running, not 2 each.
+            expect(combinedPeak).toBe(2);
         });
 
         test('a pool that ran out of work finishes while another one saturates the shared budget', async () => {

@@ -648,7 +648,8 @@ export interface BasicCrawlerOptions<
  *
  * The crawler finishes if there are no more {@apilink Request} objects to crawl.
  *
- * New requests are only dispatched when there is enough free CPU and memory available, as judged by the crawler's
+ * The crawler keeps `minConcurrency` requests in flight even while the system is overloaded, and dispatches
+ * additional ones only when there is enough free CPU and memory available, as judged by its
  * {@apilink ConcurrencySystem}.
  * Concurrency is tuned via the {@apilink BasicCrawlerOptions.minConcurrency|`minConcurrency`},
  * {@apilink BasicCrawlerOptions.maxConcurrency|`maxConcurrency`} and
