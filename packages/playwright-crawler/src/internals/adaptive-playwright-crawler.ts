@@ -802,16 +802,21 @@ export class AdaptivePlaywrightCrawler<
                 transactions,
             );
 
-            // A failed browser attempt is handed to the retry logic with its writes - `userData` stashed for the
-            // next attempt must survive.
-            this.#keepContextModifications(browserRun.contextModifications);
-
             if (!browserRun.ok) {
+                // A failed browser attempt is handed to the retry logic with its writes - `userData` stashed for the
+                // next attempt must survive.
+                this.#keepContextModifications(browserRun.contextModifications);
                 throw browserRun.error;
             }
 
-            browserRun.logs.forEach(([log, method, ...args]) => log[method](...(args as [any, any])));
-            await browserRun.transaction.commit();
+            try {
+                browserRun.logs.forEach(([log, method, ...args]) => log[method](...(args as [any, any])));
+                // The `afterStorageCommit` callbacks belong to this attempt, so the detection rerun undoes their
+                // writes too - the journals stay open until they have run.
+                await browserRun.transaction.commit();
+            } finally {
+                this.#keepContextModifications(browserRun.contextModifications);
+            }
 
             // Past the shutdown fence, `teardown()` has already drained - and possibly torn down the predictor.
             if (httpResultRejected && !this.#shutDown) {
