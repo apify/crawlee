@@ -1,5 +1,5 @@
 # The base image provides the Camoufox binary (Firefox 150); the actor pins the matching
-# Playwright (1.60) in package.json. Camoufox-js 0.11 cannot run under Playwright 1.61.
+# Playwright (1.60) in package.json.
 FROM apify/actor-node-playwright-camoufox:24-1.60.0-beta
 
 # The Camoufox base image builds as the non-root `myuser`, so everything we copy in must
@@ -8,7 +8,7 @@ FROM apify/actor-node-playwright-camoufox:24-1.60.0-beta
 COPY --chown=myuser packages ./packages
 COPY --chown=myuser package*.json ./
 
-# `--ignore-scripts` skips the `camoufox-js fetch` postinstall; the browser is already
+# `--ignore-scripts` skips the `camoufox fetch` postinstall; the browser is already
 # baked into the base image.
 RUN rm -rf node_modules package-lock.json
 RUN npm --quiet set progress=false \

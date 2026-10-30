@@ -1,6 +1,6 @@
 import { Dataset, handleCloudflareChallengeHook, PlaywrightCrawler, playwrightBrowserPool } from '@crawlee/playwright';
 import { Actor } from 'apify';
-import { launchOptions } from 'camoufox-js';
+import { launchOptions } from 'camoufox';
 import { firefox } from 'playwright';
 
 const mainOptions = {

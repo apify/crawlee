@@ -1,5 +1,5 @@
 import { PlaywrightCrawler, handleCloudflareChallengeHook, playwrightBrowserPool } from 'crawlee';
-import { launchOptions } from 'camoufox-js';
+import { launchOptions } from 'camoufox';
 import { firefox } from 'playwright';
 
 const crawler = new PlaywrightCrawler({

@@ -157,7 +157,7 @@ if (isMainThread) {
 
             for (let attempt = 0; attempt < 5; attempt++) {
                 try {
-                    execSync(`pnpm exec camoufox-js fetch`, { stdio: 'inherit' });
+                    execSync(`pnpm exec camoufox fetch`, { stdio: 'inherit' });
                     break;
                 } catch (e) {
                     console.error('Failed to fetch Camoufox', e);

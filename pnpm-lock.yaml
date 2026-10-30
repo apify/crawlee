@@ -314,9 +314,9 @@ importers:
       body-parser:
         specifier: ^2.3.0
         version: 2.3.0(supports-color@7.2.0)
-      camoufox-js:
-        specifier: ^0.13.0
-        version: 0.13.0(playwright-core@1.64.1)
+      camoufox:
+        specifier: ^0.5.8
+        version: 0.5.8(playwright-core@1.64.1)
       crawlee:
         specifier: workspace:*
         version: link:packages/crawlee
@@ -5988,10 +5988,6 @@ packages:
   before-after-hook@2.2.3:
     resolution: {integrity: sha512-NzUnlZexiaH/46WDhANlyR2bXRopNg4F/zuSA3OpZnllCUgRaOF2znDioDWrmbNVsuZk6l9pMquQB38cfBZwkQ==}
 
-  better-sqlite3@13.0.3:
-    resolution: {integrity: sha512-RbOBxmLBG8uvFUc15X9+9SFemKcQ0WBuISBVkpuiaUB2qblC8UWlHEjdWVoZ8AdhSwmoEgsiXKfopX0CQxaACQ==}
-    engines: {node: '>=22'}
-
   big.js@5.2.2:
     resolution: {integrity: sha512-vyL2OymJxmarO8gxMr0mhChsO9QGwhynfuu4+MHTAW6czfq9humCB7rKpUjDd9YUiDPU4mzpyupFSvOClAwbmQ==}
 
@@ -6145,9 +6141,9 @@ packages:
     resolution: {integrity: sha512-xlx1yCK2Oc1APsPXDL2LdlNP6+uu8OCDdhOBSVT279M/S+y75O30C2VuD8T2ogdePBBl7PfPF4504tnLgX3zfw==}
     engines: {node: '>=14.16'}
 
-  camoufox-js@0.13.0:
-    resolution: {integrity: sha512-XVT9ErgpLaDyUKA/R/mGsDhiVtcE14TaJHELmKNZxGCCwkXBjFdyx6JG3D2KX+MwdGnfKGWE96otSO3FfVh44w==}
-    engines: {node: '>= 22'}
+  camoufox@0.5.8:
+    resolution: {integrity: sha512-GR4EwJdjB8tlo7zt1l+eRxBylFImTLTLz2eL8NmYspMGBZwPYk4o73bNFqltqTMCr2BOYXWUQA7lUI7God9L9A==}
+    engines: {node: '>= 22.15'}
     hasBin: true
     peerDependencies:
       playwright-core: 1.64.1
@@ -8278,22 +8274,10 @@ packages:
     engines: {node: '>=18'}
     hasBin: true
 
-  impit-darwin-arm64@0.14.5:
-    resolution: {integrity: sha512-9B2fc/GLfb14SgIB6fK1zIgMsXPjCu14Xu9hudSyrZF+ue6XaJXFF/G1BS27FtDFdPAYAeUTReFOJBrglteYKg==}
-    engines: {node: '>= 10'}
-    cpu: [arm64]
-    os: [darwin]
-
   impit-darwin-arm64@0.14.6:
     resolution: {integrity: sha512-QhEENTXA727SlgIIIfPg4Ij2FEgwX/3rKCBpR84JxZZfQVVNO/KB2cVvt9aupokY1NZIo6oBFYJXF5PKyRVKbQ==}
     engines: {node: '>= 10'}
     cpu: [arm64]
-    os: [darwin]
-
-  impit-darwin-x64@0.14.5:
-    resolution: {integrity: sha512-EBH6H6SSRuMpw85/n+luT0EcbNbp6vQpUaEywH4bM2bk/xy8y6JN25O/Mzxa4YGUauoytmMqXs0kDzU5lxEjaA==}
-    engines: {node: '>= 10'}
-    cpu: [x64]
     os: [darwin]
 
   impit-darwin-x64@0.14.6:
@@ -8302,26 +8286,12 @@ packages:
     cpu: [x64]
     os: [darwin]
 
-  impit-linux-arm64-gnu@0.14.5:
-    resolution: {integrity: sha512-K7gB/KiekPZ+rDoFZqbBf1jROOHibZneGmM0lt/5xcn2lO+7e9GgArdPFj6sh4fvhtOckXxEc1ExpZP+lDy3Cg==}
-    engines: {node: '>= 10'}
-    cpu: [arm64]
-    os: [linux]
-    libc: [glibc]
-
   impit-linux-arm64-gnu@0.14.6:
     resolution: {integrity: sha512-yoUxNCBDsQ72H7uTtaLp7hUQJxr1/OtIZ7KnaerFeJwPpuK2KCeAIXa/9ajoa0GZ6BErm9ZwkggOENhAXu0xxw==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [linux]
     libc: [glibc]
-
-  impit-linux-arm64-musl@0.14.5:
-    resolution: {integrity: sha512-QvjBwjYu1LXP+ota94z9fThRZjH75/Bai36eHvXUTiiFyesRRsmClc72ReyyaarnNNjcsl2RActqFMDrx77DXg==}
-    engines: {node: '>= 10'}
-    cpu: [arm64]
-    os: [linux]
-    libc: [musl]
 
   impit-linux-arm64-musl@0.14.6:
     resolution: {integrity: sha512-2UL2ya3uRCdcZwkTL4Oe0RVyhvsONJHhbtD+0VZZkDKyCxyyjtZ6Rc1QQNKh2q/xKa3vNnzj/9qcu0mj/zCk8w==}
@@ -8330,26 +8300,12 @@ packages:
     os: [linux]
     libc: [musl]
 
-  impit-linux-x64-gnu@0.14.5:
-    resolution: {integrity: sha512-+8hErR5H3+4N9r4vf5Cz6cSe57n/0zh5ksHBu2H9i5pENcM/VBRJ5qU5a3YjQwN4Ohtw/ROHBLF6V99eXUzThA==}
-    engines: {node: '>= 10'}
-    cpu: [x64]
-    os: [linux]
-    libc: [glibc]
-
   impit-linux-x64-gnu@0.14.6:
     resolution: {integrity: sha512-6TJxs/iUQbxQuznb0gz5MQ15WIT4/IxHdwNG9II8kEKUEzVMLCun8IXiT5AGdYzwlmPYSIuxDjtY2ZALhC1FlA==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [linux]
     libc: [glibc]
-
-  impit-linux-x64-musl@0.14.5:
-    resolution: {integrity: sha512-e6526hjfX8BV3XNhB1V7Xd3dJIEbLEwudZagwt4XdLqKcxHsU0iYnUyTJCogSQeEtZFepCSKUnGeg/r2lzxHow==}
-    engines: {node: '>= 10'}
-    cpu: [x64]
-    os: [linux]
-    libc: [musl]
 
   impit-linux-x64-musl@0.14.6:
     resolution: {integrity: sha512-AoneCmxaKKCx2wJZGLtFB6LrkTZUEViZ9XEsocpyMsm5IvV3mhj64AGIZI7zHlW7AFXq4MW0DPZkHiL/KxTB1A==}
@@ -8358,22 +8314,10 @@ packages:
     os: [linux]
     libc: [musl]
 
-  impit-win32-arm64-msvc@0.14.5:
-    resolution: {integrity: sha512-cABSwp3T1kNNp7++nyE8OlRuq8q9Cis3bWRHJjnTncfJ+NQlY0z1z3aLrI9ii1vvinCurCEWASuTptVSor5U1g==}
-    engines: {node: '>= 10'}
-    cpu: [arm64]
-    os: [win32]
-
   impit-win32-arm64-msvc@0.14.6:
     resolution: {integrity: sha512-DRsyV3vNPeUTaRjtFiRqHb8FVFmLDR3NB47cvb+AKKuo+KUbRJdJR1zbDQMD2SOKhYRHf1PTxzamRIkl3yWqWQ==}
     engines: {node: '>= 10'}
     cpu: [arm64]
-    os: [win32]
-
-  impit-win32-x64-msvc@0.14.5:
-    resolution: {integrity: sha512-JvjNkJ3mSB9nf74Ftdlr+KNxCC0EOAH6KUfEUqWRrGEnniIaUOMknxQw56Gbk7Zr1/e5eAOwxS/EBlASp6Yj4w==}
-    engines: {node: '>= 10'}
-    cpu: [x64]
     os: [win32]
 
   impit-win32-x64-msvc@0.14.6:
@@ -8381,10 +8325,6 @@ packages:
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [win32]
-
-  impit@0.14.5:
-    resolution: {integrity: sha512-MzoDiPBL5+QI5IEro4VDgZdm0BPY0LIf8tUykEFDjEI8NrjRL/qiiCqg4GDlIg5UbJzrKwCdvIgpRRArbbu7Dg==}
-    engines: {node: '>= 20'}
 
   impit@0.14.6:
     resolution: {integrity: sha512-1i5DxW0eRIUCtX9x+ZCSzD+FlRiEdrDOXazg0DYNMKUgnVwRWEwRhbA23Lpo2WOC674wZpwTQUubBi5z7m04Ng==}
@@ -9764,10 +9704,6 @@ packages:
   nock@14.0.17:
     resolution: {integrity: sha512-EjRr1weMa4ALQX35AgZTEnP+weJJjlW1KGDiNM2IQC2069YDHas4f4B4UUYR+TTLyKWxJvOz2wObDKQs/LNreA==}
     engines: {node: '>=18.20.0 <20 || >=20.12.1'}
-
-  node-addon-api@8.9.2:
-    resolution: {integrity: sha512-VijLXbi3UACN69I0JVXJsX4tjACjNoQDgv2gTF6sx2wWEi8tkSg2eX8p5gSIFi8z2+DL3oHmY6OyKce38SDolg==}
-    engines: {node: ^18 || ^20 || >= 21}
 
   node-domexception@1.0.0:
     resolution: {integrity: sha512-/jKZoMpw0F8GRwl4/eLROPA3cfcXtLApP0QzLmUT/HuPCZWyB7IY9ZrMeKw2O/nFIqPQB3PVM9aYm0F312AXDQ==}
@@ -18865,10 +18801,6 @@ snapshots:
 
   before-after-hook@2.2.3: {}
 
-  better-sqlite3@13.0.3:
-    dependencies:
-      node-addon-api: 8.9.2
-
   big.js@5.2.2: {}
 
   bignumber.js@9.3.1: {}
@@ -19091,21 +19023,19 @@ snapshots:
 
   camelcase@7.0.1: {}
 
-  camoufox-js@0.13.0(playwright-core@1.64.1):
+  camoufox@0.5.8(playwright-core@1.64.1):
     dependencies:
       adm-zip: 0.6.1
-      better-sqlite3: 13.0.3
       cli-progress: 3.12.0
       commander: 14.0.3
-      fingerprint-generator: 2.1.88
-      glob: 13.0.6
-      impit: 0.14.5
+      impit: 0.14.6
       language-tags: 2.1.0
       maxmind: 5.0.7
       playwright-core: 1.64.1
       pretty-bytes: 7.2.0
       ua-parser-js: 2.0.10
       xml2js: 0.6.2
+      yaml: 2.9.1
 
   caniuse-api@3.0.0:
     dependencies:
@@ -21875,64 +21805,29 @@ snapshots:
 
   image-size@2.0.4: {}
 
-  impit-darwin-arm64@0.14.5:
-    optional: true
-
   impit-darwin-arm64@0.14.6:
-    optional: true
-
-  impit-darwin-x64@0.14.5:
     optional: true
 
   impit-darwin-x64@0.14.6:
     optional: true
 
-  impit-linux-arm64-gnu@0.14.5:
-    optional: true
-
   impit-linux-arm64-gnu@0.14.6:
-    optional: true
-
-  impit-linux-arm64-musl@0.14.5:
     optional: true
 
   impit-linux-arm64-musl@0.14.6:
     optional: true
 
-  impit-linux-x64-gnu@0.14.5:
-    optional: true
-
   impit-linux-x64-gnu@0.14.6:
-    optional: true
-
-  impit-linux-x64-musl@0.14.5:
     optional: true
 
   impit-linux-x64-musl@0.14.6:
     optional: true
 
-  impit-win32-arm64-msvc@0.14.5:
-    optional: true
-
   impit-win32-arm64-msvc@0.14.6:
-    optional: true
-
-  impit-win32-x64-msvc@0.14.5:
     optional: true
 
   impit-win32-x64-msvc@0.14.6:
     optional: true
-
-  impit@0.14.5:
-    optionalDependencies:
-      impit-darwin-arm64: 0.14.5
-      impit-darwin-x64: 0.14.5
-      impit-linux-arm64-gnu: 0.14.5
-      impit-linux-arm64-musl: 0.14.5
-      impit-linux-x64-gnu: 0.14.5
-      impit-linux-x64-musl: 0.14.5
-      impit-win32-arm64-msvc: 0.14.5
-      impit-win32-x64-msvc: 0.14.5
 
   impit@0.14.6:
     optionalDependencies:
@@ -23594,8 +23489,6 @@ snapshots:
       '@mswjs/interceptors': 0.41.9
       json-stringify-safe: 5.0.1
       propagate: 2.0.1
-
-  node-addon-api@8.9.2: {}
 
   node-domexception@1.0.0: {}
 
