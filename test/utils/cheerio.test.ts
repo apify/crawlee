@@ -107,6 +107,15 @@ describe('htmlToText()', () => {
         await checkHtmlToText(html, text, true);
     });
 
+    test('handles documents with many nodes in linear time', async () => {
+        const count = 160_000;
+        const html = `<html><body><div>${'<i> a</i>'.repeat(count)}</div></body></html>`;
+        const start = performance.now();
+        const text = await htmlToText(html);
+        expect(performance.now() - start).toBeLessThan(2_000);
+        expect(text).toEqual('a'.repeat(count).split('').join(' '));
+    });
+
     test('works with Cheerio object', async () => {
         const html1 = '<html><body>Some text</body></html>';
         await checkHtmlToText(cheerio.load(html1), 'Some text');
