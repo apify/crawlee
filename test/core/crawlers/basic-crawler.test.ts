@@ -2988,6 +2988,28 @@ describe('BasicCrawler', () => {
             expect(captured).toEqual([true]);
         });
 
+        test('forwards proxyUrl to the http client', async () => {
+            const captured: (string | undefined)[] = [];
+
+            const crawler = new BasicCrawler({
+                httpClient: Object.assign(Object.create(BaseHttpClient.prototype) as BaseHttpClient, {
+                    async sendRequest(_request: globalThis.Request, options?: { proxyUrl?: string }) {
+                        captured.push(options?.proxyUrl);
+                        return new Response('ok');
+                    },
+                }),
+                async requestHandler({ sendRequest }) {
+                    await sendRequest({}, { proxyUrl: 'http://options-proxy.com' });
+                    await sendRequest({ proxyUrl: 'http://request-proxy.com' });
+                    await sendRequest();
+                },
+            });
+
+            await crawler.run([url]);
+
+            expect(captured).toEqual(['http://options-proxy.com', 'http://request-proxy.com', undefined]);
+        });
+
         test('proxyUrl TypeScript support', async () => {
             const crawler = new BasicCrawler({
                 async requestHandler({ sendRequest }) {
