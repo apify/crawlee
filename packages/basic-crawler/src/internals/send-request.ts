@@ -30,6 +30,8 @@ export function createSendRequest(httpClient: BaseHttpClient, originRequest: Cra
             method: mergedMethod,
             headers: mergedHeaders,
             body: overrideRequest.body ?? baseRequest.body,
+            // Node-specific option required for a stream body, which the request body always is
+            duplex: 'half',
         } as RequestInit);
 
         return httpClient.sendRequest(request, {
