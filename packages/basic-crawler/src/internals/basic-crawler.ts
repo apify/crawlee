@@ -1176,7 +1176,7 @@ export class BasicCrawler<
                     new Statistics({
                         logMessage: `${this.constructor.name} request statistics:`,
                         log: this.log,
-                        id: this.#identity.id,
+                        id,
                     }) as Statistics<StatisticStateExtension>,
             );
 

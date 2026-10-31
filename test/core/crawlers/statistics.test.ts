@@ -1,5 +1,5 @@
-import type { StatisticPersistedState, StatisticsOptions } from '@crawlee/basic';
-import { Statistics } from '@crawlee/basic';
+import type { IStatistics, StatisticPersistedState, StatisticsOptions } from '@crawlee/basic';
+import { BasicCrawler, Statistics } from '@crawlee/basic';
 import { EventType, KeyValueStore, MemoryStorageBackend, serviceLocator } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/types';
 import { z } from 'zod';
@@ -21,6 +21,8 @@ describe('Statistics', () => {
     beforeEach(async () => {
         // Restarted for every test so that the timestamps of a persisted record are predictable.
         vitest.setSystemTime(0);
+        // The global setup resets the freshly loaded modules once a test has loaded them, not these.
+        serviceLocator.reset();
         serviceLocator.setStorageBackend(new MemoryStorageBackend());
         stats = new Statistics();
         store = await KeyValueStore.open();
@@ -636,6 +638,62 @@ describe('Statistics', () => {
             expect(statsB.state.requestsSucceeded).toEqual(0);
 
             await statsB.stopCapturing();
+        });
+
+        test('a crawler with an explicit id persists its statistics under that id', async () => {
+            const crawler = new BasicCrawler({ id: 'my-crawler', requestHandler: async () => {} });
+
+            await crawler.statistics.startCapturing();
+            await crawler.statistics.stopCapturing();
+
+            expect(await store.keys({ prefix: 'CRAWLEE_CRAWLER_STATISTICS_' })).toEqual([
+                'CRAWLEE_CRAWLER_STATISTICS_my-crawler',
+            ]);
+        });
+    });
+
+    describe('alongside a crawler', () => {
+        // Statistics and crawlers are numbered by process-wide counters, so each test starts from fresh modules.
+        const loadFreshModules = async () => {
+            vitest.resetModules();
+            const fresh = await import('@crawlee/basic');
+            fresh.serviceLocator.setStorageBackend(new fresh.MemoryStorageBackend());
+            const persistedKeys = async () =>
+                (await fresh.KeyValueStore.open()).keys({ prefix: 'CRAWLEE_CRAWLER_STATISTICS_' });
+            return { ...fresh, persistedKeys };
+        };
+
+        const persist = async (statistics: IStatistics) => {
+            await statistics.startCapturing();
+            await statistics.stopCapturing();
+        };
+
+        test('a standalone instance created after a crawler gets its own key', async () => {
+            const fresh = await loadFreshModules();
+            const crawler = new fresh.BasicCrawler({ requestHandler: async () => {} });
+            const standalone = new fresh.Statistics();
+
+            await persist(crawler.statistics);
+            expect(await fresh.persistedKeys()).toEqual(['CRAWLEE_CRAWLER_STATISTICS_0']);
+
+            await persist(standalone);
+            expect(await fresh.persistedKeys()).toEqual([
+                'CRAWLEE_CRAWLER_STATISTICS_0',
+                'CRAWLEE_CRAWLER_STATISTICS_1',
+            ]);
+        });
+
+        test('a standalone instance created before a crawler gets its own key', async () => {
+            const fresh = await loadFreshModules();
+            const standalone = new fresh.Statistics();
+            const crawler = new fresh.BasicCrawler({ requestHandler: async () => {} });
+
+            await persist(standalone);
+            await persist(crawler.statistics);
+            expect(await fresh.persistedKeys()).toEqual([
+                'CRAWLEE_CRAWLER_STATISTICS_0',
+                'CRAWLEE_CRAWLER_STATISTICS_1',
+            ]);
         });
     });
 });
