@@ -90,7 +90,7 @@
         "@types/fs-extra": "^11.0.4",
         "@types/lodash.merge": "^4.6.9",
         "@types/mime-types": "^3.0.1",
-        "@types/node": "^24.19.2",
+        "@types/node": "^26.0.0",
         "@types/sax": "^1.2.7",
         "@types/semver": "^7.8.0",
         "@types/whatwg-mimetype": "^5.0.0",
@@ -142,7 +142,7 @@
         }
     },
     "volta": {
-        "node": "24.22.0",
+        "node": "26.13.0",
         "pnpm": "12.11.2"
     }
 }
