@@ -6,7 +6,7 @@
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
-    "typescript": "^6.0.0"
+    "typescript": "^6.0.3"
   },
   "dependencies": {
     "@crawlee/browser-pool": "workspace:*",
@@ -16,19 +16,19 @@
     "@crawlee/impit-client": "workspace:*",
     "@crawlee/otel": "workspace:*",
     "@crawlee/stagehand": "workspace:*",
-    "@opentelemetry/api": "^1.9.0",
+    "@opentelemetry/api": "^1.10.0",
     "@opentelemetry/exporter-trace-otlp-grpc": "^0.223.0",
-    "@opentelemetry/resources": "^2.0.0",
+    "@opentelemetry/resources": "^2.12.0",
     "@opentelemetry/sdk-node": "^0.223.0",
-    "@opentelemetry/sdk-trace-base": "^2.0.0",
-    "@opentelemetry/semantic-conventions": "^1.39.0",
+    "@opentelemetry/sdk-trace-base": "^2.12.0",
+    "@opentelemetry/semantic-conventions": "^1.44.0",
     "apify": "*",
     "crawlee": "workspace:*",
-    "impit": "^0.14.6",
-    "pino": "^10.0.0",
+    "impit": "^0.14.8",
+    "pino": "^10.4.0",
     "playwright-extra": "^4.3.6",
     "puppeteer-extra": "^3.3.6",
     "puppeteer-extra-plugin-stealth": "^2.11.2",
-    "winston": "^3.17.0"
+    "winston": "^3.19.0"
   }
 }
