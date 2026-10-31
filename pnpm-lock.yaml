@@ -182,6 +182,7 @@ overrides:
 patchedDependencies:
   '@docusaurus/core@3.10.2': 7e95e0e59f770d24c0e51e1e2635b0a25edf33b38938162fa8c69ab42d38b1fb
   '@signalwire/docusaurus-plugin-llms-txt@1.2.2': 9c7d64b548a8bb7332cf782e4f959d760e600e78aef2d10562df8a05d7459695
+  sigstore@5.0.0: b8e94bc70d270e8d6c7043b27b20485e7886905eb024e80fc41f45f988e67b0c
 
 importers:
 
@@ -21880,7 +21881,7 @@ snapshots:
       npm-registry-fetch: 20.0.1(supports-color@7.2.0)
       proc-log: 7.0.0
       semver: 7.8.5
-      sigstore: 5.0.0(supports-color@7.2.0)
+      sigstore: 5.0.0(patch_hash=b8e94bc70d270e8d6c7043b27b20485e7886905eb024e80fc41f45f988e67b0c)(supports-color@7.2.0)
       ssri: 14.0.0
     transitivePeerDependencies:
       - kerberos
@@ -23485,7 +23486,7 @@ snapshots:
       npm-pick-manifest: 12.0.0
       npm-registry-fetch: 20.0.1(supports-color@7.2.0)
       proc-log: 7.0.0
-      sigstore: 5.0.0(supports-color@7.2.0)
+      sigstore: 5.0.0(patch_hash=b8e94bc70d270e8d6c7043b27b20485e7886905eb024e80fc41f45f988e67b0c)(supports-color@7.2.0)
       ssri: 14.0.0
       tar: 7.5.22
     transitivePeerDependencies:
@@ -25185,7 +25186,7 @@ snapshots:
 
   signal-exit@4.1.0: {}
 
-  sigstore@5.0.0(supports-color@7.2.0):
+  sigstore@5.0.0(patch_hash=b8e94bc70d270e8d6c7043b27b20485e7886905eb024e80fc41f45f988e67b0c)(supports-color@7.2.0):
     dependencies:
       '@sigstore/bundle': 5.0.0
       '@sigstore/core': 4.0.1
