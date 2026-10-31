@@ -376,30 +376,30 @@ describe('RequestQueue remote', () => {
         expect(r3.userData.__crawlee).toEqual({ maxRetries: 2 });
     });
 
-    describe('setExpectedRequestProcessingTimeSecs', () => {
+    describe('setExpectedRequestProcessingTime', () => {
         test('forwards the value to the client, but only ever raises it', async () => {
             const queue = await RequestQueue.open();
             // The in-memory client does not implement this optional hint (it has no request locking to
             // tune), so attach a stub to verify the frontend's raise-only forwarding logic in isolation.
             const spy = vitest.fn();
-            (queue.backend as any).setExpectedRequestProcessingTimeSecs = spy;
+            (queue.backend as any).setExpectedRequestProcessingTime = spy;
 
             // First hint is forwarded.
-            await queue.setExpectedRequestProcessingTimeSecs(60);
+            await queue.setExpectedRequestProcessingTime(60);
             expect(spy).toHaveBeenLastCalledWith(60);
 
             // A larger hint is forwarded.
-            await queue.setExpectedRequestProcessingTimeSecs(120);
+            await queue.setExpectedRequestProcessingTime(120);
             expect(spy).toHaveBeenLastCalledWith(120);
 
             // A smaller (or equal) hint must not shorten the reservation, so it is not forwarded.
-            await queue.setExpectedRequestProcessingTimeSecs(30);
-            await queue.setExpectedRequestProcessingTimeSecs(120);
+            await queue.setExpectedRequestProcessingTime(30);
+            await queue.setExpectedRequestProcessingTime(120);
             expect(spy).toHaveBeenCalledTimes(2);
         });
     });
 
-    describe('extendRequestProcessingTimeSecs', () => {
+    describe('extendRequestProcessingTime', () => {
         test('forwards the request id and extension to the backend', async () => {
             // The file-system backend actually locks fetched requests; the spy observes
             // the real forwarding and the real lock extension.
@@ -412,9 +412,9 @@ describe('RequestQueue remote', () => {
                 const fetched = await queue.fetchNextRequest();
                 expect(fetched).not.toBeNull();
 
-                const stub = vitest.spyOn(queue.backend, 'extendRequestProcessingTimeSecs');
+                const stub = vitest.spyOn(queue.backend, 'extendRequestProcessingTime');
 
-                await expect(queue.extendRequestProcessingTimeSecs(fetched!, 30)).resolves.toBe(true);
+                await expect(queue.extendRequestProcessingTime(fetched!, 30)).resolves.toBe(true);
                 expect(stub).toHaveBeenCalledExactlyOnceWith(fetched!.id, 30);
             } finally {
                 await rm(tmpLocation, { force: true, recursive: true });
@@ -427,7 +427,7 @@ describe('RequestQueue remote', () => {
             const fetched = await queue.fetchNextRequest();
             expect(fetched).not.toBeNull();
 
-            await expect(queue.extendRequestProcessingTimeSecs(fetched!, 30)).resolves.toBe(false);
+            await expect(queue.extendRequestProcessingTime(fetched!, 30)).resolves.toBe(false);
         });
     });
 

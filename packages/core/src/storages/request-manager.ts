@@ -42,7 +42,7 @@ export interface IRequestManager extends IRequestLoader {
      * the same request out again while it is still being processed. Implementations that do not need
      * this hint may leave it `undefined`.
      */
-    setExpectedRequestProcessingTimeSecs?(secs: number): Promise<void>;
+    setExpectedRequestProcessingTime?(secs: number): Promise<void>;
 
     /**
      * Records something said about the pace requests should go out at, so that a manager which paces its own
@@ -64,7 +64,7 @@ export interface IRequestManager extends IRequestLoader {
      * requests or no longer holds this one; non-locking implementations may leave it `undefined`,
      * which callers treat as `false`.
      */
-    extendRequestProcessingTimeSecs?(request: Request, secs: number): Promise<boolean>;
+    extendRequestProcessingTime?(request: Request, secs: number): Promise<boolean>;
 }
 
 /**
