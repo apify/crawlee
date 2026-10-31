@@ -713,7 +713,13 @@ export class AdaptivePlaywrightCrawler<
         } catch (error) {
             return { ok: false, error, transaction, contextModifications, logs };
         } finally {
-            await Promise.all(deferredCleanup.map((cleanup) => cleanup()));
+            for (const cleanup of deferredCleanup.reverse()) {
+                try {
+                    await cleanup();
+                } catch (error) {
+                    this.log.debug('Error in deferred cleanup', { error });
+                }
+            }
         }
     }
 
