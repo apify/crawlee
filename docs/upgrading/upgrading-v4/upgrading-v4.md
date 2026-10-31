@@ -609,9 +609,11 @@ Building the pool outside the crawler has one consequence worth knowing: a pool 
 
 `headless` is now declared on each concrete crawler rather than on `BrowserCrawler`, so the puppeteer-only `'new'` and `'old'` values are only accepted by `PuppeteerCrawler`.
 
-### `ignoreSslErrors` is renamed to `ignoreTlsErrors`
+### `ignoreSslErrors` is renamed to `ignoreTlsErrors` and defaults to `false`
 
-The crawler option is renamed to `ignoreTlsErrors`, matching the naming used everywhere else in v4 (`session.proxyInfo.ignoreTlsErrors`, the browser pool, the impit client). The old `ignoreSslErrors` name is no longer accepted — rename it in your crawler options. Behavior is unchanged from v3: the option defaults to `true` and HTTP crawlers accept invalid TLS certificates by default.
+The crawler option is renamed to `ignoreTlsErrors`, matching the naming used everywhere else in v4 (`session.proxyInfo.ignoreTlsErrors`, the browser pool, the impit client). The old `ignoreSslErrors` name is no longer accepted — rename it in your crawler options.
+
+The default also changed from `true` to `false`: HTTP crawlers now verify TLS certificates and fail requests to sites with invalid ones. Set `ignoreTlsErrors: true` to restore the v3 behavior.
 
 Under the hood the crawler now forwards the option to the HTTP client as `SendRequestOptions.ignoreTlsErrors` on every navigation request, and the same flag is enabled automatically for MITM proxy sessions (`session.proxyInfo.ignoreTlsErrors`), matching the browser crawlers.
 
