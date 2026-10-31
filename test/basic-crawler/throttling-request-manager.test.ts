@@ -705,6 +705,127 @@ describe('ThrottlingRequestManager', () => {
         expect(await subQueue.getPendingCount()).toBe(0);
     });
 
+    describe('readiness during cooldown', () => {
+        beforeEach(() => {
+            freezeClock();
+        });
+
+        test('finishes as soon as the last request is handled', async () => {
+            const manager = new ThrottlingRequestManager({
+                inner: await createQueue(),
+                domains: ['example.com'],
+                minCrawlDelaySecs: 60,
+            });
+            await manager.addRequest({ url: 'https://example.com/1' });
+            await manager.markRequestAsHandled(await pollForNextRequest(manager));
+
+            expect(await manager.checkReadiness()).toEqual({ status: 'finished' });
+        });
+
+        test.each(['queued', 'in-flight'])('waits while a domain has %s work', async (work) => {
+            const manager = new ThrottlingRequestManager({
+                inner: await createQueue(),
+                domains: ['example.com'],
+                minCrawlDelaySecs: 60,
+            });
+            await manager.addRequest({ url: 'https://example.com/1' });
+            const request = await pollForNextRequest(manager);
+            if (work === 'queued') {
+                await manager.addRequest({ url: 'https://example.com/2' });
+                await manager.markRequestAsHandled(request);
+            }
+
+            expect(await manager.checkReadiness()).toEqual({ status: 'waiting', readyAt: Date.now() + 60_000 });
+        });
+
+        test('retains the cooldown when new work arrives after the domain finishes', async () => {
+            const manager = new ThrottlingRequestManager({
+                inner: await createQueue(),
+                domains: ['example.com'],
+                minCrawlDelaySecs: 60,
+            });
+            await manager.addRequest({ url: 'https://example.com/1' });
+            await manager.markRequestAsHandled(await pollForNextRequest(manager));
+            await manager.checkReadiness();
+            advanceClock(10_000);
+            await manager.addRequest({ url: 'https://example.com/2' });
+
+            expect(await manager.fetchNextRequest()).toBeNull();
+            expect(await manager.checkReadiness()).toEqual({ status: 'waiting', readyAt: Date.now() + 50_000 });
+            advanceClock(50_000);
+            expect((await manager.fetchNextRequest())?.url).toBe('https://example.com/2');
+        });
+
+        test('skips finished cooldowns and stops probing at the earliest domain with outstanding work', async () => {
+            const manager = new ThrottlingRequestManager({ inner: await createQueue(), domains: 'all' });
+            for (const [domain, intervalMs] of [
+                ['finished.com', 10_000],
+                ['later.com', 30_000],
+                ['earlier.com', 20_000],
+            ] as const) {
+                manager.recordPacingSignal({
+                    url: `https://${domain}/1`,
+                    reason: 'minInterval',
+                    intervalMs,
+                    scope: 'hostname',
+                });
+                await manager.addRequest({ url: `https://${domain}/1` });
+                await manager.markRequestAsHandled(await pollForNextRequest(manager));
+                if (domain !== 'finished.com') {
+                    await manager.addRequest({ url: `https://${domain}/2` });
+                }
+            }
+
+            const finishedQueue = await RequestQueue.open({ alias: 'throttled-finished.com' });
+            const earlierQueue = await RequestQueue.open({ alias: 'throttled-earlier.com' });
+            const laterQueue = await RequestQueue.open({ alias: 'throttled-later.com' });
+            const finishedProbe = vitest.spyOn(finishedQueue, 'checkReadiness');
+            const earlierProbe = vitest.spyOn(earlierQueue, 'checkReadiness');
+            const laterProbe = vitest.spyOn(laterQueue, 'checkReadiness');
+
+            expect(await manager.checkReadiness()).toEqual({ status: 'waiting', readyAt: Date.now() + 20_000 });
+            expect(finishedProbe).toHaveBeenCalledTimes(1);
+            expect(earlierProbe).toHaveBeenCalledTimes(1);
+            expect(laterProbe).not.toHaveBeenCalled();
+        });
+
+        test('returns ready without probing a cooling domain when other work is dispatchable', async () => {
+            const manager = new ThrottlingRequestManager({
+                inner: await createQueue(),
+                domains: ['example.com'],
+                minCrawlDelaySecs: 60,
+            });
+            await manager.addRequest({ url: 'https://example.com/1' });
+            await manager.fetchNextRequest();
+            await manager.addRequest({ url: 'https://other.com/1' });
+            const subQueue = await RequestQueue.open({ alias: 'throttled-example.com' });
+            const probe = vitest.spyOn(subQueue, 'checkReadiness');
+
+            expect(await manager.checkReadiness()).toEqual({ status: 'ready' });
+            expect(probe).not.toHaveBeenCalled();
+        });
+
+        test('a stalled domain outranks another domain waiting on its cooldown', async () => {
+            const manager = new ThrottlingRequestManager({
+                inner: await createQueue(),
+                domains: 'all',
+                minCrawlDelaySecs: 60,
+                maxDomainStallSecs: 30,
+            });
+            await manager.addRequest({ url: 'https://cooling.com/1' });
+            await manager.fetchNextRequest();
+            await manager.addRequest({ url: 'https://stalled.com/1' });
+            manager.recordPacingSignal({ url: 'https://stalled.com/1', reason: 'rateLimited' });
+            advanceClock(31_000);
+            manager.recordPacingSignal({ url: 'https://stalled.com/1', reason: 'rateLimited' });
+            const subQueue = await RequestQueue.open({ alias: 'throttled-cooling.com' });
+            const probe = vitest.spyOn(subQueue, 'checkReadiness');
+
+            expect(await manager.checkReadiness()).toMatchObject({ status: 'stalled' });
+            expect(probe).not.toHaveBeenCalled();
+        });
+    });
+
     describe('stall detection', () => {
         beforeEach(() => {
             freezeClock();
