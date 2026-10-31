@@ -1480,7 +1480,7 @@ export class BasicCrawler<
      * `markRequestAsHandled`, so nothing observes the difference.
      */
     async #resolveRequest(): Promise<CrawlingRequest | null> {
-        const fetched = await this.#timeoutAndRetry(
+        const fetched = await addTimeoutToPromise(
             this.#fetchNextRequest.bind(this),
             this.internalTimeoutMillis,
             `Fetching next request timed out after ${this.internalTimeoutMillis / 1e3} seconds.`,

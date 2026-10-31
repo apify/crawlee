@@ -88,6 +88,22 @@ describe('RequestQueue remote', () => {
         expect((await queue.checkReadiness()).status).toBe('finished');
     });
 
+    test('a fetched request that cannot be rebuilt is marked as handled instead of staying in progress', async () => {
+        const queue = await RequestQueue.open();
+
+        await queue.addRequest({ url: 'http://example.com/a' });
+
+        const fetchNextRequest = queue.backend.fetchNextRequest.bind(queue.backend);
+        vitest.spyOn(queue.backend, 'fetchNextRequest').mockImplementation(async () => {
+            const request = await fetchNextRequest();
+            return request && { ...request, payload: 42 as unknown as string };
+        });
+
+        expect(await queue.fetchNextRequest()).toBeNull();
+        expect((await queue.checkReadiness()).status).toBe('finished');
+        expect((await queue.backend.getRequest('http://example.com/a'))?.errorMessages).toHaveLength(1);
+    });
+
     test('a reclaimed request is fetched again; reclaim with forefront returns it to the front', async () => {
         const queue = await RequestQueue.open();
 
