@@ -39,11 +39,11 @@ A crawler processes requests, not jobs, so the four methods `IStatistics` expose
 
 `persistState()` and `resetStore()` no longer take `PersistenceOptions` — persistence is enabled or disabled once, in the constructor. `resetStore()` throws while the instance is capturing, where the next `PERSIST_STATE` event would write the record straight back; call it before `startCapturing()` or after `stopCapturing()`. And `reset()` only resets the counters — it no longer stops an ongoing capture, which `stopCapturing()` does.
 
-A persisted record is also validated on load now. One that does not match the expected shape is discarded whole, with a warning, and the statistics start from scratch — where v3 would copy the malformed values into the live state and let them corrupt every later increment.
+A persisted record is also validated on load now. One that does not match the expected shape is discarded whole, with a warning, and the statistics start from scratch — where v3 would copy the malformed values into the live state and let them corrupt every later increment. Custom fields are scoped the same way: when `stateExtension.deserialize` throws, only those fields restart and the built-in counters are kept.
 
 ## Subclassing `Statistics` to track extra fields is replaced by the `stateExtension` option
 
-`persistStateKey` was `protected` and is now private. Declare extra fields via the new `stateExtension` option instead — `{ defaultState, deserialize, serialize }`, the same trio `RecoverableState` takes, scoped to the custom fields. See the [Custom statistics fields](../../guides/custom-statistics.mdx) guide.
+`persistStateKey`, `toJSON()` and `_maybeLoadStatistics()` were `protected` and are now private. Declare extra fields via the new `stateExtension` option instead — `{ defaultState, deserialize, serialize }`, the same trio `RecoverableState` takes, scoped to the custom fields. See the [Custom statistics fields](../../guides/custom-statistics.mdx) guide.
 
 The persisted record is now validated strictly, and keys that are neither built-in nor declared in `stateExtension` are dropped rather than written back. `calculate()` is still public and still an override point.
 
