@@ -53,10 +53,10 @@
         "react-github-btn": "^1.4.0",
         "unist-util-visit": "^5.2.0"
     },
-    "packageManager": "pnpm@12.11.2",
+    "packageManager": "pnpm@12.16.1",
     "volta": {
         "node": "24.22.0",
-        "pnpm": "12.11.2"
+        "pnpm": "12.16.1"
     },
     "browserslist": {
         "production": [
