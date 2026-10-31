@@ -51,7 +51,7 @@
         "@crawlee/core": "workspace:*",
         "@crawlee/http-client": "workspace:*",
         "@crawlee/types": "workspace:*",
-        "impit": "^0.14.6",
-        "tough-cookie": "^6.0.0"
+        "impit": "^0.14.8",
+        "tough-cookie": "^6.0.2"
     }
 }
