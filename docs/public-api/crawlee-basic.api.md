@@ -117,7 +117,7 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = CrawlingC
     contextPipelineBuilder?: () => ContextPipeline<CrawlingContext, Context>;
     errorHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
     eventManager?: EventManager;
-    extendContext?: (context: CrawlingContext) => Awaitable<ContextExtension>;
+    extendContext?: ContextMiddleware<CrawlingContext, ContextExtension>;
     failedRequestHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
     httpClient?: BaseHttpClient;
     id?: string;
