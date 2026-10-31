@@ -132,6 +132,7 @@ describe('StagehandController', () => {
         await (controller as any)._close();
 
         expect(mockStagehand.close).toHaveBeenCalled();
+        expect(mockBrowser.close).toHaveBeenCalledOnce();
     });
 
     test('should handle close errors gracefully', async () => {
@@ -146,6 +147,7 @@ describe('StagehandController', () => {
 
         // Should not throw
         await expect((controller as any)._close()).resolves.toBeUndefined();
+        expect(mockBrowser.close).toHaveBeenCalledOnce();
 
         // Verify error was logged
         expect(logErrorSpy).toHaveBeenCalledWith('Error closing Stagehand', { error: expect.any(Error) });
@@ -160,6 +162,7 @@ describe('StagehandController', () => {
         await (controller as any)._kill();
 
         expect(mockStagehand.close).toHaveBeenCalledWith({ force: true });
+        expect(mockBrowser.close).toHaveBeenCalledOnce();
     });
 
     test('should handle kill errors gracefully', async () => {
@@ -170,6 +173,7 @@ describe('StagehandController', () => {
 
         // Should not throw
         await expect((controller as any)._kill()).resolves.toBeUndefined();
+        expect(mockBrowser.close).toHaveBeenCalledOnce();
     });
 
     describe('newPage', () => {

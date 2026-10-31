@@ -177,6 +177,9 @@ export class StagehandController extends BrowserController<BrowserType, LaunchOp
             await stagehand.close();
         } catch (error) {
             serviceLocator.getLogger().error('Error closing Stagehand', { error });
+        } finally {
+            // Release our separate CDP connection even when Stagehand leaves an attached browser running.
+            await this.browser.close();
         }
     }
 
@@ -190,6 +193,8 @@ export class StagehandController extends BrowserController<BrowserType, LaunchOp
             await stagehand.close({ force: true });
         } catch {
             // Ignore errors during force close
+        } finally {
+            await this.browser.close();
         }
     }
 }

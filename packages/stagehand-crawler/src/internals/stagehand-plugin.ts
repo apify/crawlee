@@ -9,6 +9,7 @@ import { chromium } from 'playwright';
 
 import { StagehandController } from './stagehand-controller.js';
 import type { StagehandOptions } from './stagehand-crawler.js';
+import type { StagehandLaunchContext } from './stagehand-launcher.js';
 
 /**
  * Options for StagehandPlugin initialization.
@@ -45,7 +46,9 @@ export class StagehandPlugin extends BrowserPlugin<BrowserType, LaunchOptions, P
     /**
      * Launches a browser using Stagehand and connects Playwright to it via CDP.
      */
-    protected async _launch(launchContext: LaunchContext<BrowserType>): Promise<PlaywrightBrowser> {
+    protected async _launch(
+        launchContext: LaunchContext<BrowserType, NonNullable<StagehandLaunchContext['launchOptions']>>,
+    ): Promise<PlaywrightBrowser> {
         const { launchOptions = {}, proxyUrl } = launchContext;
 
         // Import Stagehand dynamically to avoid peer dependency issues
@@ -77,6 +80,7 @@ export class StagehandPlugin extends BrowserPlugin<BrowserType, LaunchOptions, P
             model: modelConfig,
             localBrowserLaunchOptions: isLocal
                 ? {
+                      cdpUrl: launchOptions.cdpUrl,
                       headless: launchOptions.headless,
                       args: launchOptions.args,
                       executablePath: launchOptions.executablePath,
