@@ -85,3 +85,4 @@ publicHoistPattern:
 patchedDependencies:
   '@docusaurus/core@3.10.2': patches/@docusaurus__core@3.10.2.patch
   '@signalwire/docusaurus-plugin-llms-txt@1.2.2': patches/@signalwire__docusaurus-plugin-llms-txt@1.2.2.patch
+  sigstore@4.1.1: patches/sigstore@4.1.1.patch

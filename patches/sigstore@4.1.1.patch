@@ -1,0 +1,13 @@
+diff --git a/dist/config.js b/dist/config.js
+index 373149fe22fb750faeefba5d20a0e432bb91df14..3e3173d504330cd385d84637e12a95eea9731e52 100644
+--- a/dist/config.js
++++ b/dist/config.js
+@@ -102,7 +102,7 @@ function initWitnesses(options) {
+         witnesses.push(new sign_1.RekorWitness({
+             rekorBaseURL: options.rekorURL,
+             entryType: options.legacyCompatibility ? 'intoto' : 'dsse',
+-            fetchOnConflict: false,
++            fetchOnConflict: true,
+             retry: options.retry ?? exports.DEFAULT_RETRY,
+             timeout: options.timeout ?? exports.DEFAULT_TIMEOUT,
+         }));

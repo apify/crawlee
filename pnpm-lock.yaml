@@ -183,6 +183,7 @@ overrides:
 patchedDependencies:
   '@docusaurus/core@3.10.2': 7e95e0e59f770d24c0e51e1e2635b0a25edf33b38938162fa8c69ab42d38b1fb
   '@signalwire/docusaurus-plugin-llms-txt@1.2.2': 9c7d64b548a8bb7332cf782e4f959d760e600e78aef2d10562df8a05d7459695
+  sigstore@4.1.1: b8e94bc70d270e8d6c7043b27b20485e7886905eb024e80fc41f45f988e67b0c
 
 importers:
 
@@ -22563,7 +22564,7 @@ snapshots:
       npm-registry-fetch: 19.1.0(supports-color@7.2.0)
       proc-log: 5.0.0
       semver: 7.7.2
-      sigstore: 4.1.1(supports-color@7.2.0)
+      sigstore: 4.1.1(patch_hash=b8e94bc70d270e8d6c7043b27b20485e7886905eb024e80fc41f45f988e67b0c)(supports-color@7.2.0)
       ssri: 12.0.0
     transitivePeerDependencies:
       - supports-color
@@ -24248,7 +24249,7 @@ snapshots:
       npm-registry-fetch: 19.1.0(supports-color@7.2.0)
       proc-log: 5.0.0
       promise-retry: 2.0.1
-      sigstore: 4.1.1(supports-color@7.2.0)
+      sigstore: 4.1.1(patch_hash=b8e94bc70d270e8d6c7043b27b20485e7886905eb024e80fc41f45f988e67b0c)(supports-color@7.2.0)
       ssri: 12.0.0
       tar: 7.5.22
     transitivePeerDependencies:
@@ -24270,7 +24271,7 @@ snapshots:
       npm-pick-manifest: 11.0.3
       npm-registry-fetch: 19.1.0(supports-color@7.2.0)
       proc-log: 6.1.0
-      sigstore: 4.1.1(supports-color@7.2.0)
+      sigstore: 4.1.1(patch_hash=b8e94bc70d270e8d6c7043b27b20485e7886905eb024e80fc41f45f988e67b0c)(supports-color@7.2.0)
       ssri: 13.0.1
       tar: 7.5.22
     transitivePeerDependencies:
@@ -25972,7 +25973,7 @@ snapshots:
 
   signal-exit@4.1.0: {}
 
-  sigstore@4.1.1(supports-color@7.2.0):
+  sigstore@4.1.1(patch_hash=b8e94bc70d270e8d6c7043b27b20485e7886905eb024e80fc41f45f988e67b0c)(supports-color@7.2.0):
     dependencies:
       '@sigstore/bundle': 4.0.0
       '@sigstore/core': 3.2.1
