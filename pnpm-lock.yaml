@@ -7,153 +7,153 @@ importers:
     configDependencies: {}
     packageManagerDependencies:
       pnpm:
-        specifier: 12.11.2
-        version: 12.11.2
+        specifier: 12.16.1
+        version: 12.16.1
 
 packages:
 
-  '@pnpm/exe.android-arm64@12.11.2':
-    resolution: {integrity: sha512-owLw13OfPkEoY+hLBNeeG+dCFhywr7q2d/EHPz4mNL2RhKnv8gNwMARkjkiDQu234aItVwFNDeGnmQXm+ikkAg==}
+  '@pnpm/exe.android-arm64@12.16.1':
+    resolution: {integrity: sha512-PKf78Ew+i0CBYf0Xc+eMcqQiqyBT+u8XCVg1F5roc98/6wWfdYlWhrUMmEBiKWaJ3JqHxrtt8l1NwZ7qfJt2/Q==}
     cpu: [arm64]
     os: [android]
 
-  '@pnpm/exe.android-x64@12.11.2':
-    resolution: {integrity: sha512-GYPkVebl4iokOA/4MPSpGoUVfFlsth7uqOCe1XiaiM23LAdvUOMJBObqHJijr89ZqjwHm9pO6vO45GRwJ2U2qA==}
+  '@pnpm/exe.android-x64@12.16.1':
+    resolution: {integrity: sha512-xdu7gMbB98pdvhwMeA6612Of515FDlRUtfA/1f7nWPZfPLnEdSRBO2u+1N0XBtQ/ennhPH/lrxB1gC6gnR/cdg==}
     cpu: [x64]
     os: [android]
 
-  '@pnpm/exe.darwin-arm64@12.11.2':
-    resolution: {integrity: sha512-n9M4On66y8FDxUAKgMO1FXt0qihyG4e+56p3/F0uo8Bx9KplW8BwKVnXigzCJ8aNM6sVVPkOE6M9XXbeVIxnZA==}
+  '@pnpm/exe.darwin-arm64@12.16.1':
+    resolution: {integrity: sha512-pVbmIIbhixiLvADLu1WA3TaW8FZy/D72R1De27WbbFx8/2mxvnsTyFVm4fO9kjpjMY7RzJd48CiQ96p8fO3ebQ==}
     cpu: [arm64]
     os: [darwin]
 
-  '@pnpm/exe.darwin-x64@12.11.2':
-    resolution: {integrity: sha512-oSW7n3sBT0c0cyk4kj10T2Y6Mpm+OFEiCAWozgX039tdoI6yqJF1uaFD3sw7ugLdu6VV3+uY0pa1TUZIPdxDWA==}
+  '@pnpm/exe.darwin-x64@12.16.1':
+    resolution: {integrity: sha512-xZvQBFqcZjO7vFKTK3XsJpqY6lnBL9EWSLCzVUPq3kZ94+D96gwJCa76xxGNK8Cj32f4eeM91Qg+yNRR4sRpDw==}
     cpu: [x64]
     os: [darwin]
 
-  '@pnpm/exe.freebsd-x64@12.11.2':
-    resolution: {integrity: sha512-qbzc3KoDpa/Lkf8vs3jnDe6dUUbso+6eLIyssYFMiliLpYNxn8dirk11YoNnOQcdHVB50v5RFls1Yid6ttT5pg==}
+  '@pnpm/exe.freebsd-x64@12.16.1':
+    resolution: {integrity: sha512-zTtunfi9mBhRXiXEJYfwiJj0tk7MgTSfqDSRh+Az9FZ9THazVIiQiVNS8jpcsftDOqu7LKNffQdjmgwHDThfUg==}
     cpu: [x64]
     os: [freebsd]
 
-  '@pnpm/exe.linux-arm64-musl@12.11.2':
-    resolution: {integrity: sha512-uMEYDwKRktGwANubQ+kYCwmhNwg3Ik6qK89ahsbQ5cP30R/5FVJb/T99vr9XRUBC/A7mZI6eeT92oyVas9ACyg==}
+  '@pnpm/exe.linux-arm64-musl@12.16.1':
+    resolution: {integrity: sha512-BJ3mOmcmQgcUo92Ee/WfEOt1pRiv3y2MMAkhEiYHd85UiPpHTfFhv+SpCbALmfExzXk3UlaRtMYwHlkQymc4VA==}
     cpu: [arm64]
     os: [linux]
     libc: [musl]
 
-  '@pnpm/exe.linux-arm64@12.11.2':
-    resolution: {integrity: sha512-6e8ZAQUwFXAWHHHv5FesWqf/kEK04wuitBv5f/gxzkC0DiBfaixr+f+6JQede8SF4Ji5LcMwVFJbzAtffpWxEg==}
+  '@pnpm/exe.linux-arm64@12.16.1':
+    resolution: {integrity: sha512-JaRd5gNxwdNGBBkrZFt8bknrK4YmHVJBW0JMhUQ0fJ0dEYp6C2GT9ExaCqOO8EwYEyqM+jpKgJIK+8WFaJy3ew==}
     cpu: [arm64]
     os: [linux]
     libc: [glibc]
 
-  '@pnpm/exe.linux-ppc64@12.11.2':
-    resolution: {integrity: sha512-Ui8A4nepkVupx2VpuFfysEluMvWK6gTB5rgVts7Ss/+8dj0RD28x3F/seNeH/zSypgC6yKdV6qsKVQh/uffTuQ==}
+  '@pnpm/exe.linux-ppc64@12.16.1':
+    resolution: {integrity: sha512-FnSV0Jv40S1cMv7vFNWwvu0X567Lec4L4HCRead3CFcD6zQDNbGw81s8N5bcKPahtPD9ApVuhsbmFCx4rw6RMw==}
     cpu: [ppc64]
     os: [linux]
     libc: [glibc]
 
-  '@pnpm/exe.linux-riscv64@12.11.2':
-    resolution: {integrity: sha512-i1yLdQ5bu+wjQ+srtFoJAaY2gN/+oXHFdjul4llCeoDxHE0rTIG3R41NhHfCjyFPW4+CpbBT58933CL9sMOCnA==}
+  '@pnpm/exe.linux-riscv64@12.16.1':
+    resolution: {integrity: sha512-C1Sww4FN5IttD4atRRhAKmQtSGWVp04ZAKNxO8pfu2bkRPwOW+7v+2DH1Xs1W+kZYYpO86BYDvUcadefF+AgaQ==}
     cpu: [riscv64]
     os: [linux]
     libc: [glibc]
 
-  '@pnpm/exe.linux-s390x@12.11.2':
-    resolution: {integrity: sha512-YS1/lhPjjTsN4QL50VaFZKRa3Uc/bDnhE8eKbJMFvuX06UuFS5YaiDg04APoZdfVSGqTfX27QAg7rfLMSWaqxA==}
+  '@pnpm/exe.linux-s390x@12.16.1':
+    resolution: {integrity: sha512-kn2fautsTcxIMODoovQVqZyfpDRdNgGkoeVqNdrKqbeBBvrEl+fXLkmZiq5xDht1LMr4sYiCNcsMfNMT6JPFmg==}
     cpu: [s390x]
     os: [linux]
     libc: [glibc]
 
-  '@pnpm/exe.linux-x64-musl@12.11.2':
-    resolution: {integrity: sha512-7eIxQR05fvJxCujUSKp5KTtehJ7QqrgqP/HD1+BcB/SaV2Be4XI1PEHiOgA1zxsiMIeMvTF6E4G4dYHrFjeXRg==}
+  '@pnpm/exe.linux-x64-musl@12.16.1':
+    resolution: {integrity: sha512-PM6ccHCOe/O9SsTflTJTYWfwogJZa6EmUvpnwZgiPguJBddh20wDQKgxUPXf48rDsPm9vMsIij0uHswwwbXL8g==}
     cpu: [x64]
     os: [linux]
     libc: [musl]
 
-  '@pnpm/exe.linux-x64@12.11.2':
-    resolution: {integrity: sha512-FK7QKe24AYgppJwO3mpooYptduuvIGqKJPi5ac7MdnWkjUy46JBfYhCW0grnkWKC8YOf0x+vGviuQqJEj3SpQQ==}
+  '@pnpm/exe.linux-x64@12.16.1':
+    resolution: {integrity: sha512-RK//8ZLcXGW8A2k8bQOXZDBN1Qu92zN4dYnG1bzj1zoQ1fkZ6jNzZ1AvXtsfGVma795CJtvoaF5bLXf4l/FIUw==}
     cpu: [x64]
     os: [linux]
     libc: [glibc]
 
-  '@pnpm/exe.win32-arm64@12.11.2':
-    resolution: {integrity: sha512-PCTjVDdJb6VvraZxrEeFv6EqEA0hhIsAySx28e95J2Tqpi88hLpgOXgNqV0vpxq9A+b8GLQfyk/D+1UlJPv/YQ==}
+  '@pnpm/exe.win32-arm64@12.16.1':
+    resolution: {integrity: sha512-Ox3kNNVxtGw6pK7SVejmeOUgHhUTZgAM7NQQ6cU7frPw3ix9+j7d2MGbRg3fyEFAaKWq8ZAZLTQGcDyLnAu+qA==}
     cpu: [arm64]
     os: [win32]
 
-  '@pnpm/exe.win32-x64@12.11.2':
-    resolution: {integrity: sha512-8sgX86OvRjJ3yZs/TvGR2L31wH9ScPZ+f+geKI3ikuB0RRiK3i4LlTRO8OXN6pdRqj8epMde4312MCjj7JsJdA==}
+  '@pnpm/exe.win32-x64@12.16.1':
+    resolution: {integrity: sha512-k+FhRJ0ttphFoFIVB1Sk4v76YJAulafmA/Ly57cysesUhhIzVlApeOShUz0jXubKx317TThlEfpQrukldnqORA==}
     cpu: [x64]
     os: [win32]
 
-  pnpm@12.11.2:
-    resolution: {integrity: sha512-JaUWUqGWeFr18ovabf6NxYLr76SsHRgCIc4TkCMcX7dmN4IupLbkYzznSs3LCnf3Ja8RutOBd/3t2u6BipVcuQ==}
-    engines: {node: '>=18.*'}
+  pnpm@12.16.1:
+    resolution: {integrity: sha512-CR0d7nknV1Zhsl2rPCrjHK/BxU1rce1qZgDPDByxBDSkR+rhQBXxsj4ua+3u1535SpMuIWTSgyKA3OP7MvZW0Q==}
+    engines: {node: '>=18'}
     hasBin: true
 
 snapshots:
 
-  '@pnpm/exe.android-arm64@12.11.2':
+  '@pnpm/exe.android-arm64@12.16.1':
     optional: true
 
-  '@pnpm/exe.android-x64@12.11.2':
+  '@pnpm/exe.android-x64@12.16.1':
     optional: true
 
-  '@pnpm/exe.darwin-arm64@12.11.2':
+  '@pnpm/exe.darwin-arm64@12.16.1':
     optional: true
 
-  '@pnpm/exe.darwin-x64@12.11.2':
+  '@pnpm/exe.darwin-x64@12.16.1':
     optional: true
 
-  '@pnpm/exe.freebsd-x64@12.11.2':
+  '@pnpm/exe.freebsd-x64@12.16.1':
     optional: true
 
-  '@pnpm/exe.linux-arm64-musl@12.11.2':
+  '@pnpm/exe.linux-arm64-musl@12.16.1':
     optional: true
 
-  '@pnpm/exe.linux-arm64@12.11.2':
+  '@pnpm/exe.linux-arm64@12.16.1':
     optional: true
 
-  '@pnpm/exe.linux-ppc64@12.11.2':
+  '@pnpm/exe.linux-ppc64@12.16.1':
     optional: true
 
-  '@pnpm/exe.linux-riscv64@12.11.2':
+  '@pnpm/exe.linux-riscv64@12.16.1':
     optional: true
 
-  '@pnpm/exe.linux-s390x@12.11.2':
+  '@pnpm/exe.linux-s390x@12.16.1':
     optional: true
 
-  '@pnpm/exe.linux-x64-musl@12.11.2':
+  '@pnpm/exe.linux-x64-musl@12.16.1':
     optional: true
 
-  '@pnpm/exe.linux-x64@12.11.2':
+  '@pnpm/exe.linux-x64@12.16.1':
     optional: true
 
-  '@pnpm/exe.win32-arm64@12.11.2':
+  '@pnpm/exe.win32-arm64@12.16.1':
     optional: true
 
-  '@pnpm/exe.win32-x64@12.11.2':
+  '@pnpm/exe.win32-x64@12.16.1':
     optional: true
 
-  pnpm@12.11.2:
+  pnpm@12.16.1:
     optionalDependencies:
-      '@pnpm/exe.android-arm64': 12.11.2
-      '@pnpm/exe.android-x64': 12.11.2
-      '@pnpm/exe.darwin-arm64': 12.11.2
-      '@pnpm/exe.darwin-x64': 12.11.2
-      '@pnpm/exe.freebsd-x64': 12.11.2
-      '@pnpm/exe.linux-arm64': 12.11.2
-      '@pnpm/exe.linux-arm64-musl': 12.11.2
-      '@pnpm/exe.linux-ppc64': 12.11.2
-      '@pnpm/exe.linux-riscv64': 12.11.2
-      '@pnpm/exe.linux-s390x': 12.11.2
-      '@pnpm/exe.linux-x64': 12.11.2
-      '@pnpm/exe.linux-x64-musl': 12.11.2
-      '@pnpm/exe.win32-arm64': 12.11.2
-      '@pnpm/exe.win32-x64': 12.11.2
+      '@pnpm/exe.android-arm64': 12.16.1
+      '@pnpm/exe.android-x64': 12.16.1
+      '@pnpm/exe.darwin-arm64': 12.16.1
+      '@pnpm/exe.darwin-x64': 12.16.1
+      '@pnpm/exe.freebsd-x64': 12.16.1
+      '@pnpm/exe.linux-arm64': 12.16.1
+      '@pnpm/exe.linux-arm64-musl': 12.16.1
+      '@pnpm/exe.linux-ppc64': 12.16.1
+      '@pnpm/exe.linux-riscv64': 12.16.1
+      '@pnpm/exe.linux-s390x': 12.16.1
+      '@pnpm/exe.linux-x64': 12.16.1
+      '@pnpm/exe.linux-x64-musl': 12.16.1
+      '@pnpm/exe.win32-arm64': 12.16.1
+      '@pnpm/exe.win32-x64': 12.16.1
 
 ---
 lockfileVersion: '9.0'
@@ -368,8 +368,8 @@ importers:
         specifier: ^2.2.0
         version: 2.2.0(supports-color@7.2.0)
       puppeteer:
-        specifier: 25.13.0
-        version: 25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@7.2.0))
+        specifier: 25.16.0
+        version: 25.16.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@7.2.0))
       rimraf:
         specifier: ^6.1.3
         version: 6.1.3
@@ -450,10 +450,10 @@ importers:
         version: 4.3.6(playwright-core@1.64.1)(playwright@1.64.1)(supports-color@8.1.1)
       puppeteer-extra:
         specifier: ^3.3.6
-        version: 3.3.6(puppeteer-core@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(puppeteer@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(supports-color@8.1.1)
+        version: 3.3.6(puppeteer-core@25.16.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(puppeteer@25.16.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(supports-color@8.1.1)
       puppeteer-extra-plugin-stealth:
         specifier: ^2.11.2
-        version: 2.11.2(playwright-extra@4.3.6(playwright-core@1.64.1)(playwright@1.64.1)(supports-color@8.1.1))(puppeteer-extra@3.3.6(puppeteer-core@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(puppeteer@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(supports-color@8.1.1))(supports-color@8.1.1)
+        version: 2.11.2(playwright-extra@4.3.6(playwright-core@1.64.1)(playwright@1.64.1)(supports-color@8.1.1))(puppeteer-extra@3.3.6(puppeteer-core@25.16.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(puppeteer@25.16.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(supports-color@8.1.1))(supports-color@8.1.1)
       winston:
         specifier: ^3.19.0
         version: 3.19.0
@@ -539,7 +539,7 @@ importers:
         version: 1.64.1
       puppeteer:
         specifier: '*'
-        version: 25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@7.2.0))
+        version: 25.16.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@7.2.0))
       tslib:
         specifier: ^2.8.1
         version: 2.8.1
@@ -566,7 +566,7 @@ importers:
         version: 2.1.89
       fingerprint-injector:
         specifier: ^2.1.89
-        version: 2.1.89(playwright@1.64.1)(puppeteer@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))
+        version: 2.1.89(playwright@1.64.1)(puppeteer@25.16.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))
       lodash.merge:
         specifier: ^4.6.2
         version: 4.6.2
@@ -584,7 +584,7 @@ importers:
         version: 2.7.1(supports-color@8.1.1)
       puppeteer:
         specifier: '*'
-        version: 25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1))
+        version: 25.16.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1))
       quick-lru:
         specifier: ^7.3.0
         version: 7.3.0
@@ -746,7 +746,7 @@ importers:
         version: 1.64.1
       puppeteer:
         specifier: '*'
-        version: 25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@7.2.0))
+        version: 25.16.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@7.2.0))
       tslib:
         specifier: ^2.8.1
         version: 2.8.1
@@ -960,7 +960,7 @@ importers:
         version: 3.7.1
       puppeteer:
         specifier: '*'
-        version: 25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@7.2.0))
+        version: 25.16.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@7.2.0))
       tslib:
         specifier: ^2.8.1
         version: 2.8.1
@@ -994,7 +994,7 @@ importers:
     devDependencies:
       '@browserbasehq/stagehand':
         specifier: 3.0.7
-        version: 3.0.7(@cfworker/json-schema@4.1.1)(@opentelemetry/api@1.10.0)(@opentelemetry/exporter-trace-otlp-proto@0.223.0(@opentelemetry/api@1.10.0))(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.10.0))(deepmerge@4.3.1)(dotenv@16.4.7)(proxy-agent@8.0.2(supports-color@7.2.0))(supports-color@8.1.1)(zod@4.6.7)
+        version: 3.0.7(@cfworker/json-schema@4.1.1)(@opentelemetry/api@1.10.0)(@opentelemetry/exporter-trace-otlp-proto@0.223.0(@opentelemetry/api@1.10.0))(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.10.0))(deepmerge@4.3.1)(dotenv@16.4.7)(proxy-agent@8.0.2(supports-color@8.1.1))(supports-color@8.1.1)(zod@4.6.7)
       playwright:
         specifier: 1.64.1
         version: 1.64.1
@@ -6833,8 +6833,8 @@ packages:
   devtools-protocol@0.0.1464554:
     resolution: {integrity: sha512-CAoP3lYfwAGQTaAXYvA6JZR0fjGUb7qec1qf4mToyoH2TZgUFeIqYcjh6f9jNuhHfuZiEdH+PONHYrLhRQX6aw==}
 
-  devtools-protocol@0.0.1696802:
-    resolution: {integrity: sha512-FO5/SENfvc2K8wRnWQflKcwuoTH4dBkXCWTQ9ebIWtuX8JM5+ZvCotaEmkfh21pO7TvIKGTM3hG4xFiq9WTwmg==}
+  devtools-protocol@0.0.1704951:
+    resolution: {integrity: sha512-GQhQOs9u/Mvm1zMtJIH872JS4AskuZdUSsPNPk4ChahtWAUqgz6atEtIsMt+nO7MqF1Ic4HxII/k8Cu36JivNg==}
 
   devtools-protocol@0.0.1729950:
     resolution: {integrity: sha512-KMGfQFLE9TpUCNH1IcLN1uwPIZl/BAtCJkU5U47L0EuZ+EWRypNWoQt8irh1kgb9jVoSd77V7fRuywzNx7TT5w==}
@@ -10553,8 +10553,8 @@ packages:
     resolution: {integrity: sha512-cHArnywCiAAVXa3t4GGL2vttNxh7GqXtIYGym99egkNJ3oG//wL9LkvO4WE8W1TJe95t1F1ocu9X4xWaGsOKOA==}
     engines: {node: '>=18'}
 
-  puppeteer-core@25.13.0:
-    resolution: {integrity: sha512-cyBS0OEx3e9NS53B5F6+UazXtR7f9Tw0cR1/FbPW59/hV6JPZbkIiMnxK2543IkFp3rsGlLn1iPDLF77TJsJsA==}
+  puppeteer-core@25.16.0:
+    resolution: {integrity: sha512-VA5Pf54N8shfopNkZZXCdiiwfnnY8ZJYAMqFQRhlH5mGUhfwf53Ar770GPtdpTDLUqvQeYpIBtC9/G2Jij2IJw==}
     engines: {node: '>=22.12.0'}
 
   puppeteer-extra-plugin-stealth@2.11.2:
@@ -10620,8 +10620,8 @@ packages:
       puppeteer-core:
         optional: true
 
-  puppeteer@25.13.0:
-    resolution: {integrity: sha512-vB4KLXTT5QqlikcOQ/xV0RY18bBVtNyLUTfqJ9mW+penHyoM+5DmANYuDCI4jgBtiL0eD9I5ZFSafW6/a6Trpg==}
+  puppeteer@25.16.0:
+    resolution: {integrity: sha512-LOr3reYnxAYYfQkpopz1fQnL0LdvqhpR5U2Fu+QnwzTX2gpVTHsn91UETo5NNC1md2/oC54Zu1ChBXgZDNSP1A==}
     engines: {node: '>=22.12.0'}
     hasBin: true
 
@@ -13542,7 +13542,7 @@ snapshots:
     transitivePeerDependencies:
       - encoding
 
-  '@browserbasehq/stagehand@3.0.7(@cfworker/json-schema@4.1.1)(@opentelemetry/api@1.10.0)(@opentelemetry/exporter-trace-otlp-proto@0.223.0(@opentelemetry/api@1.10.0))(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.10.0))(deepmerge@4.3.1)(dotenv@16.4.7)(proxy-agent@8.0.2(supports-color@7.2.0))(supports-color@8.1.1)(zod@4.6.7)':
+  '@browserbasehq/stagehand@3.0.7(@cfworker/json-schema@4.1.1)(@opentelemetry/api@1.10.0)(@opentelemetry/exporter-trace-otlp-proto@0.223.0(@opentelemetry/api@1.10.0))(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.10.0))(deepmerge@4.3.1)(dotenv@16.4.7)(proxy-agent@8.0.2(supports-color@8.1.1))(supports-color@8.1.1)(zod@4.6.7)':
     dependencies:
       '@ai-sdk/provider': 2.0.5
       '@anthropic-ai/sdk': 0.39.0
@@ -13582,7 +13582,7 @@ snapshots:
       patchright-core: 1.64.2
       playwright: 1.64.1
       playwright-core: 1.64.1
-      puppeteer-core: 22.15.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@7.2.0))(supports-color@8.1.1)
+      puppeteer-core: 22.15.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1))(supports-color@8.1.1)
     transitivePeerDependencies:
       - '@cfworker/json-schema'
       - '@opentelemetry/api'
@@ -18672,9 +18672,9 @@ snapshots:
       zod: 3.23.8
     optional: true
 
-  chromium-bidi@157.0.8090-0(devtools-protocol@0.0.1696802):
+  chromium-bidi@157.0.8090-0(devtools-protocol@0.0.1704951):
     dependencies:
-      devtools-protocol: 0.0.1696802
+      devtools-protocol: 0.0.1704951
       mitt: 3.0.1
       zod: 4.6.7
 
@@ -19467,7 +19467,7 @@ snapshots:
 
   devtools-protocol@0.0.1464554: {}
 
-  devtools-protocol@0.0.1696802: {}
+  devtools-protocol@0.0.1704951: {}
 
   devtools-protocol@0.0.1729950: {}
 
@@ -20447,13 +20447,13 @@ snapshots:
       header-generator: 2.1.89
       tslib: 2.8.1
 
-  fingerprint-injector@2.1.89(playwright@1.64.1)(puppeteer@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1))):
+  fingerprint-injector@2.1.89(playwright@1.64.1)(puppeteer@25.16.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1))):
     dependencies:
       fingerprint-generator: 2.1.89
       tslib: 2.8.1
     optionalDependencies:
       playwright: 1.64.1
-      puppeteer: 25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1))
+      puppeteer: 25.16.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1))
 
   flat-cache@3.2.0:
     dependencies:
@@ -24329,9 +24329,9 @@ snapshots:
     dependencies:
       escape-goat: 4.0.0
 
-  puppeteer-core@22.15.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@7.2.0))(supports-color@8.1.1):
+  puppeteer-core@22.15.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1))(supports-color@8.1.1):
     dependencies:
-      '@puppeteer/browsers': 3.2.6(proxy-agent@8.0.2(supports-color@7.2.0))
+      '@puppeteer/browsers': 3.2.6(proxy-agent@8.0.2(supports-color@8.1.1))
       chromium-bidi: 0.6.3(devtools-protocol@0.0.1312386)
       debug: 4.4.3(supports-color@8.1.1)
       devtools-protocol: 0.0.1312386
@@ -24344,11 +24344,11 @@ snapshots:
       - yauzl
     optional: true
 
-  puppeteer-core@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@7.2.0)):
+  puppeteer-core@25.16.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@7.2.0)):
     dependencies:
       '@puppeteer/browsers': 3.2.6(proxy-agent@8.0.2(supports-color@7.2.0))
-      chromium-bidi: 157.0.8090-0(devtools-protocol@0.0.1696802)
-      devtools-protocol: 0.0.1696802
+      chromium-bidi: 157.0.8090-0(devtools-protocol@0.0.1704951)
+      devtools-protocol: 0.0.1704951
       typed-query-selector: 2.12.3
       webdriver-bidi-protocol: 1.0.1
       ws: 8.22.0(bufferutil@4.1.0)
@@ -24358,11 +24358,11 @@ snapshots:
       - utf-8-validate
       - yauzl
 
-  puppeteer-core@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)):
+  puppeteer-core@25.16.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)):
     dependencies:
       '@puppeteer/browsers': 3.2.6(proxy-agent@8.0.2(supports-color@8.1.1))
-      chromium-bidi: 157.0.8090-0(devtools-protocol@0.0.1696802)
-      devtools-protocol: 0.0.1696802
+      chromium-bidi: 157.0.8090-0(devtools-protocol@0.0.1704951)
+      devtools-protocol: 0.0.1704951
       typed-query-selector: 2.12.3
       webdriver-bidi-protocol: 1.0.1
       ws: 8.22.0(bufferutil@4.1.0)
@@ -24372,70 +24372,70 @@ snapshots:
       - utf-8-validate
       - yauzl
 
-  puppeteer-extra-plugin-stealth@2.11.2(playwright-extra@4.3.6(playwright-core@1.64.1)(playwright@1.64.1)(supports-color@8.1.1))(puppeteer-extra@3.3.6(puppeteer-core@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(puppeteer@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(supports-color@8.1.1))(supports-color@8.1.1):
+  puppeteer-extra-plugin-stealth@2.11.2(playwright-extra@4.3.6(playwright-core@1.64.1)(playwright@1.64.1)(supports-color@8.1.1))(puppeteer-extra@3.3.6(puppeteer-core@25.16.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(puppeteer@25.16.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(supports-color@8.1.1))(supports-color@8.1.1):
     dependencies:
       debug: 4.4.3(supports-color@8.1.1)
-      puppeteer-extra-plugin: 3.2.3(playwright-extra@4.3.6(playwright-core@1.64.1)(playwright@1.64.1)(supports-color@8.1.1))(puppeteer-extra@3.3.6(puppeteer-core@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(puppeteer@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(supports-color@8.1.1))(supports-color@8.1.1)
-      puppeteer-extra-plugin-user-preferences: 2.4.1(playwright-extra@4.3.6(playwright-core@1.64.1)(playwright@1.64.1)(supports-color@8.1.1))(puppeteer-extra@3.3.6(puppeteer-core@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(puppeteer@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(supports-color@8.1.1))(supports-color@8.1.1)
+      puppeteer-extra-plugin: 3.2.3(playwright-extra@4.3.6(playwright-core@1.64.1)(playwright@1.64.1)(supports-color@8.1.1))(puppeteer-extra@3.3.6(puppeteer-core@25.16.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(puppeteer@25.16.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(supports-color@8.1.1))(supports-color@8.1.1)
+      puppeteer-extra-plugin-user-preferences: 2.4.1(playwright-extra@4.3.6(playwright-core@1.64.1)(playwright@1.64.1)(supports-color@8.1.1))(puppeteer-extra@3.3.6(puppeteer-core@25.16.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(puppeteer@25.16.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(supports-color@8.1.1))(supports-color@8.1.1)
     optionalDependencies:
       playwright-extra: 4.3.6(playwright-core@1.64.1)(playwright@1.64.1)(supports-color@8.1.1)
-      puppeteer-extra: 3.3.6(puppeteer-core@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(puppeteer@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(supports-color@8.1.1)
+      puppeteer-extra: 3.3.6(puppeteer-core@25.16.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(puppeteer@25.16.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
 
-  puppeteer-extra-plugin-user-data-dir@2.4.1(playwright-extra@4.3.6(playwright-core@1.64.1)(playwright@1.64.1)(supports-color@8.1.1))(puppeteer-extra@3.3.6(puppeteer-core@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(puppeteer@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(supports-color@8.1.1))(supports-color@8.1.1):
+  puppeteer-extra-plugin-user-data-dir@2.4.1(playwright-extra@4.3.6(playwright-core@1.64.1)(playwright@1.64.1)(supports-color@8.1.1))(puppeteer-extra@3.3.6(puppeteer-core@25.16.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(puppeteer@25.16.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(supports-color@8.1.1))(supports-color@8.1.1):
     dependencies:
       debug: 4.4.3(supports-color@8.1.1)
       fs-extra: 10.1.0
-      puppeteer-extra-plugin: 3.2.3(playwright-extra@4.3.6(playwright-core@1.64.1)(playwright@1.64.1)(supports-color@8.1.1))(puppeteer-extra@3.3.6(puppeteer-core@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(puppeteer@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(supports-color@8.1.1))(supports-color@8.1.1)
+      puppeteer-extra-plugin: 3.2.3(playwright-extra@4.3.6(playwright-core@1.64.1)(playwright@1.64.1)(supports-color@8.1.1))(puppeteer-extra@3.3.6(puppeteer-core@25.16.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(puppeteer@25.16.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(supports-color@8.1.1))(supports-color@8.1.1)
       rimraf: 3.0.2
     optionalDependencies:
       playwright-extra: 4.3.6(playwright-core@1.64.1)(playwright@1.64.1)(supports-color@8.1.1)
-      puppeteer-extra: 3.3.6(puppeteer-core@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(puppeteer@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(supports-color@8.1.1)
+      puppeteer-extra: 3.3.6(puppeteer-core@25.16.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(puppeteer@25.16.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
 
-  puppeteer-extra-plugin-user-preferences@2.4.1(playwright-extra@4.3.6(playwright-core@1.64.1)(playwright@1.64.1)(supports-color@8.1.1))(puppeteer-extra@3.3.6(puppeteer-core@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(puppeteer@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(supports-color@8.1.1))(supports-color@8.1.1):
+  puppeteer-extra-plugin-user-preferences@2.4.1(playwright-extra@4.3.6(playwright-core@1.64.1)(playwright@1.64.1)(supports-color@8.1.1))(puppeteer-extra@3.3.6(puppeteer-core@25.16.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(puppeteer@25.16.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(supports-color@8.1.1))(supports-color@8.1.1):
     dependencies:
       debug: 4.4.3(supports-color@8.1.1)
       deepmerge: 4.3.1
-      puppeteer-extra-plugin: 3.2.3(playwright-extra@4.3.6(playwright-core@1.64.1)(playwright@1.64.1)(supports-color@8.1.1))(puppeteer-extra@3.3.6(puppeteer-core@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(puppeteer@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(supports-color@8.1.1))(supports-color@8.1.1)
-      puppeteer-extra-plugin-user-data-dir: 2.4.1(playwright-extra@4.3.6(playwright-core@1.64.1)(playwright@1.64.1)(supports-color@8.1.1))(puppeteer-extra@3.3.6(puppeteer-core@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(puppeteer@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(supports-color@8.1.1))(supports-color@8.1.1)
+      puppeteer-extra-plugin: 3.2.3(playwright-extra@4.3.6(playwright-core@1.64.1)(playwright@1.64.1)(supports-color@8.1.1))(puppeteer-extra@3.3.6(puppeteer-core@25.16.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(puppeteer@25.16.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(supports-color@8.1.1))(supports-color@8.1.1)
+      puppeteer-extra-plugin-user-data-dir: 2.4.1(playwright-extra@4.3.6(playwright-core@1.64.1)(playwright@1.64.1)(supports-color@8.1.1))(puppeteer-extra@3.3.6(puppeteer-core@25.16.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(puppeteer@25.16.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(supports-color@8.1.1))(supports-color@8.1.1)
     optionalDependencies:
       playwright-extra: 4.3.6(playwright-core@1.64.1)(playwright@1.64.1)(supports-color@8.1.1)
-      puppeteer-extra: 3.3.6(puppeteer-core@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(puppeteer@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(supports-color@8.1.1)
+      puppeteer-extra: 3.3.6(puppeteer-core@25.16.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(puppeteer@25.16.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
 
-  puppeteer-extra-plugin@3.2.3(playwright-extra@4.3.6(playwright-core@1.64.1)(playwright@1.64.1)(supports-color@8.1.1))(puppeteer-extra@3.3.6(puppeteer-core@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(puppeteer@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(supports-color@8.1.1))(supports-color@8.1.1):
+  puppeteer-extra-plugin@3.2.3(playwright-extra@4.3.6(playwright-core@1.64.1)(playwright@1.64.1)(supports-color@8.1.1))(puppeteer-extra@3.3.6(puppeteer-core@25.16.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(puppeteer@25.16.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(supports-color@8.1.1))(supports-color@8.1.1):
     dependencies:
       '@types/debug': 4.1.13
       debug: 4.4.3(supports-color@8.1.1)
       merge-deep: 3.0.3
     optionalDependencies:
       playwright-extra: 4.3.6(playwright-core@1.64.1)(playwright@1.64.1)(supports-color@8.1.1)
-      puppeteer-extra: 3.3.6(puppeteer-core@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(puppeteer@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(supports-color@8.1.1)
+      puppeteer-extra: 3.3.6(puppeteer-core@25.16.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(puppeteer@25.16.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
 
-  puppeteer-extra@3.3.6(puppeteer-core@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(puppeteer@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(supports-color@8.1.1):
+  puppeteer-extra@3.3.6(puppeteer-core@25.16.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(puppeteer@25.16.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)))(supports-color@8.1.1):
     dependencies:
       '@types/debug': 4.1.13
       debug: 4.4.3(supports-color@8.1.1)
       deepmerge: 4.3.1
     optionalDependencies:
-      puppeteer: 25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1))
-      puppeteer-core: 25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1))
+      puppeteer: 25.16.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1))
+      puppeteer-core: 25.16.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1))
     transitivePeerDependencies:
       - supports-color
 
-  puppeteer@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@7.2.0)):
+  puppeteer@25.16.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@7.2.0)):
     dependencies:
       '@puppeteer/browsers': 3.2.6(proxy-agent@8.0.2(supports-color@7.2.0))
-      chromium-bidi: 157.0.8090-0(devtools-protocol@0.0.1696802)
-      devtools-protocol: 0.0.1696802
+      chromium-bidi: 157.0.8090-0(devtools-protocol@0.0.1704951)
+      devtools-protocol: 0.0.1704951
       lilconfig: 3.1.4
-      puppeteer-core: 25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@7.2.0))
+      puppeteer-core: 25.16.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@7.2.0))
       typed-query-selector: 2.12.3
     transitivePeerDependencies:
       - bufferutil
@@ -24443,13 +24443,13 @@ snapshots:
       - utf-8-validate
       - yauzl
 
-  puppeteer@25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)):
+  puppeteer@25.16.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1)):
     dependencies:
       '@puppeteer/browsers': 3.2.6(proxy-agent@8.0.2(supports-color@8.1.1))
-      chromium-bidi: 157.0.8090-0(devtools-protocol@0.0.1696802)
-      devtools-protocol: 0.0.1696802
+      chromium-bidi: 157.0.8090-0(devtools-protocol@0.0.1704951)
+      devtools-protocol: 0.0.1704951
       lilconfig: 3.1.4
-      puppeteer-core: 25.13.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1))
+      puppeteer-core: 25.16.0(bufferutil@4.1.0)(proxy-agent@8.0.2(supports-color@8.1.1))
       typed-query-selector: 2.12.3
     transitivePeerDependencies:
       - bufferutil
