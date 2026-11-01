@@ -1,7 +1,16 @@
 diff --git a/dist/config.js b/dist/config.js
-index 373149fe22fb750faeefba5d20a0e432bb91df14..3e3173d504330cd385d84637e12a95eea9731e52 100644
+index 373149fe22fb750faeefba5d20a0e432bb91df14..000fbba94c277639c264740599560382f8706399 100644
 --- a/dist/config.js
 +++ b/dist/config.js
+@@ -23,7 +23,7 @@ const core_1 = require("@sigstore/core");
+ const sign_1 = require("@sigstore/sign");
+ const verify_1 = require("@sigstore/verify");
+ exports.DEFAULT_RETRY = { retries: 2 };
+-exports.DEFAULT_TIMEOUT = 5000;
++exports.DEFAULT_TIMEOUT = 30000;
+ function createBundleBuilder(bundleType, options) {
+     const bundlerOptions = {
+         signer: initSigner(options),
 @@ -102,7 +102,7 @@ function initWitnesses(options) {
          witnesses.push(new sign_1.RekorWitness({
              rekorBaseURL: options.rekorURL,
