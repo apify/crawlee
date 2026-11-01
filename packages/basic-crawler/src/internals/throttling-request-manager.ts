@@ -922,7 +922,8 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
      *
      * `ready` from anywhere else outranks a stalling domain and is returned without looking at the stall clocks,
      * so one hopeless domain never ends a crawl making progress elsewhere. It cannot outrank itself, though -
-     * see the traversal.
+     * see the traversal. A domain that is only cooling down holds off a stalling one the same way, because the
+     * crawl can continue once its cooldown ends.
      */
     async checkReadiness(): Promise<RequestSourceStatus> {
         await this.#ensureSubManagers();
@@ -975,6 +976,15 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
             return probed;
         }
 
+        if (readyAt !== undefined) {
+            return joinRequestSourceStatuses(probed, { status: 'waiting', readyAt });
+        }
+
+        // Batches still landing in the background are work nobody can see in a queue yet.
+        if (this.#inProgressBatchCount > 0 && probed.status === 'finished') {
+            return { status: 'waiting' };
+        }
+
         if (stallCandidates !== undefined) {
             const stalled = (
                 await Promise.all(
@@ -991,24 +1001,15 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
                     .map((state) => `"${state.domain}" (${((now - state.rateLimitedSince) / 1000).toFixed(0)}s)`)
                     .join(', ');
 
-                return {
+                return joinRequestSourceStatuses(probed, {
                     status: 'stalled',
                     reason:
                         `${summary} rate-limited every request for longer than maxDomainStallSecs ` +
                         `(${(this.#maxDomainStallMs / 1000).toFixed(0)}s). Waiting longer will not help - lower the ` +
                         `crawler's concurrency, or drop these domains. Their requests are still queued, so ` +
                         `re-running with \`purgeOnStart\` disabled will resume them if the rate limit lifts.`,
-                };
+                });
             }
-        }
-
-        if (readyAt !== undefined) {
-            return joinRequestSourceStatuses(probed, { status: 'waiting', readyAt });
-        }
-
-        // Batches still landing in the background are work nobody can see in a queue yet.
-        if (this.#inProgressBatchCount > 0 && probed.status === 'finished') {
-            return { status: 'waiting' };
         }
 
         return probed;

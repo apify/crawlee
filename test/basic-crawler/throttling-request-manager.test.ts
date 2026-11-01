@@ -765,6 +765,37 @@ describe('ThrottlingRequestManager', () => {
             expect((await manager.checkReadiness()).status).toBe('ready');
         });
 
+        test('a domain cooling down with requests left holds off a stalling domain until its cooldown ends', async () => {
+            const manager = new ThrottlingRequestManager({
+                inner: await createQueue(),
+                domains: ['example.com', 'other.com'],
+                baseDelaySecs: 10,
+                maxDomainStallSecs: 30,
+            });
+            await manager.addRequest({ url: 'https://example.com/1' });
+            manager.recordPacingSignal({ url: 'https://example.com/1', reason: 'rateLimited' });
+            await manager.addRequest({ url: 'https://other.com/1' });
+
+            // `other.com` starts its first backoff, then `example.com` refuses again past its stall window.
+            advanceClock(31_000);
+            manager.recordPacingSignal({ url: 'https://other.com/1', reason: 'rateLimited' });
+            advanceClock(5_000);
+            manager.recordPacingSignal({ url: 'https://example.com/1', reason: 'rateLimited' });
+
+            const cooling = await manager.checkReadiness();
+            expect(cooling).toMatchObject({ status: 'waiting', readyAt: expect.any(Number) });
+
+            // Once `other.com` can be dispatched again, the crawl has work to do.
+            advanceClock((cooling as { readyAt: number }).readyAt - Date.now());
+            expect((await manager.checkReadiness()).status).toBe('ready');
+
+            // With that request handled, only the stalling domain is left to report.
+            const request = (await manager.fetchNextRequest())!;
+            expect(request.url).toBe('https://other.com/1');
+            await manager.markRequestAsHandled(request);
+            expect((await manager.checkReadiness()).status).toBe('stalled');
+        });
+
         test('a handled request resets the clock', async () => {
             const manager = await stallingManager();
             await manager.addRequest({ url: 'https://example.com/1' });
