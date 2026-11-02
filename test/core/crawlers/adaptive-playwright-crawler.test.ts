@@ -1179,6 +1179,47 @@ describe('AdaptivePlaywrightCrawler', () => {
         expect((await Dataset.getData()).items).toEqual([{ run: 1 }]);
     });
 
+    test('runs deferred cleanups one at a time, newest first, without failing the request on a cleanup error', async () => {
+        const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+            detectionProbabilityRecommendation: 0,
+            renderingType: 'static',
+        });
+
+        const events: string[] = [];
+        const failedRequestHandler = vi.fn();
+
+        const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = async ({
+            pushData,
+            registerDeferredCleanup,
+        }) => {
+            await pushData({ ok: true });
+            registerDeferredCleanup(async () => {
+                events.push('first');
+            });
+            registerDeferredCleanup(async () => {
+                events.push('second');
+                throw new Error('cleanup failed');
+            });
+            // Yields mid-cleanup, so concurrent execution would interleave the others between start and end.
+            registerDeferredCleanup(async () => {
+                events.push('third:start');
+                await Promise.resolve();
+                events.push('third:end');
+            });
+        };
+
+        const crawler = await makeOneshotCrawler(
+            { requestHandler, renderingTypePredictor, maxRequestRetries: 3, failedRequestHandler },
+            [`http://${HOSTNAME}:${port}/static`],
+        );
+
+        await crawler.run();
+
+        expect(events).toEqual(['third:start', 'third:end', 'second', 'first']);
+        expect(failedRequestHandler).not.toHaveBeenCalled();
+        expect((await Dataset.getData()).items).toEqual([{ ok: true }]);
+    });
+
     test('should persist RenderingTypePredictor state on PERSIST_STATE events', async () => {
         const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = vi.fn(async ({ pushData }) => {
             await pushData({ content: 'test data' });

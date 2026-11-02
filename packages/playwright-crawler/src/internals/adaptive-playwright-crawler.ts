@@ -648,8 +648,6 @@ export class AdaptivePlaywrightCrawler<
 
         const logs: LogProxyCall[] = [];
 
-        const deferredCleanup: (() => Promise<unknown>)[] = [];
-
         const contextModifications: ContextModifications = {
             request: new MutationJournal(),
             state: new MutationJournal(),
@@ -665,7 +663,6 @@ export class AdaptivePlaywrightCrawler<
             useState: async (defaultValue?: Dictionary) =>
                 contextModifications.state.track(await useStateFunction(defaultValue)),
             log: this.#createLogProxy(context.log, logs),
-            registerDeferredCleanup: (cleanup: () => Promise<unknown>) => deferredCleanup.push(cleanup),
             // The sub-crawler pipeline keeps this attempt's navigation deadline on `subCrawlerContext`, but the
             // outer `extendTimeout` only pushes the deadline it finds on `context`, so push this one as well.
             extendTimeout: (secs: number) => {
@@ -703,17 +700,36 @@ export class AdaptivePlaywrightCrawler<
             const timeoutMillis =
                 routeTimeoutSecs === undefined ? this.#individualRequestHandlerTimeoutMillis : routeTimeoutSecs * 1000;
 
-            await addTimeoutToPromise(
-                async () => transaction.run(callAdaptiveRequestHandler),
-                timeoutMillis,
-                'Request handler timed out',
-            );
+            // A one-step pipeline gives the attempt the same deferred cleanup stack as `BasicCrawler`'s outer pipeline.
+            await ContextPipeline.create<CrawlingContext>()
+                .compose((_context, onCleanup) => ({
+                    registerDeferredCleanup: (cleanup: () => Promise<unknown>) => {
+                        onCleanup(async () => {
+                            try {
+                                await cleanup();
+                            } catch (error) {
+                                this.log.debug('Error in deferred cleanup', { error });
+                            }
+                        });
+                    },
+                }))
+                .call(
+                    subCrawlerContext,
+                    async () =>
+                        addTimeoutToPromise(
+                            async () => transaction.run(callAdaptiveRequestHandler),
+                            timeoutMillis,
+                            'Request handler timed out',
+                        ),
+                    // Unwraps the attempt's own failure, which the pipeline wraps in a `RequestHandlerError`.
+                    (error) => {
+                        throw error instanceof RequestHandlerError ? error.cause : error;
+                    },
+                );
 
             return { ok: true, transaction, contextModifications, logs };
         } catch (error) {
             return { ok: false, error, transaction, contextModifications, logs };
-        } finally {
-            await Promise.all(deferredCleanup.map((cleanup) => cleanup()));
         }
     }
 
