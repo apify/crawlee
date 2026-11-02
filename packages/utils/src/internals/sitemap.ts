@@ -272,6 +272,11 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
             return new SitemapTxtParser();
         }
 
+        // A name like `sitemap.gz` says nothing about what was compressed. Sitemaps are XML unless named otherwise.
+        if (mimeType?.essence === 'application/gzip') {
+            return SitemapXmlParser.create();
+        }
+
         throw new Error(`Unsupported sitemap content type (contentType = ${contentType}, url = ${url?.toString()})`);
     };
 

@@ -1,3 +1,5 @@
+import { gzipSync } from 'node:zlib';
+
 import { FetchHttpClient } from '@crawlee/http-client';
 import nock from 'nock';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -446,6 +448,25 @@ describe('Sitemap', () => {
         expect(sitemap.urls).toHaveLength(0);
         expect(logger.warning).not.toHaveBeenCalled();
         expect(logger.warningOnce).not.toHaveBeenCalled();
+    });
+
+    it('loads a gzipped XML sitemap whose name has no inner extension', async () => {
+        nock('http://gzipped.com')
+            .get('/sitemap.gz')
+            .reply(
+                200,
+                gzipSync(
+                    '<?xml version="1.0" encoding="UTF-8"?><urlset><url><loc>http://gzipped.com/page</loc></url></urlset>',
+                ),
+                { 'content-type': 'application/gzip' },
+            );
+
+        const sitemap = await Sitemap.load('http://gzipped.com/sitemap.gz', undefined, {
+            httpClient: new FetchHttpClient(),
+            sitemapRetries: 0,
+        });
+
+        expect(sitemap.urls).toEqual(['http://gzipped.com/page']);
     });
 
     it('handles sitemap.txt correctly', async () => {
