@@ -1,5 +1,5 @@
 import { BasicCrawler, SessionPool } from '@crawlee/basic';
-import { MemoryStorageBackend, serviceLocator } from '@crawlee/core';
+import { MemoryStorageBackend, RequestQueue, serviceLocator } from '@crawlee/core';
 
 describe('BasicCrawler#addRequests with big batch sizes', () => {
     beforeEach(async () => {
@@ -52,6 +52,37 @@ describe('BasicCrawler#addRequests with big batch sizes', () => {
 
         const result = await crawler.addRequests(slice, { waitForAllRequestsToBeAdded: true });
         expect(result.addedRequests).toHaveLength(2000);
+    });
+
+    test('a failed background batch of the requests passed to `run` is logged as an error', async () => {
+        const requestQueue = await RequestQueue.open();
+        const addRequests = requestQueue.addRequests.bind(requestQueue);
+        vitest
+            .spyOn(requestQueue, 'addRequests')
+            .mockImplementationOnce(addRequests)
+            .mockRejectedValueOnce(new Error('the storage is gone'));
+
+        const handled: string[] = [];
+        const crawler = new BasicCrawler({
+            requestQueue,
+            requestHandler({ request }) {
+                handled.push(request.url);
+            },
+        });
+        const exception = vitest.spyOn(crawler.log, 'exception').mockImplementation(() => {});
+
+        await crawler.run(['https://example.com/1', 'https://example.com/2'], {
+            batchSize: 1,
+            waitBetweenBatchesMillis: 0,
+        });
+
+        expect(handled).toEqual(['https://example.com/1']);
+        await vitest.waitFor(() =>
+            expect(exception).toHaveBeenCalledWith(
+                expect.objectContaining({ message: 'the storage is gone' }),
+                expect.any(String),
+            ),
+        );
     });
 });
 

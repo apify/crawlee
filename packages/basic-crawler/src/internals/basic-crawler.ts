@@ -2223,6 +2223,15 @@ export class BasicCrawler<
 
         await reportSkippedRequests();
 
+        // The requests of a failed background batch, and of the batches after it, are not added. Callers (`run()`
+        // included) often do not await `waitForAllRequestsToBeAdded`, so the failure must not go unnoticed.
+        void result.waitForAllRequestsToBeAdded.catch((error) => {
+            this.log.exception(
+                error as Error,
+                'Failed to add some requests in the background, they will not be crawled',
+            );
+        });
+
         const waitForAllRequestsToBeAdded = result.waitForAllRequestsToBeAdded.then(async (addedRequests) => {
             await reportSkippedRequests();
             return addedRequests;
