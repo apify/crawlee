@@ -1220,6 +1220,32 @@ describe('AdaptivePlaywrightCrawler', () => {
         expect((await Dataset.getData()).items).toEqual([{ ok: true }]);
     });
 
+    test('closes the page only after the deferred cleanups of a browser attempt', async () => {
+        const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+            detectionProbabilityRecommendation: 0,
+            renderingType: 'clientOnly',
+        });
+
+        let pageClosedInCleanup: boolean | undefined;
+
+        const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = async ({
+            page,
+            registerDeferredCleanup,
+        }) => {
+            registerDeferredCleanup(async () => {
+                pageClosedInCleanup = page.isClosed();
+            });
+        };
+
+        const crawler = await makeOneshotCrawler({ requestHandler, renderingTypePredictor }, [
+            `http://${HOSTNAME}:${port}/dynamic`,
+        ]);
+
+        await crawler.run();
+
+        expect(pageClosedInCleanup).toBe(false);
+    });
+
     test('should persist RenderingTypePredictor state on PERSIST_STATE events', async () => {
         const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = vi.fn(async ({ pushData }) => {
             await pushData({ content: 'test data' });

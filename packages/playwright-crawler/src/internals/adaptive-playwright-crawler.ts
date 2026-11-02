@@ -525,13 +525,33 @@ export class AdaptivePlaywrightCrawler<
         this.#staticCrawler = staticCrawler;
         this.#browserCrawler = browserCrawler;
 
-        this.#staticContextPipeline = staticCrawler.contextPipeline.compose(
-            this.#adaptCheerioContext.bind(this),
-        ) as unknown as ContextPipeline<CrawlingContext, ExtendedContext>;
+        // Each attempt needs its own deferred cleanups, and they must share the attempt's cleanup stack: resources the
+        // pipeline defers releasing (the page) have to outlive the user's cleanups, which may still use them.
+        const deferredCleanup = ContextPipeline.create<CrawlingContext>().compose((_context, onCleanup) => ({
+            registerDeferredCleanup: (cleanup: () => Promise<unknown>) => {
+                onCleanup(async () => {
+                    try {
+                        await cleanup();
+                    } catch (error) {
+                        this.log.debug('Error in deferred cleanup', { error });
+                    }
+                });
+            },
+        }));
 
-        this.#browserContextPipeline = browserCrawler.contextPipeline.compose(
-            this.#adaptPlaywrightContext.bind(this),
-        ) as unknown as ContextPipeline<CrawlingContext, ExtendedContext>;
+        this.#staticContextPipeline = deferredCleanup
+            .chain(staticCrawler.contextPipeline)
+            .compose(this.#adaptCheerioContext.bind(this)) as unknown as ContextPipeline<
+            CrawlingContext,
+            ExtendedContext
+        >;
+
+        this.#browserContextPipeline = deferredCleanup
+            .chain(browserCrawler.contextPipeline)
+            .compose(this.#adaptPlaywrightContext.bind(this)) as unknown as ContextPipeline<
+            CrawlingContext,
+            ExtendedContext
+        >;
     }
 
     protected override async init(): Promise<void> {
@@ -700,32 +720,11 @@ export class AdaptivePlaywrightCrawler<
             const timeoutMillis =
                 routeTimeoutSecs === undefined ? this.#individualRequestHandlerTimeoutMillis : routeTimeoutSecs * 1000;
 
-            // A one-step pipeline gives the attempt the same deferred cleanup stack as `BasicCrawler`'s outer pipeline.
-            await ContextPipeline.create<CrawlingContext>()
-                .compose((_context, onCleanup) => ({
-                    registerDeferredCleanup: (cleanup: () => Promise<unknown>) => {
-                        onCleanup(async () => {
-                            try {
-                                await cleanup();
-                            } catch (error) {
-                                this.log.debug('Error in deferred cleanup', { error });
-                            }
-                        });
-                    },
-                }))
-                .call(
-                    subCrawlerContext,
-                    async () =>
-                        addTimeoutToPromise(
-                            async () => transaction.run(callAdaptiveRequestHandler),
-                            timeoutMillis,
-                            'Request handler timed out',
-                        ),
-                    // Unwraps the attempt's own failure, which the pipeline wraps in a `RequestHandlerError`.
-                    (error) => {
-                        throw error instanceof RequestHandlerError ? error.cause : error;
-                    },
-                );
+            await addTimeoutToPromise(
+                async () => transaction.run(callAdaptiveRequestHandler),
+                timeoutMillis,
+                'Request handler timed out',
+            );
 
             return { ok: true, transaction, contextModifications, logs };
         } catch (error) {
