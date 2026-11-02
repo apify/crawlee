@@ -38,6 +38,17 @@ const sitemapRequestLoaderOptionsSchema = z.strictObject({
     httpClient: schemas.httpClient.optional(),
 });
 
+/**
+ * Normalizes a sitemap URL the way `Sitemap.load` does for its set of visited sitemaps.
+ */
+function normalizeSitemapUrl(url: string): string {
+    try {
+        return new URL(url).toString();
+    } catch {
+        return url;
+    }
+}
+
 /** @internal */
 const STATE_PERSISTENCE_KEY = 'SITEMAP_REQUEST_LOADER_STATE';
 
@@ -125,6 +136,7 @@ interface SitemapParsingProgress {
     inProgressSitemapUrl: string | null;
     inProgressEntries: Set<string>;
     pendingSitemapUrls: Set<string>;
+    visitedSitemapUrls: Set<string>;
 }
 
 interface SitemapRequestLoaderState {
@@ -170,6 +182,10 @@ export class SitemapRequestLoader implements IRequestLoader {
          * Set of sitemap URLs that have not been parsed yet. If the set is empty and `inProgressSitemapUrl` is `null`, the sitemap loading is finished.
          */
         pendingSitemapUrls: new Set<string>(),
+        /**
+         * Set of (normalized) sitemap URLs that started loading, so that a nested sitemap listed again (e.g. in a cycle) is not loaded twice.
+         */
+        visitedSitemapUrls: new Set<string>(),
     };
 
     /**
@@ -375,6 +391,7 @@ export class SitemapRequestLoader implements IRequestLoader {
             const sitemapUrl =
                 this.#sitemapParsingProgress.inProgressSitemapUrl ??
                 this.#sitemapParsingProgress.pendingSitemapUrls.values().next().value!;
+            this.#sitemapParsingProgress.visitedSitemapUrls.add(normalizeSitemapUrl(sitemapUrl));
 
             try {
                 for await (const item of parseSitemap([{ type: 'url', url: sitemapUrl }], this.#proxyUrl, {
@@ -385,7 +402,9 @@ export class SitemapRequestLoader implements IRequestLoader {
                 })) {
                     if (!item.originSitemapUrl) {
                         // This is a nested sitemap
-                        this.#sitemapParsingProgress.pendingSitemapUrls.add(item.loc);
+                        if (!this.#sitemapParsingProgress.visitedSitemapUrls.has(normalizeSitemapUrl(item.loc))) {
+                            this.#sitemapParsingProgress.pendingSitemapUrls.add(item.loc);
+                        }
                         continue;
                     }
 
@@ -538,6 +557,7 @@ export class SitemapRequestLoader implements IRequestLoader {
                 pendingSitemapUrls: Array.from(this.#sitemapParsingProgress.pendingSitemapUrls),
                 inProgressSitemapUrl: this.#sitemapParsingProgress.inProgressSitemapUrl,
                 inProgressEntries: Array.from(this.#sitemapParsingProgress.inProgressEntries),
+                visitedSitemapUrls: Array.from(this.#sitemapParsingProgress.visitedSitemapUrls),
             },
             // Re-queue in-progress requests to the front so they are retried if the state is restored.
             urlQueue: [...this.inProgress, ...urlQueue],
@@ -565,6 +585,8 @@ export class SitemapRequestLoader implements IRequestLoader {
             pendingSitemapUrls: new Set(state.sitemapParsingProgress.pendingSitemapUrls),
             inProgressSitemapUrl: state.sitemapParsingProgress.inProgressSitemapUrl,
             inProgressEntries: new Set(state.sitemapParsingProgress.inProgressEntries),
+            // States persisted before this field was added lack it.
+            visitedSitemapUrls: new Set(state.sitemapParsingProgress.visitedSitemapUrls ?? []),
         };
 
         this.#requestData = new Map(state.requestData ?? []);

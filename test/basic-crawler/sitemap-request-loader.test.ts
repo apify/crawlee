@@ -12,6 +12,7 @@ import { startExpressAppPromise } from '../shared/_helper.js';
 // Express server for serving sitemaps
 let url = 'http://localhost';
 let server: Server;
+const cycleHits = { a: 0, b: 0 };
 
 beforeAll(async () => {
     const app = express();
@@ -198,6 +199,34 @@ beforeAll(async () => {
         );
 
         res.end();
+    });
+
+    // A cycle of nested sitemaps: a sitemap index listing itself and another index, which lists the first one again.
+    app.get('/sitemap-cycle-a.xml', async (req, res) => {
+        cycleHits.a += 1;
+        res.setHeader('content-type', 'text/xml');
+        res.end(
+            [
+                '<?xml version="1.0" encoding="UTF-8"?>',
+                '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+                `<sitemap><loc>${url}/sitemap-cycle-a.xml</loc></sitemap>`,
+                `<sitemap><loc>${url}/sitemap-cycle-b.xml</loc></sitemap>`,
+                '</sitemapindex>',
+            ].join('\n'),
+        );
+    });
+
+    app.get('/sitemap-cycle-b.xml', async (req, res) => {
+        cycleHits.b += 1;
+        res.setHeader('content-type', 'text/xml');
+        res.end(
+            [
+                '<?xml version="1.0" encoding="UTF-8"?>',
+                '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+                `<sitemap><loc>${url}/sitemap-cycle-a.xml</loc></sitemap>`,
+                '</sitemapindex>',
+            ].join('\n'),
+        );
     });
 
     // --- Fixtures for the enqueue-strategy filtering tests ---
@@ -663,6 +692,21 @@ describe('SitemapRequestLoader', () => {
             enqueueStrategy: 'all',
         });
         expect(await collectUrls(list)).toEqual([`${url}/ok`]);
+    });
+
+    test('nested sitemaps forming a cycle are loaded once', async () => {
+        const list = await SitemapRequestLoader.open({ sitemapUrls: [`${url}/sitemap-cycle-a.xml`] });
+
+        try {
+            // Only a guard against hanging: the list finishes as soon as both sitemaps are loaded.
+            const urls = await Promise.race([collectUrls(list), sleep(5_000).then(() => 'timed out')]);
+            expect(urls).toEqual([]);
+            expect(list.isSitemapFullyLoaded()).toBe(true);
+        } finally {
+            await list.teardown();
+        }
+
+        expect(cycleHits).toEqual({ a: 1, b: 1 });
     });
 
     test('the selected enqueue strategy is stamped onto emitted requests', async () => {
