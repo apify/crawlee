@@ -99,7 +99,7 @@ export interface HttpCrawlerOptions<
      * {@apilink BaseHttpClient} implementations should honor that flag (the built-in impit and got-scraping
      * clients do; the native fetch fallback cannot disable TLS verification and warns instead).
      *
-     * @default true
+     * @default false
      */
     ignoreTlsErrors?: boolean;
 
@@ -386,7 +386,7 @@ export class HttpCrawler<
         ...BasicCrawler.optionsShape,
 
         navigationTimeoutSecs: schemas.anyNumber.default(30),
-        ignoreTlsErrors: z.boolean().default(true),
+        ignoreTlsErrors: z.boolean().default(false),
         additionalMimeTypes: schemas.arrayOf(z.string(), 'strings').default(() => []),
         suggestResponseEncoding: z.string().optional(),
         forceResponseEncoding: z.string().optional(),
