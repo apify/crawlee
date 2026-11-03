@@ -2228,6 +2228,7 @@ export class BasicCrawler<
         });
         // Keep callback failures observable to callers that await this promise without emitting an unhandled rejection
         // when callers intentionally leave background additions running, matching `drainRequestBatches` behavior.
+        // Background failures are already logged by `drainRequestBatches`.
         void waitForAllRequestsToBeAdded.catch(() => {});
 
         return { ...result, waitForAllRequestsToBeAdded };
