@@ -3,7 +3,7 @@ import { Readable } from 'node:stream';
 
 import type { HttpRequest, HttpRequestOptions } from '@crawlee/types';
 import { applySearchParams, parseArgument } from '@crawlee/utils/internal';
-import contentTypeParser from 'content-type';
+import { isTypeValid, parse as parseContentType } from 'content-type';
 import mime from 'mime-types';
 import { z } from 'zod';
 
@@ -84,11 +84,9 @@ export function parseContentTypeFromResponse(response: Response): { type: string
     let parsedContentType;
 
     if (headers.get('content-type')) {
-        try {
-            parsedContentType = contentTypeParser.parse(headers.get('content-type') as string);
-        } catch {
-            // Can not parse content type from Content-Type header. Try to parse it from file extension.
-        }
+        const parsed = parseContentType(headers.get('content-type') as string);
+        // Can not parse content type from Content-Type header. Try to parse it from file extension.
+        if (isTypeValid(parsed.type)) parsedContentType = parsed;
     }
 
     // Parse content type from file extension as fallback
@@ -96,7 +94,7 @@ export function parseContentTypeFromResponse(response: Response): { type: string
         const parsedUrl = new URL(url);
         const contentTypeFromExtname =
             mime.contentType(extname(parsedUrl.pathname)) || 'application/octet-stream; charset=utf-8'; // Fallback content type, specified in https://tools.ietf.org/html/rfc7231#section-3.1.1.5
-        parsedContentType = contentTypeParser.parse(contentTypeFromExtname);
+        parsedContentType = parseContentType(contentTypeFromExtname);
     }
 
     return {

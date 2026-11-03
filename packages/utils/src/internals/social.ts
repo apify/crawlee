@@ -36,6 +36,8 @@ export function emailsFromText(text: string): string[] {
 /**
  * The function extracts email addresses from a list of URLs.
  * Basically it looks for all `mailto:` URLs and returns valid email addresses from them.
+ * A `mailto:` URL can list several comma-separated, percent-encoded addresses and end with a query
+ * such as `?subject=Hello`, see [RFC 6068](https://www.rfc-editor.org/rfc/rfc6068).
  * Note that the function preserves the order of emails and keep duplicates.
  * @param urls Array of URLs.
  * @return Array of emails addresses found.
@@ -49,8 +51,18 @@ export function emailsFromUrls(urls: string[]): string[] {
         if (!url) continue;
         if (!EMAIL_URL_PREFIX_REGEX.test(url)) continue;
 
-        const email = url.replace(EMAIL_URL_PREFIX_REGEX, '').trim();
-        if (EMAIL_REGEX.test(email)) emails.push(email);
+        // Characters like `?` and `,` inside an address must be percent-encoded, so it's safe
+        // to split on them before decoding.
+        const [addresses] = url.replace(EMAIL_URL_PREFIX_REGEX, '').split('?');
+        for (const address of addresses.split(',')) {
+            let email = address.trim();
+            try {
+                email = decodeURIComponent(email).trim();
+            } catch {
+                // Keep the raw value if it isn't valid percent-encoding
+            }
+            if (EMAIL_REGEX.test(email)) emails.push(email);
+        }
     }
 
     return emails;
@@ -156,8 +168,17 @@ export function phonesFromUrls(urls: string[]): string[] {
         if (!url) continue;
         if (!PHONE_URL_PREFIX_REGEX.test(url)) continue;
 
-        const phone = url.replace(PHONE_URL_PREFIX_REGEX, '').trim();
-        if (PHONE_REGEX.test(phone)) phones.push(phone);
+        // Per RFC 3966, parameters such as `;ext=89` can follow the number, and `-`, `.`, `(` and `)`
+        // are only visual separators. They are checked without separators too, so a one-digit country
+        // code like in `tel:+1-555-123-4567` is accepted.
+        const [number] = url.replace(PHONE_URL_PREFIX_REGEX, '').split(';');
+        let phone = number.trim();
+        try {
+            phone = decodeURIComponent(phone).trim();
+        } catch {
+            // Keep the raw value if it isn't valid percent-encoding
+        }
+        if (PHONE_REGEX.test(phone) || PHONE_REGEX.test(phone.replace(/[-.() ]/g, ''))) phones.push(phone);
     }
     return phones;
 }
@@ -386,7 +407,7 @@ export const TWITTER_REGEX = new RegExp(`^${TWITTER_REGEX_STRING}$`, 'i');
  * ```
  * import { social } from 'crawlee';
  *
- * const matches = text.match(social.TWITTER_REGEX_STRING);
+ * const matches = text.match(social.TWITTER_REGEX_GLOBAL);
  * if (matches) console.log(`${matches.length} Twitter profiles found!`);
  * ```
  */
@@ -663,7 +684,7 @@ export async function parseHandlesFromHtml(
     html: string,
     data: Record<string, unknown> | null = null,
 ): Promise<SocialHandles> {
-    const cheerio = await import('cheerio');
+    const cheerio = await import('cheerio/slim');
 
     const result: SocialHandles = {
         emails: [],

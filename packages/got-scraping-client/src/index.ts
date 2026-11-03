@@ -11,13 +11,13 @@ export class GotScrapingHttpClient extends BaseHttpClient {
      * Type guard that validates the HTTP method (excluding CONNECT).
      * @param request - The HTTP request to validate
      */
-    private validateRequest(
+    #validateRequest(
         request: Request,
     ): request is Request & { method: Exclude<Request['method'], 'CONNECT' | 'connect'> } {
         return !['CONNECT', 'connect'].includes(request.method!);
     }
 
-    private *iterateHeaders(
+    *#iterateHeaders(
         headers: Record<string, string | string[] | undefined>,
     ): Generator<[string, string], void, unknown> {
         for (const [key, value] of Object.entries(headers)) {
@@ -30,14 +30,14 @@ export class GotScrapingHttpClient extends BaseHttpClient {
         }
     }
 
-    private parseHeaders(headers: Record<string, string | string[] | undefined>): Headers {
-        return new Headers([...this.iterateHeaders(headers)]);
+    #parseHeaders(headers: Record<string, string | string[] | undefined>): Headers {
+        return new Headers([...this.#iterateHeaders(headers)]);
     }
 
-    override async fetch(request: Request, options?: RequestInit & CustomFetchOptions): Promise<Response> {
+    protected override async fetch(request: Request, options?: RequestInit & CustomFetchOptions): Promise<Response> {
         const { proxyUrl, redirect, ignoreTlsErrors } = options ?? {};
 
-        if (!this.validateRequest(request)) {
+        if (!this.#validateRequest(request)) {
             throw new Error(`The HTTP method CONNECT is not supported by the GotScrapingHttpClient.`);
         }
 
@@ -52,7 +52,7 @@ export class GotScrapingHttpClient extends BaseHttpClient {
             ...(ignoreTlsErrors ? { https: { rejectUnauthorized: false } } : {}),
         });
 
-        const responseHeaders = this.parseHeaders(gotResult.headers);
+        const responseHeaders = this.#parseHeaders(gotResult.headers);
 
         return new ResponseWithUrl(new Uint8Array(gotResult.rawBody), {
             headers: responseHeaders,

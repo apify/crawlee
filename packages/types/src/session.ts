@@ -85,6 +85,7 @@ export interface SessionFingerprint {
 
 /**
  * Persistable {@apilink Session} state.
+ * @internal
  */
 export interface SessionState {
     id: string;
@@ -119,6 +120,12 @@ export interface ISession {
      * Session is usable when it is not expired, not blocked and the maximum usage count has not been reached.
      */
     isUsable(): boolean;
+
+    /**
+     * Indicates whether the session is blocked, i.e. its error score reached the maximum or it was retired via `retire()`.
+     * Unlike other reasons for not being usable, this means the identity itself is burned.
+     */
+    isBlocked(): boolean;
 
     /**
      * This method should be called after a successful session usage.

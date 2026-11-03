@@ -72,7 +72,7 @@ export const requestHandlingInstrumentationMethods: ClassMethodToInstrument[] = 
         className: 'BasicCrawler',
         methodName: 'handleRequest',
         spanName: 'crawlee.crawler.handleRequest',
-        // `handleRequest(crawlingContext, requestSource, request)`
+        // `handleRequest(crawlingContext, requestSource)`
         spanOptions(crawlingContext: CrawlingContextLike) {
             return { attributes: requestAttributes(crawlingContext) };
         },
@@ -103,7 +103,7 @@ export const requestHandlingInstrumentationMethods: ClassMethodToInstrument[] = 
         className: 'BasicCrawler',
         methodName: 'requestFunctionErrorHandler',
         spanName: 'crawlee.crawler.requestFunctionErrorHandler',
-        // `requestFunctionErrorHandler(error, crawlingContext, request, source)`
+        // `requestFunctionErrorHandler(error, crawlingContext, source)`
         spanOptions(_error: Error, crawlingContext: CrawlingContextLike) {
             return { attributes: requestAttributes(crawlingContext) };
         },

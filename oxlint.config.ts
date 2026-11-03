@@ -28,6 +28,7 @@ export default defineConfig({
         afterEach: 'readonly',
     },
     rules: {
+        'import/extensions': ['error', 'always', { ignorePackages: true, checkTypeImports: true }],
         'no-undef': 'off',
         'no-console': 'off',
         'no-throw-literal': 'error',
@@ -57,8 +58,8 @@ export default defineConfig({
             },
         ],
         // Counterpart to `no-underscore-dangle` above: private members should be native `#` fields,
-        // not the TypeScript `private` modifier. `warn` until the existing usages are migrated.
-        'crawlee/prefer-private-fields': 'warn',
+        // not the TypeScript `private` modifier.
+        'crawlee/prefer-private-fields': 'error',
 
         'typescript/consistent-type-imports': ['error', { disallowTypeAnnotations: false }],
         'typescript/consistent-type-definitions': ['error', 'interface'],
@@ -110,19 +111,19 @@ export default defineConfig({
         'import/no-default-export': 'off',
 
         'unicorn/no-empty-file': 'off',
+        'unicorn/filename-case': ['error', { case: 'kebabCase' }],
 
         // Rules pulled in by `@apify/oxlint-config` that the codebase does not
         // currently satisfy. Disabled here to keep this migration scoped to a
         // config refactor; flip them back on in follow-up cleanup PRs.
         'prefer-destructuring': 'off',
         'no-unassigned-vars': 'off',
-        'jest/expect-expect': 'off',
-        'jest/valid-title': 'off',
+        'vitest/expect-expect': 'off',
         'promise/valid-params': 'off',
     },
     overrides: [
         {
-            files: ['test/**/*', 'packages/*/test/**/*'],
+            files: ['test/**/*'],
             rules: {
                 'no-underscore-dangle': 'off',
                 'typescript/consistent-type-imports': 'off',
@@ -139,6 +140,8 @@ export default defineConfig({
                 'import/no-duplicates': 'off',
                 'jest/no-conditional-expect': 'off',
                 'jest/no-disabled-tests': 'off',
+                'vitest/no-conditional-expect': 'off',
+                'vitest/no-disabled-tests': 'off',
                 'vitest/no-conditional-tests': 'off',
                 'vitest/hoisted-apis-on-top': 'off',
             },
@@ -148,6 +151,13 @@ export default defineConfig({
             rules: {
                 'typescript/no-unused-vars': 'off',
                 'no-unused-vars': 'off',
+            },
+        },
+        {
+            // docs resolve `crawlee` to its unbuilt `dist`, so crawlee types are unknown when linting
+            files: ['docs/**/*'],
+            rules: {
+                'typescript/await-thenable': 'off',
             },
         },
     ],

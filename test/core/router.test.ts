@@ -1,6 +1,6 @@
-import { BasicCrawler } from '@crawlee/basic';
-import type { CrawlingContext } from '@crawlee/core';
-import { defaultRoute, MissingRouteError, Request, RequestValidationError, Router } from '@crawlee/core';
+import type { CrawlingContext } from '@crawlee/basic';
+import { BasicCrawler, CrawlingRequest, defaultRoute, MissingRouteError, Router } from '@crawlee/basic';
+import { RequestValidationError } from '@crawlee/core';
 import {
     CheerioCrawler,
     type CheerioCrawlingContext,
@@ -31,9 +31,15 @@ describe('Router', () => {
         router.addDefaultHandler(async (ctx) => {
             logs.push(`default handled with url ${ctx.request.loadedUrl}`);
         });
-        router.use(({ request }) => void logs.push(`middleware 1: ${request.loadedUrl}`));
-        router.use(({ request }) => void logs.push(`middleware 2: ${request.loadedUrl}`));
-        router.use(({ request }) => void logs.push(`middleware 3: ${request.loadedUrl}`));
+        router.use(({ request }) => {
+            logs.push(`middleware 1: ${request.loadedUrl}`);
+        });
+        router.use(({ request }) => {
+            logs.push(`middleware 2: ${request.loadedUrl}`);
+        });
+        router.use(({ request }) => {
+            logs.push(`middleware 3: ${request.loadedUrl}`);
+        });
 
         const log = { info: vitest.fn(), warn: vitest.fn(), debug: vitest.fn() };
         await router({ request: { loadedUrl: 'https://example.com/A', label: 'A' }, log } as any);
@@ -339,7 +345,11 @@ describe('Router', () => {
 
         // a real Request keeps `label` inside `userData` and `crawlDepth` inside the non-enumerable `__crawlee`;
         // both must survive the schema replacing `userData` with the parsed (label-less) value.
-        const request = new Request({ url: 'https://example.com/p', label: 'PRODUCT', userData: { sku: 'A1' } });
+        const request = new CrawlingRequest({
+            url: 'https://example.com/p',
+            label: 'PRODUCT',
+            userData: { sku: 'A1' },
+        });
         request.crawlDepth = 3;
 
         await router({ request, log } as any);

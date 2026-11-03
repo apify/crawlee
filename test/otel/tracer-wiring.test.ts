@@ -5,7 +5,7 @@ import { InMemorySpanExporter, SimpleSpanProcessor } from '@opentelemetry/sdk-tr
 import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 
 // Reached directly rather than through the package entry point: resetting the shared tracer is not public API.
-import { setSharedTracer } from '../../packages/otel/src/wrapWithSpan.js';
+import { setSharedTracer } from '../../packages/otel/src/wrap-with-span.js';
 
 /**
  * The instrumentation is always constructed before the SDK is configured, so these tests cover that ordering for

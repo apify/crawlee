@@ -54,15 +54,11 @@
 export * from '@crawlee/browser';
 
 // Export main crawler class
-export { StagehandCrawler, createStagehandRouter } from './internals/stagehand-crawler';
+export { StagehandCrawler, createStagehandRouter } from './internals/stagehand-crawler.js';
 
 // Export the browser pool factories, which are how a pool with non-default options reaches the crawler
-export { stagehandBrowserPool, remoteStagehandBrowserPool } from './internals/stagehand-browser-pool';
-export type {
-    StagehandBrowserPool,
-    StagehandBrowserPoolOptions,
-    RemoteStagehandBrowserPoolOptions,
-} from './internals/stagehand-browser-pool';
+export { stagehandBrowserPool } from './internals/stagehand-browser-pool.js';
+export type { StagehandBrowserPool, StagehandBrowserPoolOptions } from './internals/stagehand-browser-pool.js';
 
 // Export types
 export type {
@@ -70,15 +66,11 @@ export type {
     StagehandPage,
     StagehandCrawlingContext,
     StagehandHook,
-    StagehandRequestHandler,
     StagehandGotoOptions,
     StagehandCrawlerOptions,
-} from './internals/stagehand-crawler';
+} from './internals/stagehand-crawler.js';
 
-export type { StagehandLaunchContext } from './internals/stagehand-launcher';
-
-// Export utilities as namespace
-export * as stagehandUtils from './internals/utils/stagehand-utils';
+export type { StagehandLaunchContext } from './internals/stagehand-launcher.js';
 
 // Re-export key types from Stagehand for convenience
 export type {
@@ -86,7 +78,6 @@ export type {
     ActResult,
     Action,
     AgentConfig,
-    AgentResult,
     ExtractOptions,
     ModelConfiguration,
     ObserveOptions,

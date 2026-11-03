@@ -1,2 +1,3 @@
-export * from './event_manager.js';
-export * from './local_event_manager.js';
+export * from './event-manager.js';
+export * from './local-event-manager.js';
+export type * from './system-info.js';

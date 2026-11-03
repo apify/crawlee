@@ -1,3 +1,4 @@
+import { serviceLocator } from '@crawlee/core';
 import type { CustomFetchOptions } from '@crawlee/http-client';
 import { BaseHttpClient, ResponseWithUrl } from '@crawlee/http-client';
 import type { CrawleeLogger, SessionFingerprint } from '@crawlee/types';
@@ -54,7 +55,7 @@ export class ImpitHttpClient extends BaseHttpClient {
      */
     #impitBrowserByFingerprint = new WeakMap<SessionFingerprint, ImpitBrowser>();
 
-    private getClient(options: ImpitOptions): Impit {
+    #getClient(options: ImpitOptions): Impit {
         if (!this.#cacheClients) {
             return new Impit(options);
         }
@@ -81,7 +82,14 @@ export class ImpitHttpClient extends BaseHttpClient {
         options?: Omit<ImpitOptions, 'proxyUrl' | 'timeout'> & { cacheClients?: boolean; logger?: CrawleeLogger },
     ) {
         super({ logger: options?.logger });
-        const { cacheClients = true, logger: _logger, ...impitOptions } = options ?? {};
+        const { cacheClients = true, logger, ...impitOptions } = options ?? {};
+
+        if (impitOptions.browser) {
+            (logger ?? serviceLocator.getLogger()).warningOnce(
+                'The `browser` option of ImpitHttpClient overrides the browser fingerprint of the session. ' +
+                    'Using it with Crawlee crawlers can lead to incompatible Session setups.',
+            );
+        }
 
         this.#impitOptions = impitOptions;
         this.#cacheClients = cacheClients;
@@ -90,12 +98,12 @@ export class ImpitHttpClient extends BaseHttpClient {
     /**
      * @inheritDoc
      */
-    async fetch(request: Request, options?: RequestInit & CustomFetchOptions): Promise<Response> {
+    protected override async fetch(request: Request, options?: RequestInit & CustomFetchOptions): Promise<Response> {
         const { proxyUrl, redirect, signal, fingerprint, ignoreTlsErrors } = options ?? {};
 
-        const impitBrowser = this.resolveImpitBrowser(fingerprint);
+        const impitBrowser = this.#impitOptions.browser ? undefined : this.#resolveImpitBrowser(fingerprint);
 
-        const impit = this.getClient({
+        const impit = this.#getClient({
             ...this.#impitOptions,
             ...(impitBrowser ? { browser: impitBrowser } : {}),
             // The per-request flag (from the crawler option or a MITM proxy session)
@@ -105,13 +113,23 @@ export class ImpitHttpClient extends BaseHttpClient {
             followRedirects: redirect === 'follow',
         });
 
-        const response = await impit.fetch(request, { signal: signal ?? undefined });
+        // The caller's signal carries the deadline (for crawlers, the navigation window that `extendTimeout()` can
+        // push out), so impit's 30 s default must not cut the request short. Without a signal, the default stays.
+        const response = await impit.fetch(request, {
+            signal: signal ?? undefined,
+            ...(signal ? { timeout: null } : {}),
+        });
+
+        // Once the headers are in, an aborted signal only stops impit's body reads, while the download itself keeps
+        // going. Piping the body through the signal cancels the download too.
+        const body =
+            signal && response.body ? response.body.pipeThrough(new TransformStream(), { signal }) : response.body;
 
         // todo - cast shouldn't be needed here, impit returns `Uint8Array`
-        return new ResponseWithUrl(response.body, response);
+        return new ResponseWithUrl(body, response);
     }
 
-    private resolveImpitBrowser(fingerprint?: SessionFingerprint): ImpitBrowser | undefined {
+    #resolveImpitBrowser(fingerprint?: SessionFingerprint): ImpitBrowser | undefined {
         if (!fingerprint?.browser) return undefined;
 
         const cached = this.#impitBrowserByFingerprint.get(fingerprint);

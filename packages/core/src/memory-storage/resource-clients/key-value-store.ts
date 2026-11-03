@@ -27,12 +27,6 @@ const inputRecordSchema = z.object({
     contentType: z.string().min(1).optional(),
 });
 
-/**
- * Key under which a run's input is stored in the default key-value store. Matches Crawlee's default
- * `inputKey` (`CRAWLEE_INPUT_KEY`) and the `INPUT` files `FileSystemStorageBackend` preserves on purge.
- */
-const KEY_VALUE_STORE_INPUT_KEY = 'INPUT';
-
 export interface KeyValueStoreBackendOptions {
     name?: string;
     id?: string;
@@ -64,46 +58,29 @@ export class KeyValueStoreBackend extends BaseClient implements storage.KeyValue
     modifiedAt = new Date();
 
     readonly #keyValueEntries = new Map<string, InternalKeyRecord>();
-    // kept as TS-private: storage-backend tests read this field at runtime
-    private readonly storageBackend: MemoryStorageBackend;
+    readonly #storageBackend: MemoryStorageBackend;
 
     constructor(options: KeyValueStoreBackendOptions) {
         super(options.id ?? randomUUID());
         this.name = options.name;
         this.cacheKey = options.cacheKey ?? this.name ?? this.id;
-        this.storageBackend = options.storageBackend;
+        this.#storageBackend = options.storageBackend;
     }
 
     async getMetadata(): Promise<storage.KeyValueStoreInfo> {
-        this.updateTimestamps(false);
+        this.#updateTimestamps(false);
         return this.toKeyValueStoreInfo();
     }
 
     async drop(): Promise<void> {
-        if (this.storageBackend.evictBackend('KeyValueStore', this.id)) {
+        if (this.#storageBackend.evictBackend('KeyValueStore', this.id)) {
             this.#keyValueEntries.clear();
         }
     }
 
     async purge(): Promise<void> {
         this.#keyValueEntries.clear();
-        this.updateTimestamps(true);
-    }
-
-    /**
-     * Purges every record except the run's input. Used by {@link MemoryStorageBackend.purge} for the
-     * default key-value store, mirroring `FileSystemStorageBackend`, which preserves `INPUT` (and its
-     * extension variants) when purging the default store. The in-memory key has no extension, so we
-     * preserve the bare `INPUT` key only.
-     */
-    async purgeExceptInput(): Promise<void> {
-        for (const key of this.#keyValueEntries.keys()) {
-            if (key !== KEY_VALUE_STORE_INPUT_KEY) {
-                this.#keyValueEntries.delete(key);
-            }
-        }
-
-        this.updateTimestamps(true);
+        this.#updateTimestamps(true);
     }
 
     async listKeys(options: storage.KeyValueStoreListKeysOptions = {}): Promise<storage.KeyValueStoreListKeysResult> {
@@ -140,7 +117,7 @@ export class KeyValueStoreBackend extends BaseClient implements storage.KeyValue
         const pageItems = isTruncated ? filteredItems.slice(0, limit) : filteredItems;
         const nextExclusiveStartKey = isTruncated ? pageItems[pageItems.length - 1].key : undefined;
 
-        this.updateTimestamps(false);
+        this.#updateTimestamps(false);
 
         return {
             items: pageItems,
@@ -194,7 +171,7 @@ export class KeyValueStoreBackend extends BaseClient implements storage.KeyValue
             contentType: entry.contentType ?? (mime.contentType(entry.extension) || undefined),
         };
 
-        this.updateTimestamps(false);
+        this.#updateTimestamps(false);
 
         return record;
     }
@@ -236,7 +213,7 @@ export class KeyValueStoreBackend extends BaseClient implements storage.KeyValue
 
         this.#keyValueEntries.set(key, normalizedRecord);
 
-        this.updateTimestamps(true);
+        this.#updateTimestamps(true);
     }
 
     async deleteValue(key: string): Promise<void> {
@@ -244,7 +221,7 @@ export class KeyValueStoreBackend extends BaseClient implements storage.KeyValue
 
         if (this.#keyValueEntries.has(key)) {
             this.#keyValueEntries.delete(key);
-            this.updateTimestamps(true);
+            this.#updateTimestamps(true);
         }
     }
 
@@ -258,7 +235,7 @@ export class KeyValueStoreBackend extends BaseClient implements storage.KeyValue
         };
     }
 
-    private updateTimestamps(hasBeenModified: boolean) {
+    #updateTimestamps(hasBeenModified: boolean) {
         this.accessedAt = new Date();
 
         if (hasBeenModified) {
