@@ -33,6 +33,7 @@ import {
 import type { Dictionary } from '@crawlee/types';
 import { sleep } from 'crawlee';
 import express from 'express';
+import playwright from 'playwright';
 import { z } from 'zod';
 
 import { startExpressAppPromise } from '../../shared/_helper.js';
@@ -141,6 +142,13 @@ describe('AdaptivePlaywrightCrawler', () => {
 
         app.get('/plain', (_req, res) => {
             res.status(200).type('text/plain').send('hello');
+        });
+
+        app.get('/repeated-headers', (_req, res) => {
+            res.cookie('a', '1');
+            res.cookie('b', '2');
+            res.append('X-Repeated', ['first', 'second']);
+            res.status(200).send('<html><body><h1>Heading</h1></body></html>');
         });
     });
     afterAll(async () => {
@@ -773,6 +781,35 @@ describe('AdaptivePlaywrightCrawler', () => {
 
         expect(requestHandler).toHaveBeenCalledOnce();
         expect((await Dataset.getData()).items).toEqual([{ url, hasHeading: true }]);
+    });
+
+    test.each(['chromium', 'firefox'] as const)('browser response keeps repeated headers (%s)', async (browser) => {
+        const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+            detectionProbabilityRecommendation: 0,
+            renderingType: 'clientOnly',
+        });
+        const url = `http://${HOSTNAME}:${port}/repeated-headers`;
+
+        const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = vi.fn(
+            async ({ response, pushData }) => {
+                await pushData({
+                    setCookie: response.headers.getSetCookie(),
+                    repeated: response.headers.get('x-repeated'),
+                });
+            },
+        );
+
+        const crawler = await makeOneshotCrawler(
+            { requestHandler, renderingTypePredictor, launchContext: { launcher: playwright[browser] } },
+            [url],
+        );
+
+        await crawler.run();
+
+        expect(requestHandler).toHaveBeenCalledOnce();
+        expect((await Dataset.getData()).items).toEqual([
+            { setCookie: ['a=1; Path=/', 'b=2; Path=/'], repeated: 'first, second' },
+        ]);
     });
 
     test('should persist crawler state', async () => {

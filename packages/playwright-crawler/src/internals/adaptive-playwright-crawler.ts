@@ -598,9 +598,15 @@ export class AdaptivePlaywrightCrawler<
         // Capture the original response to avoid infinite recursion when the getter is copied to the context
         const originalResponse = playwrightContext.response;
 
+        // `headers()` can return repeated headers (e.g. `set-cookie`) joined with `\n`, which `Headers` rejects
+        const headers = new Headers();
+        for (const { name, value } of await originalResponse.headersArray()) {
+            headers.append(name, value);
+        }
+
         return {
             response: new ResponseWithUrl(Uint8Array.from(await originalResponse.body()), {
-                headers: originalResponse.headers(),
+                headers,
                 status: originalResponse.status(),
                 statusText: originalResponse.statusText(),
                 url: originalResponse.url(),
