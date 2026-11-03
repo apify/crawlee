@@ -33,6 +33,10 @@ HTTP hooks mutate context/request fields instead of receiving `gotOptions`. Brow
 
 `closeCookieModals` and `idcac-playwright` are removed. Preserve consent handling through an explicit integration, such as `@duckduckgo/autoconsent` in a pre-hook.
 
+## Process listeners
+
+Importing Crawlee no longer raises `EventEmitter.defaultMaxListeners`; set it yourself if you relied on it. Each running crawler adds a `SIGINT` listener, so more than 10 crawlers in one process warn unless you raise `process.setMaxListeners()`.
+
 ## Validation and logging
 
 `ArgumentValidationError` replaces ow's `ArgumentError`; structured details are in `error.issues` and `error.cause`. Update error-message assertions. Class-valued options such as `httpClient`, `configuration` and `eventManager` require instances, including in mocks. Crawlee's zod 4 dependency can coexist with application zod 3.

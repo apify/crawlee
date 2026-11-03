@@ -8,7 +8,7 @@ Combine `globs` and `regexps` into `include` on `enqueueLinks()`, `enqueueLinksB
 
 Pattern objects no longer carry request `label`, `userData`, `method`, `payload` or `headers`. Use top-level label/userData or `transformRequestFunction`. The transform runs after pattern filtering, overrides global request options, and returns modified/new request options, `'unchanged'`, or a falsy value/`'skip'` to skip. Check transforms that used to change URLs before filtering.
 
-The standalone `enqueueLinks()` function is removed: use `context.enqueueLinks()` in handlers, or `addRequests()` on the context or request manager for known URLs. The click-element helpers rename `requestQueue` to `requestManager`. `onSkippedRequest` receives `{ request, reason }`, so use `request.url`. Per-call `robotsTxtFile` and `respectRobotsTxtFile` options are removed; use crawler-level `respectRobotsTxtFile`.
+The standalone `enqueueLinks()` function is removed: use `context.enqueueLinks()` in handlers, or `addRequests()` on the context or request manager for known URLs. Contexts with `enqueueLinks()` also expose `extractLinks(options)`, which returns the matching URLs without enqueueing them. The click-element helpers rename `requestQueue` to `requestManager`. `onSkippedRequest` receives `{ request, reason }`, so use `request.url`. Per-call `robotsTxtFile` and `respectRobotsTxtFile` options are removed; use crawler-level `respectRobotsTxtFile`.
 
 `enqueueLinks()` and `context.addRequests()` return `AddRequestsBatchedResult`: `addedRequests` replaces `processedRequests`; `unprocessedRequests` is gone. `RequestQueue.addRequestsBatched()` warns and skips semantic rejections; backends handle transient retries.
 
