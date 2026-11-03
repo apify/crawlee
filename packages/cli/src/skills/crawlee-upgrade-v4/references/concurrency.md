@@ -1,6 +1,6 @@
 # Concurrency
 
-Keep crawler `minConcurrency`, `maxConcurrency` and `maxRequestsPerMinute` for ordinary limits. Rename `autoscaledPoolOptions` to `taskLoopOptions`, retaining only `isFinishedFunction` / `isTaskReadyFunction`. Move scaling settings into `ConcurrencySystem`.
+Keep crawler `minConcurrency`, `maxConcurrency`, `initialConcurrency` and `maxRequestsPerMinute` for ordinary limits; `initialConcurrency` replaces `autoscaledPoolOptions.desiredConcurrency` and defaults to `minConcurrency`. Rename `autoscaledPoolOptions` to `taskLoopOptions`, retaining only `isFinishedFunction` / `isTaskReadyFunction`. Move scaling settings into `ConcurrencySystem`.
 
 ## Lifecycle and controls
 
@@ -19,7 +19,7 @@ try {
 }
 ```
 
-Move `desiredConcurrency`, `desiredConcurrencyRatio`, scaling ratios, logging/autoscale intervals and `maxTasksPerMinute` to the system. Task-loop `maybeRunIntervalSecs`, `taskTimeoutSecs` and `log` have no replacement.
+Move `desiredConcurrencyRatio`, scaling ratios, logging/autoscale intervals and `maxTasksPerMinute` to the system. Task-loop `maybeRunIntervalSecs`, `taskTimeoutSecs` and `log` have no replacement.
 
 Replace removed `crawler.autoscaledPool` access with `crawler.pause(secs)`, `resume()`, `teardown()` or graceful `stop()`. Read concurrency through `crawler.concurrencySystem`, which is undefined outside a run and typed as read-only `IConcurrencySystem`. To retune it, retain your constructed instance. Do not cache crawler-owned systems across runs.
 
