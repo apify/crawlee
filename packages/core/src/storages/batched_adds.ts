@@ -19,10 +19,6 @@ export interface DrainRequestBatchesOptions<TItem extends Source> {
     waitForAllRequestsToBeAdded: boolean;
     maxNewRequests?: number;
 
-    /**
-     * Used to report a background batch failure that nothing else observes - see the `trackBackgroundBatches`
-     * catch below.
-     */
     log: CrawleeLogger;
 
     /**
@@ -133,13 +129,13 @@ export async function drainRequestBatches<TItem extends Source>(
     const remainder = awaitsRemainder ? processRemainingChunks() : withDirectStorageAccess(processRemainingChunks);
 
     // The caller is not obliged to await `remainder`, so give it a handler of its own - an unhandled
-    // rejection here would otherwise take the process down. Logged rather than silently swallowed: without
-    // this, a background batch failure (and every request still queued behind it) previously vanished with
-    // no log, no `unprocessedRequests` entry, and no stats hit - on the default `crawler.run(urls)` path.
+    // rejection here would otherwise take the process down. Awaited failures reach the caller, so only
+    // background ones get logged.
     trackBackgroundBatches?.(
         remainder.catch((error) => {
-            log.exception(error as Error, 'A batch of requests could not be added to the queue in the background');
-            return [];
+            if (!awaitsRemainder) {
+                log.exception(error as Error, 'A batch of requests could not be added to the queue in the background');
+            }
         }),
     );
 
