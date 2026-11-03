@@ -128,44 +128,29 @@ describe('BrowserCrawler', () => {
     });
 
     test.concurrent('marks a skipNavigation request as handled via the proxied context', async () => {
-        const puppeteerPlugin = new PuppeteerPlugin(puppeteer);
-
-        const processed: Request[] = [];
-        const failed: Request[] = [];
-
         // A RequestQueue (unlike RequestList) serializes the whole request during bookkeeping.
         const requestQueue = await RequestQueue.open();
-        await requestQueue.addRequest({
+        const { uniqueKey } = await requestQueue.addRequest({
             url: `${serverAddress}/`,
             userData: { foo: 'bar' },
             skipNavigation: true,
         });
+        const failedRequestHandler = vitest.fn();
 
-        const browserCrawler = new BrowserCrawlerTest({
-            browserPoolOptions: {
-                browserPlugins: [puppeteerPlugin],
-            },
+        await new BrowserCrawlerTest({
+            browserPoolOptions: { browserPlugins: [new PuppeteerPlugin(puppeteer)] },
             requestQueue,
-            minConcurrency: 1,
-            maxConcurrency: 1,
             requestHandler: async ({ request }) => {
                 expect(() => request.loadedUrl).toThrow(NavigationSkippedError);
-                processed.push(request);
             },
-            failedRequestHandler: async ({ request }) => {
-                failed.push(request);
-            },
+            failedRequestHandler,
+        }).run();
+
+        expect(failedRequestHandler).not.toHaveBeenCalled();
+        expect(await requestQueue.getRequest(uniqueKey)).toMatchObject({
+            handledAt: expect.any(String),
+            userData: { foo: 'bar' },
         });
-
-        await browserCrawler.run();
-
-        expect(processed).toHaveLength(1);
-        expect(failed).toHaveLength(0);
-
-        const readBack = await requestQueue.getRequest(processed[0].uniqueKey);
-        expect(readBack).not.toBeNull();
-        expect(readBack!.handledAt).toBeDefined();
-        expect(readBack!.userData).toEqual({ foo: 'bar' });
     });
 
     test.concurrent('a run releases the browsers of an owned pool instead of destroying it', async () => {

@@ -20,6 +20,7 @@ import {
     cookieStringToToughCookie,
     EnqueueStrategy,
     NavigationSkippedError,
+    skippedNavigationRequest,
     OwnedOrInjected,
     remainingNavigationWindowMillis,
     RequestState,
@@ -625,27 +626,7 @@ export abstract class BrowserCrawler<
     async #prepareNavigation(crawlingContext: Context): Promise<Partial<Context>> {
         if (crawlingContext.request.skipNavigation) {
             return {
-                request: new Proxy(crawlingContext.request, {
-                    get(target, propertyName) {
-                        if (propertyName === 'loadedUrl') {
-                            throw new NavigationSkippedError(
-                                'The `request.loadedUrl` property is not available - `skipNavigation` was used',
-                            );
-                        }
-                        // `target` as receiver and bound methods, or `#` members throw on the proxy
-                        const value = Reflect.get(target, propertyName, target);
-                        return typeof value === 'function' ? value.bind(target) : value;
-                    },
-                    // Hide `loadedUrl` from enumeration so bookkeeping (spread/JSON/zod) skips it; direct reads still throw above.
-                    getOwnPropertyDescriptor(target, propertyName) {
-                        const descriptor = Reflect.getOwnPropertyDescriptor(target, propertyName);
-                        if (propertyName === 'loadedUrl' && descriptor) {
-                            return { ...descriptor, enumerable: false };
-                        }
-                        return descriptor;
-                    },
-                    set: (target, propertyName, value) => Reflect.set(target, propertyName, value, target),
-                }) as LoadedRequest<CrawlingRequest>,
+                request: skippedNavigationRequest(crawlingContext.request) as LoadedRequest<CrawlingRequest>,
                 get response(): Response {
                     throw new NavigationSkippedError(
                         'The `response` property is not available - `skipNavigation` was used',

@@ -3,7 +3,7 @@ import { resolve } from 'node:path';
 /* eslint-disable dot-notation */
 
 import type { LoadedRequest } from '@crawlee/basic';
-import { CrawlingRequest, NavigationSkippedError } from '@crawlee/basic';
+import { CrawlingRequest, NavigationSkippedError, skippedNavigationRequest } from '@crawlee/basic';
 import { MemoryStorageBackend, ProxyConfiguration, Request, RequestQueue, serviceLocator } from '@crawlee/core';
 import { BaseHttpClient } from '@crawlee/http-client';
 import { FileSystemStorageBackend } from '@crawlee/fs-storage';
@@ -765,77 +765,24 @@ describe('RequestQueue bookkeeping with a skipNavigation request', () => {
         vitest.clearAllMocks();
     });
 
-    // Mirror the crawlers' `skipNavigation` proxy: `loadedUrl` throws for user code but is non-enumerable
-    // so bookkeeping's spread/zod/JSON skips it.
-    const wrapSkipNavigation = (request: Request): LoadedRequest<Request> =>
-        new Proxy(request, {
-            get(target, propertyName, receiver) {
-                if (propertyName === 'loadedUrl') {
-                    throw new NavigationSkippedError(
-                        'The `request.loadedUrl` property is not available - `skipNavigation` was used',
-                    );
-                }
-                return Reflect.get(target, propertyName, receiver);
-            },
-            getOwnPropertyDescriptor(target, propertyName) {
-                const descriptor = Reflect.getOwnPropertyDescriptor(target, propertyName);
-                if (propertyName === 'loadedUrl' && descriptor) {
-                    return { ...descriptor, enumerable: false };
-                }
-                return descriptor;
-            },
-        }) as LoadedRequest<Request>;
+    test.each([{ method: 'markRequestAsHandled' }, { method: 'reclaimRequest' }] as const)(
+        '$method accepts the proxied request',
+        async ({ method }) => {
+            const queue = await RequestQueue.open();
+            await queue.addRequest({ url: 'http://example.com/', userData: { foo: 'bar' }, skipNavigation: true });
+            const fetched = (await queue.fetchNextRequest())!;
+            const proxied = skippedNavigationRequest(fetched) as LoadedRequest<Request>;
 
-    test('markRequestAsHandled accepts the proxied request without NavigationSkippedError and keeps its fields', async () => {
-        const queue = await RequestQueue.open();
-        await queue.addRequest({
-            url: 'http://example.com/a',
-            userData: { foo: 'bar' },
-            skipNavigation: true,
-        });
+            await expect(queue[method](proxied)).resolves.not.toBeNull();
 
-        const fetched = await queue.fetchNextRequest();
-        expect(fetched).not.toBeNull();
-        const proxied = wrapSkipNavigation(fetched!);
-
-        expect(() => proxied.loadedUrl).toThrow(NavigationSkippedError);
-
-        await expect(queue.markRequestAsHandled(proxied)).resolves.not.toBeNull();
-
-        // The guard still throws after bookkeeping — hiding `loadedUrl` from enumeration is internal only.
-        expect(() => proxied.loadedUrl).toThrow(NavigationSkippedError);
-
-        const readBack = await queue.getRequest(fetched!.uniqueKey);
-        expect(readBack).not.toBeNull();
-        expect(readBack!.url).toBe('http://example.com/a');
-        expect(readBack!.uniqueKey).toBe(fetched!.uniqueKey);
-        expect(readBack!.userData).toEqual({ foo: 'bar' });
-        expect(readBack!.handledAt).toBeDefined();
-    });
-
-    test('reclaimRequest accepts the proxied request without NavigationSkippedError and keeps its fields', async () => {
-        const queue = await RequestQueue.open();
-        await queue.addRequest({
-            url: 'http://example.com/b',
-            userData: { foo: 'baz' },
-            skipNavigation: true,
-        });
-
-        const fetched = await queue.fetchNextRequest();
-        expect(fetched).not.toBeNull();
-        const proxied = wrapSkipNavigation(fetched!);
-
-        await expect(queue.reclaimRequest(proxied)).resolves.not.toBeNull();
-
-        // The guard still throws after bookkeeping — hiding `loadedUrl` from enumeration is internal only.
-        expect(() => proxied.loadedUrl).toThrow(NavigationSkippedError);
-
-        const readBack = await queue.getRequest(fetched!.uniqueKey);
-        expect(readBack).not.toBeNull();
-        expect(readBack!.url).toBe('http://example.com/b');
-        expect(readBack!.uniqueKey).toBe(fetched!.uniqueKey);
-        expect(readBack!.userData).toEqual({ foo: 'baz' });
-    });
+            // Hiding `loadedUrl` from enumeration must not disarm the guard for user code.
+            expect(() => proxied.loadedUrl).toThrow(NavigationSkippedError);
+            expect(await queue.getRequest(fetched.uniqueKey)).toMatchObject({
+                url: 'http://example.com/',
+                userData: { foo: 'bar' },
+            });
+        },
+    );
 });
 
 describe('MemoryStorageBackend request queue', () => {
