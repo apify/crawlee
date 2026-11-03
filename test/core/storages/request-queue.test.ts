@@ -2,7 +2,8 @@ import { rm } from 'node:fs/promises';
 import { resolve } from 'node:path';
 /* eslint-disable dot-notation */
 
-import { CrawlingRequest } from '@crawlee/basic';
+import type { LoadedRequest } from '@crawlee/basic';
+import { CrawlingRequest, NavigationSkippedError, skippedNavigationRequest } from '@crawlee/basic';
 import { MemoryStorageBackend, ProxyConfiguration, Request, RequestQueue, serviceLocator } from '@crawlee/core';
 import { BaseHttpClient } from '@crawlee/http-client';
 import { FileSystemStorageBackend } from '@crawlee/fs-storage';
@@ -756,6 +757,32 @@ describe('RequestQueue background batches', () => {
         await queue.markRequestAsHandled(req!);
         expect((await queue.checkReadiness()).status).toBe('finished');
     }, 10_000);
+});
+
+describe('RequestQueue bookkeeping with a skipNavigation request', () => {
+    beforeEach(async () => {
+        serviceLocator.setStorageBackend(new MemoryStorageBackend());
+        vitest.clearAllMocks();
+    });
+
+    test.each([{ method: 'markRequestAsHandled' }, { method: 'reclaimRequest' }] as const)(
+        '$method accepts the proxied request',
+        async ({ method }) => {
+            const queue = await RequestQueue.open();
+            await queue.addRequest({ url: 'http://example.com/', userData: { foo: 'bar' }, skipNavigation: true });
+            const fetched = (await queue.fetchNextRequest())!;
+            const proxied = skippedNavigationRequest(fetched) as LoadedRequest<Request>;
+
+            await expect(queue[method](proxied)).resolves.not.toBeNull();
+
+            // Hiding `loadedUrl` from enumeration must not disarm the guard for user code.
+            expect(() => proxied.loadedUrl).toThrow(NavigationSkippedError);
+            expect(await queue.getRequest(fetched.uniqueKey)).toMatchObject({
+                url: 'http://example.com/',
+                userData: { foo: 'bar' },
+            });
+        },
+    );
 });
 
 describe('MemoryStorageBackend request queue', () => {
