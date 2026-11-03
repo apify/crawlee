@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { cryptoRandomObjectId, normalizeUrl } from '@apify/utilities';
 
 import { serviceLocator } from './service-locator.js';
+import { snapshotValue } from './storages/transaction.js';
 import { parseArgument, schemas } from './validators.js';
 
 /** The `strategy` option accepted by {@apilink ExtractLinksOptions} and {@apilink EnqueueUrlsOptions}. */
@@ -231,7 +232,10 @@ class CrawleeRequest<UserData extends Dictionary = Dictionary> {
         // Read `__crawlee` explicitly - on a `userData` coming from another Request instance the
         // bag is non-enumerable, so the spread alone would silently drop the internal state
         // (e.g. `skipNavigation`) when a request is re-wrapped after a storage round trip.
-        this.#userData = { ...userData, __crawlee: { ...(userData as Dictionary).__crawlee } };
+        this.#userData = {
+            ...snapshotValue(userData),
+            __crawlee: snapshotValue((userData as Dictionary).__crawlee ?? {}),
+        };
 
         // `userData` must stay an enumerable own accessor — serialization in the storages relies on it
         Object.defineProperties(this, {

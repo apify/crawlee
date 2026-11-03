@@ -378,14 +378,15 @@ describe('RequestQueue remote', () => {
 
     test('requests created from the same userData object do not share it', () => {
         // With a `__crawlee` bag, like a `userData` taken from another request.
-        const userData: Record<string, unknown> = { label: 'DETAIL', __crawlee: {} };
+        const userData: Record<string, unknown> = { label: 'DETAIL', tags: ['docs'], __crawlee: {} };
         const first = new CrawlingRequest({ url: 'http://example.com/1', userData });
         const second = new CrawlingRequest({ url: 'http://example.com/2', userData });
 
         first.userData.canonicalUrl = 'http://example.com/canonical';
+        (first.userData.tags as string[]).push('first');
         first.sessionId = 'first-session';
 
-        expect(second.userData).toEqual({ label: 'DETAIL' });
+        expect(second.userData).toEqual({ label: 'DETAIL', tags: ['docs'] });
         expect(second.sessionId).toBeUndefined();
     });
 
