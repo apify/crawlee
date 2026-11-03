@@ -27,7 +27,7 @@ export class RequestManagerTandem implements IRequestManager {
     #requestManagerFactory: () => IRequestManager | Promise<IRequestManager>;
 
     /**
-     * The latest expected request-processing time hinted via {@link setExpectedRequestProcessingTimeSecs}.
+     * The latest expected request-processing time hinted via {@link setExpectedRequestProcessingTime}.
      * Remembered so it can be applied to the writable manager once it is lazily resolved.
      */
     #expectedRequestProcessingSecs?: number;
@@ -64,7 +64,7 @@ export class RequestManagerTandem implements IRequestManager {
 
             // Apply any hint received before the manager was resolved.
             if (this.#expectedRequestProcessingSecs !== undefined) {
-                await this.#resolvedRequestManager.setExpectedRequestProcessingTimeSecs?.(
+                await this.#resolvedRequestManager.setExpectedRequestProcessingTime?.(
                     this.#expectedRequestProcessingSecs,
                 );
             }
@@ -229,9 +229,9 @@ export class RequestManagerTandem implements IRequestManager {
      * reserved. The manager is opened lazily, so the value is remembered and applied once it resolves.
      * @inheritdoc
      */
-    async setExpectedRequestProcessingTimeSecs(secs: number): Promise<void> {
+    async setExpectedRequestProcessingTime(secs: number): Promise<void> {
         this.#expectedRequestProcessingSecs = secs;
-        await this.#resolvedRequestManager?.setExpectedRequestProcessingTimeSecs?.(secs);
+        await this.#resolvedRequestManager?.setExpectedRequestProcessingTime?.(secs);
     }
 
     /**
@@ -244,7 +244,7 @@ export class RequestManagerTandem implements IRequestManager {
         return this.#resolvedRequestManager?.recordPacingSignal(signal) ?? false;
     }
 
-    async extendRequestProcessingTimeSecs(request: Request, secs: number): Promise<boolean> {
-        return (await this.#getRequestManager()).extendRequestProcessingTimeSecs?.(request, secs) ?? false;
+    async extendRequestProcessingTime(request: Request, secs: number): Promise<boolean> {
+        return (await this.#getRequestManager()).extendRequestProcessingTime?.(request, secs) ?? false;
     }
 }

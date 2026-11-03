@@ -331,30 +331,30 @@ describe('RequestManagerTandem', () => {
         ).toBe(false);
     });
 
-    test('setExpectedRequestProcessingTimeSecs forwards to an already-resolved manager', async () => {
+    test('setExpectedRequestProcessingTime forwards to an already-resolved manager', async () => {
         const requestList = await RequestList.open(null, [{ url: 'https://example.com/1' }]);
         const requestQueue = await RequestQueue.open();
-        const hintSpy = vi.spyOn(requestQueue, 'setExpectedRequestProcessingTimeSecs');
+        const hintSpy = vi.spyOn(requestQueue, 'setExpectedRequestProcessingTime');
 
         const tandem = new RequestManagerTandem(requestList, requestQueue);
 
         // Resolve the manager first (the queue was passed eagerly, but make the dependency explicit).
         await tandem.fetchNextRequest();
 
-        await tandem.setExpectedRequestProcessingTimeSecs(600);
+        await tandem.setExpectedRequestProcessingTime(600);
         expect(hintSpy).toHaveBeenCalledWith(600);
     });
 
-    test('setExpectedRequestProcessingTimeSecs applies a hint set before the manager is lazily resolved', async () => {
+    test('setExpectedRequestProcessingTime applies a hint set before the manager is lazily resolved', async () => {
         const requestList = await RequestList.open(null, [{ url: 'https://example.com/1' }]);
         const requestQueue = await RequestQueue.open();
-        const hintSpy = vi.spyOn(requestQueue, 'setExpectedRequestProcessingTimeSecs');
+        const hintSpy = vi.spyOn(requestQueue, 'setExpectedRequestProcessingTime');
 
         // Provide the manager lazily so it is not resolved at construction time.
         const tandem = new RequestManagerTandem(requestList, () => requestQueue);
 
         // Hint arrives before anything resolves the manager — nothing forwarded yet.
-        await tandem.setExpectedRequestProcessingTimeSecs(600);
+        await tandem.setExpectedRequestProcessingTime(600);
         expect(hintSpy).not.toHaveBeenCalled();
 
         // Resolving the manager (via any operation) applies the remembered hint.
@@ -362,7 +362,7 @@ describe('RequestManagerTandem', () => {
         expect(hintSpy).toHaveBeenCalledWith(600);
     });
 
-    test('extendRequestProcessingTimeSecs forwards to the writable request manager', async () => {
+    test('extendRequestProcessingTime forwards to the writable request manager', async () => {
         const requestList = await RequestList.open(null, []);
         const requestQueue = await RequestQueue.open();
         await requestQueue.addRequest({ url: 'https://example.com/1' });
@@ -370,11 +370,11 @@ describe('RequestManagerTandem', () => {
         expect(fetched).not.toBeNull();
 
         const stub = vi.fn(async () => true);
-        (requestQueue.backend as any).extendRequestProcessingTimeSecs = stub;
+        (requestQueue.backend as any).extendRequestProcessingTime = stub;
 
         const tandem = new RequestManagerTandem(requestList, requestQueue);
 
-        await expect(tandem.extendRequestProcessingTimeSecs!(fetched!, 30)).resolves.toBe(true);
+        await expect(tandem.extendRequestProcessingTime!(fetched!, 30)).resolves.toBe(true);
         expect(stub).toHaveBeenCalledExactlyOnceWith(fetched!.id, 30);
     });
 });

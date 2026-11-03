@@ -319,7 +319,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     /** Requests moved into a sub-queue, which both managers count. Subtracted below; not persisted. */
     #migratedFromInner = 0;
 
-    /** The latest {@link setExpectedRequestProcessingTimeSecs} hint, kept for a wrapped manager resolved later. */
+    /** The latest {@link setExpectedRequestProcessingTime} hint, kept for a wrapped manager resolved later. */
     #expectedRequestProcessingSecs?: number;
 
     readonly #warnedAbout = new Set<string>();
@@ -420,7 +420,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
             this.#resolvedInner = await this.#innerPromise;
 
             if (this.#expectedRequestProcessingSecs !== undefined) {
-                await this.#resolvedInner.setExpectedRequestProcessingTimeSecs?.(this.#expectedRequestProcessingSecs);
+                await this.#resolvedInner.setExpectedRequestProcessingTime?.(this.#expectedRequestProcessingSecs);
             }
         }
 
@@ -1043,10 +1043,10 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         }
     }
 
-    async setExpectedRequestProcessingTimeSecs(secs: number): Promise<void> {
+    async setExpectedRequestProcessingTime(secs: number): Promise<void> {
         // Remembered so a manager opened later still gets the hint, without opening one now just to pass it along.
         this.#expectedRequestProcessingSecs = secs;
-        await this.#forEachManager((manager) => manager.setExpectedRequestProcessingTimeSecs?.(secs));
+        await this.#forEachManager((manager) => manager.setExpectedRequestProcessingTime?.(secs));
     }
 
     /**
@@ -1054,14 +1054,14 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
      * Extending a lock must not consume the in-flight marker that later routes
      * {@link ThrottlingRequestManager.markRequestAsHandled} / {@link ThrottlingRequestManager.reclaimRequest}.
      */
-    async extendRequestProcessingTimeSecs(request: Request, secs: number): Promise<boolean> {
+    async extendRequestProcessingTime(request: Request, secs: number): Promise<boolean> {
         const key = request.id ?? request.uniqueKey;
 
         const manager = this.#inFlightFromInner.has(key)
             ? this.#resolvedInner!
             : await this.#selectManagerOrThrow(request.url);
 
-        return (await manager.extendRequestProcessingTimeSecs?.(request, secs)) ?? false;
+        return (await manager.extendRequestProcessingTime?.(request, secs)) ?? false;
     }
 
     /**

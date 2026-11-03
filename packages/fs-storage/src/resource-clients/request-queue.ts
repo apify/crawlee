@@ -71,7 +71,7 @@ export class RequestQueueBackend extends CachedIdClient implements storage.Reque
      * Tells the native client how long (in seconds) a fetched request stays locked before it becomes
      * available again.
      */
-    async setExpectedRequestProcessingTimeSecs(secs: number): Promise<void> {
+    async setExpectedRequestProcessingTime(secs: number): Promise<void> {
         await this.#nativeBackend.setExpectedRequestProcessingTime(secs);
     }
 
@@ -79,7 +79,7 @@ export class RequestQueueBackend extends CachedIdClient implements storage.Reque
      * @inheritdoc
      * The lock is owned and extended by the native client; `false` means it no longer holds the request.
      */
-    async extendRequestProcessingTimeSecs(requestId: string, secs: number): Promise<boolean> {
+    async extendRequestProcessingTime(requestId: string, secs: number): Promise<boolean> {
         return this.#nativeBackend.prolongRequestLock(requestId, secs);
     }
 

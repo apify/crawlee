@@ -392,7 +392,7 @@ export interface RequestQueueBackend {
      * this long, so that a long-running consumer does not have its request handed out again while it is
      * still being processed. Clients that do not lock may ignore it.
      */
-    setExpectedRequestProcessingTimeSecs?(secs: number): Promise<void>;
+    setExpectedRequestProcessingTime?(secs: number): Promise<void>;
 
     /**
      * Extends the lock on a request previously handed out by {@link fetchNextRequest}, for a consumer
@@ -402,7 +402,7 @@ export interface RequestQueueBackend {
      * does not lock at all). `false` is information, not an error: the request may be processed twice.
      * Non-locking backends leave this unimplemented.
      */
-    extendRequestProcessingTimeSecs?(requestId: string, secs: number): Promise<boolean>;
+    extendRequestProcessingTime?(requestId: string, secs: number): Promise<boolean>;
 }
 
 /**

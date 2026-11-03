@@ -150,7 +150,7 @@ export class RequestQueue implements IStorage, IRequestManager {
 
     /**
      * The largest expected request-processing time (in seconds) seen so far via
-     * {@link setExpectedRequestProcessingTimeSecs}. Used to ensure that value is only ever raised, never
+     * {@link setExpectedRequestProcessingTime}. Used to ensure that value is only ever raised, never
      * lowered, before being forwarded to the storage backend.
      */
     #expectedRequestProcessingSecs = 0;
@@ -858,26 +858,26 @@ export class RequestQueue implements IStorage, IRequestManager {
      * ever raise the reservation duration, never lower it — otherwise a short-lived consumer could cut
      * short the reservation of a long-lived one and have its in-flight request stolen.
      */
-    async setExpectedRequestProcessingTimeSecs(secs: number): Promise<void> {
+    async setExpectedRequestProcessingTime(secs: number): Promise<void> {
         if (secs <= this.#expectedRequestProcessingSecs) {
             return;
         }
 
         this.#expectedRequestProcessingSecs = secs;
-        await this.backend.setExpectedRequestProcessingTimeSecs?.(secs);
+        await this.backend.setExpectedRequestProcessingTime?.(secs);
     }
 
     /**
      * @inheritdoc
-     * Unlike {@link RequestQueue.setExpectedRequestProcessingTimeSecs}, which sizes every future lock,
+     * Unlike {@link RequestQueue.setExpectedRequestProcessingTime}, which sizes every future lock,
      * this only touches the one request it is given.
      */
-    async extendRequestProcessingTimeSecs(request: Request, secs: number): Promise<boolean> {
+    async extendRequestProcessingTime(request: Request, secs: number): Promise<boolean> {
         if (!request.id) {
             return false;
         }
 
-        return (await this.backend.extendRequestProcessingTimeSecs?.(request.id, secs)) ?? false;
+        return (await this.backend.extendRequestProcessingTime?.(request.id, secs)) ?? false;
     }
 
     /**
@@ -922,7 +922,7 @@ export class RequestQueue implements IStorage, IRequestManager {
         this.#inProgressRequestBatchCount = 0;
 
         // Reset the expected-processing-time high-water mark too, otherwise the monotonic-raise guard
-        // in `setExpectedRequestProcessingTimeSecs` would let a value raised in an earlier run leak into a
+        // in `setExpectedRequestProcessingTime` would let a value raised in an earlier run leak into a
         // later one and silently swallow a lower hint (the queue is meant to be reusable across runs).
         this.#expectedRequestProcessingSecs = 0;
     }
