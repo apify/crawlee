@@ -1,9 +1,11 @@
 import https from 'node:https';
 
-export const MANIFEST_URL = 'https://raw.githubusercontent.com/apify/crawlee/master/packages/templates/manifest.json';
+const TEMPLATES_BASE_URL = 'https://raw.githubusercontent.com/apify/crawlee/3.x/packages/templates';
+
+export const MANIFEST_URL = `${TEMPLATES_BASE_URL}/manifest.json`;
 
 function templateFileUrl(templateName: string, path: string) {
-    return `https://raw.githubusercontent.com/apify/crawlee/master/packages/templates/templates/${templateName}/${path}`;
+    return `${TEMPLATES_BASE_URL}/templates/${templateName}/${path}`;
 }
 
 interface SharedTemplateData {
