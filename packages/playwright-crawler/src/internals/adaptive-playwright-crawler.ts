@@ -525,13 +525,33 @@ export class AdaptivePlaywrightCrawler<
         this.#staticCrawler = staticCrawler;
         this.#browserCrawler = browserCrawler;
 
-        this.#staticContextPipeline = staticCrawler.contextPipeline.compose(
-            this.#adaptCheerioContext.bind(this),
-        ) as unknown as ContextPipeline<CrawlingContext, ExtendedContext>;
+        // Each attempt needs its own deferred cleanups, and they must share the attempt's cleanup stack: resources the
+        // pipeline defers releasing (the page) have to outlive the user's cleanups, which may still use them.
+        const deferredCleanup = ContextPipeline.create<CrawlingContext>().compose((_context, onCleanup) => ({
+            registerDeferredCleanup: (cleanup: () => Promise<unknown>) => {
+                onCleanup(async () => {
+                    try {
+                        await cleanup();
+                    } catch (error) {
+                        this.log.debug('Error in deferred cleanup', { error });
+                    }
+                });
+            },
+        }));
 
-        this.#browserContextPipeline = browserCrawler.contextPipeline.compose(
-            this.#adaptPlaywrightContext.bind(this),
-        ) as unknown as ContextPipeline<CrawlingContext, ExtendedContext>;
+        this.#staticContextPipeline = deferredCleanup
+            .chain(staticCrawler.contextPipeline)
+            .compose(this.#adaptCheerioContext.bind(this)) as unknown as ContextPipeline<
+            CrawlingContext,
+            ExtendedContext
+        >;
+
+        this.#browserContextPipeline = deferredCleanup
+            .chain(browserCrawler.contextPipeline)
+            .compose(this.#adaptPlaywrightContext.bind(this)) as unknown as ContextPipeline<
+            CrawlingContext,
+            ExtendedContext
+        >;
     }
 
     protected override async init(): Promise<void> {
@@ -654,8 +674,6 @@ export class AdaptivePlaywrightCrawler<
 
         const logs: LogProxyCall[] = [];
 
-        const deferredCleanup: (() => Promise<unknown>)[] = [];
-
         const contextModifications: ContextModifications = {
             request: new MutationJournal(),
             state: new MutationJournal(),
@@ -671,7 +689,6 @@ export class AdaptivePlaywrightCrawler<
             useState: async (defaultValue?: Dictionary) =>
                 contextModifications.state.track(await useStateFunction(defaultValue)),
             log: this.#createLogProxy(context.log, logs),
-            registerDeferredCleanup: (cleanup: () => Promise<unknown>) => deferredCleanup.push(cleanup),
             // The sub-crawler pipeline keeps this attempt's navigation deadline on `subCrawlerContext`, but the
             // outer `extendTimeout` only pushes the deadline it finds on `context`, so push this one as well.
             extendTimeout: (secs: number) => {
@@ -718,8 +735,6 @@ export class AdaptivePlaywrightCrawler<
             return { ok: true, transaction, contextModifications, logs };
         } catch (error) {
             return { ok: false, error, transaction, contextModifications, logs };
-        } finally {
-            await Promise.all(deferredCleanup.map((cleanup) => cleanup()));
         }
     }
 
