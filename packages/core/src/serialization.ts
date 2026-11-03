@@ -2,7 +2,7 @@ import { pipeline as streamPipeline, Readable, Writable } from 'node:stream';
 import util from 'node:util';
 import zlib from 'node:zlib';
 
-import StreamArray from 'stream-json/streamers/StreamArray.js';
+import StreamArray from 'stream-json/streamers/stream-array.js';
 import { z } from 'zod';
 
 import { parseArgument, schemas } from './validators.js';
@@ -11,7 +11,7 @@ const pipeline = util.promisify(streamPipeline);
 
 const uint8ArraySchema = z.instanceof(Uint8Array);
 
-type Chain = ReturnType<typeof StreamArray.withParser>;
+type Chain = ReturnType<typeof StreamArray.withParserAsStream>;
 
 /**
  * Transforms an array of items to a JSON in a streaming
@@ -85,7 +85,7 @@ export async function serializeArray<T>(data: T[]): Promise<Buffer> {
 export async function deserializeArray<T extends string | Buffer>(compressedData: Buffer | Uint8Array): Promise<T[]> {
     parseArgument(compressedData, uint8ArraySchema);
     const { chunks, collector } = createChunkCollector<T>({ fromValuesStream: true });
-    await pipeline(Readable.from([compressedData]), zlib.createGunzip(), StreamArray.withParser(), collector);
+    await pipeline(Readable.from([compressedData]), zlib.createGunzip(), StreamArray.withParserAsStream(), collector);
 
     return chunks as T[];
 }
@@ -101,7 +101,7 @@ export async function deserializeArray<T extends string | Buffer>(compressedData
  */
 export function createDeserialize(compressedData: Buffer | Uint8Array): Readable {
     parseArgument(compressedData, uint8ArraySchema);
-    const streamArray = StreamArray.withParser();
+    const streamArray = StreamArray.withParserAsStream();
     const destination = pluckValue(streamArray);
 
     streamPipeline(Readable.from([compressedData]), zlib.createGunzip(), destination, (err: any) =>

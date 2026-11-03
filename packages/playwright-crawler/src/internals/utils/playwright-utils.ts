@@ -24,9 +24,10 @@ import vm from 'node:vm';
 
 import { Configuration, KeyValueStore, type Request, serviceLocator, SessionError, validators } from '@crawlee/browser';
 import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
-import type { CheerioAPI } from 'cheerio';
-import { expandShadowRoots, sleep } from '@crawlee/utils';
-import { parseArgument, schemas } from '@crawlee/utils/internal';
+import type { Cheerio, CheerioAPI } from 'cheerio';
+import type { AnyNode } from 'domhandler';
+import { sleep } from '@crawlee/utils';
+import { expandShadowRoots, parseArgument, schemas } from '@crawlee/utils/internal';
 import type { Download, Page, Response, Route } from 'playwright';
 import { z } from 'zod';
 
@@ -34,7 +35,6 @@ import { LruCache } from '@apify/datastructures';
 
 import type { EnqueueLinksByClickingElementsOptions } from '../enqueue-links/click-elements.js';
 import { enqueueLinksByClickingElements } from '../enqueue-links/click-elements.js';
-import { RenderingTypePredictor } from './rendering-type-prediction.js';
 
 const getLog = () => serviceLocator.getChildLog('Playwright Utils');
 
@@ -588,6 +588,7 @@ export async function parseWithCheerio(
         ? null
         : ((await page.evaluate(`(${expandShadowRoots.toString()})(document)`)) as string);
     const pageContent = html || (await page.content());
+    // Full cheerio (parse5) import for browser compliant parser
     const { load } = await import('cheerio');
     const $ = load(pageContent);
 
@@ -673,7 +674,7 @@ export interface HandleCloudflareChallengeOptions {
  * @param url current URL for request identification, only used for logging
  * @param [options]
  */
-async function handleCloudflareChallenge(
+export async function handleCloudflareChallenge(
     page: Page,
     url: string,
     options: HandleCloudflareChallengeOptions = {},
@@ -703,7 +704,11 @@ async function handleCloudflareChallenge(
 
     // check if we ended up on the CF challenge page
     const isChallenge = async () => {
-        return options.isChallengeCallback!(page).catch(() => false);
+        return options.isChallengeCallback!(page).catch(async () => {
+            // the challenge page navigates itself, which destroys the context of an in-flight check
+            await page.waitForLoadState('domcontentloaded').catch(() => {});
+            return options.isChallengeCallback!(page).catch(() => false);
+        });
     };
 
     if (!(await isChallenge())) {
@@ -878,6 +883,17 @@ export interface PlaywrightContextUtils {
     waitForSelector(selector: string, timeoutMs?: number): Promise<void>;
 
     /**
+     * Like {@apilink PlaywrightContextUtils.waitForSelector|`waitForSelector`}, but returns the matched elements
+     * as a Cheerio object. Throws when nothing matches.
+     */
+    querySelectorAll(selector: string, timeoutMs?: number): Promise<Cheerio<AnyNode>>;
+
+    /**
+     * Like {@apilink PlaywrightContextUtils.querySelectorAll|`querySelectorAll`}, but returns only the first match.
+     */
+    querySelectorOne(selector: string, timeoutMs?: number): Promise<Cheerio<AnyNode>>;
+
+    /**
      * Returns Cheerio handle for `page.content()`, allowing to work with the data same way as with {@apilink CheerioCrawler}.
      * When provided with the `selector` argument, it waits for it to be available first.
      *
@@ -1023,18 +1039,3 @@ export interface PlaywrightContextUtils {
 }
 
 export { enqueueLinksByClickingElements };
-
-/** @internal */
-export const playwrightUtils = {
-    injectFile,
-    injectJQuery,
-    gotoExtended,
-    blockRequests,
-    enqueueLinksByClickingElements,
-    parseWithCheerio,
-    infiniteScroll,
-    saveSnapshot,
-    compileScript,
-    RenderingTypePredictor,
-    handleCloudflareChallenge,
-};

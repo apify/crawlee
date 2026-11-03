@@ -6,7 +6,7 @@ await initialize(testActorDirname);
 const { stats, datasetItems } = await runActor(testActorDirname);
 
 /// Some extra requests are expected (at most 10 extra for each run).
-await expect(stats.requestsFinished < 40, 'crawler.stop() works');
+await expect(stats.requestsSucceeded < 40, 'crawler.stop() works');
 
 const visitedUrls = new Set(datasetItems.map((x) => x.url));
 await expect(visitedUrls.size === datasetItems.length, 'a second crawler.run() resumes the same queue');

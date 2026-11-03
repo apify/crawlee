@@ -1,17 +1,11 @@
 import type { Configuration } from '@crawlee/browser';
-import type {
-    BrowserPool,
-    BrowserPoolHooks,
-    BrowserPoolOptions,
-    RemoteBrowserPool,
-    RemoteBrowserPoolOptions,
-} from '@crawlee/browser-pool';
+import type { BrowserPool, BrowserPoolHooks, BrowserPoolOptions } from '@crawlee/browser-pool';
 import type { Page } from 'playwright';
 
-import type { StagehandOptions } from './stagehand-crawler';
-import type { StagehandLaunchContext } from './stagehand-launcher';
-import { StagehandLauncher } from './stagehand-launcher';
-import type { StagehandPlugin } from './stagehand-plugin';
+import type { StagehandOptions } from './stagehand-crawler.js';
+import type { StagehandLaunchContext } from './stagehand-launcher.js';
+import { StagehandLauncher } from './stagehand-launcher.js';
+import type { StagehandPlugin } from './stagehand-plugin.js';
 
 /** A {@apilink BrowserPool} of Stagehand browsers, as built by {@apilink stagehandBrowserPool}. */
 export type StagehandBrowserPool = BrowserPool<{ browserPlugins: [StagehandPlugin] }, [StagehandPlugin]>;
@@ -39,11 +33,6 @@ export interface StagehandBrowserPoolOptions
     /** Configuration to read the browser defaults from. Defaults to the global configuration. */
     configuration?: Configuration;
 }
-
-export interface RemoteStagehandBrowserPoolOptions
-    extends
-        Pick<StagehandBrowserPoolOptions, 'launchContext' | 'stagehandOptions' | 'headless' | 'configuration'>,
-        Omit<RemoteBrowserPoolOptions, 'browserPlugins'> {}
 
 /**
  * Builds a {@apilink BrowserPool} of Stagehand browsers to pass to a {@apilink StagehandCrawler} as its
@@ -74,24 +63,6 @@ export function stagehandBrowserPool(options: StagehandBrowserPoolOptions = {}):
     const { launchContext, stagehandOptions, headless, configuration, ...poolOptions } = options;
 
     return stagehandLauncher(launchContext, stagehandOptions, headless, configuration).createBrowserPool(poolOptions);
-}
-
-/**
- * The {@apilink RemoteBrowserPool} counterpart of {@apilink stagehandBrowserPool}: connects to a remote browser
- * service with a Stagehand plugin derived from `launchContext` and `stagehandOptions`.
- *
- * A {@apilink StagehandCrawler} accepts the same connection details directly via
- * {@apilink BrowserCrawlerOptions.remoteBrowser|`remoteBrowser`}; reach for this factory when you also need to
- * tune the wrapping pool, or to share one remote pool between crawlers.
- *
- * @category Browser management
- */
-export function remoteStagehandBrowserPool(options: RemoteStagehandBrowserPoolOptions): RemoteBrowserPool<Page> {
-    const { launchContext, stagehandOptions, headless, configuration, ...remoteOptions } = options;
-
-    return stagehandLauncher(launchContext, stagehandOptions, headless, configuration).createRemoteBrowserPool<Page>(
-        remoteOptions,
-    );
 }
 
 function stagehandLauncher(

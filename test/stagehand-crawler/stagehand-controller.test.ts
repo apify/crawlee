@@ -172,7 +172,7 @@ describe('StagehandController', () => {
         await expect((controller as any)._kill()).resolves.toBeUndefined();
     });
 
-    describe('_newPage', () => {
+    describe('newPage', () => {
         let mockCdpSession: any;
         let mockPage: any;
 
@@ -196,7 +196,8 @@ describe('StagehandController', () => {
 
         const createController = () => {
             const controller = new StagehandController(mockPlugin, stagehandInstances);
-            (controller as any).browser = mockBrowser;
+            controller.assignBrowser(mockBrowser, {} as never);
+            controller.activate();
 
             return controller;
         };
@@ -208,7 +209,7 @@ describe('StagehandController', () => {
                 ++attempts < 3 ? undefined : { v3Page: true },
             );
 
-            const page = await (createController() as any)._newPage();
+            const page = await createController().newPage();
 
             expect(page).toBe(mockPage);
             expect(attempts).toBe(3);
@@ -219,27 +220,29 @@ describe('StagehandController', () => {
         test('should detach the CDP session used to read the main frame id', async () => {
             mockStagehand.context.resolvePageByMainFrameId = vi.fn().mockReturnValue({ v3Page: true });
 
-            await (createController() as any)._newPage();
+            await createController().newPage();
 
             expect(mockCdpSession.send).toHaveBeenCalledWith('Page.getFrameTree');
             expect(mockCdpSession.detach).toHaveBeenCalled();
         });
 
-        test('should throw when Stagehand never registers the page', async () => {
-            const controller = createController();
+        test('should close the page and fail when Stagehand never registers it', async () => {
+            // The page never resolves, so the wait has to run to its full deadline - fake timers keep that
+            // instant instead of stalling the test for the 10s default timeout.
+            vi.useFakeTimers();
 
-            await expect((controller as any).waitForStagehandToRegisterPage(mockPage, 100)).rejects.toThrow(
-                'Stagehand did not register the page within 100ms',
-            );
-        });
+            try {
+                const newPage = createController().newPage();
+                const assertion = expect(newPage).rejects.toThrow(
+                    'Failed to create new page: Stagehand did not register the page within 10000ms',
+                );
 
-        test('should close the page when Stagehand never registers it', async () => {
-            const controller = createController();
-            vi.spyOn(controller as any, 'waitForStagehandToRegisterPage').mockRejectedValue(
-                new Error('not registered'),
-            );
+                await vi.advanceTimersByTimeAsync(10_100);
+                await assertion;
+            } finally {
+                vi.useRealTimers();
+            }
 
-            await expect((controller as any)._newPage()).rejects.toThrow('Failed to create new page: not registered');
             expect(mockPage.close).toHaveBeenCalled();
         });
     });

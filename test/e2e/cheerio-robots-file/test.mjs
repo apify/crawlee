@@ -5,7 +5,7 @@ await initialize(testActorDirname);
 
 const { stats, datasetItems } = await runActor(testActorDirname);
 
-await expect(stats.requestsFinished >= 1, 'All requests finished');
+await expect(stats.requestsSucceeded >= 1, 'All requests finished');
 
 const paths = datasetItems.map((item) => new URL(item.url).pathname);
 

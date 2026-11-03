@@ -1,6 +1,7 @@
 import { schemas } from '@crawlee/utils/internal';
 
-export { ArgumentValidationError, parseArgument } from '@crawlee/utils';
+export { ArgumentValidationError } from '@crawlee/utils';
+export { parseArgument } from '@crawlee/utils/internal';
 export { schemas } from '@crawlee/utils/internal';
 
 /** @internal */
@@ -15,7 +16,7 @@ export const validators = {
         "Expected an object implementing the IProxyConfiguration interface (missing 'newProxyInfo'), got something else.",
     ),
     requestList: schemas.objectWithKeys(
-        ['fetchNextRequest', 'persistState'],
+        ['fetchNextRequest', 'checkReadiness'],
         'Expected a RequestList, got something else.',
     ),
     requestQueue: schemas.objectWithKeys(

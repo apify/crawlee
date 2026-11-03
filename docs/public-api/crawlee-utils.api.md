@@ -4,18 +4,14 @@
 
 ```ts
 
+import { ArgumentValidationError } from '@apify/validations';
 import type { BaseHttpClient } from '@crawlee/http-client';
 import type { CheerioAPI } from 'cheerio';
 import type { CrawleeLogger } from '@crawlee/types';
 import type { Dictionary } from '@crawlee/types';
-import type { z } from 'zod';
+import type { ISession } from '@crawlee/types';
 
-// @public
-export class ArgumentValidationError extends Error {
-    constructor(error: z.ZodError, value: unknown, label?: string);
-    readonly cause: z.ZodError;
-    readonly issues: z.ZodError['issues'];
-}
+export { ArgumentValidationError }
 
 // @public
 const DISCORD_REGEX: RegExp;
@@ -111,15 +107,6 @@ export interface MicrodataItem {
 // @public
 export type MicrodataValue = string | MicrodataItem;
 
-// Not exported by the entry point; reachable only as a referenced type.
-// @public (undocumented)
-interface NestedSitemap {
-    // (undocumented)
-    loc: string;
-    // (undocumented)
-    originSitemapUrl: null;
-}
-
 // @public (undocumented)
 export interface OpenGraphProperty {
     // (undocumented)
@@ -142,9 +129,6 @@ export function parseOpenGraph(raw: string, additionalProperties?: OpenGraphProp
 
 // @public (undocumented)
 export function parseOpenGraph($: CheerioAPI, additionalProperties?: OpenGraphProperty[]): Promise<Dictionary<OpenGraphResult>>;
-
-// @public (undocumented)
-export function parseSitemap<T extends ParseSitemapOptions>(initialSources: SitemapSource[], proxyUrl?: string, options?: T): AsyncIterable<T['emitNestedSitemaps'] extends true ? SitemapUrl | NestedSitemap : SitemapUrl>;
 
 // @public (undocumented)
 export interface ParseSitemapOptions {
@@ -178,6 +162,7 @@ export class RobotsTxtFile {
         timeoutMillis?: number;
         proxyUrl?: string;
         httpClient?: BaseHttpClient;
+        session?: ISession;
         logger?: CrawleeLogger;
     }): Promise<RobotsTxtFile>;
     static from(url: string, content: string, proxyUrl?: string): RobotsTxtFile;
@@ -201,36 +186,6 @@ export class Sitemap {
     static tryCommonNames(url: string, proxyUrl?: string, parseSitemapOptions?: ParseSitemapOptions): Promise<Sitemap>;
     // (undocumented)
     readonly urls: string[];
-}
-
-// Not exported by the entry point; reachable only as a referenced type.
-// @public (undocumented)
-type SitemapSource = ({
-    type: 'url';
-    url: string;
-} | {
-    type: 'raw';
-    content: string;
-}) & {
-    depth?: number;
-};
-
-// @public (undocumented)
-export type SitemapUrl = SitemapUrlData & {
-    originSitemapUrl: string;
-};
-
-// Not exported by the entry point; reachable only as a referenced type.
-// @public (undocumented)
-interface SitemapUrlData {
-    // (undocumented)
-    changefreq?: 'always' | 'hourly' | 'daily' | 'weekly' | 'monthly' | 'yearly' | 'never';
-    // (undocumented)
-    lastmod?: Date;
-    // (undocumented)
-    loc: string;
-    // (undocumented)
-    priority?: number;
 }
 
 // @public

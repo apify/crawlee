@@ -22,7 +22,7 @@ export class ImpitHttpClient extends BaseHttpClient {
         logger?: CrawleeLogger;
     });
     // (undocumented)
-    fetch(request: Request, options?: RequestInit & CustomFetchOptions): Promise<Response>;
+    protected fetch(request: Request, options?: RequestInit & CustomFetchOptions): Promise<Response>;
 }
 
 // (No @packageDocumentation comment for this package)

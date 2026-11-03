@@ -4,20 +4,16 @@
 
 ```ts
 
-import type { AddRequestsBatchedResult } from '@crawlee/http';
-import * as cheerio from 'cheerio';
+import type { AnyNode } from 'domhandler';
+import type { Cheerio } from 'cheerio';
 import type { CheerioAPI } from 'cheerio';
-import type { ContextPipeline } from '@crawlee/http';
 import type { CrawlingContext } from '@crawlee/http';
 import type { Dictionary } from '@crawlee/types';
-import type { EnqueueLinksOptions } from '@crawlee/http';
+import { DOMCrawler } from '@crawlee/http';
+import type { DOMCrawlingContext } from '@crawlee/http';
 import type { ErrorHandler } from '@crawlee/http';
-import type { ExtractLinksOptions } from '@crawlee/http';
 import type { GetUserDataFromRequest } from '@crawlee/http';
-import { HttpCrawler } from '@crawlee/http';
 import type { HttpCrawlerOptions } from '@crawlee/http';
-import type { InternalHttpCrawlingContext } from '@crawlee/http';
-import type { InternalHttpHook } from '@crawlee/http';
 import type { RequestHandler } from '@crawlee/http';
 import type { RouterHandler } from '@crawlee/http';
 import type { RouterRoutes } from '@crawlee/http';
@@ -25,27 +21,19 @@ import type { RouteSchemas } from '@crawlee/http';
 import type { RoutesFromSchemas } from '@crawlee/http';
 
 // @public
-export class CheerioCrawler<ContextExtension = Dictionary<never>, ExtendedContext extends CheerioCrawlingContext = CheerioCrawlingContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<CheerioCrawlingContext['request']>>, StatisticStateExtension extends object = {}> extends HttpCrawler<CheerioCrawlingContext, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
+export class CheerioCrawler<ContextExtension = Dictionary<never>, ExtendedContext extends CheerioCrawlingContext = CheerioCrawlingContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<CheerioCrawlingContext['request']>>, StatisticStateExtension extends object = {}> extends DOMCrawler<CheerioParseResult, Cheerio<AnyNode>, Cheerio<AnyNode>, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
     constructor(options?: CheerioCrawlerOptions<ContextExtension, ExtendedContext, any, any, Routes, StatisticStateExtension>);
-    // (undocumented)
-    protected buildContextPipeline(): ContextPipeline<CrawlingContext, CheerioCrawlingContext>;
 }
 
 // @public (undocumented)
 export interface CheerioCrawlerOptions<ContextExtension = Dictionary<never>, ExtendedContext extends CheerioCrawlingContext = CheerioCrawlingContext & ContextExtension, UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
 JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-Routes extends Record<keyof Routes, Dictionary> = Record<string, UserData>, StatisticStateExtension extends object = {}> extends HttpCrawlerOptions<CheerioCrawlingContext<UserData, JSONData>, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
+Routes extends Record<keyof Routes, Dictionary> = Record<string, UserData>, StatisticStateExtension extends object = {}> extends Omit<HttpCrawlerOptions<CheerioCrawlingContext<UserData, JSONData>, ContextExtension, ExtendedContext, Routes, StatisticStateExtension>, 'contextPipelineBuilder'> {
 }
 
 // @public (undocumented)
 export interface CheerioCrawlingContext<UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-JSONData extends Dictionary = any> extends InternalHttpCrawlingContext<UserData, JSONData> {
-    $: cheerio.CheerioAPI;
-    body: string;
-    enqueueLinks(options?: EnqueueLinksOptions): Promise<AddRequestsBatchedResult>;
-    extractLinks(options?: ExtractLinksOptions): Promise<string[]>;
-    parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioAPI>;
-    waitForSelector(selector: string, timeoutMs?: number): Promise<void>;
+JSONData extends Dictionary = any> extends DOMCrawlingContext<CheerioParseResult, Cheerio<AnyNode>, Cheerio<AnyNode>, UserData, JSONData> {
 }
 
 // @public (undocumented)
@@ -54,8 +42,12 @@ JSONData extends Dictionary = any, // with default to Dictionary we cant use a t
 ContextExtension = Dictionary<never>> = ErrorHandler<CrawlingContext, CheerioCrawlingContext<UserData, JSONData> & ContextExtension>;
 
 // @public (undocumented)
-export type CheerioHook<UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-JSONData extends Dictionary = any> = InternalHttpHook<CheerioCrawlingContext<UserData, JSONData>>;
+export interface CheerioParseResult {
+    // (undocumented)
+    $: CheerioAPI;
+    // (undocumented)
+    body: string;
+}
 
 // @public (undocumented)
 export type CheerioRequestHandler<UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler

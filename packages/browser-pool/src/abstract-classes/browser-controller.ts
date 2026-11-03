@@ -113,6 +113,13 @@ export abstract class BrowserController<
     implements IBrowserController<NewPageResult>
 {
     readonly id = nanoid();
+
+    /**
+     * Kept `protected` rather than `#private` because the concrete controllers in this package are
+     * separate classes — an ES private field would not be visible to them.
+     *
+     * @internal
+     */
     protected readonly log!: CrawleeLogger;
 
     /**
@@ -136,12 +143,19 @@ export abstract class BrowserController<
      */
     proxyUrl?: string;
 
+    /** @internal */
     isActive = false;
 
     activePages = 0;
 
+    readonly #closedPages = new WeakSet<object>();
+
+    readonly #pageTeardowns = new WeakMap<object, () => Promise<void>>();
+
+    /** @internal */
     totalPages = 0;
 
+    /** @internal */
     lastPageOpenedAt = Date.now();
 
     #activate!: () => void;
@@ -252,6 +266,40 @@ export abstract class BrowserController<
         return page;
     }
 
+    /**
+     * Accounts for a page no longer being open. Callable from either side and safe to call twice:
+     * the page's own `close` event, or the pool when it gives up on a close that never settles.
+     * Tracked in a `WeakSet` rather than via `isClosed()`, because that reports the same event.
+     * @internal
+     */
+    registerPageClosed(page: NewPageResult): void {
+        if (this.#closedPages.has(page as object)) return;
+
+        this.#closedPages.add(page as object);
+        this.activePages--;
+
+        const teardown = this.#pageTeardowns.get(page as object);
+        if (!teardown) return;
+
+        this.#pageTeardowns.delete(page as object);
+        teardown().catch((error: Error) => {
+            this.log.debug(`Could not clean up after a closed page.\nCause:${error.message}`, { id: this.id });
+        });
+    }
+
+    /**
+     * Registers cleanup belonging to a single page: an anonymizing proxy server, an incognito
+     * context. It runs from `registerPageClosed`, so it happens whether the page closed on its own
+     * or the pool gave up on a close that never settled, and it runs at most once.
+     *
+     * Hanging it off the page's `close` event instead leaks it in exactly the case this controller
+     * now handles, because that event does not arrive for a page the browser never destroyed.
+     * @ignore
+     */
+    protected registerPageTeardown(page: NewPageResult, teardown: () => Promise<void>): void {
+        this.#pageTeardowns.set(page as object, teardown);
+    }
+
     async setCookies(page: NewPageResult, cookies: Cookie[]): Promise<void> {
         return this._setCookies(page, cookies);
     }
@@ -260,31 +308,18 @@ export abstract class BrowserController<
         return this._getCookies(page);
     }
 
-    /**
-     * @private
-     */
     protected abstract _close(): Promise<void>;
-    /**
-     * @private
-     */
+
     protected abstract _kill(): Promise<void>;
-    /**
-     * @private
-     */
+
     protected abstract _newPage(pageOptions?: NewPageOptions): Promise<NewPageResult>;
 
-    /**
-     * @private
-     */
     protected abstract _setCookies(page: NewPageResult, cookies: Cookie[]): Promise<void>;
 
-    /**
-     * @private
-     */
     protected abstract _getCookies(page: NewPageResult): Promise<Cookie[]>;
 
     /**
-     * @private
+     * @internal
      */
     abstract normalizeProxyOptions(proxyUrl: string | undefined, pageOptions: any): Record<string, unknown>;
 }

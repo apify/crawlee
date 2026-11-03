@@ -15,16 +15,8 @@ describe('LaunchContext', () => {
     test('extend() rejects every declared field as reserved', () => {
         const context = createLaunchContext();
 
-        // Includes `fingerprint`, `proxyUrl` and `remoteToken`, which slipped through the check in v3.
-        const reservedKeys = [
-            'id',
-            'browserPlugin',
-            'launchOptions',
-            'fingerprint',
-            'proxyUrl',
-            'remoteToken',
-            'extend',
-        ];
+        // Includes `fingerprint` and `proxyUrl`, which slipped through the check in v3.
+        const reservedKeys = ['id', 'browserPlugin', 'launchOptions', 'fingerprint', 'proxyUrl', 'extend'];
 
         for (const key of reservedKeys) {
             expect(() => context.extend({ [key]: 'anything' })).toThrow(
