@@ -156,8 +156,17 @@ export function phonesFromUrls(urls: string[]): string[] {
         if (!url) continue;
         if (!PHONE_URL_PREFIX_REGEX.test(url)) continue;
 
-        const phone = url.replace(PHONE_URL_PREFIX_REGEX, '').trim();
-        if (PHONE_REGEX.test(phone)) phones.push(phone);
+        // Per RFC 3966, parameters such as `;ext=89` can follow the number, and `-`, `.`, `(` and `)`
+        // are only visual separators. They are checked without separators too, so a one-digit country
+        // code like in `tel:+1-555-123-4567` is accepted.
+        const [number] = url.replace(PHONE_URL_PREFIX_REGEX, '').split(';');
+        let phone = number.trim();
+        try {
+            phone = decodeURIComponent(phone).trim();
+        } catch {
+            // Keep the raw value if it isn't valid percent-encoding
+        }
+        if (PHONE_REGEX.test(phone) || PHONE_REGEX.test(phone.replace(/[-.() ]/g, ''))) phones.push(phone);
     }
     return phones;
 }
