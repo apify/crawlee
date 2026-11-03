@@ -4,7 +4,7 @@
 
 HTTP clients, `context.response` and `sendRequest()` return native `Response`. Replace `statusCode` with `status`, header indexing with `headers.get(name)`, and body access with async `text()`, `json()`, `arrayBuffer()` or `body`. Bodies are consumable once; use crawler-parsed `body` / `$` when already consumed.
 
-HTTP hooks lose `gotOptions`; set context/request fields or configure the client. Rename `ignoreSslErrors` to `ignoreTlsErrors`. The fetch fallback cannot disable TLS verification.
+HTTP hooks lose `gotOptions`; set context/request fields or configure the client. Rename `ignoreSslErrors` to `ignoreTlsErrors`; HTTP crawlers now verify certificates by default, so pass `ignoreTlsErrors: true` to keep the v3 behavior. MITM proxy sessions (`session.proxyInfo.ignoreTlsErrors`) still skip verification. The fetch fallback cannot disable TLS verification.
 
 Remove `HttpRequest.headerGenerator`, `headerGeneratorOptions`, `useHeaderGenerator` and `sessionToken`; configure fingerprinting through the client and `SendRequestOptions.session`. `insecureHTTPParser` has no replacement. Replace `throwHttpErrors` with crawler `additionalHttpErrorStatusCodes` / `ignoreHttpErrorStatusCodes` or status checks. `maxRedirects` is removed; the limit is 10.
 
@@ -28,6 +28,6 @@ Replace `HttpResponse`, `HttpResponseWithoutBody`, `StreamingHttpResponse`, `Res
 
 ## FileDownload
 
-`FileDownload` extends `BasicCrawler`; `FileDownloadOptions` is `BasicCrawlerOptions<FileDownloadCrawlingContext>` minus `contextPipelineBuilder` plus `ignoreTlsErrors`. Remove HTTP-only options: `navigationTimeoutSecs`, `additionalMimeTypes`, encoding overrides and navigation hooks. Configure the client or request instead. `FileDownload` now verifies TLS certificates by default (MITM proxy sessions still skip verification); keep the v3 behavior with `ignoreTlsErrors: true`.
+`FileDownload` extends `BasicCrawler`; `FileDownloadOptions` is `BasicCrawlerOptions<FileDownloadCrawlingContext>` minus `contextPipelineBuilder` plus `ignoreTlsErrors`. Remove HTTP-only options: `navigationTimeoutSecs`, `additionalMimeTypes`, encoding overrides and navigation hooks. Configure the client or request instead. `FileDownload` shares the `ignoreTlsErrors` option and its `false` default.
 
 Remove `StreamHandlerContext` and the extra `FileDownloadCrawlingContext` type parameter. Replace context `body` / `stream` with response methods / `response.body`; move `streamHandler` work into `requestHandler`. Replace `MinimumSpeedStream` / `ByteCounterStream` with your own transforms. Storing streams inside a handler requires `withDirectStorageAccess()`; see the storage reference.

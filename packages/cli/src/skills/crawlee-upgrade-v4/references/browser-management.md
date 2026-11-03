@@ -47,7 +47,7 @@ Remove `preventDirectStorageAccess` and `commitResult`. Result callbacks receive
 
 ## Stagehand and internals
 
-Remove `experimentalContainers`, Stagehand `ignoreShadowRoots` / `ignoreIframes`, and extra dictionary keys in `StagehandGotoOptions`.
+Remove `experimentalContainers`, Stagehand `ignoreShadowRoots` / `ignoreIframes`, and extra dictionary keys in `StagehandGotoOptions`. The explicit `StagehandCrawlerOptions.failedRequestHandler` field is gone; the inherited option still works.
 
 Replace `StagehandRequestHandler` with `RequestHandler<StagehandCrawlingContext>`. Remove `stagehandUtils`; import `AgentResult` from `@browserbasehq/stagehand`. Move `launchContext.stagehandOptions` to the top-level option on the crawler, or on `stagehandBrowserPool()` when a pool is supplied. Replace `StagehandPlugin.getStagehandForBrowser()` and access to private `stagehandOptions` with `context.stagehand`.
 
