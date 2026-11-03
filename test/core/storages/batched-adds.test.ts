@@ -1,7 +1,7 @@
 import type { ProcessedRequest } from '@crawlee/types';
 import { describe, expect, it, vitest } from 'vitest';
 
-import { drainRequestBatches } from '../../../packages/core/src/storages/batched_adds.js';
+import { drainRequestBatches } from '../../../packages/core/src/storages/batched-adds.js';
 import type { CrawleeLogger } from '../../../packages/core/src/log.js';
 
 async function* twoItems() {
@@ -21,14 +21,12 @@ function setup(waitForAllRequestsToBeAdded: boolean) {
         log: { exception } as unknown as CrawleeLogger,
         processChunk: async (chunk, isInitial) => {
             if (!isInitial) throw new Error('boom');
-            return chunk.map(
-                (): ProcessedRequest => ({
-                    uniqueKey: '',
-                    requestId: '',
-                    wasAlreadyPresent: false,
-                    wasAlreadyHandled: false,
-                }),
-            );
+            return chunk.map((): ProcessedRequest => ({
+                uniqueKey: '',
+                requestId: '',
+                wasAlreadyPresent: false,
+                wasAlreadyHandled: false,
+            }));
         },
         trackBackgroundBatches: (batches) => {
             tracked = batches;
