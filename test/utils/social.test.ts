@@ -141,6 +141,23 @@ describe('utils.social', () => {
                 ]),
             ).toEqual(['info@example.com', 'info@example.com']);
         });
+
+        test('handles queries, several recipients and percent-encoding', () => {
+            expect(
+                emailsFromUrls([
+                    'mailto:sales@example.com?subject=Hello%20there',
+                    'mailto:alice@example.com,%20bob@example.com?cc=carol@example.com',
+                    'mailto:david%40example.com',
+                    'MAILTO:eva@example.com?',
+                ]),
+            ).toEqual([
+                'sales@example.com',
+                'alice@example.com',
+                'bob@example.com',
+                'david@example.com',
+                'eva@example.com',
+            ]);
+        });
     });
 
     describe('phonesFromText()', () => {
