@@ -140,6 +140,28 @@ describe('puppeteerUtils.addInterceptRequestHandler|removeInterceptRequestHandle
         }
     });
 
+    test('should merge headers passed as a Headers instance', async () => {
+        const browser = await launchPuppeteer({ launchOptions: { headless: true } });
+
+        try {
+            const page = await browser.newPage();
+
+            await addInterceptRequestHandler(page, async (request) => {
+                return request.continue({ headers: { 'X-First': 'one' } });
+            });
+            await addInterceptRequestHandler(page, async (request) => {
+                return request.continue({ headers: new Headers({ 'X-Second': 'two' }) });
+            });
+
+            const response = await page.goto(`${serverAddress}/special/getDebug`, { waitUntil: 'networkidle0' });
+            const { headers } = JSON.parse(await response!.text());
+            expect(headers['x-first']).toBe('one');
+            expect(headers['x-second']).toBe('two');
+        } finally {
+            await browser.close();
+        }
+    });
+
     test('should allow async handler', async () => {
         const browser = await launchPuppeteer({ launchOptions: { headless: true } });
 
