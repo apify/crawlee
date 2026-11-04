@@ -37,6 +37,7 @@ import type { CommonPage } from '@crawlee/browser-pool';
 import type { Awaitable, Cookie as CookieObject, Dictionary, IBrowserPool } from '@crawlee/types';
 import {
     assertBrowserPoolNotConfigured,
+    AWS_WAF_RETRY_CSS_SELECTORS,
     CLOUDFLARE_RETRY_CSS_SELECTORS,
     parseArgument,
     RETRY_CSS_SELECTORS,
@@ -515,7 +516,15 @@ export abstract class BrowserCrawler<
     }
 
     async #containsSelectors(page: CommonPage, selectors: string[]): Promise<string[] | null> {
-        const foundSelectors = (await Promise.all(selectors.map((selector) => (page as any).$(selector))))
+        const query = async () => Promise.all(selectors.map((selector) => (page as any).$(selector)));
+
+        // a challenge page navigates itself once it is solved, which destroys the context of an in-flight query
+        const elements = await query().catch(async () => {
+            await sleep(1000);
+            return query();
+        });
+
+        const foundSelectors = elements
             .map((x, i) => [x, selectors[i]] as [any, string])
             .filter(([x]) => x !== null)
             .map(([, selector]) => selector);
@@ -523,19 +532,25 @@ export abstract class BrowserCrawler<
         return foundSelectors.length > 0 ? foundSelectors : null;
     }
 
+    async #detectSelfResolvingChallenge({
+        page,
+        response,
+    }: BrowserCrawlingContext<Page, Response>): Promise<string | null> {
+        const statusCode = response?.status();
+
+        if (statusCode === 403 && (await this.#containsSelectors(page, CLOUDFLARE_RETRY_CSS_SELECTORS))) {
+            return 'Cloudflare';
+        }
+
+        if (statusCode === 202 && (await this.#containsSelectors(page, AWS_WAF_RETRY_CSS_SELECTORS))) {
+            return 'AWS WAF';
+        }
+
+        return null;
+    }
+
     async #isRequestBlocked(crawlingContext: BrowserCrawlingContext<Page, Response>): Promise<string | false> {
         const { page, response } = crawlingContext;
-
-        // Cloudflare specific heuristic - wait 5 seconds if we get a 403 for the JS challenge to load / resolve.
-        if ((await this.#containsSelectors(page, CLOUDFLARE_RETRY_CSS_SELECTORS)) && response?.status() === 403) {
-            await sleep(5000);
-
-            // here we cannot test for response code, because we only have the original response, not the possible Cloudflare redirect on passed challenge.
-            const foundSelectors = await this.#containsSelectors(page, RETRY_CSS_SELECTORS);
-
-            if (!foundSelectors) return false;
-            return `Cloudflare challenge failed, found selectors: ${foundSelectors.join(', ')}`;
-        }
 
         const foundSelectors = await this.#containsSelectors(page, RETRY_CSS_SELECTORS);
         const statusCode = response?.status() ?? 0;
@@ -749,11 +764,47 @@ export abstract class BrowserCrawler<
         }
     }
 
-    async #handleBlockedRequestByContent(crawlingContext: BrowserCrawlingContext<Page, Response>) {
-        if (this.retryOnBlocked) {
-            const error = await this.#isRequestBlocked(crawlingContext);
-            if (error) throw new SessionError(error);
+    async #handleBlockedRequestByContent(
+        crawlingContext: BrowserCrawlingContext<Page, Response>,
+    ): Promise<{ response?: Response }> {
+        if (!this.retryOnBlocked) return {};
+
+        const page = crawlingContext.page as any;
+
+        // A passed challenge navigates to the actual page, whose response replaces the one of the challenge.
+        let navigationResponse: Response | undefined;
+        const onResponse = (response: any) => {
+            if (response.request().isNavigationRequest() && response.frame() === page.mainFrame()) {
+                navigationResponse = response;
+            }
+        };
+
+        page.on('response', onResponse);
+
+        try {
+            // Cloudflare and AWS WAF serve challenges a browser can pass on its own, with a 403 and a 202 status respectively.
+            // Wait 5 seconds for the JS challenge to load / resolve before judging the page.
+            const challenge = await this.#detectSelfResolvingChallenge(crawlingContext);
+
+            if (challenge) {
+                await sleep(5000);
+
+                const foundSelectors = await this.#containsSelectors(page, RETRY_CSS_SELECTORS);
+
+                if (foundSelectors) {
+                    throw new SessionError(
+                        `${challenge} challenge failed, found selectors: ${foundSelectors.join(', ')}`,
+                    );
+                }
+
+                return navigationResponse ? { response: navigationResponse } : {};
+            }
+        } finally {
+            page.off('response', onResponse);
         }
+
+        const error = await this.#isRequestBlocked(crawlingContext);
+        if (error) throw new SessionError(error);
 
         return {};
     }
