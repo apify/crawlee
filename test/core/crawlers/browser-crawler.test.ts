@@ -944,7 +944,7 @@ describe('BrowserCrawler', () => {
 
         const urls = [new URL('/special/awsWafChallengePassed', serverAddress).href];
 
-        const titles: string[] = [];
+        const handled: { title: string; status?: number }[] = [];
         const errorMessages: string[] = [];
 
         const crawler = new BrowserCrawlerTest({
@@ -953,8 +953,8 @@ describe('BrowserCrawler', () => {
             },
             retryOnBlocked: true,
             maxRequestRetries: 0,
-            requestHandler: async ({ page }) => {
-                titles.push(await page.title());
+            requestHandler: async ({ page, response }) => {
+                handled.push({ title: await page.title(), status: response?.status() });
             },
             failedRequestHandler: async ({ request }) => {
                 errorMessages.push(...request.errorMessages);
@@ -964,7 +964,7 @@ describe('BrowserCrawler', () => {
         await crawler.run(urls);
 
         expect(errorMessages).toHaveLength(0);
-        expect(titles).toStrictEqual(['Example Domain']);
+        expect(handled).toStrictEqual([{ title: 'Example Domain', status: 200 }]);
     });
 
     test.concurrent('retryOnBlocked throws on "blocked" status codes', async () => {

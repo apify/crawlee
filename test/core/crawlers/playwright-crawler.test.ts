@@ -21,7 +21,7 @@ import { z } from 'zod';
 
 import log from '@apify/log';
 
-import { startExpressAppPromise } from '../../shared/_helper.js';
+import { runExampleComServer, startExpressAppPromise } from '../../shared/_helper.js';
 
 if (os.platform() === 'win32') vitest.setConfig({ testTimeout: 2 * 60 * 1e3 });
 
@@ -133,6 +133,89 @@ describe('PlaywrightCrawler', () => {
                 expect(request.userData.title).toBe('Example Domain');
             });
         });
+    });
+
+    describe('retryOnBlocked', () => {
+        let exampleComServer: Server;
+        let exampleComUrl: string;
+
+        beforeAll(async () => {
+            let exampleComPort: number;
+            [exampleComServer, exampleComPort] = await runExampleComServer();
+            exampleComUrl = `http://${HOSTNAME}:${exampleComPort}`;
+        });
+
+        afterAll(() => {
+            exampleComServer.close();
+        });
+
+        test.each(['chromium', 'firefox'] as const)(
+            'waits for an AWS WAF challenge to resolve with %s',
+            async (browser) => {
+                const handled: { title: string; status?: number; body?: string }[] = [];
+                const errorMessages: string[] = [];
+
+                const crawler = new PlaywrightCrawler({
+                    browserPool: playwrightBrowserPool({
+                        launchContext: { launcher: playwright[browser] },
+                        useFingerprints: false,
+                    }),
+                    retryOnBlocked: true,
+                    maxRequestRetries: 0,
+                    requestHandler: async ({ page, response }) => {
+                        handled.push({
+                            title: await page.title(),
+                            status: response?.status(),
+                            body: await response?.text(),
+                        });
+                    },
+                    failedRequestHandler: ({ request }) => {
+                        errorMessages.push(...request.errorMessages);
+                    },
+                });
+
+                await crawler.run([`${exampleComUrl}/special/awsWafChallengePassed`]);
+
+                expect(errorMessages).toHaveLength(0);
+                expect(handled).toStrictEqual([
+                    {
+                        title: 'Example Domain',
+                        status: 200,
+                        body: expect.stringContaining('<title>Example Domain</title>'),
+                    },
+                ]);
+            },
+        );
+
+        test.each(['chromium', 'firefox'] as const)(
+            'retries an AWS WAF challenge that ends in a CAPTCHA with %s',
+            async (browser) => {
+                let processed = false;
+                const errorMessages: string[] = [];
+
+                const crawler = new PlaywrightCrawler({
+                    browserPool: playwrightBrowserPool({
+                        launchContext: { launcher: playwright[browser] },
+                        useFingerprints: false,
+                    }),
+                    retryOnBlocked: true,
+                    maxRequestRetries: 0,
+                    requestHandler: async () => {
+                        processed = true;
+                    },
+                    failedRequestHandler: ({ request }) => {
+                        errorMessages.push(...request.errorMessages);
+                    },
+                });
+
+                await crawler.run([`${exampleComUrl}/special/awsWafChallengeFailed`]);
+
+                expect(processed).toBe(false);
+                expect(errorMessages).toHaveLength(1);
+                expect(errorMessages[0]).toContain('AWS WAF challenge failed');
+                expect(errorMessages[0]).toContain('#captcha-container');
+            },
+        );
     });
 
     // https://github.com/apify/crawlee/issues/3670

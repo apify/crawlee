@@ -4,10 +4,11 @@ export const CLOUDFLARE_RETRY_CSS_SELECTORS = ['#turnstile-wrapper iframe[src^="
  * The AWS WAF interstitials: the JS challenge, served with a `202` status, and the CAPTCHA it escalates to, served with a `405`.
  * Neither status is a blocked one. Matching the container as a direct child of `<body>` keeps regular pages
  * that load the AWS WAF integration scripts, or embed the CAPTCHA into their own markup, from matching.
+ * The `:has()` argument must not start with `>`, Playwright's selector engine never matches it on the root element.
  */
 export const AWS_WAF_RETRY_CSS_SELECTORS = [
-    'html:has(> head > script[src*=".awswaf.com/"][src$="/challenge.js"]) > body > #challenge-container',
-    'html:has(> head > script[src*=".awswaf.com/"][src$="/captcha.js"]) > body > #captcha-container',
+    'html:has(head > script[src*=".awswaf.com/"][src$="/challenge.js"]) > body > #challenge-container',
+    'html:has(head > script[src*=".awswaf.com/"][src$="/captcha.js"]) > body > #captcha-container',
 ];
 
 /**

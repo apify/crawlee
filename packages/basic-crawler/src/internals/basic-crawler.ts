@@ -497,7 +497,9 @@ export interface BasicCrawlerOptions<
      *
      * Currently supports:
      * - [**Cloudflare** Bot Management](https://www.cloudflare.com/products/bot-management/)
+     * - [**AWS WAF** Challenge and CAPTCHA](https://docs.aws.amazon.com/waf/latest/developerguide/waf-captcha-and-challenge.html)
      * - [**Google Search** Rate Limiting](https://www.google.com/sorry/)
+     * - **Imperva Incapsula**
      */
     retryOnBlocked?: boolean;
 

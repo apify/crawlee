@@ -552,20 +552,6 @@ export abstract class BrowserCrawler<
     async #isRequestBlocked(crawlingContext: BrowserCrawlingContext<Page, Response>): Promise<string | false> {
         const { page, response } = crawlingContext;
 
-        // Cloudflare and AWS WAF serve challenges a browser can pass on its own, with a 403 and a 202 status respectively.
-        // Wait 5 seconds for the JS challenge to load / resolve before judging the page.
-        const challenge = await this.#detectSelfResolvingChallenge(crawlingContext);
-
-        if (challenge) {
-            await sleep(5000);
-
-            // here we cannot test for response code, because we only have the original response, not the one that follows a passed challenge.
-            const foundSelectors = await this.#containsSelectors(page, RETRY_CSS_SELECTORS);
-
-            if (!foundSelectors) return false;
-            return `${challenge} challenge failed, found selectors: ${foundSelectors.join(', ')}`;
-        }
-
         const foundSelectors = await this.#containsSelectors(page, RETRY_CSS_SELECTORS);
         const statusCode = response?.status() ?? 0;
 
@@ -778,11 +764,47 @@ export abstract class BrowserCrawler<
         }
     }
 
-    async #handleBlockedRequestByContent(crawlingContext: BrowserCrawlingContext<Page, Response>) {
-        if (this.retryOnBlocked) {
-            const error = await this.#isRequestBlocked(crawlingContext);
-            if (error) throw new SessionError(error);
+    async #handleBlockedRequestByContent(
+        crawlingContext: BrowserCrawlingContext<Page, Response>,
+    ): Promise<{ response?: Response }> {
+        if (!this.retryOnBlocked) return {};
+
+        const page = crawlingContext.page as any;
+
+        // A passed challenge navigates to the actual page, whose response replaces the one of the challenge.
+        let navigationResponse: Response | undefined;
+        const onResponse = (response: any) => {
+            if (response.request().isNavigationRequest() && response.frame() === page.mainFrame()) {
+                navigationResponse = response;
+            }
+        };
+
+        page.on('response', onResponse);
+
+        try {
+            // Cloudflare and AWS WAF serve challenges a browser can pass on its own, with a 403 and a 202 status respectively.
+            // Wait 5 seconds for the JS challenge to load / resolve before judging the page.
+            const challenge = await this.#detectSelfResolvingChallenge(crawlingContext);
+
+            if (challenge) {
+                await sleep(5000);
+
+                const foundSelectors = await this.#containsSelectors(page, RETRY_CSS_SELECTORS);
+
+                if (foundSelectors) {
+                    throw new SessionError(
+                        `${challenge} challenge failed, found selectors: ${foundSelectors.join(', ')}`,
+                    );
+                }
+
+                return navigationResponse ? { response: navigationResponse } : {};
+            }
+        } finally {
+            page.off('response', onResponse);
         }
+
+        const error = await this.#isRequestBlocked(crawlingContext);
+        if (error) throw new SessionError(error);
 
         return {};
     }
