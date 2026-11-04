@@ -76,7 +76,7 @@ jobs:
         name: "Bump Crawlee: ${{ inputs.version }} version (${{ inputs.custom_version || 'n/a' }} custom version)"
         if: (!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, 'docs:'))
         needs: build_and_test
-        runs-on: ubuntu-22.04
+        runs-on: ubuntu-26.04
 
         steps:
             -   name: Checkout repository
@@ -158,7 +158,7 @@ jobs:
 
     version-docs:
         needs: release
-        runs-on: ubuntu-22.04
+        runs-on: ubuntu-26.04
         # docs snapshots are only ever generated from master — maintenance branches must not trigger them
         if: github.ref == 'refs/heads/master' && (github.event.inputs.version == 'minor' || github.event.inputs.version == 'major')
 

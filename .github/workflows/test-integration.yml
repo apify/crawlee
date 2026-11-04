@@ -12,7 +12,7 @@ concurrency:
 jobs:
     remote-browser:
         name: Remote browser integration
-        runs-on: ubuntu-22.04
+        runs-on: ubuntu-26.04
 
         # Side-services provide the remote browser and a deterministic HTTP target.
         services:

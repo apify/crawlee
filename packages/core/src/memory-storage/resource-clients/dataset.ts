@@ -88,10 +88,11 @@ export class DatasetBackend<Data extends Dictionary = Dictionary>
     async #getDataPage(options: storage.DatasetBackendListOptions = {}): Promise<storage.PaginatedList<Data>> {
         const { limit = LIST_ITEMS_LIMIT, offset = 0, desc } = options;
 
-        const [start, end] = this.#getStartAndEndIndexes(
-            desc ? Math.max(this.itemCount - offset - limit, 0) : offset,
-            limit,
-        );
+        // In descending order, the window ends `offset` items before the newest one, so it can be shorter than `limit`.
+        const windowStart = desc ? Math.max(this.itemCount - offset - limit, 0) : offset;
+        const windowEnd = desc ? Math.max(this.itemCount - offset, 0) : offset + limit;
+
+        const [start, end] = this.#getStartAndEndIndexes(windowStart, windowEnd - windowStart);
 
         const items: Data[] = [];
 

@@ -110,6 +110,10 @@ await dataset.pushData([{ foo: 'bar2', col2: 'val2' }, { col3: 123 }]);
 
 To see how to use the dataset to store crawler results, see the [Cheerio Crawler](../examples/cheerio-crawler) example.
 
+## Transforming stored data
+
+To transform data on its way to and from storage — encryption, compression, caching — wrap the storage backend rather than subclassing `KeyValueStore` or `Dataset`. A `KeyValueStore` subclass in particular would see each write from a request handler twice, once when it is made and again when the [transaction](#transactional-storage) commits. See the [Encrypt KVS records](../examples/encrypt-key-value-store) example.
+
 ## Cleaning up the storages
 
 Run-scoped storages - the default one and any opened with an `alias` - are purged before the crawler starts if not specified otherwise. Storages opened with a `name` persist across runs and are never purged. This happens as early as when we try to open some storage (e.g. via `Dataset.open()`) or when we try to work with a default storage via one of the helper methods (e.g. `Dataset.pushData()` that under the hood calls `Dataset.open()`). If we don't work with storages explicitly in our code, the purging will eventually happen when the `run` method of our crawler is executed. In case we need to purge the storages sooner, we can use the <ApiLink to="core/function/purgeDefaultStorages">`purgeDefaultStorages()`</ApiLink> helper explicitly:
@@ -150,7 +154,7 @@ This is **on by default** for every crawler and covers the whole request lifecyc
 
   Under the `deferred` policy, the `requestId` returned by an `addRequests()` call inside a handler is provisional — the real id is assigned by the storage backend when the transaction commits.
 
-- **Shared state.** The object returned by `useState()` / <ApiLink to="core/class/KeyValueStore#getAutoSavedValue">`KeyValueStore.getAutoSavedValue()`</ApiLink> is the sanctioned live channel shared by all handlers, and it stays live: mutations of it are **not** rolled back when a handler fails.
+- **Shared state.** The object returned by `useState()` / <ApiLink to="core/class/KeyValueStore#getAutoSavedValue">`KeyValueStore.getAutoSavedValue()`</ApiLink> is deliberately exempt. It is the live channel shared by all handlers: a write is visible to every other handler the moment it is made, and a counter incremented from several handlers at once stays correct only because of that. Buffering it per request would hide those writes until commit and lose concurrent updates, so mutations of it are **not** rolled back when a handler fails — a failed handler that incremented a counter leaves the increment behind. (<ApiLink to="playwright-crawler/class/AdaptivePlaywrightCrawler">`AdaptivePlaywrightCrawler`</ApiLink> undoes the state writes of a request handler attempt it discards; see [Adaptive crawling](./adaptive-crawling#how-it-works).)
 
 - **Cross-storage atomicity.** The commit spans multiple storages and multiple calls; delivery is *at-least-once*. If a commit fails partway, the request fails and is retried, and the retry may re-apply what already landed.
 

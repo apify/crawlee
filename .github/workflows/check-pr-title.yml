@@ -7,6 +7,6 @@ on:
 jobs:
     check_pr_title:
         name: 'Check PR title'
-        runs-on: ubuntu-22.04
+        runs-on: ubuntu-26.04
         steps:
             -   uses: apify/actions/pr-title-check@v1.6.2

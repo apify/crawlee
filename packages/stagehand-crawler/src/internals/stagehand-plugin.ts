@@ -158,7 +158,7 @@ export class StagehandPlugin extends BrowserPlugin<BrowserType, LaunchOptions, P
             const url = new URL(proxyUrl);
 
             launchOptions.proxy = {
-                server: url.origin,
+                server: `${url.protocol}//${url.host}`,
                 username: decodeURIComponent(url.username),
                 password: decodeURIComponent(url.password),
             };

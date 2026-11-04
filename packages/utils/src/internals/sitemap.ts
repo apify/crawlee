@@ -53,26 +53,15 @@ class SitemapTxtParser extends Transform {
     }
 
     #processBuffer(input: string, finalize: boolean): void {
-        this.#buffer += input;
+        const lines = (this.#buffer + input).split('\n');
 
-        if (finalize || this.#buffer.includes('\n')) {
-            const parts = this.#buffer
-                .split('\n')
-                .map((part) => part.trim())
-                .filter((part) => part.length > 0);
+        // The text after the last line break may be a partial line, so it waits for the next chunk.
+        this.#buffer = finalize ? '' : lines.pop()!;
 
-            if (finalize) {
-                for (const url of parts) {
-                    this.push({ type: 'url', loc: url } satisfies SitemapItem);
-                }
-
-                this.#buffer = '';
-            } else if (parts.length > 0) {
-                for (const url of parts.slice(0, -1)) {
-                    this.push({ type: 'url', loc: url } satisfies SitemapItem);
-                }
-
-                this.#buffer = parts.at(-1)!;
+        for (const line of lines) {
+            const url = line.trim();
+            if (url.length > 0) {
+                this.push({ type: 'url', loc: url } satisfies SitemapItem);
             }
         }
     }

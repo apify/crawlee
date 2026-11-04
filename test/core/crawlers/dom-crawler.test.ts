@@ -10,7 +10,7 @@ interface FakeParseResult {
     body: string;
 }
 
-function fakeParser(): DOMParser<FakeParseResult> {
+function fakeParser(): DOMParser<FakeParseResult, string[], string> {
     return {
         placeholderMembers: { title: true, body: true },
         parse: (context) => {
@@ -19,7 +19,8 @@ function fakeParser(): DOMParser<FakeParseResult> {
         },
         extractLinks: (parsed, _selector, baseUrl) =>
             [...parsed.body.matchAll(/<a href="([^"]+)"/g)].map(([, href]) => new URL(href, baseUrl).href),
-        select: (parsed, selector) => (selector === 'title' && parsed.title ? [parsed.title] : []),
+        querySelectorAll: (parsed, selector) => (selector === 'title' && parsed.title ? [parsed.title] : []),
+        querySelectorOne: (parsed, selector) => (selector === 'title' && parsed.title ? parsed.title : undefined),
     };
 }
 

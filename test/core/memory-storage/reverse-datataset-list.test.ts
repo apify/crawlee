@@ -41,4 +41,17 @@ describe('Dataset#getData respects the desc option', () => {
         expect(result.items).toHaveLength(5);
         expect(result.items).toStrictEqual(elements.slice().reverse().slice(2, 7));
     });
+
+    test('with desc: true and a window past the oldest item', async () => {
+        const result = await dataset.getData({ desc: true, limit: 5, offset: 8 });
+
+        expect(result.items).toHaveLength(2);
+        expect(result.items).toStrictEqual(elements.slice().reverse().slice(8, 13));
+    });
+
+    test('with desc: true and an offset past the end', async () => {
+        const result = await dataset.getData({ desc: true, limit: 5, offset: 10 });
+
+        expect(result.items).toHaveLength(0);
+    });
 });
