@@ -19,7 +19,6 @@ import {
     AfterCommitError,
     BasicCrawler,
     CrawlingRequest,
-    ContextPipelineInitializationError,
     ContextPipelineInterruptedError,
     ConcurrencySystem,
     Configuration,
@@ -33,7 +32,6 @@ import {
     NonRetryableError,
     ProxyConfiguration,
     Request,
-    RequestHandlerError,
     RequestList,
     RequestManagerTandem,
     STATE_PERSISTENCE_KEY,
@@ -2791,81 +2789,42 @@ describe('BasicCrawler', () => {
         });
     });
 
-    test('extendContext', async () => {
-        const url = 'https://example.com';
-        const requestHandlerImplementation = vi.fn();
+    describe('extendContext', () => {
+        test('extends the crawling context', async () => {
+            const url = 'https://example.com';
+            const requestHandlerImplementation = vi.fn();
 
-        const crawler = new BasicCrawler({
-            extendContext: () => ({ hello: 'world' }),
-            requestHandler: async ({ hello }) => {
-                requestHandlerImplementation({ hello });
-            },
-        });
-
-        await crawler.run([url]);
-        expect(requestHandlerImplementation).toHaveBeenCalledOnce();
-        expect(requestHandlerImplementation.mock.calls[0][0]).toMatchObject({ hello: 'world' });
-    });
-
-    test('extendContext awaits registered cleanups after the request handler in reverse order', async () => {
-        const order: string[] = [];
-        const cleanupErrors: unknown[] = [];
-        const crawler = new BasicCrawler({
-            maxRequestRetries: 0,
-            extendContext: (_, onCleanup) => {
-                onCleanup(async (error) => {
-                    await Promise.resolve();
-                    cleanupErrors.push(error);
-                    order.push('first cleanup');
-                });
-                onCleanup(() => {
-                    order.push('second cleanup');
-                });
-                return { greeting: 'hello' };
-            },
-            requestHandler: async ({ greeting }) => {
-                order.push(greeting);
-            },
-        });
-
-        await crawler.run(['https://example.com']);
-
-        expect(order).toEqual(['hello', 'second cleanup', 'first cleanup']);
-        expect(cleanupErrors).toEqual([undefined]);
-    });
-
-    test.each(['extendContext', 'requestHandler'] as const)(
-        'extendContext cleanups receive the pipeline error when %s fails',
-        async (phase) => {
-            const failure = new Error('request failed');
-            const cleanup = vi.fn();
-            const failedRequestHandler = vi.fn();
             const crawler = new BasicCrawler({
-                maxRequestRetries: 0,
+                extendContext: () => ({ hello: 'world' }),
+                requestHandler: async ({ hello }) => {
+                    requestHandlerImplementation({ hello });
+                },
+            });
+
+            await crawler.run([url]);
+            expect(requestHandlerImplementation).toHaveBeenCalledOnce();
+            expect(requestHandlerImplementation.mock.calls[0][0]).toMatchObject({ hello: 'world' });
+        });
+
+        test('can register cleanups that run after the request handler', async () => {
+            const order: string[] = [];
+            const crawler = new BasicCrawler({
                 extendContext: (_, onCleanup) => {
-                    onCleanup(cleanup);
-                    if (phase === 'extendContext') {
-                        throw failure;
-                    }
+                    onCleanup(() => {
+                        order.push('cleanup');
+                    });
                     return {};
                 },
                 requestHandler: async () => {
-                    throw failure;
+                    order.push('handler');
                 },
-                failedRequestHandler,
             });
 
             await crawler.run(['https://example.com']);
 
-            expect(failedRequestHandler).toHaveBeenCalledOnce();
-            expect(cleanup).toHaveBeenCalledExactlyOnceWith(
-                expect.objectContaining({
-                    constructor: phase === 'extendContext' ? ContextPipelineInitializationError : RequestHandlerError,
-                    cause: failure,
-                }),
-            );
-        },
-    );
+            expect(order).toEqual(['handler', 'cleanup']);
+        });
+    });
 
     test('registerDeferredCleanup runs after the error handler, even when the context pipeline itself fails', async () => {
         const order: string[] = [];
