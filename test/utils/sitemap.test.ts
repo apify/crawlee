@@ -469,6 +469,32 @@ describe('Sitemap', () => {
         expect(sitemap.urls).toEqual(['http://gzipped.com/page']);
     });
 
+    it('keeps sitemap.txt lines apart when a network chunk ends on a line break', async () => {
+        const urls = Array.from({ length: 300 }, (_, i) => `http://not-exists.com/page-${i}`);
+        const httpClient = new FetchHttpClient();
+        httpClient.sendRequest = async () =>
+            new Response(
+                new ReadableStream({
+                    start(controller) {
+                        for (const url of urls) {
+                            controller.enqueue(new TextEncoder().encode(`${url}\n`));
+                        }
+                        controller.close();
+                    },
+                }),
+                { headers: { 'content-type': 'text/plain' } },
+            );
+
+        const parsed: string[] = [];
+        for await (const item of parseSitemap([{ type: 'url', url: 'http://not-exists.com/sitemap.txt' }], undefined, {
+            httpClient,
+        })) {
+            parsed.push(item.loc);
+        }
+
+        expect(parsed).toEqual(urls);
+    });
+
     it('handles sitemap.txt correctly', async () => {
         const sitemap = await Sitemap.load('http://not-exists.com/sitemap.txt', undefined, {
             httpClient: new FetchHttpClient(),

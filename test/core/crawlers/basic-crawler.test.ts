@@ -14,6 +14,7 @@ import type {
     RequestHandler,
     RequestOptions,
     Session,
+    StatisticPersistedState,
 } from '@crawlee/basic';
 import {
     AfterCommitError,
@@ -2773,6 +2774,94 @@ describe('BasicCrawler', () => {
             // A crawler-owned default is wiped at the start of each run.
             expect(ownedResetSpy).toHaveBeenCalled();
             expect(owningCrawler.statistics.state.requestsSucceeded).toBe(1);
+        });
+    });
+
+    describe('retry statistics', () => {
+        test('are updated as soon as a request is reclaimed for a retry, not once it finishes', async () => {
+            const seenOnAttempt: { retryCount: number; requestsRetries: number; histogram: number[] }[] = [];
+
+            const crawler = new BasicCrawler({
+                maxRequestRetries: 3,
+                requestHandler: async ({ request }) => {
+                    seenOnAttempt.push({
+                        retryCount: request.retryCount,
+                        requestsRetries: crawler.statistics.state.requestsRetries,
+                        histogram: [...crawler.statistics.requestRetryHistogram],
+                    });
+
+                    if (request.retryCount < 2) throw new Error(`attempt ${request.retryCount} failed`);
+                },
+            });
+
+            await crawler.run(['https://example.com']);
+
+            // The request is still in flight on each attempt, yet the stats already reflect the retries so far.
+            expect(seenOnAttempt).toEqual([
+                { retryCount: 0, requestsRetries: 0, histogram: [] },
+                { retryCount: 1, requestsRetries: 1, histogram: [0, 1] },
+                { retryCount: 2, requestsRetries: 1, histogram: [0, 0, 1] },
+            ]);
+
+            // Finishing the request does not count it a second time.
+            expect(crawler.statistics.state.requestsRetries).toBe(1);
+            expect(crawler.statistics.requestRetryHistogram).toEqual([0, 0, 1]);
+            expect(crawler.statistics.state.requestsSucceeded).toBe(1);
+            expect(crawler.statistics.state.requestsFailed).toBe(0);
+        });
+
+        test('count each request once and bucket it by its final retry count', async () => {
+            const retriesBeforeSuccess: Record<string, number> = {
+                'https://example.com/clean': 0,
+                'https://example.com/flaky': 2,
+                'https://example.com/broken': Infinity,
+            };
+
+            const crawler = new BasicCrawler({
+                maxRequestRetries: 3,
+                requestHandler: async ({ request }) => {
+                    if (request.retryCount < retriesBeforeSuccess[request.url]) {
+                        throw new Error(`attempt ${request.retryCount} failed`);
+                    }
+                },
+            });
+
+            await crawler.run(Object.keys(retriesBeforeSuccess));
+
+            expect(crawler.statistics.state.requestsSucceeded).toBe(2);
+            expect(crawler.statistics.state.requestsFailed).toBe(1);
+            // One request was never retried, two were - regardless of how many times.
+            expect(crawler.statistics.state.requestsRetries).toBe(2);
+            // index = retries at the time the request finished: clean -> 0, flaky -> 2, broken -> 3 (gave up)
+            expect(crawler.statistics.requestRetryHistogram).toEqual([1, 0, 1, 1]);
+        });
+
+        test('are visible in a snapshot persisted while the retried request is still in flight', async () => {
+            const stats = new Statistics({ id: 'retry-stats-in-flight' });
+            const store = await KeyValueStore.open();
+            let persistedMidCrawl: StatisticPersistedState | null = null;
+
+            const crawler = new BasicCrawler({
+                statistics: stats,
+                maxRequestRetries: 3,
+                requestHandler: async ({ request }) => {
+                    if (request.retryCount === 0) throw new Error('first attempt failed');
+
+                    // Simulates a migration-triggered persist before the request finished.
+                    await stats.persistState();
+                    persistedMidCrawl = await store.getValue<StatisticPersistedState>(
+                        'CRAWLEE_CRAWLER_STATISTICS_retry-stats-in-flight',
+                    );
+                },
+            });
+
+            await crawler.run(['https://example.com']);
+
+            expect(persistedMidCrawl).toMatchObject({
+                requestsRetries: 1,
+                requestRetryHistogram: [0, 1],
+                requestsTotal: 0,
+            });
         });
     });
 

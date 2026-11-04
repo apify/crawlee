@@ -1262,8 +1262,8 @@ export class BasicCrawler<
                                     crawlingContext,
                                     this.#basicPipeline.chain(this.contextPipeline).call(
                                         crawlingContext,
-                                        (ctx) => this.handleRequest(ctx, source, request),
-                                        (error) => this.#handleRequestFailure(error, crawlingContext, source, request),
+                                        (ctx) => this.handleRequest(ctx, source),
+                                        (error) => this.#handleRequestFailure(error, crawlingContext, source),
                                     ),
                                 ),
                         );
@@ -1276,7 +1276,6 @@ export class BasicCrawler<
                             await this.requestFunctionErrorHandler(
                                 unwrappedError,
                                 crawlingContext as CrawlingContext,
-                                request,
                                 this.requestManager!,
                             );
                             if (!this.#errorAbsolvesSession(unwrappedError)) {
@@ -2229,6 +2228,7 @@ export class BasicCrawler<
         });
         // Keep callback failures observable to callers that await this promise without emitting an unhandled rejection
         // when callers intentionally leave background additions running, matching `drainRequestBatches` behavior.
+        // Background failures are already logged by `drainRequestBatches`.
         void waitForAllRequestsToBeAdded.catch(() => {});
 
         return { ...result, waitForAllRequestsToBeAdded };
@@ -2607,17 +2607,15 @@ export class BasicCrawler<
 
     /** Runs the request handler and marks the request as handled. Failures are left to `handleRequestFailure`. */
     // oxlint-disable-next-line crawlee/prefer-private-fields -- patched by @crawlee/otel
-    private async handleRequest(
-        crawlingContext: ExtendedContext,
-        requestSource: IRequestManager,
-        request: CrawlingRequest,
-    ) {
+    private async handleRequest(crawlingContext: ExtendedContext, requestSource: IRequestManager) {
         // An earlier phase we cannot cancel (e.g. a slow `extendContext`) may have run past the internal timeout,
         // which already failed the request in `runTaskFunction`. Bail before running the handler so it does not
         // execute (and re-report) on top of a request the crawler has already moved past.
         if ((crawlingContext as PendingCrawlingContext)[timeoutExpiredKey]?.()) {
             return;
         }
+
+        const { request } = crawlingContext;
 
         request.state = RequestState.REQUEST_HANDLER;
         await this.runRequestHandler(crawlingContext);
@@ -2628,7 +2626,7 @@ export class BasicCrawler<
         await currentStorageTransaction()?.commit();
 
         await this.#timeoutAndRetry(
-            async () => requestSource.markRequestAsHandled(request!),
+            async () => requestSource.markRequestAsHandled(request),
             this.internalTimeoutMillis,
             `Marking request ${request.url} (${request.id}) as handled timed out after ${
                 this.internalTimeoutMillis / 1e3
@@ -2651,8 +2649,9 @@ export class BasicCrawler<
         rawError: unknown,
         crawlingContext: PendingCrawlingContext,
         requestSource: IRequestManager,
-        request: CrawlingRequest,
     ) {
+        const { request } = crawlingContext;
+
         // Roll back *before* any error handler runs - error handlers write to real storage precisely
         // because the transaction is already closed. A no-op when the commit in `handleRequest` succeeded.
         currentStorageTransaction()?.rollback();
@@ -2668,25 +2667,21 @@ export class BasicCrawler<
                     : unwrappedError;
 
             if (err) {
-                await this.#runErrorHandler(err, crawlingContext as CrawlingContext, requestSource, request);
+                await this.#runErrorHandler(err, crawlingContext as CrawlingContext, requestSource);
             }
         } finally {
             resumeRequestTimeout?.();
         }
     }
 
-    async #runErrorHandler(
-        err: Error,
-        context: CrawlingContext,
-        requestSource: IRequestManager,
-        request: CrawlingRequest,
-    ) {
+    async #runErrorHandler(err: Error, context: CrawlingContext, requestSource: IRequestManager) {
+        const { request } = context;
         const retryCountBefore = request.retryCount;
 
         try {
             request.state = RequestState.ERROR_HANDLER;
             await addTimeoutToPromise(
-                async () => this.requestFunctionErrorHandler(err, context, request, requestSource),
+                async () => this.requestFunctionErrorHandler(err, context, requestSource),
                 this.internalTimeoutMillis,
                 `Handling request failure of ${request.url} (${request.id}) timed out after ${
                     this.internalTimeoutMillis / 1e3
@@ -2825,16 +2820,15 @@ export class BasicCrawler<
 
     /**
      * Handles errors thrown by user provided requestHandler()
-     *
-     * @param request The request object, passed separately to circumvent potential dynamic logic in crawlingContext.request
      */
     // oxlint-disable-next-line crawlee/prefer-private-fields -- patched by @crawlee/otel
     private async requestFunctionErrorHandler(
         error: Error,
         crawlingContext: CrawlingContext,
-        request: CrawlingRequest,
         source: IRequestManager,
     ): Promise<void> {
+        const { request } = crawlingContext;
+
         if (error instanceof RequestThrottledError) {
             // The domain told us to come back later, so the request was never really attempted. Put it back where
             // it was, without recording a failure - it costs neither a retry nor session reputation.
@@ -2883,6 +2877,7 @@ export class BasicCrawler<
 
             if (!request.noRetry) {
                 request.retryCount++;
+                this.statistics.registerRetry?.(request.retryCount);
 
                 const { url, retryCount, id } = request;
 

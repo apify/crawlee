@@ -17,7 +17,16 @@ import {
 } from '@crawlee/basic';
 import { bindMethodsToServiceLocator, MemoryStorageBackend, serviceLocator, ServiceLocator } from '@crawlee/core';
 import type { PuppeteerGoToOptions } from '@crawlee/puppeteer';
-import { EnqueueStrategy, ProxyConfiguration, Request, RequestList, RequestState, Session } from '@crawlee/puppeteer';
+import {
+    EnqueueStrategy,
+    NavigationSkippedError,
+    ProxyConfiguration,
+    Request,
+    RequestList,
+    RequestQueue,
+    RequestState,
+    Session,
+} from '@crawlee/puppeteer';
 import { sleep } from '@crawlee/utils';
 import type { HTTPResponse } from 'puppeteer';
 import puppeteer from 'puppeteer';
@@ -115,6 +124,32 @@ describe('BrowserCrawler', () => {
         processed.forEach((request, id) => {
             expect(request.url).toEqual(sourcesCopy[id].url);
             expect(request.userData.title).toBe('Example Domain');
+        });
+    });
+
+    test.concurrent('marks a skipNavigation request as handled via the proxied context', async () => {
+        // A RequestQueue (unlike RequestList) serializes the whole request during bookkeeping.
+        const requestQueue = await RequestQueue.open();
+        const { uniqueKey } = await requestQueue.addRequest({
+            url: `${serverAddress}/`,
+            userData: { foo: 'bar' },
+            skipNavigation: true,
+        });
+        const failedRequestHandler = vitest.fn();
+
+        await new BrowserCrawlerTest({
+            browserPoolOptions: { browserPlugins: [new PuppeteerPlugin(puppeteer)] },
+            requestQueue,
+            requestHandler: async ({ request }) => {
+                expect(() => request.loadedUrl).toThrow(NavigationSkippedError);
+            },
+            failedRequestHandler,
+        }).run();
+
+        expect(failedRequestHandler).not.toHaveBeenCalled();
+        expect(await requestQueue.getRequest(uniqueKey)).toMatchObject({
+            handledAt: expect.any(String),
+            userData: { foo: 'bar' },
         });
     });
 

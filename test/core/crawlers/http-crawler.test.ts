@@ -7,6 +7,7 @@ import { MemoryStorageBackend, serviceLocator } from '@crawlee/core';
 import {
     ConcurrencySystem,
     HttpCrawler,
+    NavigationSkippedError,
     PersistentRateLimitError,
     RequestList,
     RequestQueue,
@@ -647,6 +648,28 @@ test('skipRequest() in a navigation hook skips the request and rolls back its st
         expect.objectContaining({ reason: 'manual', message: 'already scraped' }),
     );
     await expect(crawler.getData()).resolves.toMatchObject({ items: [] });
+});
+
+test('marks a skipNavigation request as handled via the proxied context', async () => {
+    // A RequestQueue (unlike RequestList) serializes the whole request during bookkeeping.
+    const requestQueue = await RequestQueue.open();
+    const { uniqueKey } = await requestQueue.addRequest({ url, userData: { foo: 'bar' }, skipNavigation: true });
+    const failedRequestHandler = vitest.fn();
+
+    await new HttpCrawler({
+        requestQueue,
+        maxRequestRetries: 0,
+        requestHandler: async ({ request }) => {
+            expect(() => request.loadedUrl).toThrow(NavigationSkippedError);
+        },
+        failedRequestHandler,
+    }).run();
+
+    expect(failedRequestHandler).not.toHaveBeenCalled();
+    expect(await requestQueue.getRequest(uniqueKey)).toMatchObject({
+        handledAt: expect.any(String),
+        userData: { foo: 'bar' },
+    });
 });
 
 test('works with a custom HttpClient', async () => {
