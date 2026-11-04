@@ -384,8 +384,23 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
         // the loop (per-entry warnings could flood the log; individual drops are logged at debug level).
         let droppedUrlEntries = 0;
 
+        const iterator = items[Symbol.asyncIterator]();
         try {
-            for await (const item of items) {
+            while (true) {
+                let next: IteratorResult<SitemapItem>;
+                try {
+                    next = await iterator.next();
+                } catch (e) {
+                    // Parsing failed: give up on this sitemap, keep the others.
+                    // Raw sources already logged the error in their pipeline callback.
+                    if (source.type !== 'raw') {
+                        logger?.warning(`Malformed sitemap content: ${source.url} (${e})`);
+                    }
+                    break;
+                }
+                if (next.done) break;
+                const item = next.value;
+
                 if (item.type === 'sitemapUrl' && !visitedSitemapUrls.has(item.url)) {
                     if (nestedSitemapFilter && !nestedSitemapFilter(item.url)) {
                         logger?.debug(`Skipping sitemap ${item.url} due to nestedSitemapFilter.`);
@@ -428,11 +443,9 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
                     };
                 }
             }
-        } catch (e) {
-            // Skip a malformed sitemap without losing the other ones; raw sources already report the error above.
-            if (source.type === 'url') {
-                logger?.warning(`Malformed sitemap content: ${source.url} (${e})`);
-            }
+        } finally {
+            // Mirrors `for await` cleanup: destroys the stream when we stop early or the consumer bails out.
+            await iterator.return?.();
         }
 
         if (droppedUrlEntries > 0 && source.type === 'url') {
