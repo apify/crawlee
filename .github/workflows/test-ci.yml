@@ -29,7 +29,7 @@ jobs:
             matrix:
                 # tests on windows are extremely unstable
                 # os: [ ubuntu-22.04, windows-2019 ]
-                os: [ ubuntu-22.04 ]
+                os: [ ubuntu-26.04 ]
                 node-version: [ 22, 24, 26 ]
 
         steps:
@@ -58,6 +58,10 @@ jobs:
 
             -   name: Install Puppeteer Chrome
                 run: pnpm exec puppeteer browsers install chrome
+
+            # the ubuntu-26.04 runner's AppArmor blocks unprivileged user namespaces, so Puppeteer's sandboxed Chromium fails with "No usable sandbox!"
+            -   name: Allow Chromium sandbox
+                run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
 
             -   name: Build
                 run: pnpm ci:build
