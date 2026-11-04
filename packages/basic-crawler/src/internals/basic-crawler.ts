@@ -96,8 +96,8 @@ import {
     constructUrlPatternObjects,
     createRequestOptions,
     createSkippedRequestArgs,
-    filterRequestOptionsByPatterns,
 } from './enqueue-links/index.js';
+import { compileUrlPatternMatchers, filterRequestOptionsByMatchers } from './enqueue-links/shared.js';
 import { parseRetryAfterHeader } from './http.js';
 import { CrawlerRun } from './crawler-run.js';
 import {
@@ -2098,6 +2098,7 @@ export class BasicCrawler<
         const strategy = options.strategy ?? EnqueueStrategy.All;
         const urlExcludePatternObjects = options.exclude?.length ? constructUrlPatternObjects(options.exclude) : [];
         const urlPatternObjects = options.include?.length ? constructUrlPatternObjects(options.include) : [];
+        const urlPatternMatchers = compileUrlPatternMatchers(urlPatternObjects, urlExcludePatternObjects);
         // The strategy always applies, even when `include` patterns are provided - the two are AND-ed together
         // (a URL must match an `include` pattern *and* satisfy the strategy). This mirrors crawlee-python.
         const strategyBaseUrl = options.baseUrl ? new URL(options.baseUrl) : undefined;
@@ -2173,10 +2174,9 @@ export class BasicCrawler<
                     allSkipped.push({ source: keepSkippedSource(opts), reason: 'filters' });
 
                 // Filter by user patterns first (with exclude)...
-                let filtered = filterRequestOptionsByPatterns(
+                let filtered = filterRequestOptionsByMatchers(
                     [requestOptions],
-                    urlPatternObjects.length > 0 ? urlPatternObjects : undefined,
-                    urlExcludePatternObjects,
+                    urlPatternMatchers,
                     strategy,
                     onSkippedByFilter,
                 );

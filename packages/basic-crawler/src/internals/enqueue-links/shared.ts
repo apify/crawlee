@@ -205,9 +205,47 @@ export function filterRequestOptionsByPatterns(
     strategy?: EnqueueStrategyOption,
     onSkippedRequestOptions?: (options: RequestOptions) => void,
 ): RequestOptions[] {
-    const excludeMatchers = excludePatterns.map(createPatternObjectMatcher);
-    const includeMatchers = includePatterns?.length ? includePatterns.map(createPatternObjectMatcher) : undefined;
+    return filterRequestOptionsByMatchers(
+        requestOptions,
+        compileUrlPatternMatchers(includePatterns, excludePatterns),
+        strategy,
+        onSkippedRequestOptions,
+    );
+}
 
+/**
+ * @internal
+ */
+export interface UrlPatternMatchers {
+    /** `undefined` when there are no include patterns, so every URL passes. */
+    includeMatchers?: { match: (url: string) => boolean }[];
+    excludeMatchers: { match: (url: string) => boolean }[];
+}
+
+/**
+ * Compiles the patterns once, so callers filtering links one at a time don't rebuild a `Minimatch` per link.
+ * @internal
+ */
+export function compileUrlPatternMatchers(
+    includePatterns: UrlPatternObject[] | undefined,
+    excludePatterns: UrlPatternObject[] = [],
+): UrlPatternMatchers {
+    return {
+        excludeMatchers: excludePatterns.map(createPatternObjectMatcher),
+        includeMatchers: includePatterns?.length ? includePatterns.map(createPatternObjectMatcher) : undefined,
+    };
+}
+
+/**
+ * Same as {@apilink filterRequestOptionsByPatterns}, but with matchers precompiled by {@apilink compileUrlPatternMatchers}.
+ * @internal
+ */
+export function filterRequestOptionsByMatchers(
+    requestOptions: RequestOptions[],
+    { includeMatchers, excludeMatchers }: UrlPatternMatchers,
+    strategy?: EnqueueStrategyOption,
+    onSkippedRequestOptions?: (options: RequestOptions) => void,
+): RequestOptions[] {
     return requestOptions
         .filter((opts) => {
             const matchesExclude = excludeMatchers.some(({ match }) => match(opts.url));
