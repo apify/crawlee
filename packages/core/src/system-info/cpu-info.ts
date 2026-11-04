@@ -1,24 +1,16 @@
 import { execSync } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
 import os from 'node:os';
+import { posix } from 'node:path';
 
 import type { CrawleeLogger } from '@crawlee/types';
 
-import { getCgroupsVersion } from './runtime.js';
+import { getCgroupController } from './cgroup.js';
 
-const CPU_FILE_PATHS = {
-    STAT: {
-        V1: '/sys/fs/cgroup/cpuacct/cpuacct.usage',
-        V2: '/sys/fs/cgroup/cpu.stat',
-    },
-    QUOTA: {
-        V1: '/sys/fs/cgroup/cpu/cpu.cfs_quota_us',
-        V2: '/sys/fs/cgroup/cpu.max',
-    },
-    PERIOD: {
-        V1: '/sys/fs/cgroup/cpu/cpu.cfs_period_us',
-        V2: '/sys/fs/cgroup/cpu.max',
-    },
+const CPU_FILE_NAMES = {
+    STAT: { V1: 'cpuacct.usage', V2: 'cpu.stat' },
+    QUOTA: { V1: 'cpu.cfs_quota_us', V2: 'cpu.max' },
+    PERIOD: { V1: 'cpu.cfs_period_us', V2: 'cpu.max' },
 };
 
 let CLOCK_TICKS_PER_SECOND = 100;
@@ -31,8 +23,7 @@ const previousTicks = { idle: 0, total: 0 };
  * Gets the "bare metal" cpu load.
  * Used in
  *  - AWS Lambda
- *  - Containers without a cGroup quota
- *  - Uncontainerized environments
+ *  - Environments without a cGroup quota
  * @returns a number between 0 and 1 for the cpu load
  * @internal
  */
@@ -71,17 +62,18 @@ function getClockTicks(): number | null {
  * In V1, a quota of -1 means “unlimited.”
  * In V2, a first field of "max" means unlimited.
  * @param cgroupsVersion the cGroup version
+ * @param dir the cgroup directory
  * @returns The Cpu Quota
  * @internal
  */
-export async function getCpuQuota(cgroupsVersion: string): Promise<number | null> {
+export async function getCpuQuota(cgroupsVersion: string, dir: string): Promise<number | null> {
     if (cgroupsVersion === 'V1') {
-        const quotaStr = await readFile(CPU_FILE_PATHS.QUOTA.V1, 'utf8');
+        const quotaStr = await readFile(posix.join(dir, CPU_FILE_NAMES.QUOTA.V1), 'utf8');
         const quota = parseInt(quotaStr.trim(), 10);
         return quota === -1 ? null : quota;
     }
     // cgroup v2
-    const maxStr = await readFile(CPU_FILE_PATHS.QUOTA.V2, 'utf8');
+    const maxStr = await readFile(posix.join(dir, CPU_FILE_NAMES.QUOTA.V2), 'utf8');
     const parts = maxStr.trim().split(/\s+/);
     if (parts[0] === 'max') {
         return null;
@@ -92,17 +84,18 @@ export async function getCpuQuota(cgroupsVersion: string): Promise<number | null
 /**
  * Reads the cgroup cpu period.
  * @param cgroupsVersion the cGroup version
+ * @param dir the cgroup directory
  * @returns The Cpu quota period
  * @internal
  */
-export async function getCpuPeriod(cgroupsVersion: string): Promise<number> {
+export async function getCpuPeriod(cgroupsVersion: string, dir: string): Promise<number> {
     if (cgroupsVersion === 'V1') {
-        const quotaStr = await readFile(CPU_FILE_PATHS.PERIOD.V1, 'utf8');
+        const quotaStr = await readFile(posix.join(dir, CPU_FILE_NAMES.PERIOD.V1), 'utf8');
         const quota = parseInt(quotaStr.trim(), 10);
         return quota;
     }
     // cgroup v2
-    const maxStr = await readFile(CPU_FILE_PATHS.PERIOD.V2, 'utf8');
+    const maxStr = await readFile(posix.join(dir, CPU_FILE_NAMES.PERIOD.V2), 'utf8');
     const parts = maxStr.trim().split(/\s+/);
     return parseInt(parts[1], 10);
 }
@@ -111,16 +104,17 @@ export async function getCpuPeriod(cgroupsVersion: string): Promise<number> {
  * Reads the cgroup cpu usage of the container
  *
  * @param cgroupsVersion the cGroup version
+ * @param dir the cgroup directory
  * @returns the cpu usage
  * @internal
  */
-export async function getContainerCpuUsage(cgroupsVersion: string): Promise<number> {
+export async function getContainerCpuUsage(cgroupsVersion: string, dir: string): Promise<number> {
     if (cgroupsVersion === 'V1') {
-        const data = await readFile(CPU_FILE_PATHS.STAT.V1, 'utf8');
+        const data = await readFile(posix.join(dir, CPU_FILE_NAMES.STAT.V1), 'utf8');
         return Number(data.trim());
     }
     // cgroup v2
-    const data = await readFile(CPU_FILE_PATHS.STAT.V2, 'utf8');
+    const data = await readFile(posix.join(dir, CPU_FILE_NAMES.STAT.V2), 'utf8');
     const lines = data.split('\n');
     let usageUsec = 0;
     for (const line of lines) {
@@ -170,12 +164,13 @@ export interface CpuSample {
 /**
  * Takes a CPU usage sample for both the container and the system.
  *
+ * @param dir the cgroup directory
  * @returns An object containing the container and system CPU usage.
  * @internal
  */
-export async function sampleCpuUsage(cGroupsVersion: string): Promise<CpuSample> {
+export async function sampleCpuUsage(cGroupsVersion: string, dir: string): Promise<CpuSample> {
     const [containerUsage, systemUsage] = await Promise.all([
-        getContainerCpuUsage(cGroupsVersion),
+        getContainerCpuUsage(cGroupsVersion, dir),
         getSystemCpuUsage(),
     ]);
     return { containerUsage, systemUsage };
@@ -185,7 +180,7 @@ let previousSample: CpuSample = { containerUsage: 0, systemUsage: 0 };
 
 /**
  * Gets the cpu usage of the system.
- * If the crawler is running in a containerized environment, crawlee will check for a cgroup enforced cpu limit.
+ * Crawlee checks for a cgroup enforced cpu limit (e.g. in a containerized environment) on the process cgroup and its ancestors.
  * If a cgroup limit is found, it will be taken as the maximum load against which the current load will be gauged.
  * @returns a number between 0 and 1 for the cpu load
  * @internal
@@ -196,9 +191,32 @@ export async function getCurrentCpuTicksV2(
     const { containerized = false, logger } = options;
 
     try {
-        // if not containerized
-        if (!containerized) {
-            // bare metal cpu limit
+        const cgroup = await getCgroupController('cpu');
+        // if cgroup is not detected, return bare metal cpu limit
+        if (cgroup === null) {
+            if (containerized) {
+                logger?.warningOnce(
+                    'Your environment is containerized, but your system does not support cgroups.\n' +
+                        "If you're running containers with limited cpu, cpu auto-scaling will not work properly.",
+                );
+            }
+            return getCurrentCpuTicks();
+        }
+        // The tightest quota on the cgroup chain applies. If no limits are set, default to returning getCurrentCpuTicks.
+        let cpuAllowance = Infinity;
+        let quotaDir: string | undefined;
+        for (const dir of cgroup.dirs) {
+            const quota = await getCpuQuota(cgroup.version, dir).catch(() => null);
+            if (quota === null) continue;
+            // eg. having a 200000us quota per 100000us means the cGroup can fully use 2 cores
+            const allowance = quota / (await getCpuPeriod(cgroup.version, dir));
+            if (allowance < cpuAllowance) {
+                cpuAllowance = allowance;
+                quotaDir = dir;
+            }
+        }
+        if (quotaDir === undefined) {
+            // no cgroup limit, return host cpu load
             return getCurrentCpuTicks();
         }
         if (!CLOCK_TICKS_CHECKED) {
@@ -211,26 +229,9 @@ export async function getCurrentCpuTicksV2(
             }
             CLOCK_TICKS_CHECKED = true;
         }
-        const cgroupsVersion = await getCgroupsVersion();
-        // if cgroup is not detected, return bare metal cpu limit
-        if (cgroupsVersion === null) {
-            logger?.warningOnce(
-                'Your environment is containerized, but your system does not support cgroups.\n' +
-                    "If you're running containers with limited cpu, cpu auto-scaling will not work properly.",
-            );
-            return getCurrentCpuTicks();
-        }
-        // cgroup aware cpu limit. If no limits are set, default to returning getCurrentCpuTicks.
-        const quota = await getCpuQuota(cgroupsVersion!);
-        if (quota === null) {
-            // no cgroup limit, return host cpu load
-            return getCurrentCpuTicks();
-        }
-        const period = await getCpuPeriod(cgroupsVersion!);
-        // eg. having a 200000us quots per 100000us means the cGroup can fully use 2 cores
-        const cpuAllowance = quota / period;
 
-        const sample = await sampleCpuUsage(cgroupsVersion!);
+        // The usage is measured where the quota applies. cgroup V1 mounts cpuacct together with cpu.
+        const sample = await sampleCpuUsage(cgroup.version, quotaDir);
 
         const containerDelta = sample.containerUsage - previousSample.containerUsage;
         const systemDelta = sample.systemUsage - previousSample.systemUsage;

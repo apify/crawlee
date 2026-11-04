@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import os from 'node:os';
 
-import { getCgroupsVersion } from '../../../packages/core/src/system-info/runtime.js';
+import { getCgroupController } from '../../../packages/core/src/system-info/cgroup.js';
 
 import {
     getContainerCpuUsage,
@@ -13,13 +13,9 @@ import {
     sampleCpuUsage,
 } from '../../../packages/core/src/system-info/cpu-info.js';
 
-vitest.mock('../../../packages/core/src/system-info/runtime.js', async (importActual) => {
-    const original: typeof import('../../../packages/core/src/system-info/runtime.js') = await importActual();
-    return {
-        ...original,
-        getCgroupsVersion: vitest.fn(),
-    };
-});
+vitest.mock('../../../packages/core/src/system-info/cgroup.js', () => ({
+    getCgroupController: vitest.fn(async () => null),
+}));
 
 vitest.mock('node:fs/promises', async (importActual) => {
     const originalFs: typeof import('node:fs/promises') = await importActual();
@@ -29,7 +25,7 @@ vitest.mock('node:fs/promises', async (importActual) => {
     };
 });
 
-const getCgroupsVersionSpy = vitest.mocked(getCgroupsVersion);
+const getCgroupControllerSpy = vitest.mocked(getCgroupController);
 const readFileSpy = vitest.mocked(readFile);
 
 // `getCurrentCpuTicks` keeps a module-level baseline of the previous tick sample.
@@ -95,7 +91,7 @@ describe('getCpuQuota()', () => {
             }
             throw new Error(`Unexpected path ${path}`);
         });
-        const quota = await getCpuQuota('V1');
+        const quota = await getCpuQuota('V1', '/sys/fs/cgroup/cpu');
         expect(quota).toBeNull();
     });
 
@@ -106,7 +102,7 @@ describe('getCpuQuota()', () => {
             }
             throw new Error(`Unexpected path ${path}`);
         });
-        const quota = await getCpuQuota('V1');
+        const quota = await getCpuQuota('V1', '/sys/fs/cgroup/cpu');
         expect(quota).toEqual(200000);
     });
 
@@ -117,7 +113,7 @@ describe('getCpuQuota()', () => {
             }
             throw new Error(`Unexpected path ${path}`);
         });
-        const quota = await getCpuQuota('V2');
+        const quota = await getCpuQuota('V2', '/sys/fs/cgroup');
         expect(quota).toBeNull();
     });
 
@@ -128,7 +124,7 @@ describe('getCpuQuota()', () => {
             }
             throw new Error(`Unexpected path ${path}`);
         });
-        const quota = await getCpuQuota('V2');
+        const quota = await getCpuQuota('V2', '/sys/fs/cgroup');
         expect(quota).toBe(200000);
     });
 });
@@ -141,7 +137,7 @@ describe('getCpuPeriod()', () => {
             }
             throw new Error(`Unexpected path ${path}`);
         });
-        const period = await getCpuPeriod('V1');
+        const period = await getCpuPeriod('V1', '/sys/fs/cgroup/cpu');
         expect(period).toBe(100000);
     });
 
@@ -152,7 +148,7 @@ describe('getCpuPeriod()', () => {
             }
             throw new Error(`Unexpected path ${path}`);
         });
-        const period = await getCpuPeriod('V2');
+        const period = await getCpuPeriod('V2', '/sys/fs/cgroup');
         expect(period).toBe(100000);
     });
 });
@@ -165,7 +161,7 @@ describe('getContainerCpuUsage()', () => {
             }
             throw new Error(`Unexpected path ${path}`);
         });
-        const usage = await getContainerCpuUsage('V1');
+        const usage = await getContainerCpuUsage('V1', '/sys/fs/cgroup/cpuacct');
         expect(usage).toBe(123456789);
     });
 
@@ -178,7 +174,7 @@ describe('getContainerCpuUsage()', () => {
             }
             throw new Error(`Unexpected path ${path}`);
         });
-        const usage = await getContainerCpuUsage('V2');
+        const usage = await getContainerCpuUsage('V2', '/sys/fs/cgroup');
         expect(usage).toBe(5000 * 1000);
     });
 });
@@ -224,7 +220,7 @@ describe('sampleCpuUsage()', () => {
 
             throw new Error(`Unexpected path ${path}`);
         });
-        const sample = await sampleCpuUsage('V1');
+        const sample = await sampleCpuUsage('V1', '/sys/fs/cgroup/cpuacct');
         expect(sample).toEqual({
             containerUsage: 1000000,
             systemUsage: 3000000000, // as computed above.
@@ -244,7 +240,7 @@ describe('sampleCpuUsage()', () => {
 
             throw new Error(`Unexpected path ${path}`);
         });
-        const sample = await sampleCpuUsage('V2');
+        const sample = await sampleCpuUsage('V2', '/sys/fs/cgroup');
         expect(sample).toEqual({
             containerUsage: 1000000,
             systemUsage: 3000000000, // as computed above.
@@ -277,7 +273,7 @@ describe('getCpuInfo()', () => {
     });
 
     test('returns container-aware cpu usage when containerized with quota set', async () => {
-        getCgroupsVersionSpy.mockResolvedValueOnce('V1');
+        getCgroupControllerSpy.mockResolvedValueOnce({ version: 'V1', dirs: ['/sys/fs/cgroup/cpu'] });
         // For V1:
         // - getCpuQuota: return 200000 → quota = 200000.
         // - getCpuPeriod: return 100000 → period = 100000.
@@ -308,7 +304,7 @@ describe('getCpuInfo()', () => {
     });
 
     test('logs warningOnce when containerized but cgroups not available', async () => {
-        getCgroupsVersionSpy.mockResolvedValueOnce(null);
+        getCgroupControllerSpy.mockResolvedValueOnce(null);
         const cpusMock = vitest
             .spyOn(os, 'cpus')
             .mockReturnValue([{ times: { user: 100, nice: 0, sys: 50, idle: 50, irq: 0 } }] as os.CpuInfo[]);
@@ -320,8 +316,11 @@ describe('getCpuInfo()', () => {
     });
 
     test('logs warning when cgroup cpu snapshot fails', async () => {
-        getCgroupsVersionSpy.mockResolvedValueOnce('V1');
-        readFileSpy.mockRejectedValue(new Error('permission denied'));
+        getCgroupControllerSpy.mockResolvedValueOnce({ version: 'V1', dirs: ['/sys/fs/cgroup/cpu'] });
+        readFileSpy
+            .mockResolvedValueOnce('200000\n') // for getCpuQuota
+            .mockResolvedValueOnce('100000\n') // for getCpuPeriod
+            .mockRejectedValue(new Error('permission denied'));
         const cpusMock = vitest
             .spyOn(os, 'cpus')
             .mockReturnValue([{ times: { user: 100, nice: 0, sys: 50, idle: 50, irq: 0 } }] as os.CpuInfo[]);
@@ -336,7 +335,7 @@ describe('getCpuInfo()', () => {
     });
 
     test('returns bare metal cpu ticks when containerized but no cgroup quota', async () => {
-        getCgroupsVersionSpy.mockResolvedValueOnce('V1');
+        getCgroupControllerSpy.mockResolvedValueOnce({ version: 'V1', dirs: ['/sys/fs/cgroup/cpu'] });
         // For V1, a quota of "-1" signals no limit → quota becomes null.
         readFileSpy.mockResolvedValueOnce('-1\n'); // getCpuQuota returns null
         // In this branch, getCpuInfo falls back to getCurrentCpuTicks.
@@ -346,6 +345,37 @@ describe('getCpuInfo()', () => {
         const result = await getCurrentCpuTicksV2({ containerized: true });
         // For one CPU: total = 300+0+150+150 = 600, idle = 150 → load = 0.75.
         expect(result).toBeCloseTo(0.75);
+        cpusMock.mockRestore();
+    });
+
+    test('uses the tightest quota on the cgroup chain, also outside a container', async () => {
+        const controller = {
+            version: 'V2' as const,
+            dirs: ['/sys/fs/cgroup/user.slice/run-u1.scope', '/sys/fs/cgroup/user.slice', '/sys/fs/cgroup'],
+        };
+        getCgroupControllerSpy.mockResolvedValueOnce(controller).mockResolvedValueOnce(controller);
+
+        let usageUsec = 0;
+        let systemTicks = 0;
+        readFileSpy.mockImplementation(async (path) => {
+            if (path === '/sys/fs/cgroup/user.slice/run-u1.scope/cpu.max') return 'max 100000\n';
+            if (path === '/sys/fs/cgroup/user.slice/cpu.max') return '200000 100000\n';
+            if (path === '/sys/fs/cgroup/user.slice/cpu.stat') return `usage_usec ${(usageUsec += 1_000_000)}\n`;
+            if (path === '/proc/stat') return `cpu ${(systemTicks += 300)} 0 0 0 0 0 0\n`;
+            throw new Error(`ENOENT: ${path}`);
+        });
+        const cpusMock = vitest
+            .spyOn(os, 'cpus')
+            .mockReturnValue([
+                { times: { user: 200, nice: 0, sys: 100, idle: 100, irq: 0 } },
+                { times: { user: 200, nice: 0, sys: 100, idle: 100, irq: 0 } },
+            ] as os.CpuInfo[]);
+
+        // The first call only sets the baseline sample.
+        await getCurrentCpuTicksV2();
+        const result = await getCurrentCpuTicksV2();
+        // 1 s of slice cpu time per 3 s of system cpu time on 2 CPUs, against an allowance of 2 cores.
+        expect(result).toBeCloseTo(1 / 3, 4);
         cpusMock.mockRestore();
     });
 });

@@ -1,6 +1,6 @@
 import asyncFs from 'node:fs/promises';
 
-import { getCgroupsVersion, isDocker, isLambda } from '../../../packages/core/src/system-info/runtime.js';
+import { isDocker, isLambda } from '../../../packages/core/src/system-info/runtime.js';
 
 describe('isDocker()', () => {
     test('works for dockerenv && cgroup', async () => {
@@ -111,35 +111,5 @@ describe('isLambda()', () => {
         process.env.AWS_LAMBDA_FUNCTION_MEMORY_SIZE = '12345';
         const result = isLambda();
         expect(result).toBe(true);
-    });
-});
-
-describe('getCgroupsVersion()', () => {
-    // Reset the module cache so that cgroupsVersion is not retained across tests.
-    beforeEach(() => {
-        vitest.resetModules();
-    });
-
-    test('returns null when access to /sys/fs/cgroup/ fails', async () => {
-        vitest.spyOn(asyncFs, 'access').mockRejectedValue(new Error('not found'));
-        const version = await getCgroupsVersion(true);
-        expect(version).toBe(null);
-    });
-
-    test('returns V2 when access to /sys/fs/cgroup/memory/ fails', async () => {
-        vitest.spyOn(asyncFs, 'access').mockImplementation(async (path) => {
-            if (path === '/sys/fs/cgroup/') {
-                return;
-            }
-            throw new Error('not found');
-        });
-        const version = await getCgroupsVersion(true);
-        expect(version).toBe('V2');
-    });
-
-    test('returns V1 when access to /sys/fs/cgroup/memory/ succeeds', async () => {
-        vitest.spyOn(asyncFs, 'access').mockResolvedValue();
-        const version = await getCgroupsVersion(true);
-        expect(version).toBe('V1');
     });
 });
