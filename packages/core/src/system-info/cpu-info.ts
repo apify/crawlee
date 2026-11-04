@@ -23,7 +23,8 @@ const previousTicks = { idle: 0, total: 0 };
  * Gets the "bare metal" cpu load.
  * Used in
  *  - AWS Lambda
- *  - Environments without a cGroup quota
+ *  - Containers without a cGroup quota
+ *  - Uncontainerized environments
  * @returns a number between 0 and 1 for the cpu load
  * @internal
  */
