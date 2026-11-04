@@ -668,7 +668,11 @@ export interface HandleCloudflareChallengeOptions {
  * **Example usage**
  * ```ts
  * postNavigationHooks: [
- *     async (context) => ({ response: await context.handleCloudflareChallenge() }),
+ *     async (context) => {
+ *         const response = await context.handleCloudflareChallenge();
+ *         // `{ response: undefined }` would replace the navigation response and skip the blocked-status check
+ *         return response && { response };
+ *     },
  * ],
  * ```
  *
@@ -1029,7 +1033,11 @@ export interface PlaywrightContextUtils {
      * **Example usage**
      * ```ts
      * postNavigationHooks: [
-     *     async (context) => ({ response: await context.handleCloudflareChallenge() }),
+     *     async (context) => {
+     *         const response = await context.handleCloudflareChallenge();
+     *         // `{ response: undefined }` would replace the navigation response and skip the blocked-status check
+     *         return response && { response };
+     *     },
      * ],
      * ```
      *
