@@ -31,7 +31,7 @@ import {
 } from '@crawlee/basic';
 import { ResponseWithUrl } from '@crawlee/http-client';
 import type { Awaitable, Dictionary, ISession } from '@crawlee/types';
-import { parseArgument, RETRY_CSS_SELECTORS, schemas } from '@crawlee/utils/internal';
+import { parseArgument, processHttpRequestOptions, RETRY_CSS_SELECTORS, schemas } from '@crawlee/utils/internal';
 import type { CheerioAPI } from 'cheerio';
 import { isTypeValid, parse as parseContentType } from 'content-type';
 import iconv from 'iconv-lite';
@@ -40,7 +40,7 @@ import { z } from 'zod';
 
 import { addTimeoutToPromise, storage, TimeoutError, tryCancel } from '@apify/timeout';
 
-import { extractCharsetFromHtmlBytes, parseContentTypeFromResponse, processHttpRequestOptions } from './utils.js';
+import { extractCharsetFromHtmlBytes, parseContentTypeFromResponse } from './utils.js';
 
 /**
  * Default mime types, which HttpScraper supports.

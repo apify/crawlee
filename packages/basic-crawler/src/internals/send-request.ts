@@ -1,6 +1,9 @@
+import { Readable } from 'node:stream';
+
 import type { Request as CrawleeRequest } from '@crawlee/core';
 import type { BaseHttpClient } from '@crawlee/http-client';
 import type { HttpRequestOptions, ISession, SendRequestOptions } from '@crawlee/types';
+import { processHttpRequestOptions } from '@crawlee/utils/internal';
 
 /**
  * Prepares a function to be used as the `sendRequest` context helper.
@@ -16,8 +19,6 @@ export function createSendRequest(httpClient: BaseHttpClient, originRequest: Cra
         overrideOptions: SendRequestOptions = {},
     ): Promise<Response> => {
         const baseRequest = originRequest.intoFetchAPIRequest();
-        const mergedUrl = overrideRequest.url ?? baseRequest.url;
-        const mergedMethod = overrideRequest.method ?? baseRequest.method;
 
         const mergedHeaders = new Headers(baseRequest.headers);
         if (overrideRequest.headers) {
@@ -26,18 +27,27 @@ export function createSendRequest(httpClient: BaseHttpClient, originRequest: Cra
             });
         }
 
-        const request = new Request(mergedUrl, {
-            method: mergedMethod,
+        const opts = processHttpRequestOptions({
+            ...overrideRequest,
+            url: overrideRequest.url ?? baseRequest.url,
+            method: overrideRequest.method ?? originRequest.method,
             headers: mergedHeaders,
-            body: overrideRequest.body ?? baseRequest.body,
+        });
+
+        const request = new Request(opts.url, {
+            method: opts.method,
+            headers: opts.headers,
+            body: opts.body ? Readable.toWeb(opts.body) : baseRequest.body,
+            // Node-specific option to make the request body work with streams
+            duplex: 'half',
         } as RequestInit);
 
         return httpClient.sendRequest(request, {
             session,
-            cookieJar: overrideOptions?.cookieJar ?? session.cookieJar,
-            proxyUrl: overrideOptions.proxyUrl ?? overrideRequest.proxyUrl,
-            timeoutMillis: overrideOptions.timeoutMillis,
-            signal: overrideOptions.signal,
+            cookieJar: overrideOptions.cookieJar ?? opts.cookieJar ?? session.cookieJar,
+            proxyUrl: overrideOptions.proxyUrl ?? opts.proxyUrl,
+            timeoutMillis: overrideOptions.timeoutMillis ?? opts.timeout,
+            signal: overrideOptions.signal ?? opts.signal,
             ignoreTlsErrors: overrideOptions.ignoreTlsErrors,
         });
     };

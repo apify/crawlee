@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 import type { Server } from 'node:http';
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
+import { text } from 'node:stream/consumers';
 
 import type {
     BasicCrawlerOptions,
@@ -51,6 +52,7 @@ import { FileSystemStorageBackend } from '@crawlee/fs-storage';
 import type { Dictionary, ISession, ProxyInfo } from '@crawlee/types';
 import { RobotsTxtFile, sleep } from '@crawlee/utils';
 import express from 'express';
+import { CookieJar } from 'tough-cookie';
 import type { Mock } from 'vitest';
 import { afterAll, beforeAll, beforeEach, describe, expect, test, vitest } from 'vitest';
 import { z } from 'zod';
@@ -2919,12 +2921,113 @@ describe('BasicCrawler', () => {
                     await sendRequest({}, { proxyUrl: 'http://options-proxy.com' });
                     await sendRequest({ proxyUrl: 'http://request-proxy.com' });
                     await sendRequest();
+                    await sendRequest(
+                        { proxyUrl: 'http://request-proxy.com' },
+                        { proxyUrl: 'http://options-proxy.com' },
+                    );
                 },
             });
 
             await crawler.run([url]);
 
-            expect(captured).toEqual(['http://options-proxy.com', 'http://request-proxy.com', undefined]);
+            expect(captured).toEqual([
+                'http://options-proxy.com',
+                'http://request-proxy.com',
+                undefined,
+                'http://options-proxy.com',
+            ]);
+        });
+
+        test('applies searchParams, json, form and basic auth to the request', async () => {
+            const captured: { url: string; method: string; headers: Record<string, string>; body: string }[] = [];
+
+            const crawler = new BasicCrawler({
+                maxRequestRetries: 0,
+                httpClient: Object.assign(Object.create(BaseHttpClient.prototype) as BaseHttpClient, {
+                    async sendRequest(request: globalThis.Request) {
+                        captured.push({
+                            url: request.url,
+                            method: request.method,
+                            headers: Object.fromEntries(request.headers),
+                            body: request.body ? await text(request.body) : '',
+                        });
+                        return new Response('ok');
+                    },
+                }),
+                async requestHandler({ sendRequest }) {
+                    await sendRequest({ searchParams: { foo: 'bar' } });
+                    await sendRequest({ method: 'POST', json: { foo: 'bar' } });
+                    await sendRequest({ method: 'POST', form: { foo: 'bar' } });
+                    await sendRequest({ username: 'user', password: 'pass' });
+                },
+            });
+
+            await crawler.run([url]);
+
+            expect(captured).toMatchObject([
+                { url: `${url}?foo=bar`, method: 'GET', body: '' },
+                { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{"foo":"bar"}' },
+                {
+                    method: 'POST',
+                    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+                    body: 'foo=bar',
+                },
+                { headers: { authorization: `Basic ${Buffer.from('user:pass').toString('base64')}` } },
+            ]);
+        });
+
+        test('sends the payload of the crawled request', async () => {
+            const captured: { method: string; body: string }[] = [];
+
+            const crawler = new BasicCrawler({
+                maxRequestRetries: 0,
+                httpClient: Object.assign(Object.create(BaseHttpClient.prototype) as BaseHttpClient, {
+                    async sendRequest(request: globalThis.Request) {
+                        captured.push({ method: request.method, body: await request.text() });
+                        return new Response('ok');
+                    },
+                }),
+                async requestHandler({ sendRequest }) {
+                    await sendRequest();
+                },
+            });
+
+            await crawler.run([{ url, method: 'POST', payload: 'foo=bar' }]);
+
+            expect(captured).toEqual([{ method: 'POST', body: 'foo=bar' }]);
+        });
+
+        test('forwards timeout, signal and cookieJar from the request options to the http client', async () => {
+            const captured: { timeoutMillis?: number; signal?: AbortSignal; cookieJar?: unknown }[] = [];
+            const { signal } = new AbortController();
+            const cookieJar = new CookieJar();
+
+            const crawler = new BasicCrawler({
+                maxRequestRetries: 0,
+                httpClient: Object.assign(Object.create(BaseHttpClient.prototype) as BaseHttpClient, {
+                    async sendRequest(
+                        _request: globalThis.Request,
+                        options?: { timeoutMillis?: number; signal?: AbortSignal; cookieJar?: unknown },
+                    ) {
+                        captured.push({
+                            timeoutMillis: options?.timeoutMillis,
+                            signal: options?.signal,
+                            cookieJar: options?.cookieJar,
+                        });
+                        return new Response('ok');
+                    },
+                }),
+                async requestHandler({ sendRequest }) {
+                    await sendRequest({ timeout: 1000, signal, cookieJar });
+                },
+            });
+
+            await crawler.run([url]);
+
+            expect(captured).toHaveLength(1);
+            expect(captured[0].timeoutMillis).toBe(1000);
+            expect(captured[0].signal).toBe(signal);
+            expect(captured[0].cookieJar).toBe(cookieJar);
         });
 
         test('proxyUrl TypeScript support', async () => {
