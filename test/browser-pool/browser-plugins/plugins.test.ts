@@ -14,9 +14,7 @@ import {
 } from '@crawlee/browser-pool';
 import playwright from 'playwright';
 import type { Server as ProxyChainServer } from 'proxy-chain';
-// @ts-ignore This only throws when compiled against puppeteer 25+ (ESM only), we only import types, so its alllll gooooood
 import type { Browser } from 'puppeteer';
-// @ts-ignore This only throws when compiled against puppeteer 25+ (ESM only), vitest executes tests as ESM, so its alllll gooooood
 import puppeteer from 'puppeteer';
 import { runExampleComServer } from '../../shared/_helper.js';
 
@@ -117,6 +115,13 @@ const runPluginTest = <
             expect(context.proxyUrl).toEqual(proxyUrl.slice(0, -1));
             expect(context.useIncognitoPages).toBeTruthy();
             expect(context.userDataDir).toEqual('test');
+        });
+
+        test.concurrent('should keep the port of a socks proxyUrl from plugin options', () => {
+            const plugin = new Plugin(library as never, { proxyUrl: 'socks5://127.0.0.1:1080' });
+            const context = plugin.createLaunchContext();
+
+            expect(context.proxyUrl).toEqual('socks5://127.0.0.1:1080');
         });
 
         test.concurrent('should allow unsetting launchContext proxyUrl', () => {
@@ -400,6 +405,20 @@ describe('Plugins', () => {
                 proxy: { server: expectedServer, username: 'user', password: 'pass' },
             });
         });
+
+        test.each([
+            ['socks5://user:pass@proxy.example.com:1080', 'socks5://proxy.example.com:1080'],
+            ['socks://user:pass@proxy.example.com:1080', 'socks://proxy.example.com:1080'],
+            ['http://user:pass@proxy.example.com:8080', 'http://proxy.example.com:8080'],
+        ])(
+            'PlaywrightPlugin.addProxyToLaunchOptions should set correct server for %s',
+            async (proxyUrl, expectedServer) => {
+                const plugin = new PlaywrightPlugin(playwright.chromium);
+                const context = plugin.createLaunchContext({ proxyUrl });
+                await (plugin as any).addProxyToLaunchOptions(context);
+                expect(context.launchOptions!.proxy!.server).toEqual(expectedServer);
+            },
+        );
 
         test.each([
             ['socks5://user:pass@proxy.example.com:1080', 'socks5://proxy.example.com:1080'],

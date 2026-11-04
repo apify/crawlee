@@ -3,11 +3,13 @@ import crypto from 'node:crypto';
 
 import type { AllowedHttpMethods, Dictionary, RequestSchema } from '@crawlee/types';
 import type { EnqueueStrategy } from '@crawlee/utils';
+import type { IsEqual } from 'type-fest';
 import { z } from 'zod';
 
 import { cryptoRandomObjectId, normalizeUrl } from '@apify/utilities';
 
-import { serviceLocator } from './service_locator.js';
+import { serviceLocator } from './service-locator.js';
+import { snapshotValue } from './storages/transaction.js';
 import { parseArgument, schemas } from './validators.js';
 
 /** The `strategy` option accepted by {@apilink ExtractLinksOptions} and {@apilink EnqueueUrlsOptions}. */
@@ -48,6 +50,32 @@ const requestOptionsSchema = z.compile(
             .optional(),
     }),
 );
+
+/** Storages return `null` for fields left unset by other clients, e.g. the Python SDK. */
+const unset = <T extends z.ZodType>(schema: T) => schema.nullish().transform((value) => value ?? undefined);
+
+/** A request as storages return it. Accepts no less than the constructor does for the same fields. */
+const storedRequestSchema = z.compile(
+    z.object({
+        id: z.string().optional(),
+        url: z.string(),
+        uniqueKey: z.string(),
+        method: z.custom<AllowedHttpMethods>((value) => typeof value === 'string').optional(),
+        payload: unset(z.custom<string>((value) => typeof value === 'string' || value instanceof Uint8Array)),
+        noRetry: unset(z.boolean()),
+        retryCount: z.number().optional(),
+        // Entries are not checked, persisted requests can hold `null`s there (#4087).
+        errorMessages: unset(z.custom<string[]>(Array.isArray)),
+        headers: unset(z.custom<Dictionary<string>>((value) => typeof value === 'object' && value !== null)),
+        userData: schemas.anyObject.optional(),
+        // `apify-client` parses `*At` fields into `Date`s, whatever the schema says.
+        handledAt: unset(z.custom<string>((value) => typeof value === 'string' || value instanceof Date)),
+        loadedUrl: unset(z.string()),
+    }),
+);
+
+// `@crawlee/types` cannot depend on `zod`, so this keeps `RequestSchema` in sync with the schema above.
+true satisfies IsEqual<z.input<typeof storedRequestSchema>, RequestSchema>;
 
 /**
  * Represents a URL to be crawled, optionally including HTTP method, headers, payload and other metadata, together
@@ -204,7 +232,10 @@ class CrawleeRequest<UserData extends Dictionary = Dictionary> {
         // Read `__crawlee` explicitly - on a `userData` coming from another Request instance the
         // bag is non-enumerable, so the spread alone would silently drop the internal state
         // (e.g. `skipNavigation`) when a request is re-wrapped after a storage round trip.
-        this.#userData = { __crawlee: (userData as Dictionary).__crawlee ?? {}, ...userData };
+        this.#userData = {
+            ...snapshotValue(userData),
+            __crawlee: snapshotValue((userData as Dictionary).__crawlee ?? {}),
+        };
 
         // `userData` must stay an enumerable own accessor — serialization in the storages relies on it
         Object.defineProperties(this, {
@@ -238,8 +269,8 @@ class CrawleeRequest<UserData extends Dictionary = Dictionary> {
             },
         });
 
-        // reassign userData to ensure internal `__crawlee` object is non-enumerable
-        this.userData = userData;
+        // reassign the copy, not the possibly shared `userData`, so that internal `__crawlee` object is non-enumerable
+        this.userData = this.#userData as UserData;
 
         const crawlee: CrawleeRequestData = ((this.userData as Dictionary).__crawlee ??= {});
         if (skipNavigation != null) crawlee.skipNavigation = skipNavigation;
@@ -255,13 +286,13 @@ class CrawleeRequest<UserData extends Dictionary = Dictionary> {
      * {@apilink RequestOptions} object cannot carry. Subclasses get instances of themselves.
      */
     static fromSchema<UserData extends Dictionary = Dictionary>(schema: RequestSchema): CrawleeRequest<UserData> {
-        const { id, retryCount = 0, errorMessages = [], handledAt, loadedUrl, ...options } = schema;
+        const stored = parseArgument(schema, storedRequestSchema, 'RequestSchema');
+        const { id, retryCount = 0, errorMessages = [], handledAt, loadedUrl, ...options } = stored;
         const request = new this(options as RequestOptions<UserData>);
         request.id = id;
         request.retryCount = retryCount;
         request.errorMessages = [...errorMessages];
         request.loadedUrl = loadedUrl;
-        // `apify-client` parses `*At` fields into `Date`s, whatever the schema says.
         request.handledAt =
             (handledAt as unknown) instanceof Date ? (handledAt as unknown as Date).toISOString() : handledAt;
         return request;

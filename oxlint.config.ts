@@ -28,6 +28,7 @@ export default defineConfig({
         afterEach: 'readonly',
     },
     rules: {
+        'import/extensions': ['error', 'always', { ignorePackages: true, checkTypeImports: true }],
         'no-undef': 'off',
         'no-console': 'off',
         'no-throw-literal': 'error',
@@ -110,6 +111,7 @@ export default defineConfig({
         'import/no-default-export': 'off',
 
         'unicorn/no-empty-file': 'off',
+        'unicorn/filename-case': ['error', { case: 'kebabCase' }],
 
         // Rules pulled in by `@apify/oxlint-config` that the codebase does not
         // currently satisfy. Disabled here to keep this migration scoped to a
@@ -121,7 +123,7 @@ export default defineConfig({
     },
     overrides: [
         {
-            files: ['test/**/*', 'packages/*/test/**/*'],
+            files: ['test/**/*'],
             rules: {
                 'no-underscore-dangle': 'off',
                 'typescript/consistent-type-imports': 'off',

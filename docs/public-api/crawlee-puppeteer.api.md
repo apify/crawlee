@@ -4,6 +4,7 @@
 
 ```ts
 
+import type { AnyNode } from 'domhandler';
 import type { BatchAddRequestsResult } from '@crawlee/types';
 import type { Browser } from 'puppeteer';
 import { BrowserCrawler } from '@crawlee/browser';
@@ -14,9 +15,11 @@ import type { BrowserLaunchContext } from '@crawlee/browser';
 import type { BrowserPool } from '@crawlee/browser-pool';
 import type { BrowserPoolHooks } from '@crawlee/browser-pool';
 import type { BrowserPoolOptions } from '@crawlee/browser-pool';
+import type { Cheerio } from 'cheerio';
 import type { CheerioAPI } from 'cheerio';
 import type { ClickOptions } from 'puppeteer';
 import { Configuration } from '@crawlee/browser';
+import type { CrawlerRemoteBrowserOptions } from '@crawlee/browser';
 import { Dictionary } from '@crawlee/types';
 import type { GetUserDataFromRequest } from '@crawlee/browser';
 import type { HTTPRequest } from 'puppeteer';
@@ -24,8 +27,6 @@ import type { HTTPResponse } from 'puppeteer';
 import { IRequestManager } from '@crawlee/browser';
 import type { Page } from 'puppeteer';
 import { PuppeteerPlugin } from '@crawlee/browser-pool';
-import type { RemoteBrowserPool } from '@crawlee/browser-pool';
-import type { RemoteBrowserPoolOptions } from '@crawlee/browser-pool';
 import { Request as Request_2 } from '@crawlee/browser';
 import type { RequestTransform } from '@crawlee/browser';
 import type { RouterHandler } from '@crawlee/browser';
@@ -142,6 +143,7 @@ export interface PuppeteerBrowserPoolOptions extends Omit<BrowserPoolOptions, 'b
     configuration?: Configuration;
     headless?: boolean | 'new' | 'old';
     launchContext?: PuppeteerLaunchContext;
+    remoteBrowser?: CrawlerRemoteBrowserOptions;
 }
 
 // @public (undocumented)
@@ -154,6 +156,8 @@ interface PuppeteerContextUtils {
     injectFile(filePath: string, options?: InjectFileOptions): Promise<unknown>;
     injectJQuery(): Promise<unknown>;
     parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioAPI>;
+    querySelectorAll(selector: string, timeoutMs?: number): Promise<Cheerio<AnyNode>>;
+    querySelectorOne(selector: string, timeoutMs?: number): Promise<Cheerio<AnyNode>>;
     removeInterceptRequestHandler(handler: InterceptHandler): Promise<void>;
     saveSnapshot(options?: SaveSnapshotOptions): Promise<void>;
     waitForSelector(selector: string, timeoutMs?: number): Promise<void>;
@@ -222,13 +226,6 @@ declare namespace puppeteerUtils {
         addInterceptRequestHandler,
         removeInterceptRequestHandler
     }
-}
-
-// @public
-export function remotePuppeteerBrowserPool(options: RemotePuppeteerBrowserPoolOptions): RemoteBrowserPool<Page>;
-
-// @public (undocumented)
-export interface RemotePuppeteerBrowserPoolOptions extends Pick<PuppeteerBrowserPoolOptions, 'launchContext' | 'headless' | 'configuration'>, Omit<RemoteBrowserPoolOptions, 'browserPlugins'> {
 }
 
 // @public

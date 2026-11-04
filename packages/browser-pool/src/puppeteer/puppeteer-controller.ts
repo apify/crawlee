@@ -1,7 +1,5 @@
 import type { Cookie } from '@crawlee/types';
-// @ts-ignore This only throws when compiled against puppeteer 25+ (ESM only), we only import types, so its alllll gooooood
 import type Puppeteer from 'puppeteer';
-// @ts-ignore This only throws when compiled against puppeteer 25+ (ESM only), we only import types, so its alllll gooooood
 import type * as PuppeteerTypes from 'puppeteer';
 
 import { tryCancel } from '@apify/timeout';

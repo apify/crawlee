@@ -7,8 +7,8 @@ import type { Browser as PlaywrightBrowser, BrowserType, LaunchOptions } from 'p
 // Firefox and WebKit are not supported by Stagehand.
 import { chromium } from 'playwright';
 
-import { StagehandController } from './stagehand-controller';
-import type { StagehandOptions } from './stagehand-crawler';
+import { StagehandController } from './stagehand-controller.js';
+import type { StagehandOptions } from './stagehand-crawler.js';
 
 /**
  * Options for StagehandPlugin initialization.
@@ -158,7 +158,7 @@ export class StagehandPlugin extends BrowserPlugin<BrowserType, LaunchOptions, P
             const url = new URL(proxyUrl);
 
             launchOptions.proxy = {
-                server: url.origin,
+                server: `${url.protocol}//${url.host}`,
                 username: decodeURIComponent(url.username),
                 password: decodeURIComponent(url.password),
             };

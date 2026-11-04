@@ -9,7 +9,7 @@ import type { BaseHttpClient } from '@crawlee/http-client';
 import type { CrawleeLogger } from '@crawlee/types';
 // Imported as a type only so `sax` (a fairly heavy parser) isn't loaded eagerly with @crawlee/utils.
 import type * as sax from 'sax';
-import MIMEType from 'whatwg-mimetype';
+import { MIMEType } from 'whatwg-mimetype';
 
 import { mergeAsyncIterables } from './iterables.js';
 import { RobotsTxtFile } from './robots.js';
@@ -53,26 +53,15 @@ class SitemapTxtParser extends Transform {
     }
 
     #processBuffer(input: string, finalize: boolean): void {
-        this.#buffer += input;
+        const lines = (this.#buffer + input).split('\n');
 
-        if (finalize || this.#buffer.includes('\n')) {
-            const parts = this.#buffer
-                .split('\n')
-                .map((part) => part.trim())
-                .filter((part) => part.length > 0);
+        // The text after the last line break may be a partial line, so it waits for the next chunk.
+        this.#buffer = finalize ? '' : lines.pop()!;
 
-            if (finalize) {
-                for (const url of parts) {
-                    this.push({ type: 'url', loc: url } satisfies SitemapItem);
-                }
-
-                this.#buffer = '';
-            } else if (parts.length > 0) {
-                for (const url of parts.slice(0, -1)) {
-                    this.push({ type: 'url', loc: url } satisfies SitemapItem);
-                }
-
-                this.#buffer = parts.at(-1)!;
+        for (const line of lines) {
+            const url = line.trim();
+            if (url.length > 0) {
+                this.push({ type: 'url', loc: url } satisfies SitemapItem);
             }
         }
     }
@@ -152,18 +141,23 @@ class SitemapXmlParser extends Transform {
     }
 
     #onText(text: string) {
+        text = text.trim();
+
+        // Whitespace around a CDATA section arrives as separate text events.
+        if (text === '') {
+            return;
+        }
+
         if (this.#currentTag === 'loc') {
             if (this.#rootTagName === 'sitemapindex') {
-                this.push({ type: 'sitemapUrl', url: text.trim() } satisfies SitemapItem);
+                this.push({ type: 'sitemapUrl', url: text } satisfies SitemapItem);
             }
 
             if (this.#rootTagName === 'urlset') {
                 this.#url ??= {};
-                this.#url.loc = text.trim();
+                this.#url.loc = text;
             }
         }
-
-        text = text.trim();
 
         if (this.#currentTag === 'lastmod') {
             const lastmod = new Date(text);
@@ -265,6 +259,11 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
 
         if (mimeType?.essence === 'text/plain' || url?.pathname.endsWith('.txt')) {
             return new SitemapTxtParser();
+        }
+
+        // A name like `sitemap.gz` says nothing about what was compressed. Sitemaps are XML unless named otherwise.
+        if (mimeType?.essence === 'application/gzip') {
+            return SitemapXmlParser.create();
         }
 
         throw new Error(`Unsupported sitemap content type (contentType = ${contentType}, url = ${url?.toString()})`);

@@ -141,6 +141,23 @@ describe('utils.social', () => {
                 ]),
             ).toEqual(['info@example.com', 'info@example.com']);
         });
+
+        test('handles queries, several recipients and percent-encoding', () => {
+            expect(
+                emailsFromUrls([
+                    'mailto:sales@example.com?subject=Hello%20there',
+                    'mailto:alice@example.com,%20bob@example.com?cc=carol@example.com',
+                    'mailto:david%40example.com',
+                    'MAILTO:eva@example.com?',
+                ]),
+            ).toEqual([
+                'sales@example.com',
+                'alice@example.com',
+                'bob@example.com',
+                'david@example.com',
+                'eva@example.com',
+            ]);
+        });
     });
 
     describe('phonesFromText()', () => {
@@ -359,6 +376,27 @@ describe('utils.social', () => {
                 ]),
             ).toEqual(['+42012345678', '+420.123.456']);
         });
+
+        test('handles country codes, separators, parameters and percent-encoding', () => {
+            expect(
+                phonesFromUrls([
+                    'tel:+1-555-123-4567',
+                    'tel:+1 555 123 4567',
+                    'tel:+1.555.123.4567',
+                    'tel:+1 (555) 123-4567',
+                    'tel:%2B1%20555%20123%204567',
+                    'tel:5551234567;ext=89',
+                    'tel:+1-555',
+                ]),
+            ).toEqual([
+                '+1-555-123-4567',
+                '+1 555 123 4567',
+                '+1.555.123.4567',
+                '+1 (555) 123-4567',
+                '+1 555 123 4567',
+                '5551234567',
+            ]);
+        });
     });
 
     describe('parseHandlesFromHtml()', () => {
@@ -376,33 +414,33 @@ describe('utils.social', () => {
             discords: [],
         };
 
-        test('handles invalid arg', () => {
+        test('handles invalid arg', async () => {
             // @ts-expect-error invalid input type
-            expect(parseHandlesFromHtml()).resolves.toEqual(EMPTY_RESULT);
+            await expect(parseHandlesFromHtml()).resolves.toEqual(EMPTY_RESULT);
             // @ts-expect-error invalid input type
-            expect(parseHandlesFromHtml(undefined)).resolves.toEqual(EMPTY_RESULT);
+            await expect(parseHandlesFromHtml(undefined)).resolves.toEqual(EMPTY_RESULT);
             // @ts-expect-error invalid input type
-            expect(parseHandlesFromHtml(null)).resolves.toEqual(EMPTY_RESULT);
+            await expect(parseHandlesFromHtml(null)).resolves.toEqual(EMPTY_RESULT);
             // @ts-expect-error invalid input type
-            expect(parseHandlesFromHtml({})).resolves.toEqual(EMPTY_RESULT);
+            await expect(parseHandlesFromHtml({})).resolves.toEqual(EMPTY_RESULT);
             // @ts-expect-error invalid input type
-            expect(parseHandlesFromHtml(1234)).resolves.toEqual(EMPTY_RESULT);
+            await expect(parseHandlesFromHtml(1234)).resolves.toEqual(EMPTY_RESULT);
         });
 
-        test('works', () => {
-            expect(parseHandlesFromHtml('')).resolves.toEqual(EMPTY_RESULT);
-            expect(parseHandlesFromHtml('         ')).resolves.toEqual(EMPTY_RESULT);
+        test('works', async () => {
+            await expect(parseHandlesFromHtml('')).resolves.toEqual(EMPTY_RESULT);
+            await expect(parseHandlesFromHtml('         ')).resolves.toEqual(EMPTY_RESULT);
             const html =
                 'use the data in this [YouTube Video](https://www.youtube.com/watch?v=BsidLZKdYWQ).\\n\\n## Sample result\\n' +
                 'use the data in this [YouTube Video](https://www.youtube.com/watch?v=BsidLZKd123).\\\\n\\\\n## Sample result\\\\n';
-            expect(parseHandlesFromHtml(html)).resolves.toMatchObject({
+            await expect(parseHandlesFromHtml(html)).resolves.toMatchObject({
                 youtubes: [
                     'https://www.youtube.com/watch?v=BsidLZKd123',
                     'https://www.youtube.com/watch?v=BsidLZKdYWQ',
                 ],
             });
 
-            expect(
+            await expect(
                 parseHandlesFromHtml(`
                 <html>
                     <head>
