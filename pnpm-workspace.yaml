@@ -49,6 +49,7 @@ overrides:
 # proceed when new build-requesting deps appear without a manual entry).
 allowBuilds:
   "@apify/ui-icons": true
+  '@google/genai': set this to true or false
   "@playwright/browser-chromium": true
   "@playwright/browser-firefox": true
   "@playwright/browser-webkit": true
