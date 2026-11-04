@@ -1037,6 +1037,10 @@ await enqueueLinks({
 });
 ```
 
+### Enqueue strategies ignore the port, except `same-origin`
+
+In `enqueueLinks`, `same-hostname` and `same-domain` now compare hostnames only, so `http://example.com:8080/a` matches a base URL of `https://example.com/`. In v3, `enqueueLinks` required the port to match. `same-origin` still requires the same scheme, hostname and port. Hosts without a registrable domain (IP addresses, `localhost`) are matched by `same-domain` like `same-hostname`. Sitemap and robots.txt filtering and the post-redirect strategy check follow the same rules.
+
 ### `transformRequestFunction` precedence in `enqueueLinks`
 
 The `transformRequestFunction` callback in `enqueueLinks` now runs **after** URL pattern filtering (`include`, `exclude`) instead of before. This means it has the highest priority and can overwrite any request options set by the global `label` / `userData` options.

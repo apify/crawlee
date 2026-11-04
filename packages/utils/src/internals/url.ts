@@ -80,10 +80,8 @@ function normalizeHostname(hostname: string): string {
 
 /**
  * Check whether `target` matches `origin` under the given enqueue `strategy`. The URL scheme is not
- * considered here (use {@apilink filterUrl} for the combined scheme + strategy check).
- *
- * The `enqueueLinks` implementation in `@crawlee/basic` matches the same strategies via glob patterns
- * (see `packages/basic-crawler/src/internals/enqueue-links/enqueue-links.ts`) — keep the two in sync when changing either.
+ * considered here (use {@apilink filterUrl} for the combined scheme + strategy check). This is the single
+ * definition of the strategies, shared by `enqueueLinks`, sitemaps and robots.txt.
  */
 export function matchesEnqueueStrategy(
     strategy: EnqueueStrategy | `${EnqueueStrategy}`,
@@ -102,8 +100,8 @@ export function matchesEnqueueStrategy(
                 return originDomain === getDomain(target.hostname, { mixedInputs: false });
             }
 
-            // No registrable domain (e.g. an IP address), fall back to comparing origins.
-            return target.origin === origin.origin;
+            // No registrable domain (e.g. an IP address or `localhost`), fall back to the same hostname.
+            return matchesEnqueueStrategy('same-hostname', target, origin);
         }
         case 'same-origin':
             // Compare scheme/host/port directly so a trailing-dot host is normalized.

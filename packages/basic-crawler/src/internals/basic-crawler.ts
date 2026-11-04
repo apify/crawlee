@@ -50,9 +50,16 @@ import type {
     SetStatusMessageOptions,
     StorageBackend,
 } from '@crawlee/types';
-import { isAsyncIterable, isIterable, parseArgument, ROTATE_PROXY_ERRORS, schemas } from '@crawlee/utils/internal';
+import {
+    filterUrl,
+    isAsyncIterable,
+    isIterable,
+    matchesEnqueueStrategy,
+    parseArgument,
+    ROTATE_PROXY_ERRORS,
+    schemas,
+} from '@crawlee/utils/internal';
 import { RobotsTxtFile } from '@crawlee/utils';
-import { getDomain } from 'tldts';
 import type { ReadonlyDeep } from 'type-fest';
 import { z } from 'zod';
 
@@ -86,7 +93,6 @@ import { Statistics } from './crawlers/statistics.js';
 import type { EnqueueUrlsOptions, SkippedRequestCallback } from './enqueue-links/index.js';
 import {
     applyRequestTransform,
-    buildEnqueueStrategyPatterns,
     constructUrlPatternObjects,
     createRequestOptions,
     createSkippedRequestArgs,
@@ -2094,7 +2100,7 @@ export class BasicCrawler<
         const urlPatternObjects = options.include?.length ? constructUrlPatternObjects(options.include) : [];
         // The strategy always applies, even when `include` patterns are provided - the two are AND-ed together
         // (a URL must match an `include` pattern *and* satisfy the strategy). This mirrors crawlee-python.
-        const enqueueStrategyPatterns = options.baseUrl ? buildEnqueueStrategyPatterns(options.baseUrl, strategy) : [];
+        const strategyBaseUrl = options.baseUrl ? new URL(options.baseUrl) : undefined;
 
         const isAllowedBasedOnRobotsTxtFile = this.#isAllowedBasedOnRobotsTxtFile.bind(this);
         const maxCrawlDepth = this.#maxCrawlDepth;
@@ -2175,13 +2181,13 @@ export class BasicCrawler<
                     onSkippedByFilter,
                 );
                 // ...then filter by the enqueue strategy (making this an AND check)
-                filtered = filterRequestOptionsByPatterns(
-                    filtered,
-                    enqueueStrategyPatterns.length > 0 ? enqueueStrategyPatterns : undefined,
-                    [],
-                    strategy,
-                    onSkippedByFilter,
-                );
+                if (strategyBaseUrl) {
+                    filtered = filtered.filter((opts) => {
+                        const { allowed } = filterUrl(opts.url, strategyBaseUrl, strategy);
+                        if (!allowed) onSkippedByFilter(opts);
+                        return allowed;
+                    });
+                }
 
                 if (filtered.length === 0) {
                     continue;
@@ -3103,34 +3109,7 @@ export class BasicCrawler<
             return true;
         }
 
-        const baseUrl = new URL(url);
-        const loadedBaseUrl = new URL(loadedUrl);
-
-        switch (strategy) {
-            case EnqueueStrategy.SameHostname: {
-                return baseUrl.hostname === loadedBaseUrl.hostname;
-            }
-            case EnqueueStrategy.SameDomain: {
-                const baseUrlHostname = getDomain(baseUrl.hostname, { mixedInputs: false });
-
-                if (baseUrlHostname) {
-                    const loadedBaseUrlHostname = getDomain(loadedBaseUrl.hostname, { mixedInputs: false });
-
-                    return baseUrlHostname === loadedBaseUrlHostname;
-                }
-
-                // Can happen for IPs, we just check like same origin
-                return baseUrl.origin === loadedBaseUrl.origin;
-            }
-            case EnqueueStrategy.SameOrigin: {
-                // Same as hostname, but also checks protocol
-                return baseUrl.origin === loadedBaseUrl.origin;
-            }
-            case EnqueueStrategy.All:
-            default: {
-                return baseUrl.protocol === 'http:' || baseUrl.protocol === 'https:';
-            }
-        }
+        return matchesEnqueueStrategy(strategy, new URL(loadedUrl), new URL(url));
     }
 }
 
