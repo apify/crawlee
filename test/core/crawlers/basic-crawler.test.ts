@@ -2968,20 +2968,41 @@ describe('BasicCrawler', () => {
         });
     });
 
-    test('extendContext', async () => {
-        const url = 'https://example.com';
-        const requestHandlerImplementation = vi.fn();
+    describe('extendContext', () => {
+        test('extends the crawling context', async () => {
+            const url = 'https://example.com';
+            const requestHandlerImplementation = vi.fn();
 
-        const crawler = new BasicCrawler({
-            extendContext: () => ({ hello: 'world' }),
-            requestHandler: async ({ hello }) => {
-                requestHandlerImplementation({ hello });
-            },
+            const crawler = new BasicCrawler({
+                extendContext: () => ({ hello: 'world' }),
+                requestHandler: async ({ hello }) => {
+                    requestHandlerImplementation({ hello });
+                },
+            });
+
+            await crawler.run([url]);
+            expect(requestHandlerImplementation).toHaveBeenCalledOnce();
+            expect(requestHandlerImplementation.mock.calls[0][0]).toMatchObject({ hello: 'world' });
         });
 
-        await crawler.run([url]);
-        expect(requestHandlerImplementation).toHaveBeenCalledOnce();
-        expect(requestHandlerImplementation.mock.calls[0][0]).toMatchObject({ hello: 'world' });
+        test('can register cleanups that run after the request handler', async () => {
+            const order: string[] = [];
+            const crawler = new BasicCrawler({
+                extendContext: (_, onCleanup) => {
+                    onCleanup(() => {
+                        order.push('cleanup');
+                    });
+                    return {};
+                },
+                requestHandler: async () => {
+                    order.push('handler');
+                },
+            });
+
+            await crawler.run(['https://example.com']);
+
+            expect(order).toEqual(['handler', 'cleanup']);
+        });
     });
 
     test('registerDeferredCleanup runs after the error handler, even when the context pipeline itself fails', async () => {
