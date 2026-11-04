@@ -127,6 +127,20 @@ describe('extractMicrodata', () => {
         ]);
     });
 
+    it('counts a property once when itemref reaches it a second time', async () => {
+        // `name` is a child of the item and also referenced, and `details` contains the referenced `price`.
+        const items = await extractMicrodata(`
+            <div itemscope itemref="product-name product-details product-price">
+                <span id="product-name" itemprop="name">Lamp</span>
+            </div>
+            <div id="product-details">
+                <span itemprop="color">Red</span>
+                <span id="product-price" itemprop="price">25</span>
+            </div>`);
+
+        expect(items).toEqual([{ properties: { name: 'Lamp', color: 'Red', price: '25' } }]);
+    });
+
     it('stops at an itemref cycle instead of recursing forever', async () => {
         // `loop-a` and `loop-b` reference each other, so the second visit of `loop-a` must be cut short.
         const items = await extractMicrodata(`
