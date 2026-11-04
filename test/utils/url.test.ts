@@ -20,6 +20,13 @@ describe('matchesEnqueueStrategy', () => {
         expect(match('same-domain', 'http://example.org/a', 'http://example.com/sitemap.xml')).toBe(false);
     });
 
+    it('same-domain on a host without a registrable domain matches the same host and port over http or https', () => {
+        expect(match('same-domain', 'https://10.0.0.5/a', 'http://10.0.0.5/sitemap.xml')).toBe(true);
+        expect(match('same-domain', 'http://localhost:3000/a', 'https://localhost:3000/sitemap.xml')).toBe(true);
+        expect(match('same-domain', 'http://10.0.0.6/a', 'http://10.0.0.5/sitemap.xml')).toBe(false);
+        expect(match('same-domain', 'http://localhost:3001/a', 'http://localhost:3000/sitemap.xml')).toBe(false);
+    });
+
     it('same-origin requires matching scheme, host, and port', () => {
         expect(match('same-origin', 'http://example.com/a', 'http://example.com/sitemap.xml')).toBe(true);
         expect(match('same-origin', 'https://example.com/a', 'http://example.com/sitemap.xml')).toBe(false);

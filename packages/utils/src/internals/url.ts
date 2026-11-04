@@ -102,8 +102,11 @@ export function matchesEnqueueStrategy(
                 return originDomain === getDomain(target.hostname, { mixedInputs: false });
             }
 
-            // No registrable domain (e.g. an IP address), fall back to comparing origins.
-            return target.origin === origin.origin;
+            // No registrable domain (e.g. an IP address or `localhost`), fall back to the same host and
+            // port. Like the other cases of this strategy (and `enqueueLinks`), the scheme doesn't matter.
+            return (
+                normalizeHostname(target.hostname) === normalizeHostname(origin.hostname) && target.port === origin.port
+            );
         }
         case 'same-origin':
             // Compare scheme/host/port directly so a trailing-dot host is normalized.
