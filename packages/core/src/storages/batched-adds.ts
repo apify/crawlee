@@ -2,6 +2,7 @@ import { setTimeout as sleep } from 'node:timers/promises';
 import type { ProcessedRequest } from '@crawlee/types';
 
 import { chunkedAsyncIterable, peekableAsyncIterable } from '../iterables.js';
+import type { CrawleeLogger } from '../log.js';
 import type { Source } from '../request.js';
 import type { AddRequestsBatchedResult } from './request-queue.js';
 import { activeStorageTransaction, withDirectStorageAccess } from './transaction.js';
@@ -17,6 +18,8 @@ export interface DrainRequestBatchesOptions<TItem extends Source> {
     waitBetweenBatchesMillis: number;
     waitForAllRequestsToBeAdded: boolean;
     maxNewRequests?: number;
+
+    log: CrawleeLogger;
 
     /**
      * Adds a single chunk and reports what it processed.
@@ -52,6 +55,7 @@ export async function drainRequestBatches<TItem extends Source>(
         waitBetweenBatchesMillis,
         waitForAllRequestsToBeAdded,
         maxNewRequests,
+        log,
         processChunk,
         trackBackgroundBatches,
     } = options;
@@ -125,8 +129,15 @@ export async function drainRequestBatches<TItem extends Source>(
     const remainder = awaitsRemainder ? processRemainingChunks() : withDirectStorageAccess(processRemainingChunks);
 
     // The caller is not obliged to await `remainder`, so give it a handler of its own - an unhandled
-    // rejection here would otherwise take the process down.
-    trackBackgroundBatches?.(remainder.catch(() => {}));
+    // rejection here would otherwise take the process down. Awaited failures reach the caller, so only
+    // background ones get logged.
+    trackBackgroundBatches?.(
+        remainder.catch((error) => {
+            if (!awaitsRemainder) {
+                log.exception(error as Error, 'A batch of requests could not be added to the queue in the background');
+            }
+        }),
+    );
 
     if (awaitsRemainder) {
         addedRequests.push(...(await remainder));

@@ -44,7 +44,15 @@ export async function htmlToText(htmlOrCheerioElement: string | CheerioAPI): Pro
     if (!htmlOrCheerioElement) return '';
 
     const $ = typeof htmlOrCheerioElement === 'function' ? htmlOrCheerioElement : load(htmlOrCheerioElement);
-    let text = '';
+    // Never read the accumulated text mid-loop: each read flattens V8's cons-string, making the traversal quadratic
+    const parts: string[] = [];
+    let last = '';
+
+    const push = (part: string) => {
+        if (!part) return;
+        parts.push(part);
+        last = part[part.length - 1];
+    };
 
     const process = (elems: Dictionary) => {
         const len = elems ? elems.length : 0;
@@ -58,21 +66,21 @@ export async function htmlToText(htmlOrCheerioElement: string | CheerioAPI): Pro
                     compr = elem.parent.children?.[0] === elem ? elem.data.replace(/^\r?\n/, '') : elem.data;
                 } else compr = elem.data.replace(/\s+/g, ' ');
                 // If text is empty or ends with a whitespace, don't add the leading whitespace
-                if (compr.startsWith(' ') && /(^|\s)$/.test(text)) compr = compr.substring(1);
-                text += compr;
+                if (compr.startsWith(' ') && (last === '' || /\s/.test(last))) compr = compr.substring(1);
+                push(compr);
             } else if (elem.type === 'comment' || SKIP_TAGS_REGEX.test(elem.tagName)) {
                 // Skip comments and special elements
             } else if (elem.tagName === 'br') {
-                text += '\n';
+                push('\n');
             } else if (elem.tagName === 'td') {
                 process(elem.children);
-                text += '\t';
+                push('\t');
             } else {
                 // Block elements must be surrounded by newlines (unless beginning of text)
                 const isBlockTag = BLOCK_TAGS_REGEX.test(elem.tagName);
-                if (isBlockTag && !/(^|\n)$/.test(text)) text += '\n';
+                if (isBlockTag && last !== '' && last !== '\n') push('\n');
                 process(elem.children);
-                if (isBlockTag && !text.endsWith('\n')) text += '\n';
+                if (isBlockTag && last !== '\n') push('\n');
             }
         }
     };
@@ -81,7 +89,7 @@ export async function htmlToText(htmlOrCheerioElement: string | CheerioAPI): Pro
     const $body = $('body');
     process($body.length > 0 ? $body : $.root());
 
-    return text.trim();
+    return parts.join('').trim();
 }
 
 /**

@@ -25,7 +25,8 @@ import vm from 'node:vm';
 import type { Request } from '@crawlee/browser';
 import { Configuration, KeyValueStore, serviceLocator, validators } from '@crawlee/browser';
 import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
-import type { CheerioAPI } from 'cheerio';
+import type { Cheerio, CheerioAPI } from 'cheerio';
+import type { AnyNode } from 'domhandler';
 import { sleep } from '@crawlee/utils';
 import { expandShadowRoots, parseArgument, schemas } from '@crawlee/utils/internal';
 import type { ProtocolMapping } from 'devtools-protocol/types/protocol-mapping.js';
@@ -739,6 +740,17 @@ export interface PuppeteerContextUtils {
      * ```
      */
     waitForSelector(selector: string, timeoutMs?: number): Promise<void>;
+
+    /**
+     * Like {@apilink PuppeteerContextUtils.waitForSelector|`waitForSelector`}, but returns the matched elements
+     * as a Cheerio object. Throws when nothing matches.
+     */
+    querySelectorAll(selector: string, timeoutMs?: number): Promise<Cheerio<AnyNode>>;
+
+    /**
+     * Like {@apilink PuppeteerContextUtils.querySelectorAll|`querySelectorAll`}, but returns only the first match.
+     */
+    querySelectorOne(selector: string, timeoutMs?: number): Promise<Cheerio<AnyNode>>;
 
     /**
      * Returns Cheerio handle for `page.content()`, allowing to work with the data same way as with {@apilink CheerioCrawler}.

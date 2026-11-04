@@ -1,3 +1,4 @@
+import { EventEmitter } from 'node:events';
 import { existsSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -280,6 +281,15 @@ describe('Configuration', () => {
             expect(typeof config.memoryMbytes).toBe('number');
         });
 
+        it('loads crawlee.json saved with a UTF-8 byte order mark', () => {
+            // e.g. written by PowerShell 5.1 `Set-Content -Encoding UTF8` or "UTF-8 with BOM" in an editor
+            writeFileSync(crawleeJsonPath, `\uFEFF${JSON.stringify({ chromeExecutablePath: 'from-file' })}`);
+            fileCreated = true;
+
+            const config = new Configuration();
+            expect(config.chromeExecutablePath).toBe('from-file');
+        });
+
         it('handles missing crawlee.json gracefully', () => {
             // No file created — should fall through to defaults
             const config = new Configuration();
@@ -313,5 +323,17 @@ describe('Configuration', () => {
             const config2 = new ExtendedConfig();
             expect((config2 as any).customFlag).toBe(true);
         });
+    });
+
+    it('does not change EventEmitter.defaultMaxListeners on import', async () => {
+        const original = EventEmitter.defaultMaxListeners;
+        EventEmitter.defaultMaxListeners = 7;
+        // The vitest setup already imported the module, so force it to be evaluated again
+        vitest.resetModules();
+        await import('../../packages/core/src/configuration.js');
+        const afterImport = EventEmitter.defaultMaxListeners;
+        EventEmitter.defaultMaxListeners = original;
+
+        expect(afterImport).toBe(7);
     });
 });

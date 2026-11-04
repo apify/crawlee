@@ -1,0 +1,80 @@
+---
+id: crawling-context
+title: Customizing the crawling context
+description: Extend the crawling context ad hoc or build custom crawlers on top of ContextPipeline
+---
+
+import ApiLink from '@site/src/components/ApiLink';
+import CodeBlock from '@theme/CodeBlock';
+
+import ExtendContextSource from '!!raw-loader!./extend-context.ts';
+import CustomCrawlerSource from '!!raw-loader!./custom-crawler.ts';
+import HookReturnSource from '!!raw-loader!./hook-return.ts';
+
+The object your request handler receives (`request`, `session`, `page`, `$` and the rest) is built step by step. Every crawler runs each request through a chain of middlewares, the <ApiLink to="basic-crawler/class/ContextPipeline">`ContextPipeline`</ApiLink>, and each step adds members. The [Request lifecycle](./request-lifecycle) guide lists the steps and what happens around them. This guide is about adding your own.
+
+The [`extendContext` option](#extending-the-context-with-extendcontext) adds members to one crawler instance. A [crawler subclass](#writing-a-custom-crawler) with its own pipeline adds them to every instance of that class. A [navigation hook](#returning-from-a-navigation-hook) cannot add members, but it can replace existing ones.
+
+## Extending the context with `extendContext`
+
+When you need a helper or some shared state in your handlers, pass <ApiLink to="basic-crawler/interface/BasicCrawlerOptions#extendContext">`extendContext`</ApiLink> when creating the crawler. It receives the context built so far and returns an object whose members get added to it:
+
+<CodeBlock className="language-typescript">{ExtendContextSource}</CodeBlock>
+
+The returned members are typed. `note` above is known to the `requestHandler`, the navigation hooks and the error handlers, and a typo in any of them is a compile-time error. The file handle is released with <ApiLink to="basic-crawler/interface/CrawlingContext#registerDeferredCleanup">`registerDeferredCleanup()`</ApiLink>, which runs once the request is done, whether it succeeded or failed (see [Cleanup](./request-lifecycle#cleanup) in the lifecycle guide).
+
+`extendContext` runs before navigation, so the members it returns are visible to `preNavigationHooks`, `postNavigationHooks` and the `requestHandler` alike. For the same reason its own input has no `page`, `response`, `$` or `body` yet. Anything that needs `page` or `response` can go in a `postNavigationHook`, and if `$` or `body` is required, use the request handler.
+
+Storage writes made from `extendContext` go through the same [storage transaction](./result-storage#transactional-storage) as the rest of the request, so a failed request rolls them back.
+
+### Returning from a navigation hook
+
+A `preNavigationHook` or `postNavigationHook` can also return a `Partial` of the crawling context, and the crawler copies the returned members onto it, replacing the existing ones. This is how `handleCloudflareChallengeHook()` works. After solving the challenge, the reloaded page's response replaces `response`, so the crawler's own blocked-request detection and the request handler both see it instead of the original 403. Written out by hand:
+
+<CodeBlock className="language-typescript">{HookReturnSource}</CodeBlock>
+
+Only existing members can be replaced this way. The handler's type does not change, so use `extendContext` or a subclass to add new ones.
+
+## Writing a custom crawler
+
+When the behavior should be reusable, with its own options, its own context type and its own setup and teardown, put it in a crawler class:
+
+<CodeBlock className="language-typescript">{CustomCrawlerSource}</CodeBlock>
+
+`TimedCrawler` is a `BasicCrawler` subclass with a single middleware. The middleware runs after `extendContext`, so `elapsedMillis` counts from there, not from when the request was fetched.
+
+The subclass passes `BasicCrawler` a <ApiLink to="basic-crawler/interface/BasicCrawlerOptions#contextPipelineBuilder">`contextPipelineBuilder`</ApiLink>, a function that builds the crawler-specific part of the pipeline. `BasicCrawler` runs it after `extendContext`. The option is required whenever the `Context` type parameter is narrower than the default `CrawlingContext`, since without a pipeline the members declared by the type would never be added.
+
+### The pipeline API
+
+A <ApiLink to="basic-crawler/class/ContextPipeline">`ContextPipeline<TBase, TFinal>`</ApiLink> is an immutable chain of middlewares. `ContextPipeline.create<TBase>()` returns an empty one. `compose(middleware)` returns a new pipeline whose output type is this pipeline's output type plus the members the middleware returns. `chain(other)` appends another pipeline whose base type matches this one's output.
+
+A middleware is a function `(context, onCleanup) => extension`. The pipeline copies the returned `extension` onto the context object it received, so later middlewares and the request handler see one object with all the members. Property descriptors are copied as they are, so a getter in the extension stays a getter on the context.
+
+`onCleanup` registers teardown for anything the middleware sets up. Cleanups run once the request is done (see [Cleanup](./request-lifecycle#cleanup) in the lifecycle guide). Their argument is `undefined` when the request succeeded. If it failed, they receive the error instead, wrapped in a <ApiLink to="basic-crawler/class/ContextPipelineInitializationError">`ContextPipelineInitializationError`</ApiLink> or <ApiLink to="basic-crawler/class/RequestHandlerError">`RequestHandlerError`</ApiLink> with the original in `cause`. A cleanup should not throw, since that skips the remaining cleanups and stops the crawler.
+
+### Extending an existing crawler
+
+To add typed members on top of an existing crawler, extend `HttpCrawler`, override `buildContextPipeline()` and compose onto the parent's pipeline. In simplified form, `DOMCrawler` does this:
+
+```typescript
+protected override buildContextPipeline() {
+    return super
+        .buildContextPipeline()
+        .compose(this.#parseContent.bind(this))
+        .compose(this.#addHelpers.bind(this));
+}
+```
+
+`PlaywrightCrawler` and `PuppeteerCrawler` have a `buildContextPipeline()` too, and a subclass can override it the same way. There the result runs right after the page opens and before navigation, because `BrowserCrawler` adds the navigation steps after it. A step added this way has `page` but no `response`. Use a `postNavigationHook` for anything that needs the loaded page.
+
+If you ever need to check in the source code what a crawler does with a request, its pipeline is where to look. The built-in crawlers add all of their steps there, and the methods behind those steps are private, so a subclass changes them only by composing onto the pipeline.
+
+### Best practices
+
+- **Hide the `contextPipelineBuilder` crawler option unless the class is meant to be subclassed.** `CheerioCrawler`, `FileDownload` and the sample above omit it from their options and supply the builder themselves. `HttpCrawler` still accepts it, and a builder passed there replaces its whole pipeline, the HTTP request included. To extend `HttpCrawler`, override `buildContextPipeline()` instead, as shown above.
+- **Pass the extension type parameters through.** The crawler does not need to be generic over its `Context`, but it should take `ContextExtension` and `ExtendedContext` and forward them to the base class, as `TimedCrawler` does. That is what lets users of your crawler pass `extendContext` and still get a typed handler.
+- **Keep the step methods private, not protected.** Overriding a step in a subclass and composing onto the pipeline are two ways to change the same thing. Allow only the pipeline, so there is one place to look. (Passing a method to `compose` detaches it from `this`, so pass `this.#step.bind(this)` or an arrow function.)
+- **Return new members, don't mutate.** Build the extension as an object and return it. The returned type is what makes the next middleware and the handler type-check.
+
+If you are migrating from the `CrawlerExtension` class and `crawler.use()` of earlier versions, both were removed in v4 in favor of the mechanisms above. See the [removed symbols](../upgrading/upgrading-to-v4/removed-symbols) list in the upgrading guide.

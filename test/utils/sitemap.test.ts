@@ -1,3 +1,5 @@
+import { gzipSync } from 'node:zlib';
+
 import { FetchHttpClient } from '@crawlee/http-client';
 import nock from 'nock';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -178,6 +180,20 @@ describe('Sitemap', () => {
                     '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
                     '<url>',
                     '<loc><![CDATA[http://not-exists.com/catalog]]></loc>',
+                    '</url>',
+                    '</urlset>',
+                ].join('\n'),
+            )
+            .get('/sitemap_cdata_pretty.xml')
+            .reply(
+                200,
+                [
+                    '<?xml version="1.0" encoding="UTF-8"?>',
+                    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+                    '<url>',
+                    `<loc>
+                        <![CDATA[http://not-exists.com/catalog]]>
+                    </loc>`,
                     '</url>',
                     '</urlset>',
                 ].join('\n'),
@@ -431,6 +447,13 @@ describe('Sitemap', () => {
         expect(new Set(sitemap.urls)).toEqual(new Set(['http://not-exists.com/catalog']));
     });
 
+    it('handles CDATA surrounded by whitespace in loc tags', async () => {
+        const sitemap = await Sitemap.load('http://not-exists.com/sitemap_cdata_pretty.xml', undefined, {
+            httpClient: new FetchHttpClient(),
+        });
+        expect(sitemap.urls).toEqual(['http://not-exists.com/catalog']);
+    });
+
     it('autodetects sitemaps', async () => {
         const sitemap = await Sitemap.tryCommonNames('http://not-exists.com/arbitrary_url?search=xyz', undefined, {
             httpClient: new FetchHttpClient(),
@@ -456,6 +479,51 @@ describe('Sitemap', () => {
         expect(sitemap.urls).toHaveLength(0);
         expect(logger.warning).not.toHaveBeenCalled();
         expect(logger.warningOnce).not.toHaveBeenCalled();
+    });
+
+    it('loads a gzipped XML sitemap whose name has no inner extension', async () => {
+        nock('http://gzipped.com')
+            .get('/sitemap.gz')
+            .reply(
+                200,
+                gzipSync(
+                    '<?xml version="1.0" encoding="UTF-8"?><urlset><url><loc>http://gzipped.com/page</loc></url></urlset>',
+                ),
+                { 'content-type': 'application/gzip' },
+            );
+
+        const sitemap = await Sitemap.load('http://gzipped.com/sitemap.gz', undefined, {
+            httpClient: new FetchHttpClient(),
+            sitemapRetries: 0,
+        });
+
+        expect(sitemap.urls).toEqual(['http://gzipped.com/page']);
+    });
+
+    it('keeps sitemap.txt lines apart when a network chunk ends on a line break', async () => {
+        const urls = Array.from({ length: 300 }, (_, i) => `http://not-exists.com/page-${i}`);
+        const httpClient = new FetchHttpClient();
+        httpClient.sendRequest = async () =>
+            new Response(
+                new ReadableStream({
+                    start(controller) {
+                        for (const url of urls) {
+                            controller.enqueue(new TextEncoder().encode(`${url}\n`));
+                        }
+                        controller.close();
+                    },
+                }),
+                { headers: { 'content-type': 'text/plain' } },
+            );
+
+        const parsed: string[] = [];
+        for await (const item of parseSitemap([{ type: 'url', url: 'http://not-exists.com/sitemap.txt' }], undefined, {
+            httpClient,
+        })) {
+            parsed.push(item.loc);
+        }
+
+        expect(parsed).toEqual(urls);
     });
 
     it('handles sitemap.txt correctly', async () => {

@@ -157,6 +157,8 @@ The code is open source if you want to dig in:
 - JobOps repo: [github.com/DaKheera47/job-ops](http://github.com/DaKheera47/job-ops)
 - Gradcracker extractor: [github.com/DaKheera47/job-ops/tree/main/extractors/gradcracker](http://github.com/DaKheera47/job-ops/tree/main/extractors/gradcracker)
 
+If you're looking for more graduate engineering jobs beyond Gradcracker, job search sites like [Jooble](https://jooble.org/) have many job openings in one place.
+
 ---
 
 **About [Shaheer Sarfaraz](https://www.linkedin.com/in/ssarfaraz30/):** I build scraping and automation systems, including JobOps, a self-hosted job search pipeline that aggregates and stores listings across multiple sources. I've worked on production React/TypeScript systems at Autodesk, and most of my time goes into making brittle systems reliable enough to actually run. Find me at [dakheera47.com](http://dakheera47.com), [LinkedIn](https://www.linkedin.com/in/ssarfaraz30/), and [GitHub](https://github.com/dakheera47/).

@@ -48,9 +48,10 @@
     },
     "dependencies": {
         "@apify/datastructures": "^3.0.1",
+        "@crawlee/core": "workspace:*",
         "@crawlee/http-client": "workspace:*",
         "@crawlee/types": "workspace:*",
-        "impit": "^0.14.2",
-        "tough-cookie": "^6.0.0"
+        "impit": "^0.14.8",
+        "tough-cookie": "^6.0.2"
     }
 }
