@@ -194,6 +194,23 @@ function throttledUntil(state: DomainState): number {
     return Math.max(state.backoffUntil, state.crawlDelayUntil);
 }
 
+/**
+ * Whether a domain has refused every request for longer than the stall window and is still refusing. Idle time
+ * does not count: the clock starts at the first 429, and a domain that merely has an old one is being waited
+ * out, not stalling.
+ *
+ * Not dispatched to, so nothing refreshes `lastRateLimitedAt` and this lapses one window later. The domain then
+ * gets a single burst to prove itself with, and is back here on the first 429 - once per window rather than once
+ * per backoff, for as long as work elsewhere keeps the crawl alive.
+ */
+function isStalling(state: DomainState, now: number, maxStallMs: number): boolean {
+    return (
+        state.rateLimitedSince !== 0 &&
+        now - state.lastRateLimitedAt <= maxStallMs &&
+        now - state.rateLimitedSince > maxStallMs
+    );
+}
+
 /** How long a domain must be left alone after a dispatch: what it asked for, or our floor, whichever is longer. */
 function crawlDelayMs(state: DomainState, minCrawlDelayMs: number): number {
     return Math.max(state.declaredCrawlDelayMs ?? 0, minCrawlDelayMs);
@@ -596,7 +613,12 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     #fetchableDomains(): string[] {
         const now = Date.now();
         return Array.from(this.#domainStates.values())
-            .filter((state) => now >= throttledUntil(state) && this.#subManagers.has(state.domain))
+            .filter(
+                (state) =>
+                    now >= throttledUntil(state) &&
+                    !isStalling(state, now, this.#maxDomainStallMs) &&
+                    this.#subManagers.has(state.domain),
+            )
             .sort((a, b) => throttledUntil(a) - throttledUntil(b))
             .map((state) => state.domain);
     }
@@ -945,15 +967,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
                 continue;
             }
 
-            if (
-                // Together: still turning us away, and has been without a break for longer than the window - a
-                // domain that has merely been idle starts this clock at its first 429, not with idle time on it.
-                state.rateLimitedSince !== 0 &&
-                now - state.lastRateLimitedAt <= this.#maxDomainStallMs &&
-                now - state.rateLimitedSince > this.#maxDomainStallMs
-            ) {
-                // Deliberately not dispatchable: a domain that has refused every request for the whole window
-                // is not progress just because its backoff momentarily lapsed - that is what it does between 429s.
+            if (isStalling(state, now, this.#maxDomainStallMs)) {
                 (stallCandidates ??= []).push(state);
                 continue;
             }
@@ -1167,7 +1181,8 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
 
             const state = this.#getDomainState(request.url);
 
-            if (state === null || Date.now() >= throttledUntil(state)) {
+            const now = Date.now();
+            if (state === null || (now >= throttledUntil(state) && !isStalling(state, now, this.#maxDomainStallMs))) {
                 return request;
             }
 
