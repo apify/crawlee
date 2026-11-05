@@ -951,7 +951,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
 
         const now = Date.now();
         const dispatchable: Promise<T>[] = [];
-        const cooling: { subManager: Promise<T>; until: number }[] = [];
+        const cooling: { subManager: Promise<T>; readyAt: number }[] = [];
         let stallCandidates: DomainState[] | undefined;
 
         for (const state of this.#domainStates.values()) {
@@ -967,12 +967,12 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
                 continue;
             }
 
-            const until = throttledUntil(state);
+            const readyAt = throttledUntil(state);
 
-            if (now >= until) {
+            if (now >= readyAt) {
                 dispatchable.push(subManager);
             } else {
-                cooling.push({ subManager, until });
+                cooling.push({ subManager, readyAt });
             }
         }
 
@@ -990,9 +990,13 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
             return probed;
         }
 
-        for (const { subManager, until } of cooling.sort((a, b) => a.until - b.until)) {
-            if ((await (await subManager).checkReadiness()).status !== 'finished') {
-                return joinRequestSourceStatuses(probed, { status: 'waiting', readyAt: until });
+        // A cooling domain with nothing left to dispatch is nothing to wait for; in deadline order, the first
+        // with work left is the earliest wake-up.
+        cooling.sort((a, b) => a.readyAt - b.readyAt);
+        for (const { subManager, readyAt } of cooling) {
+            const { status } = await (await subManager).checkReadiness();
+            if (status !== 'finished') {
+                return joinRequestSourceStatuses(probed, { status: 'waiting', readyAt });
             }
         }
 
