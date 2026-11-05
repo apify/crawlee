@@ -9,6 +9,7 @@ import type { BaseHttpClient } from '@crawlee/http-client';
 import type { CheerioAPI } from 'cheerio';
 import type { CrawleeLogger } from '@crawlee/types';
 import type { Dictionary } from '@crawlee/types';
+import type { ISession } from '@crawlee/types';
 
 export { ArgumentValidationError }
 
@@ -161,6 +162,7 @@ export class RobotsTxtFile {
         timeoutMillis?: number;
         proxyUrl?: string;
         httpClient?: BaseHttpClient;
+        session?: ISession;
         logger?: CrawleeLogger;
     }): Promise<RobotsTxtFile>;
     static from(url: string, content: string, proxyUrl?: string): RobotsTxtFile;

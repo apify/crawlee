@@ -1,0 +1,109 @@
+---
+id: send-request
+title: Sending HTTP requests
+description: Send HTTP requests from a request handler with the sendRequest helper
+---
+
+import ApiLink from '@site/src/components/ApiLink';
+
+## Intro
+
+Every crawler passes a <ApiLink to="basic-crawler/interface/BasicCrawlingContext#sendRequest">`sendRequest()`</ApiLink> helper to the request handler. `BasicCrawler` doesn't download anything on its own, so this is how it fetches the current request. Other crawlers can use it to send additional requests, for example to call an API.
+
+```ts
+import { BasicCrawler } from 'crawlee';
+
+const crawler = new BasicCrawler({
+    async requestHandler({ sendRequest, log }) {
+        const response = await sendRequest();
+        log.info('received body', { body: await response.text() });
+    },
+});
+```
+
+`sendRequest()` uses the crawler's HTTP client, which is `ImpitHttpClient` by default (see the [HTTP clients guide](./http-clients) for the alternatives), together with the cookies, proxy and browser fingerprint of the current session. It returns a standard [`Response`](https://developer.mozilla.org/en-US/docs/Web/API/Response), so you read the body with `response.text()`, `response.json()` or `response.arrayBuffer()`. Like `fetch`, it follows redirects and doesn't throw on 4xx or 5xx status codes, so check `response.ok` or `response.status` yourself.
+
+## `sendRequest` API
+
+```ts
+sendRequest(
+    requestOverrides?: Partial<HttpRequestOptions>,
+    optionsOverrides?: SendRequestOptions,
+): Promise<Response>
+```
+
+### Request overrides
+
+The first argument (<ApiLink to="types/interface/HttpRequestOptions">`HttpRequestOptions`</ApiLink>) describes the request. Anything you leave out is taken from the request currently being processed.
+
+- `url` and `method` replace the URL and the HTTP method.
+- `headers` is a `Headers` instance merged into the headers of the current request.
+- `body`, `json` and `form` replace the payload. Use at most one of them. `json` and `form` also set the `content-type` header, unless you set it yourself.
+- `searchParams` replaces the query string of the URL.
+- `username` and `password` set the `authorization` header for HTTP Basic authentication.
+
+```ts
+import { BasicCrawler } from 'crawlee';
+
+const crawler = new BasicCrawler({
+    async requestHandler({ sendRequest, log }) {
+        const response = await sendRequest({
+            url: 'https://api.example.com/search',
+            method: 'POST',
+            headers: new Headers({ 'x-api-key': 'my-api-key' }),
+            json: { query: 'crawlee' },
+        });
+        log.info('received results', await response.json());
+    },
+});
+```
+
+### Request options
+
+The second argument (<ApiLink to="types/interface/SendRequestOptions">`SendRequestOptions`</ApiLink>) controls how the request is sent.
+
+- `proxyUrl` sends the request through the given proxy instead of the session's proxy.
+- `cookieJar` replaces the session's cookie jar.
+- `timeoutMillis` aborts the request after the given number of milliseconds, and `signal` aborts it when the `AbortSignal` fires.
+- `ignoreTlsErrors` skips TLS certificate checks, if the HTTP client supports it.
+
+The request overrides accept `proxyUrl`, `cookieJar`, `timeout` and `signal` too. When an option is set in both arguments, the one from the second argument is used.
+
+### Proxies
+
+By default, the request goes through the proxy of the current session, which comes from the crawler's `proxyConfiguration`. To use a different proxy, pass its URL in the format of `protocol://username:password@hostname:port`:
+
+```ts
+import { BasicCrawler } from 'crawlee';
+
+const crawler = new BasicCrawler({
+    async requestHandler({ sendRequest, log }) {
+        const response = await sendRequest({}, { proxyUrl: 'http://auto:password@proxy.apify.com:8000' });
+        log.info('received body', { body: await response.text() });
+    },
+});
+```
+
+Note that a fixed `proxyUrl` bypasses the proxy rotation done by sessions.
+
+### Cookies
+
+By default, cookies are read from and saved to the cookie jar of the current session. You can pass any cookie jar compatible with the [`tough-cookie`](https://github.com/salesforce/tough-cookie) `CookieJar` instead:
+
+```ts
+import { BasicCrawler } from 'crawlee';
+import { CookieJar } from 'tough-cookie';
+
+const cookieJar = new CookieJar();
+
+const crawler = new BasicCrawler({
+    async requestHandler({ sendRequest, log }) {
+        const response = await sendRequest({}, { cookieJar });
+        log.info('received body', { body: await response.text() });
+    },
+});
+```
+
+### Browser fingerprints
+
+The HTTP client is responsible for making requests look like they come from a real browser, so there are no per-request options for that. To change this behavior, configure or replace the crawler's `httpClient`. See the [HTTP clients guide](./http-clients) and the [avoid getting blocked guide](./avoid-blocking).

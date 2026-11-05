@@ -315,7 +315,8 @@ describe('AutoscaledPool', () => {
             expect(pool.currentConcurrency).toBe(0);
 
             await pool.run();
-            expect(concurrencyLog.some((n) => n > 1)).toBe(false);
+            // The overload caps the pool at the floor, but must not push it below - exactly `minConcurrency` runs.
+            expect(Math.max(...concurrencyLog)).toBe(1);
 
             limit = 50;
             concurrencyLog = [];
@@ -323,7 +324,55 @@ describe('AutoscaledPool', () => {
             systemOf(pool).minConcurrency = 5;
 
             await pool.run();
-            expect(concurrencyLog.some((n) => n > 5)).toBe(false);
+            expect(Math.max(...concurrencyLog)).toBe(5);
+        });
+
+        test('settles at minConcurrency instead of freezing when an overload starts mid-run', async () => {
+            let running = 0;
+            let peak = 0;
+            let done = 0;
+
+            const pool = await makePool(
+                {
+                    runTaskFunction: async () => {
+                        running++;
+                        peak = Math.max(peak, running);
+                        await sleep(10);
+                        running--;
+                        done++;
+                    },
+                    isFinishedFunction: async () => false,
+                    isTaskReadyFunction: async () => true,
+                },
+                { ...concurrencyOptions, minConcurrency: 2, maxConcurrency: 4, desiredConcurrency: 4 },
+            );
+
+            const waitFor = async (condition: () => boolean) => {
+                const deadline = Date.now() + 5_000;
+                while (!condition()) {
+                    if (Date.now() > deadline) throw new Error('Timed out waiting for the pool to settle.');
+                    await sleep(5);
+                }
+            };
+
+            const runPromise = pool.run();
+            onTestFinished(async () => {
+                await pool.abort();
+                await runPromise;
+            });
+
+            await waitFor(() => peak === 4);
+
+            // Only the gating status flips - `desiredConcurrency` stays at 4, so what keeps tasks running (or not)
+            // from here on is the overload check alone.
+            load.okNow = false;
+            await waitFor(() => pool.currentConcurrency <= 2);
+
+            peak = 0;
+            const doneBefore = done;
+            await waitFor(() => done >= doneBefore + 4);
+
+            expect(peak).toBe(2);
         });
     });
 

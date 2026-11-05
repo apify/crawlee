@@ -5,6 +5,7 @@ import { finished } from 'node:stream/promises';
 
 import { CrawlingRequest, SitemapRequestLoader } from '@crawlee/basic';
 import { MemoryStorageBackend, type Request, serviceLocator } from '@crawlee/core';
+import { FetchHttpClient } from '@crawlee/http-client';
 import { sleep } from '@crawlee/utils';
 import express from 'express';
 import { startExpressAppPromise } from '../shared/_helper.js';
@@ -643,18 +644,27 @@ describe('SitemapRequestLoader', () => {
     });
 
     test('default `same-hostname` strategy drops cross-host nested sitemaps before fetching them', async () => {
-        const list = await SitemapRequestLoader.open({ sitemapUrls: [`${url}/cross-host-index.xml`] });
-        // The cross-host nested sitemap is never fetched, so its `child-page` URL is absent.
+        const cross = url.replace('localhost', '127.0.0.1');
+        const httpClient = new FetchHttpClient();
+        const sendRequest = vitest.spyOn(httpClient, 'sendRequest');
+        const list = await SitemapRequestLoader.open({ sitemapUrls: [`${url}/cross-host-index.xml`], httpClient });
+
         expect(await collectUrls(list)).toEqual([]);
+        expect(sendRequest.mock.calls.map(([request]) => request.url)).not.toContain(`${cross}/cross-host-child.xml`);
     });
 
     test('`enqueueStrategy: all` follows cross-host nested sitemaps', async () => {
         const cross = url.replace('localhost', '127.0.0.1');
+        const httpClient = new FetchHttpClient();
+        const sendRequest = vitest.spyOn(httpClient, 'sendRequest');
         const list = await SitemapRequestLoader.open({
             sitemapUrls: [`${url}/cross-host-index.xml`],
             enqueueStrategy: 'all',
+            httpClient,
         });
+
         expect(await collectUrls(list)).toEqual([`${cross}/child-page`]);
+        expect(sendRequest.mock.calls.map(([request]) => request.url)).toContain(`${cross}/cross-host-child.xml`);
     });
 
     test('non-http(s) schemes are dropped even with `enqueueStrategy: all`', async () => {
