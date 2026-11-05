@@ -640,7 +640,6 @@ export class RequestQueue implements IStorage, IRequestManager {
             waitBetweenBatchesMillis,
             waitForAllRequestsToBeAdded,
             maxNewRequests,
-            sourceIsAsync: isAsyncIterable(requests),
             log: this.log,
 
             /**
@@ -1167,15 +1166,11 @@ export interface AddRequestsBatchedOptions extends RequestQueueOperationOptions 
 
     /**
      * If set, only this many *actually new* requests (i.e. not already present in the queue) will be added.
-     * Once the budget is reached, remaining requests from the iterable will be collected in
-     * {@apilink AddRequestsBatchedResult.requestsOverLimit|`requestsOverLimit`} instead.
+     * Once the budget is reached, remaining requests from the iterable are left unconsumed, or collected in
+     * {@apilink AddRequestsBatchedResult.requestsOverLimit|`requestsOverLimit`} if
+     * {@apilink AddRequestsBatchedOptions.waitForAllRequestsToBeAdded|`waitForAllRequestsToBeAdded`} is set.
      *
      * This is useful in combination with `maxRequestsPerCrawl` to avoid duplicate URLs consuming the budget.
-     *
-     * **Note:** For async iterables, exact `requestsOverLimit` reporting is only available when
-     * {@apilink AddRequestsBatchedOptions.waitForAllRequestsToBeAdded|`waitForAllRequestsToBeAdded`}
-     * is set to `true`. Otherwise, Crawlee returns as soon as the budget is exhausted without draining
-     * the producer beyond that point.
      */
     maxNewRequests?: number;
 }
@@ -1203,11 +1198,8 @@ export interface AddRequestsBatchedResult {
     /**
      * Requests from the input that were not added to the queue because the
      * {@apilink AddRequestsBatchedOptions.maxNewRequests|`maxNewRequests`} budget was reached.
-     * Empty when `maxNewRequests` is not set.
-     *
-     * For async iterables, exact leftovers are only reported when
-     * {@apilink AddRequestsBatchedOptions.waitForAllRequestsToBeAdded|`waitForAllRequestsToBeAdded`}
-     * is enabled.
+     * `undefined` unless both `maxNewRequests` and
+     * {@apilink AddRequestsBatchedOptions.waitForAllRequestsToBeAdded|`waitForAllRequestsToBeAdded`} are set.
      */
     requestsOverLimit?: Source[];
 }

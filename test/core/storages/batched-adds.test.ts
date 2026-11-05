@@ -18,7 +18,6 @@ function setup(waitForAllRequestsToBeAdded: boolean) {
         batchSize: 1,
         waitBetweenBatchesMillis: 0,
         waitForAllRequestsToBeAdded,
-        sourceIsAsync: true,
         log: { exception } as unknown as CrawleeLogger,
         processChunk: async (chunk, isInitial) => {
             if (!isInitial) throw new Error('boom');

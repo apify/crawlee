@@ -3983,7 +3983,7 @@ describe('BasicCrawler', () => {
                     { url: 'http://example.com/d' },
                     { url: 'http://example.com/e' },
                 ],
-                { maxNewRequests: 2 },
+                { maxNewRequests: 2, waitForAllRequestsToBeAdded: true },
             );
 
             const addedUrls = result.addedRequests.filter((r) => !r.wasAlreadyPresent).map((r) => r.uniqueKey);

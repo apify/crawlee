@@ -26,7 +26,7 @@ import {
     joinRequestSourceStatuses,
     normalizeHostname,
 } from '@crawlee/core/internal';
-import { isAsyncIterable, parseArgument, schemas } from '@crawlee/utils/internal';
+import { parseArgument, schemas } from '@crawlee/utils/internal';
 
 const throttlingRequestManagerOptionsSchema = z.strictObject({
     inner: z.union([schemas.anyObject, schemas.anyFunction]).optional(),
@@ -815,7 +815,6 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
             waitBetweenBatchesMillis: options.waitBetweenBatchesMillis ?? 1000,
             waitForAllRequestsToBeAdded: options.waitForAllRequestsToBeAdded ?? false,
             maxNewRequests: options.maxNewRequests,
-            sourceIsAsync: isAsyncIterable(requests),
             log: this.#log,
 
             // Routing is the only thing this manager adds; the targets do the batching, validation and

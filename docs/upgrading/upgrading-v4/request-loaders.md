@@ -16,6 +16,10 @@ The request loader/manager interfaces have been reworked. See the new [Request l
 
 Requests that the storage backend reports as unprocessed are now warned about and skipped after the first attempt, instead of being retried a bounded number of times. What a backend reports as unprocessed is a semantic rejection (typically malformed request data) that re-sending cannot fix — retrying transient failures is the storage backend's own responsibility.
 
+### `maxNewRequests` no longer implies `waitForAllRequestsToBeAdded`
+
+`RequestQueue.addRequestsBatched` used to wait for every batch (and drain the whole input) whenever `maxNewRequests` was set, so it could report `requestsOverLimit`. Draining could block forever on an async producer, so the input is now left unconsumed past the budget, and `requestsOverLimit` is only populated when you also pass `waitForAllRequestsToBeAdded: true` (otherwise it is `undefined`). `crawler.addRequests()` still reports skipped requests as before.
+
 ### `IRequestList` renamed to `IRequestLoader`
 
 The `IRequestList` interface has been renamed to `IRequestLoader` and is now the read-only base interface implemented by `RequestList` and `SitemapRequestLoader`. The writable `IRequestManager` interface now **extends** `IRequestLoader` with the request-adding and reclaiming surface (`addRequest`, `addRequestsBatched`, `reclaimRequest`, optional `purge`). There is no `IRequestList` alias — update your imports and type references to `IRequestLoader` (or `IRequestManager` if you need the write surface).

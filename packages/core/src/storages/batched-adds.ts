@@ -18,11 +18,6 @@ export interface DrainRequestBatchesOptions<TItem extends Source> {
     waitBetweenBatchesMillis: number;
     waitForAllRequestsToBeAdded: boolean;
     maxNewRequests?: number;
-    /**
-     * Whether the original input was an async iterable. Such a producer is not drained past the
-     * `maxNewRequests` budget unless `waitForAllRequestsToBeAdded` is set, so `requestsOverLimit` stays empty.
-     */
-    sourceIsAsync: boolean;
 
     log: CrawleeLogger;
 
@@ -60,7 +55,6 @@ export async function drainRequestBatches<TItem extends Source>(
         waitBetweenBatchesMillis,
         waitForAllRequestsToBeAdded,
         maxNewRequests,
-        sourceIsAsync,
         log,
         processChunk,
         trackBackgroundBatches,
@@ -68,11 +62,11 @@ export async function drainRequestBatches<TItem extends Source>(
 
     const deferred = activeStorageTransaction()?.policy.requestQueue === 'deferred';
 
-    // Draining an async producer just to report leftovers could block indefinitely.
-    const reportsOverLimit = maxNewRequests !== undefined && (!sourceIsAsync || waitForAllRequestsToBeAdded);
+    // Leftovers are only reported when the caller waits anyway: draining an async producer just to find
+    // them could block indefinitely.
+    const reportsOverLimit = maxNewRequests !== undefined && waitForAllRequestsToBeAdded;
 
     let remainingBudget = maxNewRequests ?? Infinity;
-    const requestsOverLimit: Source[] = [];
 
     // Never hand a chunk more than the budget allows, so an over-large final batch cannot overshoot.
     const effectiveChunkSize = maxNewRequests !== undefined ? () => Math.min(batchSize, remainingBudget) : batchSize;
@@ -94,12 +88,15 @@ export async function drainRequestBatches<TItem extends Source>(
         addedRequests: ProcessedRequest[],
         waitForAll: Promise<ProcessedRequest[]>,
     ): Promise<AddRequestsBatchedResult> => {
-        if (reportsOverLimit) {
-            // `chunkedAsyncIterable` stops pulling once the budget-derived chunk size hits zero, so whatever
-            // is left is still sitting in `items` rather than in a chunk we have seen.
-            for await (const item of items) {
-                requestsOverLimit.push(item);
-            }
+        if (!reportsOverLimit) {
+            return { addedRequests, waitForAllRequestsToBeAdded: waitForAll };
+        }
+
+        // `chunkedAsyncIterable` stops pulling once the budget-derived chunk size hits zero, so whatever
+        // is left is still sitting in `items` rather than in a chunk we have seen.
+        const requestsOverLimit: Source[] = [];
+        for await (const item of items) {
+            requestsOverLimit.push(item);
         }
 
         return { addedRequests, waitForAllRequestsToBeAdded: waitForAll, requestsOverLimit };
@@ -127,9 +124,8 @@ export async function drainRequestBatches<TItem extends Source>(
         return added;
     };
 
-    // Exact over-limit reporting needs everything drained first; under `deferred` a writer that finishes
-    // after commit would have nowhere to put its journal entries.
-    const awaitsRemainder = waitForAllRequestsToBeAdded || reportsOverLimit || deferred;
+    // Under `deferred` a writer that finishes after commit would have nowhere to put its journal entries.
+    const awaitsRemainder = waitForAllRequestsToBeAdded || deferred;
 
     // An un-awaited writer outlives the transaction scope it inherits, so it must not record into a
     // transaction that may already be closed. It writes directly - its write-through additions were never
