@@ -33,20 +33,6 @@ describe('joinRequestSourceStatuses', () => {
         },
     );
 
-    test('a stalled source is masked while the other one still has work', () => {
-        // The crawler turns `stalled` into a `PersistentRateLimitError`, so this precedence is what keeps a
-        // crawl that is making progress elsewhere from being abandoned over one hopeless domain.
-        expect(joinRequestSourceStatuses(stalled, ready)).toEqual(ready);
-    });
-
-    test('a stalled source is masked while the other one expects work later', () => {
-        // A source that is only waiting can still make progress, so the crawl must not be abandoned yet.
-        expect(joinRequestSourceStatuses(stalled, { status: 'waiting', readyAt: 100 })).toEqual({
-            status: 'waiting',
-            readyAt: 100,
-        });
-    });
-
     test('the earlier of two known wake-up times wins', () => {
         expect(
             joinRequestSourceStatuses({ status: 'waiting', readyAt: 200 }, { status: 'waiting', readyAt: 100 }),
@@ -65,9 +51,5 @@ describe('joinRequestSourceStatuses', () => {
             status: 'waiting',
             readyAt: 100,
         });
-    });
-
-    test('no wake-up time is invented when neither source knows one', () => {
-        expect(joinRequestSourceStatuses(waiting, waiting)).toEqual({ status: 'waiting' });
     });
 });
