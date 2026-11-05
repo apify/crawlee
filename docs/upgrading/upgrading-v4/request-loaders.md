@@ -101,7 +101,7 @@ type RequestSourceStatus =
 
 One probe instead of two, which a task loop runs several times a second, plus two answers the booleans could not express: `waiting` can name when it expects work again (`readyAt`) instead of leaving the caller to poll, and `stalled` reports requests a source cannot make progress on, which the crawler turns into a `PersistentRateLimitError`.
 
-If you implemented either interface, return `ready` without evaluating anything further — it is the most common answer and the only one a caller can act on immediately. Reading from two sources, the precedence is `ready` > `stalled` > `waiting` > `finished`, and a combined `waiting` carries the earlier `readyAt`.
+If you implemented either interface, return `ready` without evaluating anything further — it is the most common answer and the only one a caller can act on immediately. Reading from two sources, the precedence is `ready` > `waiting` > `stalled` > `finished`, and a combined `waiting` carries the earlier `readyAt`.
 
 **Storage backends keep the two booleans** — see [`StorageBackend` interface simplified](./storage-backends.md#storagebackend-interface-simplified).
 

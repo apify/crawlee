@@ -194,6 +194,18 @@ function throttledUntil(state: DomainState): number {
     return Math.max(state.backoffUntil, state.crawlDelayUntil);
 }
 
+/**
+ * Still refusing, and has been for longer than the window. Not dispatched to, so this lapses a window after the
+ * last 429 and the domain gets one burst to prove itself with.
+ */
+function isStalling(state: DomainState, now: number, maxStallMs: number): boolean {
+    return (
+        state.rateLimitedSince !== 0 &&
+        now - state.lastRateLimitedAt <= maxStallMs &&
+        now - state.rateLimitedSince > maxStallMs
+    );
+}
+
 /** How long a domain must be left alone after a dispatch: what it asked for, or our floor, whichever is longer. */
 function crawlDelayMs(state: DomainState, minCrawlDelayMs: number): number {
     return Math.max(state.declaredCrawlDelayMs ?? 0, minCrawlDelayMs);
@@ -596,7 +608,12 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     #fetchableDomains(): string[] {
         const now = Date.now();
         return Array.from(this.#domainStates.values())
-            .filter((state) => now >= throttledUntil(state) && this.#subManagers.has(state.domain))
+            .filter(
+                (state) =>
+                    now >= throttledUntil(state) &&
+                    !isStalling(state, now, this.#maxDomainStallMs) &&
+                    this.#subManagers.has(state.domain),
+            )
             .sort((a, b) => throttledUntil(a) - throttledUntil(b))
             .map((state) => state.domain);
     }
@@ -927,7 +944,8 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
      *
      * `ready` from anywhere else outranks a stalling domain and is returned without looking at the stall clocks,
      * so one hopeless domain never ends a crawl making progress elsewhere. It cannot outrank itself, though -
-     * see the traversal.
+     * see the traversal. A domain that is only cooling down holds off a stalling one the same way, because the
+     * crawl can continue once its cooldown ends.
      */
     async checkReadiness(): Promise<RequestSourceStatus> {
         await this.#ensureSubManagers();
@@ -944,15 +962,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
                 continue;
             }
 
-            if (
-                // Together: still turning us away, and has been without a break for longer than the window - a
-                // domain that has merely been idle starts this clock at its first 429, not with idle time on it.
-                state.rateLimitedSince !== 0 &&
-                now - state.lastRateLimitedAt <= this.#maxDomainStallMs &&
-                now - state.rateLimitedSince > this.#maxDomainStallMs
-            ) {
-                // Deliberately not dispatchable: a domain that has refused every request for the whole window
-                // is not progress just because its backoff momentarily lapsed - that is what it does between 429s.
+            if (isStalling(state, now, this.#maxDomainStallMs)) {
                 (stallCandidates ??= []).push(state);
                 continue;
             }
@@ -980,6 +990,15 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
             return probed;
         }
 
+        if (readyAt !== undefined) {
+            return joinRequestSourceStatuses(probed, { status: 'waiting', readyAt });
+        }
+
+        // Batches still landing in the background are work nobody can see in a queue yet.
+        if (this.#inProgressBatchCount > 0 && probed.status === 'finished') {
+            return { status: 'waiting' };
+        }
+
         if (stallCandidates !== undefined) {
             const stalled = (
                 await Promise.all(
@@ -996,24 +1015,15 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
                     .map((state) => `"${state.domain}" (${((now - state.rateLimitedSince) / 1000).toFixed(0)}s)`)
                     .join(', ');
 
-                return {
+                return joinRequestSourceStatuses(probed, {
                     status: 'stalled',
                     reason:
                         `${summary} rate-limited every request for longer than maxDomainStallSecs ` +
                         `(${(this.#maxDomainStallMs / 1000).toFixed(0)}s). Waiting longer will not help - lower the ` +
                         `crawler's concurrency, or drop these domains. Their requests are still queued, so ` +
                         `re-running with \`purgeOnStart\` disabled will resume them if the rate limit lifts.`,
-                };
+                });
             }
-        }
-
-        if (readyAt !== undefined) {
-            return joinRequestSourceStatuses(probed, { status: 'waiting', readyAt });
-        }
-
-        // Batches still landing in the background are work nobody can see in a queue yet.
-        if (this.#inProgressBatchCount > 0 && probed.status === 'finished') {
-            return { status: 'waiting' };
         }
 
         return probed;
@@ -1166,7 +1176,8 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
 
             const state = this.#getDomainState(request.url);
 
-            if (state === null || Date.now() >= throttledUntil(state)) {
+            const now = Date.now();
+            if (state === null || (now >= throttledUntil(state) && !isStalling(state, now, this.#maxDomainStallMs))) {
                 return request;
             }
 
