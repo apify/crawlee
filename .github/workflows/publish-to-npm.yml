@@ -78,13 +78,14 @@ jobs:
                 message: "chore: bump ${{ inputs.dist-tag == 'rc' && 'RC' || 'canary' }} versions [skip ci]"
                 push: false
 
+            # Rekor outages last minutes; the sigstore patch (30s Rekor timeout + fetch the existing entry on 409) covers the per-call side
             - name: Publish to NPM (@latest)
               if: inputs.dist-tag == 'prod'
               uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
               with:
                   timeout_minutes: 10
                   max_attempts: 5
-                  retry_wait_seconds: 30
+                  retry_wait_seconds: 60
                   command: git checkout . && pnpm publish:prod
               env:
                   GH_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
@@ -95,7 +96,7 @@ jobs:
               with:
                   timeout_minutes: 10
                   max_attempts: 5
-                  retry_wait_seconds: 30
+                  retry_wait_seconds: 60
                   command: git checkout . && pnpm publish:next
               env:
                   GH_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
@@ -106,7 +107,7 @@ jobs:
               with:
                   timeout_minutes: 10
                   max_attempts: 5
-                  retry_wait_seconds: 30
+                  retry_wait_seconds: 60
                   command: git checkout . && pnpm publish:rc
               env:
                   GH_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}

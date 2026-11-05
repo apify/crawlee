@@ -96,7 +96,9 @@ export interface AutoscaledPoolOptions extends TaskLoopPredicates {
 /**
  * Manages a pool of asynchronous resource-intensive tasks that are executed in parallel.
  * The pool only starts new tasks while its {@apilink IConcurrencySystem|concurrency system} reports free capacity —
- * that governor is what monitors CPU, memory and event loop load and autoscales the concurrency budget.
+ * that governor is what monitors CPU, memory and event loop load and autoscales the concurrency budget. The default
+ * {@apilink ConcurrencySystem} keeps `minConcurrency` tasks running even while the system is overloaded, and only
+ * starts additional ones when there is enough free CPU and memory.
  *
  * Before running the pool, you need to implement the following three functions:
  * {@apilink AutoscaledPoolOptions.runTaskFunction|`runTaskFunction`},

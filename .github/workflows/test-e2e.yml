@@ -66,6 +66,11 @@ jobs:
                 timeout-minutes: 10
                 run: pnpm exec playwright install --with-deps
 
+            # the ubuntu-26.04 runner's AppArmor blocks unprivileged user namespaces, so Puppeteer's sandboxed Chromium fails with "No usable sandbox!"
+            -   name: Allow Chromium sandbox
+                if: (matrix.storage != 'PLATFORM')
+                run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+
             -   name: Build
                 run: pnpm ci:build
 

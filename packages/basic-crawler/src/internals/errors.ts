@@ -91,3 +91,31 @@ export class RequestHandlerError extends Error {
  * Subclasses can catch this error to skip their own navigation-dependent logic.
  */
 export class NavigationSkippedError extends NonRetryableError {}
+
+/**
+ * Wraps a `skipNavigation` request so that reading `loadedUrl` throws a {@apilink NavigationSkippedError}.
+ * @internal
+ */
+export function skippedNavigationRequest<R extends object>(request: R): R {
+    return new Proxy(request, {
+        get(target, propertyName) {
+            if (propertyName === 'loadedUrl') {
+                throw new NavigationSkippedError(
+                    'The `request.loadedUrl` property is not available - `skipNavigation` was used',
+                );
+            }
+            // `target` as receiver and bound methods, or `#` members throw on the proxy
+            const value = Reflect.get(target, propertyName, target);
+            return typeof value === 'function' ? value.bind(target) : value;
+        },
+        // Hide `loadedUrl` from enumeration so bookkeeping (spread/JSON/zod) skips it; direct reads still throw above.
+        getOwnPropertyDescriptor(target, propertyName) {
+            const descriptor = Reflect.getOwnPropertyDescriptor(target, propertyName);
+            if (propertyName === 'loadedUrl' && descriptor) {
+                return { ...descriptor, enumerable: false };
+            }
+            return descriptor;
+        },
+        set: (target, propertyName, value) => Reflect.set(target, propertyName, value, target),
+    });
+}

@@ -256,7 +256,7 @@ const crawler = new BasicCrawler({
 
 ### How to use `sendRequest()`?
 
-See [the Got Scraping guide](../guides/got-scraping.mdx).
+See [the `sendRequest` guide](../guides/send-request.mdx).
 
 ### Removed options
 

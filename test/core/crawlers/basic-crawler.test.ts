@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 import type { Server } from 'node:http';
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
+import { text } from 'node:stream/consumers';
 
 import type {
     BasicCrawlerOptions,
@@ -14,6 +15,7 @@ import type {
     RequestHandler,
     RequestOptions,
     Session,
+    StatisticPersistedState,
 } from '@crawlee/basic';
 import {
     AfterCommitError,
@@ -51,6 +53,7 @@ import { FileSystemStorageBackend } from '@crawlee/fs-storage';
 import type { Dictionary, ISession, ProxyInfo } from '@crawlee/types';
 import { RobotsTxtFile, sleep } from '@crawlee/utils';
 import express from 'express';
+import { CookieJar } from 'tough-cookie';
 import type { Mock } from 'vitest';
 import { afterAll, beforeAll, beforeEach, describe, expect, test, vitest } from 'vitest';
 import { z } from 'zod';
@@ -2776,6 +2779,94 @@ describe('BasicCrawler', () => {
         });
     });
 
+    describe('retry statistics', () => {
+        test('are updated as soon as a request is reclaimed for a retry, not once it finishes', async () => {
+            const seenOnAttempt: { retryCount: number; requestsRetries: number; histogram: number[] }[] = [];
+
+            const crawler = new BasicCrawler({
+                maxRequestRetries: 3,
+                requestHandler: async ({ request }) => {
+                    seenOnAttempt.push({
+                        retryCount: request.retryCount,
+                        requestsRetries: crawler.statistics.state.requestsRetries,
+                        histogram: [...crawler.statistics.requestRetryHistogram],
+                    });
+
+                    if (request.retryCount < 2) throw new Error(`attempt ${request.retryCount} failed`);
+                },
+            });
+
+            await crawler.run(['https://example.com']);
+
+            // The request is still in flight on each attempt, yet the stats already reflect the retries so far.
+            expect(seenOnAttempt).toEqual([
+                { retryCount: 0, requestsRetries: 0, histogram: [] },
+                { retryCount: 1, requestsRetries: 1, histogram: [0, 1] },
+                { retryCount: 2, requestsRetries: 1, histogram: [0, 0, 1] },
+            ]);
+
+            // Finishing the request does not count it a second time.
+            expect(crawler.statistics.state.requestsRetries).toBe(1);
+            expect(crawler.statistics.requestRetryHistogram).toEqual([0, 0, 1]);
+            expect(crawler.statistics.state.requestsSucceeded).toBe(1);
+            expect(crawler.statistics.state.requestsFailed).toBe(0);
+        });
+
+        test('count each request once and bucket it by its final retry count', async () => {
+            const retriesBeforeSuccess: Record<string, number> = {
+                'https://example.com/clean': 0,
+                'https://example.com/flaky': 2,
+                'https://example.com/broken': Infinity,
+            };
+
+            const crawler = new BasicCrawler({
+                maxRequestRetries: 3,
+                requestHandler: async ({ request }) => {
+                    if (request.retryCount < retriesBeforeSuccess[request.url]) {
+                        throw new Error(`attempt ${request.retryCount} failed`);
+                    }
+                },
+            });
+
+            await crawler.run(Object.keys(retriesBeforeSuccess));
+
+            expect(crawler.statistics.state.requestsSucceeded).toBe(2);
+            expect(crawler.statistics.state.requestsFailed).toBe(1);
+            // One request was never retried, two were - regardless of how many times.
+            expect(crawler.statistics.state.requestsRetries).toBe(2);
+            // index = retries at the time the request finished: clean -> 0, flaky -> 2, broken -> 3 (gave up)
+            expect(crawler.statistics.requestRetryHistogram).toEqual([1, 0, 1, 1]);
+        });
+
+        test('are visible in a snapshot persisted while the retried request is still in flight', async () => {
+            const stats = new Statistics({ id: 'retry-stats-in-flight' });
+            const store = await KeyValueStore.open();
+            let persistedMidCrawl: StatisticPersistedState | null = null;
+
+            const crawler = new BasicCrawler({
+                statistics: stats,
+                maxRequestRetries: 3,
+                requestHandler: async ({ request }) => {
+                    if (request.retryCount === 0) throw new Error('first attempt failed');
+
+                    // Simulates a migration-triggered persist before the request finished.
+                    await stats.persistState();
+                    persistedMidCrawl = await store.getValue<StatisticPersistedState>(
+                        'CRAWLEE_CRAWLER_STATISTICS_retry-stats-in-flight',
+                    );
+                },
+            });
+
+            await crawler.run(['https://example.com']);
+
+            expect(persistedMidCrawl).toMatchObject({
+                requestsRetries: 1,
+                requestRetryHistogram: [0, 1],
+                requestsTotal: 0,
+            });
+        });
+    });
+
     describe('proxyConfiguration', () => {
         it('assigns a proxyInfo from the proxyConfiguration to each Session and exposes it on the context', async () => {
             const proxyUrls = [0, 1, 2].map((n) => `http://proxy.example.com:${1000 + n}`);
@@ -2877,20 +2968,41 @@ describe('BasicCrawler', () => {
         });
     });
 
-    test('extendContext', async () => {
-        const url = 'https://example.com';
-        const requestHandlerImplementation = vi.fn();
+    describe('extendContext', () => {
+        test('extends the crawling context', async () => {
+            const url = 'https://example.com';
+            const requestHandlerImplementation = vi.fn();
 
-        const crawler = new BasicCrawler({
-            extendContext: () => ({ hello: 'world' }),
-            requestHandler: async ({ hello }) => {
-                requestHandlerImplementation({ hello });
-            },
+            const crawler = new BasicCrawler({
+                extendContext: () => ({ hello: 'world' }),
+                requestHandler: async ({ hello }) => {
+                    requestHandlerImplementation({ hello });
+                },
+            });
+
+            await crawler.run([url]);
+            expect(requestHandlerImplementation).toHaveBeenCalledOnce();
+            expect(requestHandlerImplementation.mock.calls[0][0]).toMatchObject({ hello: 'world' });
         });
 
-        await crawler.run([url]);
-        expect(requestHandlerImplementation).toHaveBeenCalledOnce();
-        expect(requestHandlerImplementation.mock.calls[0][0]).toMatchObject({ hello: 'world' });
+        test('can register cleanups that run after the request handler', async () => {
+            const order: string[] = [];
+            const crawler = new BasicCrawler({
+                extendContext: (_, onCleanup) => {
+                    onCleanup(() => {
+                        order.push('cleanup');
+                    });
+                    return {};
+                },
+                requestHandler: async () => {
+                    order.push('handler');
+                },
+            });
+
+            await crawler.run(['https://example.com']);
+
+            expect(order).toEqual(['handler', 'cleanup']);
+        });
     });
 
     test('registerDeferredCleanup runs after the error handler, even when the context pipeline itself fails', async () => {
@@ -2986,6 +3098,129 @@ describe('BasicCrawler', () => {
             await crawler.run([url]);
 
             expect(captured).toEqual([true]);
+        });
+
+        test('forwards proxyUrl to the http client', async () => {
+            const captured: (string | undefined)[] = [];
+
+            const crawler = new BasicCrawler({
+                httpClient: Object.assign(Object.create(BaseHttpClient.prototype) as BaseHttpClient, {
+                    async sendRequest(_request: globalThis.Request, options?: { proxyUrl?: string }) {
+                        captured.push(options?.proxyUrl);
+                        return new Response('ok');
+                    },
+                }),
+                async requestHandler({ sendRequest }) {
+                    await sendRequest({}, { proxyUrl: 'http://options-proxy.com' });
+                    await sendRequest({ proxyUrl: 'http://request-proxy.com' });
+                    await sendRequest();
+                    await sendRequest(
+                        { proxyUrl: 'http://request-proxy.com' },
+                        { proxyUrl: 'http://options-proxy.com' },
+                    );
+                },
+            });
+
+            await crawler.run([url]);
+
+            expect(captured).toEqual([
+                'http://options-proxy.com',
+                'http://request-proxy.com',
+                undefined,
+                'http://options-proxy.com',
+            ]);
+        });
+
+        test('applies searchParams, json, form and basic auth to the request', async () => {
+            const captured: { url: string; method: string; headers: Record<string, string>; body: string }[] = [];
+
+            const crawler = new BasicCrawler({
+                maxRequestRetries: 0,
+                httpClient: Object.assign(Object.create(BaseHttpClient.prototype) as BaseHttpClient, {
+                    async sendRequest(request: globalThis.Request) {
+                        captured.push({
+                            url: request.url,
+                            method: request.method,
+                            headers: Object.fromEntries(request.headers),
+                            body: request.body ? await text(request.body) : '',
+                        });
+                        return new Response('ok');
+                    },
+                }),
+                async requestHandler({ sendRequest }) {
+                    await sendRequest({ searchParams: { foo: 'bar' } });
+                    await sendRequest({ method: 'POST', json: { foo: 'bar' } });
+                    await sendRequest({ method: 'POST', form: { foo: 'bar' } });
+                    await sendRequest({ username: 'user', password: 'pass' });
+                },
+            });
+
+            await crawler.run([url]);
+
+            expect(captured).toMatchObject([
+                { url: `${url}?foo=bar`, method: 'GET', body: '' },
+                { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{"foo":"bar"}' },
+                {
+                    method: 'POST',
+                    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+                    body: 'foo=bar',
+                },
+                { headers: { authorization: `Basic ${Buffer.from('user:pass').toString('base64')}` } },
+            ]);
+        });
+
+        test('sends the payload of the crawled request', async () => {
+            const captured: { method: string; body: string }[] = [];
+
+            const crawler = new BasicCrawler({
+                maxRequestRetries: 0,
+                httpClient: Object.assign(Object.create(BaseHttpClient.prototype) as BaseHttpClient, {
+                    async sendRequest(request: globalThis.Request) {
+                        captured.push({ method: request.method, body: await request.text() });
+                        return new Response('ok');
+                    },
+                }),
+                async requestHandler({ sendRequest }) {
+                    await sendRequest();
+                },
+            });
+
+            await crawler.run([{ url, method: 'POST', payload: 'foo=bar' }]);
+
+            expect(captured).toEqual([{ method: 'POST', body: 'foo=bar' }]);
+        });
+
+        test('forwards timeout, signal and cookieJar from the request options to the http client', async () => {
+            const captured: { timeoutMillis?: number; signal?: AbortSignal; cookieJar?: unknown }[] = [];
+            const { signal } = new AbortController();
+            const cookieJar = new CookieJar();
+
+            const crawler = new BasicCrawler({
+                maxRequestRetries: 0,
+                httpClient: Object.assign(Object.create(BaseHttpClient.prototype) as BaseHttpClient, {
+                    async sendRequest(
+                        _request: globalThis.Request,
+                        options?: { timeoutMillis?: number; signal?: AbortSignal; cookieJar?: unknown },
+                    ) {
+                        captured.push({
+                            timeoutMillis: options?.timeoutMillis,
+                            signal: options?.signal,
+                            cookieJar: options?.cookieJar,
+                        });
+                        return new Response('ok');
+                    },
+                }),
+                async requestHandler({ sendRequest }) {
+                    await sendRequest({ timeout: 1000, signal, cookieJar });
+                },
+            });
+
+            await crawler.run([url]);
+
+            expect(captured).toHaveLength(1);
+            expect(captured[0].timeoutMillis).toBe(1000);
+            expect(captured[0].signal).toBe(signal);
+            expect(captured[0].cookieJar).toBe(cookieJar);
         });
 
         test('proxyUrl TypeScript support', async () => {

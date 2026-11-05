@@ -33,6 +33,7 @@ import {
 import type { Dictionary } from '@crawlee/types';
 import { sleep } from 'crawlee';
 import express from 'express';
+import playwright from 'playwright';
 import { z } from 'zod';
 
 import { startExpressAppPromise } from '../../shared/_helper.js';
@@ -141,6 +142,13 @@ describe('AdaptivePlaywrightCrawler', () => {
 
         app.get('/plain', (_req, res) => {
             res.status(200).type('text/plain').send('hello');
+        });
+
+        app.get('/repeated-headers', (_req, res) => {
+            res.cookie('a', '1');
+            res.cookie('b', '2');
+            res.append('X-Repeated', ['first', 'second']);
+            res.status(200).send('<html><body><h1>Heading</h1></body></html>');
         });
     });
     afterAll(async () => {
@@ -775,6 +783,35 @@ describe('AdaptivePlaywrightCrawler', () => {
         expect((await Dataset.getData()).items).toEqual([{ url, hasHeading: true }]);
     });
 
+    test.each(['chromium', 'firefox'] as const)('browser response keeps repeated headers (%s)', async (browser) => {
+        const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+            detectionProbabilityRecommendation: 0,
+            renderingType: 'clientOnly',
+        });
+        const url = `http://${HOSTNAME}:${port}/repeated-headers`;
+
+        const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = vi.fn(
+            async ({ response, pushData }) => {
+                await pushData({
+                    setCookie: response.headers.getSetCookie(),
+                    repeated: response.headers.get('x-repeated'),
+                });
+            },
+        );
+
+        const crawler = await makeOneshotCrawler(
+            { requestHandler, renderingTypePredictor, launchContext: { launcher: playwright[browser] } },
+            [url],
+        );
+
+        await crawler.run();
+
+        expect(requestHandler).toHaveBeenCalledOnce();
+        expect((await Dataset.getData()).items).toEqual([
+            { setCookie: ['a=1; Path=/', 'b=2; Path=/'], repeated: 'first, second' },
+        ]);
+    });
+
     test('should persist crawler state', async () => {
         const renderingTypePredictor = makeRiggedRenderingTypePredictor({
             detectionProbabilityRecommendation: 0,
@@ -1177,6 +1214,73 @@ describe('AdaptivePlaywrightCrawler', () => {
         expect(handlerRuns).toBe(1);
         expect(failedRequestHandler).toHaveBeenCalledTimes(1);
         expect((await Dataset.getData()).items).toEqual([{ run: 1 }]);
+    });
+
+    test('runs deferred cleanups one at a time, newest first, without failing the request on a cleanup error', async () => {
+        const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+            detectionProbabilityRecommendation: 0,
+            renderingType: 'static',
+        });
+
+        const events: string[] = [];
+        const failedRequestHandler = vi.fn();
+
+        const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = async ({
+            pushData,
+            registerDeferredCleanup,
+        }) => {
+            await pushData({ ok: true });
+            registerDeferredCleanup(async () => {
+                events.push('first');
+            });
+            registerDeferredCleanup(async () => {
+                events.push('second');
+                throw new Error('cleanup failed');
+            });
+            // Yields mid-cleanup, so concurrent execution would interleave the others between start and end.
+            registerDeferredCleanup(async () => {
+                events.push('third:start');
+                await Promise.resolve();
+                events.push('third:end');
+            });
+        };
+
+        const crawler = await makeOneshotCrawler(
+            { requestHandler, renderingTypePredictor, maxRequestRetries: 3, failedRequestHandler },
+            [`http://${HOSTNAME}:${port}/static`],
+        );
+
+        await crawler.run();
+
+        expect(events).toEqual(['third:start', 'third:end', 'second', 'first']);
+        expect(failedRequestHandler).not.toHaveBeenCalled();
+        expect((await Dataset.getData()).items).toEqual([{ ok: true }]);
+    });
+
+    test('closes the page only after the deferred cleanups of a browser attempt', async () => {
+        const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+            detectionProbabilityRecommendation: 0,
+            renderingType: 'clientOnly',
+        });
+
+        let pageClosedInCleanup: boolean | undefined;
+
+        const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = async ({
+            page,
+            registerDeferredCleanup,
+        }) => {
+            registerDeferredCleanup(async () => {
+                pageClosedInCleanup = page.isClosed();
+            });
+        };
+
+        const crawler = await makeOneshotCrawler({ requestHandler, renderingTypePredictor }, [
+            `http://${HOSTNAME}:${port}/dynamic`,
+        ]);
+
+        await crawler.run();
+
+        expect(pageClosedInCleanup).toBe(false);
     });
 
     test('should persist RenderingTypePredictor state on PERSIST_STATE events', async () => {

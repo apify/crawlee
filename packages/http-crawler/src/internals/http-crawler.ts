@@ -23,6 +23,7 @@ import {
     ContextPipeline,
     getCookiesFromResponse,
     NavigationSkippedError,
+    skippedNavigationRequest,
     remainingNavigationWindowMillis,
     RequestState,
     RequestThrottledError,
@@ -31,7 +32,7 @@ import {
 } from '@crawlee/basic';
 import { ResponseWithUrl } from '@crawlee/http-client';
 import type { Awaitable, Dictionary, ISession } from '@crawlee/types';
-import { parseArgument, RETRY_CSS_SELECTORS, schemas } from '@crawlee/utils/internal';
+import { parseArgument, processHttpRequestOptions, RETRY_CSS_SELECTORS, schemas } from '@crawlee/utils/internal';
 import type { Cheerio, CheerioAPI } from 'cheerio';
 import type { AnyNode } from 'domhandler';
 import { isTypeValid, parse as parseContentType } from 'content-type';
@@ -41,7 +42,7 @@ import { z } from 'zod';
 
 import { addTimeoutToPromise, storage, TimeoutError, tryCancel } from '@apify/timeout';
 
-import { extractCharsetFromHtmlBytes, parseContentTypeFromResponse, processHttpRequestOptions } from './utils.js';
+import { extractCharsetFromHtmlBytes, parseContentTypeFromResponse } from './utils.js';
 
 /**
  * Default mime types, which HttpScraper supports.
@@ -99,7 +100,7 @@ export interface HttpCrawlerOptions<
      * {@apilink BaseHttpClient} implementations should honor that flag (the built-in impit and got-scraping
      * clients do; the native fetch fallback cannot disable TLS verification and warns instead).
      *
-     * @default true
+     * @default false
      */
     ignoreTlsErrors?: boolean;
 
@@ -386,7 +387,7 @@ export class HttpCrawler<
         ...BasicCrawler.optionsShape,
 
         navigationTimeoutSecs: schemas.anyNumber.default(30),
-        ignoreTlsErrors: z.boolean().default(true),
+        ignoreTlsErrors: z.boolean().default(false),
         additionalMimeTypes: schemas.arrayOf(z.string(), 'strings').default(() => []),
         suggestResponseEncoding: z.string().optional(),
         forceResponseEncoding: z.string().optional(),
@@ -513,19 +514,7 @@ export class HttpCrawler<
 
         if (request.skipNavigation) {
             return {
-                request: new Proxy(request, {
-                    get(target, propertyName) {
-                        if (propertyName === 'loadedUrl') {
-                            throw new NavigationSkippedError(
-                                'The `request.loadedUrl` property is not available - `skipNavigation` was used',
-                            );
-                        }
-                        // `target` as receiver and bound methods, or `#` members throw on the proxy
-                        const value = Reflect.get(target, propertyName, target);
-                        return typeof value === 'function' ? value.bind(target) : value;
-                    },
-                    set: (target, propertyName, value) => Reflect.set(target, propertyName, value, target),
-                }) as LoadedRequest<CrawlingRequest>,
+                request: skippedNavigationRequest(request) as LoadedRequest<CrawlingRequest>,
                 get response(): InternalHttpCrawlingContext['response'] {
                     throw new NavigationSkippedError(
                         'The `response` property is not available - `skipNavigation` was used',
