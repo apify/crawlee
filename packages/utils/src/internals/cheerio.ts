@@ -67,7 +67,7 @@ export async function htmlToText(htmlOrCheerioElement: string | CheerioAPI): Pro
                     compr = isFirstInPre ? elem.data.replace(/^\r?\n/, '') : elem.data;
                 } else compr = elem.data.replace(/\s+/g, ' ');
                 // If text is empty or ends with a whitespace, don't add the leading whitespace
-                if (compr.startsWith(' ') && (last === '' || /\s/.test(last))) compr = compr.substring(1);
+                if (!inPre && compr.startsWith(' ') && (last === '' || /\s/.test(last))) compr = compr.substring(1);
                 push(compr);
             } else if (elem.type === 'comment' || SKIP_TAGS_REGEX.test(elem.tagName)) {
                 // Skip comments and special elements
