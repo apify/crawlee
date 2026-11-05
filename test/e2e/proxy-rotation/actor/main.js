@@ -1,5 +1,5 @@
 import { Actor } from 'apify';
-import { Dataset, KeyValueStore, PuppeteerCrawler } from '@crawlee/puppeteer';
+import { Dataset, KeyValueStore, PuppeteerCrawler, Session, SessionPool } from '@crawlee/puppeteer';
 
 const mainOptions = {
     exit: Actor.isAtHome(),
@@ -10,10 +10,19 @@ const mainOptions = {
 };
 
 await Actor.main(async () => {
+    const proxyConfiguration = await Actor.createProxyConfiguration();
+    const sessionPool = new SessionPool({
+        createSessionFunction: async (opts) =>
+            new Session({
+                ...opts?.sessionOptions,
+                maxUsageCount: 1,
+                proxyInfo: await proxyConfiguration.newProxyInfo(),
+            }),
+    });
+
     const crawler = new PuppeteerCrawler({
-        proxyConfiguration: await Actor.createProxyConfiguration(),
+        sessionPool,
         maxConcurrency: 1,
-        sessionPoolOptions: { sessionOptions: { maxUsageCount: 1 } },
         async requestHandler({ response }) {
             const { clientIp } = await response.json();
 

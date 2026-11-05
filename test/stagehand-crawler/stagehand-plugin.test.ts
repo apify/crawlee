@@ -1,6 +1,6 @@
 import playwright from 'playwright';
 
-import { StagehandPlugin } from '../../packages/stagehand-crawler/src/internals/stagehand-plugin';
+import { StagehandPlugin } from '../../packages/stagehand-crawler/src/internals/stagehand-plugin.js';
 
 // Mock Stagehand
 vi.mock('@browserbasehq/stagehand', () => {
@@ -85,6 +85,21 @@ describe('StagehandPlugin', () => {
 
         expect(launchContext).toBeDefined();
         expect(launchContext.browserPlugin).toBe(plugin);
+    });
+
+    test.each([
+        ['socks5://user:pass@proxy.example.com:1080', 'socks5://proxy.example.com:1080'],
+        ['socks://user:pass@proxy.example.com:1080', 'socks://proxy.example.com:1080'],
+        ['http://user:pass@proxy.example.com:8080', 'http://proxy.example.com:8080'],
+    ])('addProxyToLaunchOptions should set correct server for %s', async (proxyUrl, expectedServer) => {
+        const plugin = new StagehandPlugin(playwright.chromium, {
+            stagehandOptions: {
+                env: 'LOCAL',
+            },
+        });
+        const context = plugin.createLaunchContext({ proxyUrl });
+        await (plugin as any).addProxyToLaunchOptions(context);
+        expect(context.launchOptions!.proxy!.server).toEqual(expectedServer);
     });
 
     test('should create controller', () => {

@@ -1,9 +1,11 @@
 // For more information, see https://crawlee.dev/
+import { Browser, ImpitHttpClient } from '@crawlee/impit-client';
 import { PlaywrightCrawler } from 'crawlee';
 
 // PlaywrightCrawler crawls the web using a headless
 // browser controlled by the Playwright library.
 const crawler = new PlaywrightCrawler({
+    httpClient: new ImpitHttpClient({ browser: Browser.Chrome }),
     // Use the requestHandler to process each of the crawled pages.
     async requestHandler({ request, page, enqueueLinks, log, pushData }) {
         const title = await page.title();

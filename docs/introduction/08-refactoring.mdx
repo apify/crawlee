@@ -17,7 +17,7 @@ If you want to learn more, browse the [Avoid getting blocked](../guides/avoid-bl
 
 :::
 
-Anyway, to promote good coding practices, let's look at how you can use a <ApiLink to="core/class/Router">`Router`</ApiLink> to better structure your crawler code.
+Anyway, to promote good coding practices, let's look at how you can use a <ApiLink to="basic-crawler/class/Router">`Router`</ApiLink> to better structure your crawler code.
 
 ## Routing
 
@@ -153,6 +153,30 @@ Crawlee `log` has multiple log levels, such as `log.debug`, `log.info` or `log.w
 Initially, using a simple `if/else` statement for selecting different logic based on the crawled pages might appear more readable. However, this approach can become cumbersome with more than two types of pages, especially when the logic for each page extends over dozens or even hundreds of lines of code.
 
 It's good practice in any programming language to split your logic into bite-sized chunks that are easy to read and reason about. Scrolling through a thousand line long `requestHandler()` where everything interacts with everything and variables can be used everywhere is not a beautiful thing to do and a pain to debug. That's why we prefer the separation of routes into their own files.
+
+### Giving a route its own timeout
+
+The crawler-wide `requestHandlerTimeoutSecs` applies to every request alike. Once the routes are separated, one of them can be given its own timeout — longer or shorter — without changing the limit for the rest, by passing a per-route timeout as the last argument of `addHandler`. This is handy when one page type does noticeably more work than the others, like a `CATEGORY` page that paginates through a long list:
+
+```js
+router.addHandler('CATEGORY', async ({ page, enqueueLinks }) => {
+    // ...
+}, { requestHandlerTimeoutSecs: 120 });
+
+router.addHandler('DETAIL', async ({ page }) => {
+    // ...
+}); // keeps the crawler's default
+```
+
+If how much longer a route needs only becomes clear once it is already running, call `extendTimeout()` from inside the handler to buy more time on the spot:
+
+```js
+router.addHandler('CATEGORY', async ({ page, enqueueLinks, extendTimeout }) => {
+    const pageCount = await countPages(page);
+    extendTimeout(pageCount * 10); // ask for 10 more seconds per page
+    // ...
+});
+```
 
 ## Next steps
 

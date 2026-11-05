@@ -1,3 +1,5 @@
+import { inspectValue } from './debug.js';
+
 /**
  * Errors of `NonRetryableError` type will never be retried by the crawler.
  */
@@ -10,28 +12,92 @@ export class NonRetryableError extends Error {}
 export class CriticalError extends NonRetryableError {}
 
 /**
- * @ignore
+ * A schema validation issue, structurally compatible with `StandardSchemaV1.Issue`. Declared here so that
+ * error types do not have to depend on `@standard-schema/spec`.
  */
-export class MissingRouteError extends CriticalError {}
+export interface SchemaIssue {
+    readonly message: string;
+    readonly path?: readonly (PropertyKey | { key: PropertyKey })[];
+}
+
+function formatIssues(issues: readonly SchemaIssue[]): string {
+    return issues
+        .map((issue) => {
+            const path = (issue.path ?? [])
+                .map((segment) => (typeof segment === 'object' ? segment.key : segment))
+                .join('.');
+            return `- ${path ? `${path}: ` : ''}${issue.message}`;
+        })
+        .join('\n');
+}
 
 /**
- * Errors of `RetryRequestError` type will always be retried by the crawler.
+ * Thrown when a request's `userData` does not match the {@apilink RouteSchemas|Standard Schema} registered for its label.
  *
- * *This error overrides the `maxRequestRetries` option, i.e. the request can be retried indefinitely until it succeeds.*
+ * As the `userData` does not change between attempts, this error is non-retryable.
  */
-export class RetryRequestError extends Error {
-    constructor(message?: string) {
-        super(message ?? "Request is being retried at the user's request");
+export class RequestValidationError extends NonRetryableError {
+    constructor(
+        readonly label: string | symbol,
+        readonly issues: readonly SchemaIssue[],
+    ) {
+        super(`Request userData for label '${String(label)}' failed schema validation:\n${formatIssues(issues)}`);
     }
 }
 
 /**
- * Errors of `SessionError` type will trigger a session rotation.
+ * Thrown by {@apilink RecoverableState} when a persisted state record does not match its `stateSchema`.
  *
- * This error doesn't respect the `maxRequestRetries` option and has a separate limit of `maxSessionRotations`.
+ * Whether a corrupt record should abort the run or be discarded in favour of the defaults depends on what the
+ * state is for, so {@apilink RecoverableState.initialize} always throws and leaves the choice to the caller.
  */
-export class SessionError extends RetryRequestError {
+export class StateValidationError extends Error {
+    constructor(
+        readonly persistStateKey: string,
+        readonly issues: readonly SchemaIssue[],
+    ) {
+        super(`State persisted under key '${persistStateKey}' failed schema validation:\n${formatIssues(issues)}`);
+    }
+}
+
+/**
+ * Errors of `SessionError` type retire the session associated with the request and trigger a regular retry.
+ *
+ * The retry counts towards the `maxRequestRetries` limit, just like any other error.
+ */
+export class SessionError extends Error {
     constructor(message?: string) {
-        super(`Detected a session error, rotating session... ${message ? `\n${message}` : ''}`);
+        super(`Detected a session error, retiring session... ${message ? `\n${message}` : ''}`);
+    }
+}
+
+/**
+ * A {@apilink SessionError} for a session that finished without being blocked, e.g. by reaching its
+ * `maxUsageCount` or `maxAgeSecs`. A plain `SessionError` means the session was blocked.
+ */
+export class SessionRetiredError extends SessionError {}
+
+/**
+ * Wraps the failure of a callback registered with {@apilink StorageTransaction.afterCommit|`afterCommit`}
+ * that ran after the request's writes had already been committed.
+ *
+ * Non-retryable by nature: the writes are durable, so re-running the request handler would duplicate
+ * them. A callback that throws a `NonRetryableError` of its own is left alone.
+ */
+export class AfterCommitError extends NonRetryableError {
+    constructor(cause: unknown) {
+        super(cause instanceof Error ? cause.message : String(cause), { cause });
+    }
+}
+
+/**
+ * Thrown when attempting to set a different service instance after one has already been retrieved.
+ */
+export class ServiceConflictError extends Error {
+    constructor(serviceName: string, newValue: unknown, existingValue: unknown) {
+        super(
+            `Service ${serviceName} is already in use. ` +
+                `Existing value: ${inspectValue(existingValue)}, attempted new value: ${inspectValue(newValue)}.`,
+        );
     }
 }

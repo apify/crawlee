@@ -89,6 +89,12 @@ router.addDefaultHandler(async ({ request, page, enqueueLinks, log }) => {
 });
 
 const crawler = new PlaywrightCrawler({
+    // The store 429s the platform's egress IP, direct or through the datacenter
+    // proxy pool; residential gets through. GitHub runners reach it directly, so
+    // they stay off the proxy and don't burn residential traffic.
+    proxyConfiguration: Actor.isAtHome()
+        ? await Actor.createProxyConfiguration({ groups: ['RESIDENTIAL'] })
+        : undefined,
     maxRequestsPerCrawl: 15, // so the test runs faster
     // Instead of the long requestHandler with
     // if clauses we provide a router instance.

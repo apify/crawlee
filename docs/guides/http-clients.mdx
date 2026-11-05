@@ -49,7 +49,7 @@ BaseHttpClient --|> GotScrapingHttpClient
 
 ## Switching between HTTP clients
 
-Crawlee currently provides two main HTTP clients: <ApiLink to="core/class/GotScrapingHttpClient">`GotScrapingHttpClient`</ApiLink>, which uses the `got-scraping` library, and <ApiLink to="impit-client/class/ImpitHttpClient">`ImpitHttpClient`</ApiLink>, which uses the `impit` library. You can switch between them by setting the `BasehttpClient` parameter when initializing a crawler class. The default HTTP client is <ApiLink to="core/class/GotScrapingHttpClient">`GotScrapingHttpClient`</ApiLink>. For more details on anti-blocking features, see our [avoid getting blocked guide](./avoid-blocking).
+Crawlee currently provides two main HTTP clients: <ApiLink to="got-scraping-client/class/GotScrapingHttpClient">`GotScrapingHttpClient`</ApiLink>, which uses the `got-scraping` library, and <ApiLink to="impit-client/class/ImpitHttpClient">`ImpitHttpClient`</ApiLink>, which uses the `impit` library. You can switch between them by setting the `BasehttpClient` parameter when initializing a crawler class. The default HTTP client is <ApiLink to="got-scraping-client/class/GotScrapingHttpClient">`GotScrapingHttpClient`</ApiLink>. For more details on anti-blocking features, see our [avoid getting blocked guide](./avoid-blocking).
 
 Below are examples of how to configure the HTTP client for the <ApiLink to="cheerio-crawler/class/CheerioCrawler">`CheerioCrawler`</ApiLink>:
 
@@ -68,7 +68,7 @@ Below are examples of how to configure the HTTP client for the <ApiLink to="chee
 
 ## Installation requirements
 
-Since <ApiLink to="core/class/GotScrapingHttpClient">`GotScrapingHttpClient`</ApiLink> is the default HTTP client, it's included with the base Crawlee installation and requires no additional packages.
+Since <ApiLink to="got-scraping-client/class/GotScrapingHttpClient">`GotScrapingHttpClient`</ApiLink> is the default HTTP client, it's included with the base Crawlee installation and requires no additional packages.
 
 For <ApiLink to="impit-client/class/ImpitHttpClient">`ImpitHttpClient`</ApiLink>, you need to install a separate `@crawlee/impit-client` package:
 
@@ -78,7 +78,7 @@ npm i @crawlee/impit-client
 
 ## Creating custom HTTP clients
 
-Crawlee provides an interface, <ApiLink to="core/interface/BaseHttpClient">`BaseHttpClient`</ApiLink>, which defines the interface that all HTTP clients must implement. This allows you to create custom HTTP clients tailored to your specific requirements.
+Crawlee provides an interface, <ApiLink to="types/interface/BaseHttpClient">`BaseHttpClient`</ApiLink>, which defines the interface that all HTTP clients must implement. This allows you to create custom HTTP clients tailored to your specific requirements.
 
 HTTP clients are responsible for several key operations:
 
@@ -88,10 +88,10 @@ HTTP clients are responsible for several key operations:
 - managing proxy configurations,
 - connection pooling with timeout management.
 
-To create a custom HTTP client, you need to implement the <ApiLink to="core/interface/BaseHttpClient">`BaseHttpClient`</ApiLink> interface. Your implementation must be async-compatible and include proper cleanup and resource management to work seamlessly with Crawlee's concurrent processing model.
+To create a custom HTTP client, you need to implement the <ApiLink to="types/interface/BaseHttpClient">`BaseHttpClient`</ApiLink> interface. Your implementation must be async-compatible and include proper cleanup and resource management to work seamlessly with Crawlee's concurrent processing model.
 
 ## Conclusion
 
-This guide introduced you to the HTTP clients available in Crawlee and demonstrated how to switch between them, including their installation requirements and usage examples. You also learned about the responsibilities of HTTP clients and how to implement your own custom HTTP client by inheriting from the <ApiLink to="core/interface/BaseHttpClient">`BaseHttpClient`</ApiLink> base class.
+This guide introduced you to the HTTP clients available in Crawlee and demonstrated how to switch between them, including their installation requirements and usage examples. You also learned about the responsibilities of HTTP clients and how to implement your own custom HTTP client by inheriting from the <ApiLink to="types/interface/BaseHttpClient">`BaseHttpClient`</ApiLink> base class.
 
 If you have questions or need assistance, feel free to reach out on our [GitHub](https://github.com/apify/crawlee) or join our [Discord community](https://discord.com/invite/jyEM2PRvMU). Happy scraping!

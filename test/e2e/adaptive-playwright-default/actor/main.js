@@ -1,6 +1,6 @@
 import { Actor } from 'apify';
 import { AdaptivePlaywrightCrawler } from '@crawlee/playwright';
-import { LogLevel } from '@apify/log';
+import log, { LogLevel } from '@apify/log';
 
 await Actor.init({
     storage:
@@ -26,7 +26,7 @@ const crawler = new AdaptivePlaywrightCrawler({
     requestHandler: async (context) => {
         const { url } = context.request;
 
-        const heading = (await context.querySelector('h1')).text();
+        const heading = (await context.querySelectorOne('h1')).text();
 
         const requestHandlerMode = await (async () => {
             try {
@@ -40,13 +40,14 @@ const crawler = new AdaptivePlaywrightCrawler({
         await context.pushData({ url, heading, requestHandlerMode });
 
         await context.enqueueLinks({
-            globs: ['**/next/examples/*'],
+            include: ['**/next/examples/*'],
         });
     },
 });
 
-crawler.log.setLevel(LogLevel.DEBUG);
+// CrawleeLogger has no setLevel; raise the level on the global @apify/log instead.
+log.setLevel(LogLevel.DEBUG);
 
-await crawler.run(['https://crawlee.dev/js/docs/next/examples/accept-user-input']);
+await crawler.run(['https://crawlee.dev/js/docs/next/examples/add-data-to-dataset']);
 
 await Actor.exit({ exit: Actor.isAtHome() });

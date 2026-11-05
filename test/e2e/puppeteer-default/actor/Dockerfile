@@ -1,14 +1,17 @@
-FROM node:20 AS builder
+FROM node:24 AS builder
 
 COPY /packages ./packages
 COPY /package*.json ./
+RUN rm -rf node_modules package-lock.json
 RUN npm --quiet set progress=false \
-    && npm install --only=prod --no-optional --no-audit \
+    && npm install --only=prod --no-audit \
     && npm update
 
-FROM apify/actor-node-puppeteer-chrome:20-beta
+FROM apify/actor-node-puppeteer-chrome:24-beta
 
-RUN rm -r node_modules
+# The browser base images ship a preinstalled node_modules - wipe it so the
+# builder tree (with file: symlinks) can be copied over cleanly.
+RUN rm -rf node_modules
 COPY --from=builder /node_modules ./node_modules
 COPY --from=builder /packages ./packages
 COPY --from=builder /package*.json ./
@@ -18,7 +21,7 @@ COPY /main.js ./
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome
 
 RUN echo "Installed NPM packages:" \
-    && (npm list --only=prod --no-optional --all || true) \
+    && (npm list --only=prod --all || true) \
     && echo "Node.js version:" \
     && node --version \
     && echo "NPM version:" \

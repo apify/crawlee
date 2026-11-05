@@ -4,16 +4,21 @@ import type { Dictionary } from '@crawlee/types';
 import type Puppeteer from 'puppeteer';
 import type * as PuppeteerTypes from 'puppeteer';
 
-import type { BrowserController } from '../abstract-classes/browser-controller';
-import { BrowserPlugin } from '../abstract-classes/browser-plugin';
-import { anonymizeProxySugar } from '../anonymize-proxy';
-import type { LaunchContext } from '../launch-context';
-import { log } from '../logger';
-import { noop } from '../utils';
-import type { PuppeteerNewPageOptions } from './puppeteer-controller';
-import { PuppeteerController } from './puppeteer-controller';
+import { BrowserPlugin } from '../abstract-classes/browser-plugin.js';
+import { anonymizeProxySugar } from '../anonymize-proxy.js';
+import type { LaunchContext } from '../launch-context.js';
+import { noop } from '../utils.js';
+import type { PuppeteerNewPageOptions } from './puppeteer-controller.js';
+import { PuppeteerController } from './puppeteer-controller.js';
 
 const PROXY_SERVER_ARG = '--proxy-server=';
+
+export type PuppeteerLaunchContext = LaunchContext<
+    typeof Puppeteer,
+    PuppeteerTypes.LaunchOptions,
+    PuppeteerTypes.Browser,
+    PuppeteerNewPageOptions
+>;
 
 export class PuppeteerPlugin extends BrowserPlugin<
     typeof Puppeteer,
@@ -21,32 +26,9 @@ export class PuppeteerPlugin extends BrowserPlugin<
     PuppeteerTypes.Browser,
     PuppeteerNewPageOptions
 > {
-    protected async _launch(
-        launchContext: LaunchContext<
-            typeof Puppeteer,
-            PuppeteerTypes.LaunchOptions,
-            PuppeteerTypes.Browser,
-            PuppeteerNewPageOptions
-        >,
-    ): Promise<PuppeteerTypes.Browser> {
-        let oldPuppeteerVersion = false;
-
-        try {
-            const jsonPath = require.resolve('puppeteer/package.json');
-            const parsed = JSON.parse(await readFile(jsonPath, 'utf-8'));
-            const version = +parsed.version.split('.')[0];
-            oldPuppeteerVersion = version < 22;
-        } catch {
-            // ignore
-        }
-        const {
-            launchOptions,
-            userDataDir,
-            useIncognitoPages,
-            experimentalContainers,
-            proxyUrl,
-            ignoreProxyCertificate,
-        } = launchContext;
+    protected async _launch(launchContext: PuppeteerLaunchContext): Promise<PuppeteerTypes.Browser> {
+        const oldPuppeteerVersion = await this.isOldPuppeteerVersion();
+        const { launchOptions, userDataDir, experimentalContainers, proxyUrl } = launchContext;
 
         if (experimentalContainers) {
             throw new Error('Experimental containers are only available with Playwright');
@@ -66,57 +48,88 @@ export class PuppeteerPlugin extends BrowserPlugin<
             launchOptions!.headless = 'new' as any;
         }
 
-        let browser: PuppeteerTypes.Browser;
+        const [anonymizedProxyUrl, close] = await anonymizeProxySugar(proxyUrl, undefined, undefined, {
+            ignoreProxyCertificate: launchContext.ignoreProxyCertificate,
+        });
 
-        {
-            const [anonymizedProxyUrl, close] = await anonymizeProxySugar(proxyUrl, undefined, undefined, {
-                ignoreProxyCertificate: launchContext.ignoreProxyCertificate,
-            });
+        if (proxyUrl) {
+            const proxyArg = `${PROXY_SERVER_ARG}${anonymizedProxyUrl ?? proxyUrl}`;
 
-            if (proxyUrl) {
-                const proxyArg = `${PROXY_SERVER_ARG}${anonymizedProxyUrl ?? proxyUrl}`;
-
-                if (Array.isArray(launchOptions!.args)) {
-                    launchOptions!.args.push(proxyArg);
-                } else {
-                    launchOptions!.args = [proxyArg];
-                }
-            }
-
-            try {
-                browser = await this.library.launch(launchOptions);
-
-                if (anonymizedProxyUrl) {
-                    browser.on('disconnected', async () => {
-                        await close();
-                    });
-                }
-            } catch (error: any) {
-                await close();
-
-                this._throwAugmentedLaunchError(
-                    error,
-                    launchContext.launchOptions?.executablePath,
-                    '`apify/actor-node-puppeteer-chrome`',
-                    "Try installing a browser, if it's missing, by running `npx @puppeteer/browsers install chromium --path [path]` and pointing `executablePath` to the downloaded executable (https://pptr.dev/browsers-api)",
-                );
+            if (Array.isArray(launchOptions!.args)) {
+                launchOptions!.args.push(proxyArg);
+            } else {
+                launchOptions!.args = [proxyArg];
             }
         }
 
-        browser.on('targetcreated', async (target: PuppeteerTypes.Target) => {
+        let browser: PuppeteerTypes.Browser;
+        try {
+            browser = await this.library.launch(launchOptions);
+
+            if (anonymizedProxyUrl) {
+                browser.on('disconnected', async () => {
+                    await close();
+                });
+            }
+        } catch (error: any) {
+            await close();
+
+            this.throwAugmentedLaunchError(
+                error,
+                launchContext.launchOptions?.executablePath,
+                '`apify/actor-node-puppeteer-chrome`',
+                "Try installing a browser, if it's missing, by running `npx @puppeteer/browsers install chromium --path [path]` and pointing `executablePath` to the downloaded executable (https://pptr.dev/browsers-api)",
+            );
+        }
+
+        return this.wrapBrowser(browser, launchContext, oldPuppeteerVersion);
+    }
+
+    /** @internal */
+    protected async isOldPuppeteerVersion(): Promise<boolean> {
+        try {
+            const jsonPath = require.resolve('puppeteer/package.json');
+            const parsed = JSON.parse(await readFile(jsonPath, 'utf-8'));
+            return +parsed.version.split('.')[0] < 22;
+        } catch {
+            return false;
+        }
+    }
+
+    /**
+     * Attaches page crash handling and the incognito-context-per-page `newPage` proxy. Shared by the local launch
+     * and {@apilink RemotePuppeteerPlugin}.
+     * @internal
+     */
+    protected wrapBrowser(
+        browser: PuppeteerTypes.Browser,
+        launchContext: PuppeteerLaunchContext,
+        oldPuppeteerVersion: boolean,
+    ): PuppeteerTypes.Browser {
+        const { useIncognitoPages, proxyUrl, ignoreProxyCertificate, isRemote } = launchContext;
+
+        const targetCreatedHandler = async (target: PuppeteerTypes.Target) => {
             try {
                 const page = await target.page();
 
                 if (page) {
                     page.on('error', (error) => {
-                        log.exception(error, 'Page crashed.');
+                        this.log.exception(error, 'Page crashed.');
                         page.close().catch(noop);
                     });
                 }
             } catch (error: any) {
-                log.exception(error, 'Failed to retrieve page from target.');
+                this.log.exception(error, 'Failed to retrieve page from target.');
             }
-        });
+        };
+
+        browser.on('targetcreated', targetCreatedHandler);
+
+        if (isRemote) {
+            browser.once('disconnected', () => {
+                browser.off('targetcreated', targetCreatedHandler);
+            });
+        }
 
         const boundMethods = (
             [
@@ -143,30 +156,35 @@ export class PuppeteerPlugin extends BrowserPlugin<
                         let page: PuppeteerTypes.Page;
 
                         if (useIncognitoPages) {
-                            const [anonymizedProxyUrl, close] = await anonymizeProxySugar(
-                                proxyUrl,
-                                undefined,
-                                undefined,
-                                { ignoreProxyCertificate },
-                            );
+                            // Proxy is managed by the remote service.
+                            const effectiveProxyUrl = isRemote ? undefined : proxyUrl;
+                            const [anonymizedProxyUrl, close] = effectiveProxyUrl
+                                ? await anonymizeProxySugar(effectiveProxyUrl, undefined, undefined, {
+                                      ignoreProxyCertificate,
+                                  })
+                                : ([undefined, noop] as const);
+
+                            const proxyServer = anonymizedProxyUrl ?? effectiveProxyUrl;
+                            const contextOptions = proxyServer ? { proxyServer } : {};
+                            const context = (await (browser as any)[method](
+                                contextOptions,
+                            )) as PuppeteerTypes.BrowserContext;
 
                             try {
-                                const context = (await (browser as any)[method]({
-                                    proxyServer: anonymizedProxyUrl ?? proxyUrl,
-                                })) as PuppeteerTypes.BrowserContext;
-
                                 page = await context.newPage(...args);
-
-                                if (anonymizedProxyUrl) {
-                                    page.on('close', async () => {
-                                        await close();
-                                    });
-                                }
                             } catch (error) {
+                                await context.close().catch(noop);
                                 await close();
 
                                 throw error;
                             }
+
+                            page.once('close', async () => {
+                                if (anonymizedProxyUrl) {
+                                    await close();
+                                }
+                                await context.close().catch(noop);
+                            });
                         } else {
                             page = await boundMethods.newPage(...args);
                         }
@@ -203,16 +221,11 @@ export class PuppeteerPlugin extends BrowserPlugin<
         return browser;
     }
 
-    protected _createController(): BrowserController<
-        typeof Puppeteer,
-        PuppeteerTypes.LaunchOptions,
-        PuppeteerTypes.Browser,
-        PuppeteerNewPageOptions
-    > {
+    override createController(): PuppeteerController {
         return new PuppeteerController(this);
     }
 
-    protected async _addProxyToLaunchOptions(
+    protected async addProxyToLaunchOptions(
         _launchContext: LaunchContext<
             typeof Puppeteer,
             PuppeteerTypes.LaunchOptions,
@@ -247,7 +260,7 @@ export class PuppeteerPlugin extends BrowserPlugin<
         */
     }
 
-    protected _isChromiumBasedBrowser(
+    protected isChromiumBasedBrowser(
         _launchContext: LaunchContext<
             typeof Puppeteer,
             PuppeteerTypes.LaunchOptions,

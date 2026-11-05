@@ -1,7 +1,10 @@
-/* eslint-disable import/no-dynamic-require,global-require */
+/* eslint-disable import/no-dynamic-require */
 import { execSync } from 'node:child_process';
 import { copyFileSync, readFileSync, writeFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
+
+const require = createRequire(import.meta.url);
 
 const options = process.argv.slice(2).reduce((args, arg) => {
     const [key, value] = arg.split('=');
@@ -31,11 +34,31 @@ function getRootVersion(bump = true): string {
         return rootVersion;
     }
 
-    rootVersion = require(resolve(root, './lerna.json')).version.replace(/^(\d+\.\d+\.\d+)-?.*$/, '$1');
+    const pkg = require(resolve(root, './lerna.json'));
+    rootVersion = pkg.version.replace(/^(\d+\.\d+\.\d+)-?.*$/, '$1');
 
     if (bump) {
         const parts = rootVersion.split('.');
-        parts[2] = `${+parts[2] + 1}`;
+        const inc = bump ? 1 : 0;
+        const canary = String(options.canary).toLowerCase();
+
+        switch (canary) {
+            case 'major': {
+                parts[0] = `${+parts[0] + inc}`;
+                parts[1] = '0';
+                parts[2] = '0';
+                break;
+            }
+            case 'minor': {
+                parts[1] = `${+parts[0] + inc}`;
+                parts[2] = '0';
+                break;
+            }
+            case 'patch':
+            default:
+                parts[2] = `${+parts[2] + inc}`;
+        }
+
         rootVersion = parts.join('.');
     }
 
@@ -75,9 +98,21 @@ function getNextVersion() {
     return `${version}-${preid}.${lastPrereleaseNumber + 1}`;
 }
 
+// optionalDependencies too, otherwise `workspace:^` on @crawlee/impit-client publishes as a floating `^` range
+function pinInternalDeps(pkgJson: any, version: string): void {
+    for (const deps of [pkgJson.dependencies, pkgJson.optionalDependencies]) {
+        for (const dep of Object.keys(deps ?? {})) {
+            if ((dep.startsWith('@crawlee/') && dep !== '@crawlee/fs-storage-native') || dep === 'crawlee') {
+                const prefix = deps[dep].startsWith('^') ? '^' : '';
+                deps[dep] = prefix + version;
+            }
+        }
+    }
+}
+
 // as we publish only the dist folder, we need to copy some meta files inside (readme/license/package.json)
 // also changes paths inside the copied `package.json` (`dist/index.js` -> `index.js`)
-const root = resolve(__dirname, '..');
+const root = resolve(import.meta.dirname, '..');
 const target = resolve(process.cwd(), 'dist');
 const pkgPath = resolve(process.cwd(), 'package.json');
 
@@ -86,12 +121,7 @@ if (options.canary) {
     const nextVersion = getNextVersion();
     pkgJson.version = nextVersion;
 
-    for (const dep of Object.keys(pkgJson.dependencies)) {
-        if (dep.startsWith('@crawlee/') || dep === 'crawlee') {
-            const prefix = pkgJson.dependencies[dep].startsWith('^') ? '^' : '';
-            pkgJson.dependencies[dep] = prefix + nextVersion;
-        }
-    }
+    pinInternalDeps(pkgJson, nextVersion);
 
     console.info(`canary: setting version to ${nextVersion}`);
 
@@ -102,21 +132,51 @@ if (options['pin-versions']) {
     const pkgJson = require(pkgPath);
     const version = getRootVersion(false);
 
-    for (const dep of Object.keys(pkgJson.dependencies ?? {})) {
-        if (dep.startsWith('@crawlee/') || dep === 'crawlee') {
-            pkgJson.dependencies[dep] = version;
-        }
-    }
+    pinInternalDeps(pkgJson, version);
 
     console.info(`pin-versions: version ${version}`, pkgJson.dependencies);
 
     writeFileSync(pkgPath, `${JSON.stringify(pkgJson, null, 4)}\n`);
 }
 
+/**
+ * `catalog:` specifiers are a pnpm workspace feature; lerna publishes the manifest verbatim,
+ * so they have to be inlined with the versions from `pnpm-workspace.yaml` before publishing.
+ */
+function getCatalogVersions(): Record<string, string> {
+    const workspaceYaml = readFileSync(resolve(root, 'pnpm-workspace.yaml')).toString();
+    const catalogBlock = workspaceYaml.match(/^catalog:\n((?: {2}.+\n)+)/m)?.[1] ?? '';
+    const versions: Record<string, string> = {};
+
+    for (const line of catalogBlock.split('\n')) {
+        const match = line.match(/^ {2}["']?([^"':]+)["']?:\s*["']?(.+?)["']?\s*$/);
+        if (match) versions[match[1]] = match[2];
+    }
+
+    return versions;
+}
+
 copy('README.md', root, target);
 copy('LICENSE.md', root, target);
 copy('package.json', process.cwd(), target);
 rewrite(resolve(target, 'package.json'), (pkg) => {
-    return pkg.replace(/dist\//g, '').replace(/src\/(.*)\.ts/g, '$1.js');
+    const catalog = getCatalogVersions();
+    const manifest = JSON.parse(pkg.replace(/dist\//g, '').replace(/src\/(.*)\.ts/g, '$1.js'));
+
+    for (const deps of [
+        manifest.dependencies,
+        manifest.devDependencies,
+        manifest.peerDependencies,
+        manifest.optionalDependencies,
+    ]) {
+        for (const dep of Object.keys(deps ?? {})) {
+            if (deps[dep] === 'catalog:') {
+                if (!catalog[dep]) throw new Error(`Missing catalog entry for '${dep}' in pnpm-workspace.yaml`);
+                deps[dep] = catalog[dep];
+            }
+        }
+    }
+
+    return `${JSON.stringify(manifest, null, 4)}\n`;
 });
 rewrite(resolve(target, 'utils.js'), (pkg) => pkg.replace('../package.json', './package.json'));

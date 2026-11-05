@@ -1,8 +1,8 @@
 import type { ActOptions, AgentConfig, ExtractOptions, ObserveOptions, Stagehand } from '@browserbasehq/stagehand';
 import type { Page } from 'playwright';
-import type { ZodSchema } from 'zod';
+import type { ZodType } from 'zod';
 
-import type { StagehandPage } from '../stagehand-crawler';
+import type { StagehandPage } from '../stagehand-crawler.js';
 
 const PROVIDER_ENV_VARS: Record<string, string> = {
     OpenAI: 'OPENAI_API_KEY',
@@ -80,7 +80,7 @@ export function enhancePageWithStagehand(page: Page, stagehand: Stagehand): Stag
      */
     enhancedPage.extract = async <T>(
         instruction: string,
-        schema: ZodSchema<T>,
+        schema: ZodType<T>,
         options?: Omit<ExtractOptions, 'page'>,
     ): Promise<T> => {
         try {

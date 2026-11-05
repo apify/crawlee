@@ -1,11 +1,11 @@
-import { CriticalError } from '@crawlee/core';
+import { type CrawleeLogger, CriticalError, serviceLocator } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/types';
 import merge from 'lodash.merge';
 
-import type { LaunchContextOptions } from '../launch-context';
-import { LaunchContext } from '../launch-context';
-import type { UnwrapPromise } from '../utils';
-import type { BrowserController } from './browser-controller';
+import type { LaunchContextOptions } from '../launch-context.js';
+import { LaunchContext } from '../launch-context.js';
+import type { UnwrapPromise } from '../utils.js';
+import type { BrowserController } from './browser-controller.js';
 
 /**
  * The default User Agent used by `PlaywrightCrawler`, `launchPlaywright`, 'PuppeteerCrawler' and 'launchPuppeteer'
@@ -14,8 +14,6 @@ import type { BrowserController } from './browser-controller';
  *  - without using a fingerprint,
  *  - without specifying a user agent.
  * Last updated on 2022-05-05.
- *
- * After you update it here, please update it also in jsdom-crawler.ts
  */
 export const DEFAULT_USER_AGENT =
     'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36';
@@ -33,15 +31,14 @@ export interface CommonLibrary {
     name?: () => string;
 }
 
-/** @internal */
 export interface CommonBrowser {
     newPage(...args: unknown[]): Promise<CommonPage>;
 }
 
-/** @internal */
 export interface CommonPage {
     close(...args: unknown[]): Promise<unknown>;
     url(): string | Promise<string>;
+    evaluate(pageFunction: ((...args: any[]) => unknown) | string, ...args: unknown[]): Promise<unknown>;
 }
 
 export interface BrowserPluginOptions<LibraryOptions> {
@@ -65,12 +62,6 @@ export interface BrowserPluginOptions<LibraryOptions> {
      * @default false
      */
     useIncognitoPages?: boolean;
-    /**
-     * @experimental
-     * Like `useIncognitoPages`, but for persistent contexts, so cache is used for faster loading.
-     * Works best with Firefox. Unstable on Chromium.
-     */
-    experimentalContainers?: boolean;
     /**
      * Path to a User Data Directory, which stores browser session data like cookies and local storage.
      */
@@ -96,11 +87,8 @@ export interface CreateLaunchContextOptions<
     NewPageOptions = Parameters<LaunchResult['newPage']>[0],
     NewPageResult = UnwrapPromise<ReturnType<LaunchResult['newPage']>>,
 > extends Partial<
-        Omit<
-            LaunchContextOptions<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>,
-            'browserPlugin'
-        >
-    > {}
+    Omit<LaunchContextOptions<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>, 'browserPlugin'>
+> {}
 
 /**
  * The `BrowserPlugin` serves two purposes. First, it is the base class that
@@ -115,23 +103,24 @@ export abstract class BrowserPlugin<
     NewPageOptions = Parameters<LaunchResult['newPage']>[0],
     NewPageResult = UnwrapPromise<ReturnType<LaunchResult['newPage']>>,
 > {
-    name = this.constructor.name;
+    readonly name = this.constructor.name;
 
-    library: Library;
+    /**
+     * Kept `protected` rather than `#private` because the concrete plugins in this package are separate
+     * classes — an ES private field would not be visible to them.
+     *
+     * @internal
+     */
+    protected readonly log!: CrawleeLogger;
 
-    launchOptions: LibraryOptions;
-
-    proxyUrl?: string;
-
-    userDataDir?: string;
-
+    readonly library: Library;
+    readonly launchOptions: LibraryOptions;
+    readonly proxyUrl?: string;
+    readonly userDataDir?: string;
     useIncognitoPages: boolean;
+    readonly browserPerProxy?: boolean;
 
-    experimentalContainers: boolean;
-
-    browserPerProxy?: boolean;
-
-    ignoreProxyCertificate?: boolean;
+    readonly ignoreProxyCertificate?: boolean;
 
     constructor(library: Library, options: BrowserPluginOptions<LibraryOptions> = {}) {
         const {
@@ -139,17 +128,16 @@ export abstract class BrowserPlugin<
             proxyUrl,
             userDataDir,
             useIncognitoPages = false,
-            experimentalContainers = false,
             browserPerProxy = false,
             ignoreProxyCertificate = false,
         } = options;
 
+        this.log = serviceLocator.getLogger().child({ prefix: 'BrowserPool' });
         this.library = library;
         this.launchOptions = launchOptions;
-        this.proxyUrl = proxyUrl && new URL(proxyUrl).href.slice(0, -1);
+        this.proxyUrl = proxyUrl && new URL(proxyUrl).href.replace(/\/$/, '');
         this.userDataDir = userDataDir;
         this.useIncognitoPages = useIncognitoPages;
-        this.experimentalContainers = experimentalContainers;
         this.browserPerProxy = browserPerProxy;
         this.ignoreProxyCertificate = ignoreProxyCertificate;
     }
@@ -169,10 +157,9 @@ export abstract class BrowserPlugin<
             proxyUrl = this.proxyUrl,
             useIncognitoPages = this.useIncognitoPages,
             userDataDir = this.userDataDir,
-            experimentalContainers = this.experimentalContainers,
             browserPerProxy = this.browserPerProxy,
             ignoreProxyCertificate = this.ignoreProxyCertificate,
-            proxyTier,
+            isRemote,
         } = options;
 
         return new LaunchContext({
@@ -181,17 +168,20 @@ export abstract class BrowserPlugin<
             browserPlugin: this,
             proxyUrl,
             useIncognitoPages,
-            experimentalContainers,
             userDataDir,
             browserPerProxy,
             ignoreProxyCertificate,
-            proxyTier,
+            isRemote,
         });
     }
 
-    createController(): BrowserController<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult> {
-        return this._createController();
-    }
+    abstract createController(): BrowserController<
+        Library,
+        LibraryOptions,
+        LaunchResult,
+        NewPageOptions,
+        NewPageResult
+    >;
 
     /**
      * Launches the browser using provided launch context.
@@ -210,12 +200,12 @@ export abstract class BrowserPlugin<
         const { proxyUrl, launchOptions } = launchContext;
 
         if (proxyUrl) {
-            await this._addProxyToLaunchOptions(launchContext);
+            await this.addProxyToLaunchOptions(launchContext);
         }
 
-        if (this._isChromiumBasedBrowser(launchContext)) {
+        if (this.isChromiumBasedBrowser(launchContext)) {
             // This will set the args for chromium based browsers to hide the webdriver.
-            (launchOptions as Dictionary).args = this._mergeArgsToHideWebdriver(launchOptions!.args);
+            (launchOptions as Dictionary).args = this.#mergeArgsToHideWebdriver(launchOptions!.args);
             // When User-Agent is not set, and we're using Chromium in headless mode,
             // it is better to use DEFAULT_USER_AGENT to reduce chance of detection,
             // as otherwise 'HeadlessChrome' is present in User-Agent string.
@@ -228,7 +218,7 @@ export abstract class BrowserPlugin<
         return this._launch(launchContext);
     }
 
-    private _mergeArgsToHideWebdriver(originalArgs?: string[]): string[] {
+    #mergeArgsToHideWebdriver(originalArgs?: string[]): string[] {
         if (!originalArgs?.length) {
             return ['--disable-blink-features=AutomationControlled'];
         }
@@ -244,7 +234,7 @@ export abstract class BrowserPlugin<
         return originalArgs;
     }
 
-    protected _throwAugmentedLaunchError(
+    protected throwAugmentedLaunchError(
         cause: unknown,
         executablePath: string | undefined,
         dockerImage: string,
@@ -272,34 +262,17 @@ export abstract class BrowserPlugin<
         throw new BrowserLaunchError(`${errorMessage.join('\n')}\u200b`, { cause });
     }
 
-    /**
-     * @private
-     */
-    protected abstract _addProxyToLaunchOptions(
+    protected abstract addProxyToLaunchOptions(
         launchContext: LaunchContext<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>,
     ): Promise<void>;
 
-    protected abstract _isChromiumBasedBrowser(
+    protected abstract isChromiumBasedBrowser(
         launchContext: LaunchContext<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>,
     ): boolean;
 
-    /**
-     * @private
-     */
     protected abstract _launch(
         launchContext: LaunchContext<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>,
     ): Promise<LaunchResult>;
-
-    /**
-     * @private
-     */
-    protected abstract _createController(): BrowserController<
-        Library,
-        LibraryOptions,
-        LaunchResult,
-        NewPageOptions,
-        NewPageResult
-    >;
 }
 
 export class BrowserLaunchError extends CriticalError {

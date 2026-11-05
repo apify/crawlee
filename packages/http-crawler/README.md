@@ -22,7 +22,7 @@ preNavigationHooks: [
 
 By default, `HttpCrawler` only processes web pages with the `text/html` and `application/xhtml+xml` MIME content types (as reported by the `Content-Type` HTTP header), and skips pages with other content types. If you want the crawler to process other content types, use the [HttpCrawlerOptions.additionalMimeTypes](https://crawlee.dev/js/api/http-crawler/interface/HttpCrawlerOptions#additionalMimeTypes) constructor option. Beware that the parsing behavior differs for HTML, XML, JSON and other types of content. For more details, see [HttpCrawlerOptions.requestHandler](https://crawlee.dev/js/api/http-crawler/interface/HttpCrawlerOptions#requestHandler).
 
-New requests are only dispatched when there is enough free CPU and memory available, using the functionality provided by the [AutoscaledPool](https://crawlee.dev/js/api/core/class/AutoscaledPool) class. All [AutoscaledPool](https://crawlee.dev/js/api/core/class/AutoscaledPool) configuration options can be passed to the `autoscaledPoolOptions` parameter of the `HttpCrawler` constructor. For user convenience, the `minConcurrency` and `maxConcurrency` [AutoscaledPool](https://crawlee.dev/js/api/core/class/AutoscaledPool) options are available directly in the `HttpCrawler` constructor.
+New requests are only dispatched when there is enough free CPU and memory available, as judged by the crawler's `ConcurrencySystem`. Concurrency is tuned via the `minConcurrency`, `maxConcurrency` and `maxRequestsPerMinute` options of the `HttpCrawler` constructor, or, for finer control, by injecting a pre-configured `concurrencySystem`.
 
 ## Example usage
 

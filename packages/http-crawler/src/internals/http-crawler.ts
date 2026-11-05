@@ -1,139 +1,150 @@
-import type { IncomingHttpHeaders, IncomingMessage } from 'node:http';
-import { extname } from 'node:path';
-import type { Readable } from 'node:stream';
+import { Readable } from 'node:stream';
 import util from 'node:util';
 
 import type {
-    AutoscaledPoolOptions,
     BasicCrawlerOptions,
+    ConcurrencySystem,
+    ConcurrencySystemOptions,
+    ContextMiddleware,
     CrawlingContext,
     ErrorHandler,
     GetUserDataFromRequest,
-    LoadedContext,
-    ProxyConfiguration,
-    Request,
+    LoadedRequest,
+    CrawlingRequest,
+    RequireContextPipeline,
     RequestHandler,
+    RouterHandler,
     RouterRoutes,
-    Session,
+    RouteSchemas,
+    RoutesFromSchemas,
 } from '@crawlee/basic';
 import {
-    BASIC_CRAWLER_TIMEOUT_BUFFER_SECS,
     BasicCrawler,
-    BLOCKED_STATUS_CODES,
-    Configuration,
-    CrawlerExtension,
-    mergeCookies,
-    processHttpRequestOptions,
+    ContextPipeline,
+    getCookiesFromResponse,
+    NavigationSkippedError,
+    skippedNavigationRequest,
+    remainingNavigationWindowMillis,
     RequestState,
+    RequestThrottledError,
     Router,
     SessionError,
-    validators,
 } from '@crawlee/basic';
-import type { HttpResponse, StreamingHttpResponse } from '@crawlee/core';
-import type { Awaitable, Dictionary } from '@crawlee/types';
-import { type CheerioRoot, RETRY_CSS_SELECTORS } from '@crawlee/utils';
-import * as cheerio from 'cheerio';
-import type { RequestLike, ResponseLike } from 'content-type';
-import contentTypeParser from 'content-type';
-// @ts-expect-error This throws a compilation error due to got-scraping being ESM only but we only import types, so its alllll gooooood
-import type { Method, OptionsInit, TimeoutError as TimeoutErrorClass } from 'got-scraping';
+import { ResponseWithUrl } from '@crawlee/http-client';
+import type { Awaitable, Dictionary, ISession } from '@crawlee/types';
+import { parseArgument, processHttpRequestOptions, RETRY_CSS_SELECTORS, schemas } from '@crawlee/utils/internal';
+import type { Cheerio, CheerioAPI } from 'cheerio';
+import type { AnyNode } from 'domhandler';
+import { isTypeValid, parse as parseContentType } from 'content-type';
 import iconv from 'iconv-lite';
-import mime from 'mime-types';
-import ow, { ObjectPredicate } from 'ow';
 import type { JsonValue } from 'type-fest';
+import { z } from 'zod';
 
-import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
-import { concatStreamToBuffer, readStreamToString } from '@apify/utilities';
+import { addTimeoutToPromise, storage, TimeoutError, tryCancel } from '@apify/timeout';
 
-let TimeoutError: typeof TimeoutErrorClass;
-
-/**
- * TODO exists for BC within HttpCrawler - replace completely with StreamingHttpResponse in 4.0
- * @internal
- */
-export type PlainResponse = Omit<HttpResponse, 'body'> &
-    IncomingMessage & {
-        body?: unknown;
-    };
+import { extractCharsetFromHtmlBytes, parseContentTypeFromResponse } from './utils.js';
 
 /**
  * Default mime types, which HttpScraper supports.
  */
 const HTML_AND_XML_MIME_TYPES = ['text/html', 'text/xml', 'application/xhtml+xml', 'application/xml'];
 const APPLICATION_JSON_MIME_TYPE = 'application/json';
-const HTTP_OPTIMIZED_AUTOSCALED_POOL_OPTIONS: AutoscaledPoolOptions = {
+/**
+ * A higher starting concurrency and a relaxed event loop signal, since HTTP-only crawling barely touches the event
+ * loop. {@apilink HttpCrawler} folds these into the {@apilink ConcurrencySystem} it builds by default, with your own
+ * concurrency shortcuts (`minConcurrency`, `maxConcurrency`, `maxRequestsPerMinute`) kept on top.
+ *
+ * A {@apilink BasicCrawlerOptions.concurrencySystem|`concurrencySystem`} you supply yourself replaces that default
+ * wholesale, tuning included, so spread these options in if you want to keep it:
+ *
+ * ```typescript
+ * new ConcurrencySystem({ ...HTTP_OPTIMIZED_CONCURRENCY_SYSTEM_OPTIONS, maxConcurrency: 50 });
+ * ```
+ */
+export const HTTP_OPTIMIZED_CONCURRENCY_SYSTEM_OPTIONS: ConcurrencySystemOptions = {
     desiredConcurrency: 10,
-    snapshotterOptions: {
-        eventLoopSnapshotIntervalSecs: 2,
-        maxBlockedMillis: 100,
-    },
-    systemStatusOptions: {
-        maxEventLoopOverloadedRatio: 0.7,
+    loadSignals: {
+        eventLoop: {
+            snapshotIntervalSecs: 2,
+            maxBlockedMillis: 100,
+            overloadedRatio: 0.7,
+        },
     },
 };
 
 export type HttpErrorHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends JsonValue = any, // with default to Dictionary we cant use a typed router in untyped crawler
-> = ErrorHandler<HttpCrawlingContext<UserData, JSONData>>;
+    ContextExtension = Dictionary<never>,
+> = ErrorHandler<CrawlingContext, HttpCrawlingContext<UserData, JSONData> & ContextExtension>;
 
-export interface HttpCrawlerOptions<Context extends InternalHttpCrawlingContext = InternalHttpCrawlingContext>
-    extends BasicCrawlerOptions<Context> {
+export interface HttpCrawlerOptions<
+    Context extends InternalHttpCrawlingContext = InternalHttpCrawlingContext,
+    ContextExtension = Dictionary<never>,
+    ExtendedContext extends Context = Context & ContextExtension,
+    Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>,
+    StatisticStateExtension extends object = {},
+> extends BasicCrawlerOptions<Context, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
     /**
-     * An alias for {@apilink HttpCrawlerOptions.requestHandler}
-     * Soon to be removed, use `requestHandler` instead.
-     * @deprecated
-     */
-    handlePageFunction?: HttpCrawlerOptions<Context>['requestHandler'];
-
-    /**
-     * Timeout in which the HTTP request to the resource needs to finish, given in seconds.
+     * Timeout for the whole navigation phase, given in seconds. A single window shared by the
+     * `preNavigationHooks`, the navigation (the HTTP request to the resource), and the `postNavigationHooks` -
+     * so a slow hook eats into the same budget the navigation uses. Separate from the
+     * {@apilink BasicCrawlerOptions.requestHandlerTimeoutSecs|`requestHandlerTimeoutSecs`}, which times only the
+     * request handler.
      */
     navigationTimeoutSecs?: number;
 
     /**
-     * If set to true, SSL certificate errors will be ignored.
+     * If set to `true`, TLS/SSL certificate errors are ignored. Forwarded to the HTTP client as
+     * {@apilink SendRequestOptions.ignoreTlsErrors|`ignoreTlsErrors`} on every navigation request, so custom
+     * {@apilink BaseHttpClient} implementations should honor that flag (the built-in impit and got-scraping
+     * clients do; the native fetch fallback cannot disable TLS verification and warns instead).
+     *
+     * @default false
      */
-    ignoreSslErrors?: boolean;
-
-    /**
-     * If set, this crawler will be configured for all connections to use
-     * [Apify Proxy](https://console.apify.com/proxy) or your own Proxy URLs provided and rotated according to the configuration.
-     * For more information, see the [documentation](https://docs.apify.com/proxy).
-     */
-    proxyConfiguration?: ProxyConfiguration;
+    ignoreTlsErrors?: boolean;
 
     /**
      * Async functions that are sequentially evaluated before the navigation. Good for setting additional cookies
-     * or browser properties before navigation. The function accepts two parameters, `crawlingContext` and `gotOptions`,
-     * which are passed to the `requestAsBrowser()` function the crawler calls to navigate.
+     * or browser properties before navigation. The function accepts one parameter `crawlingContext`,
+     * which is passed to the `requestAsBrowser()` function the crawler calls to navigate.
+     *
+     * A hook may optionally return a partial object whose properties are merged into the crawling context,
+     * allowing the hook to override context members for subsequent hooks and pipeline stages.
+     *
+     * The context is built up in the following order: base context (`request`, `session`, helpers, ...) ->
+     * `extendContext` -> `preNavigationHooks` -> navigation -> `postNavigationHooks` -> `requestHandler`.
+     * This means the members added by `extendContext` are already available here, but navigation-dependent
+     * members (e.g. `response`, `body`, `$`) are not.
      * Example:
      * ```
      * preNavigationHooks: [
-     *     async (crawlingContext, gotOptions) => {
-     *         // ...
-     *     },
-     * ]
-     * ```
-     *
-     * Modyfing `pageOptions` is supported only in Playwright incognito.
-     * See {@apilink PrePageCreateHook}
-     */
-    preNavigationHooks?: InternalHttpHook<Context>[];
-
-    /**
-     * Async functions that are sequentially evaluated after the navigation. Good for checking if the navigation was successful.
-     * The function accepts `crawlingContext` as the only parameter.
-     * Example:
-     * ```
-     * postNavigationHooks: [
      *     async (crawlingContext) => {
      *         // ...
      *     },
      * ]
      * ```
      */
-    postNavigationHooks?: InternalHttpHook<Context>[];
+    preNavigationHooks?: InternalHttpHook<CrawlingContext<any>, ContextExtension>[];
+
+    /**
+     * Async functions that are sequentially evaluated after the navigation. Good for checking if the navigation was successful.
+     * The function accepts `crawlingContext` as the only parameter.
+     *
+     * A hook may optionally return a partial object whose properties are merged into the crawling context,
+     * which is useful for overriding the `response` after solving a challenge or re-fetching the resource.
+     * Example:
+     * ```
+     * postNavigationHooks: [
+     *     async (crawlingContext) => {
+     *         if (await needsRevalidation(crawlingContext)) {
+     *             return { response: await refetch(crawlingContext.request) };
+     *         }
+     *     },
+     * ]
+     * ```
+     */
+    postNavigationHooks?: InternalHttpHook<CrawlingContextWithResponse, ContextExtension>[];
 
     /**
      * An array of [MIME types](https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Complete_list_of_MIME_types)
@@ -167,44 +178,36 @@ export interface HttpCrawlerOptions<Context extends InternalHttpCrawlingContext 
     forceResponseEncoding?: string;
 
     /**
-     * Automatically saves cookies to Session. Works only if Session Pool is used.
+     * Automatically saves cookies to Session. Enabled by default.
      *
      * It parses cookie from response "set-cookie" header saves or updates cookies for session and once the session is used for next request.
      * It passes the "Cookie" header to the request with the session cookies.
      */
-    persistCookiesPerSession?: boolean;
-
-    /**
-     * An array of HTTP response [Status Codes](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status) to be excluded from error consideration.
-     * By default, status codes >= 500 trigger errors.
-     */
-    ignoreHttpErrorStatusCodes?: number[];
-
-    /**
-     * An array of additional HTTP response [Status Codes](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status) to be treated as errors.
-     * By default, status codes >= 500 trigger errors.
-     */
-    additionalHttpErrorStatusCodes?: number[];
+    saveResponseCookies?: boolean;
 }
 
-/**
- * @internal
- */
-export type InternalHttpHook<Context> = (crawlingContext: Context, gotOptions: OptionsInit) => Awaitable<void>;
+export type InternalHttpHook<Context, ContextExtension = {}> = (
+    crawlingContext: Context & ContextExtension,
+) => Awaitable<void | Partial<Context>>;
 
-export type HttpHook<
+interface CrawlingContextWithResponse<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-    JSONData extends JsonValue = any, // with default to Dictionary we cant use a typed router in untyped crawler
-> = InternalHttpHook<HttpCrawlingContext<UserData, JSONData>>;
+> extends CrawlingContext<UserData> {
+    /**
+     * The request object that was successfully loaded and navigated to, including the {@apilink Request.loadedUrl|`loadedUrl`} property.
+     */
+    request: LoadedRequest<CrawlingRequest<UserData>>;
 
-/**
- * @internal
- */
+    /**
+     * The HTTP response object containing status code, headers, and other response metadata.
+     */
+    response: Response;
+}
+
 export interface InternalHttpCrawlingContext<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends JsonValue = any, // with default to Dictionary we cant use a typed router in untyped crawler
-    Crawler = HttpCrawler<any>,
-> extends CrawlingContext<Crawler, UserData> {
+> extends CrawlingContextWithResponse<UserData> {
     /**
      * The request body of the web page.
      * The type depends on the `Content-Type` header of the web page:
@@ -222,10 +225,13 @@ export interface InternalHttpCrawlingContext<
      * Parsed `Content-Type header: { type, encoding }`.
      */
     contentType: { type: string; encoding: BufferEncoding };
-    response: PlainResponse;
 
     /**
-     * Wait for an element matching the selector to appear. Timeout is ignored.
+     * Wait for an element matching the selector to appear.
+     *
+     * `HttpCrawler` and {@apilink CheerioCrawler} parse a response that is already fully downloaded, so there is
+     * nothing to wait for and `timeoutMs` is ignored. {@apilink JSDOMCrawler} and {@apilink LinkeDOMCrawler} poll for
+     * the selector instead, with `timeoutMs` defaulting to 5s.
      *
      * **Example usage:**
      * ```ts
@@ -239,8 +245,26 @@ export interface InternalHttpCrawlingContext<
     waitForSelector(selector: string, timeoutMs?: number): Promise<void>;
 
     /**
+     * Like {@apilink InternalHttpCrawlingContext.waitForSelector|`waitForSelector`}, but returns the matched
+     * elements - a Cheerio object here, whatever the parser produces in {@apilink DOMCrawler}. Throws when nothing
+     * matches.
+     */
+    querySelectorAll(selector: string, timeoutMs?: number): Promise<ArrayLike<unknown>>;
+
+    /**
+     * Like {@apilink InternalHttpCrawlingContext.querySelectorAll|`querySelectorAll`}, but returns only the first
+     * match.
+     */
+    querySelectorOne(selector: string, timeoutMs?: number): Promise<unknown>;
+
+    /**
      * Returns Cheerio handle for `page.content()`, allowing to work with the data same way as with {@apilink CheerioCrawler}.
-     * When provided with the `selector` argument, it will throw if it's not available.
+     * This is here to unify the crawler API, so they all have this handy method - in {@apilink CheerioCrawler} it has
+     * the same return type as the `$` context property, so use it only if you are abstracting your workflow to
+     * support different context types in one handler.
+     *
+     * When provided with the `selector` argument, it will throw if it's not available. {@apilink JSDOMCrawler} and
+     * {@apilink LinkeDOMCrawler} wait for the selector first, with `timeoutMs` defaulting to 5s.
      *
      * **Example usage:**
      * ```ts
@@ -250,11 +274,16 @@ export interface InternalHttpCrawlingContext<
      * });
      * ```
      */
-    parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioRoot>;
+    parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioAPI>;
 }
 
-export interface HttpCrawlingContext<UserData extends Dictionary = any, JSONData extends JsonValue = any>
-    extends InternalHttpCrawlingContext<UserData, JSONData, HttpCrawler<HttpCrawlingContext<UserData, JSONData>>> {}
+export interface HttpCrawlingContext<
+    UserData extends Dictionary = any,
+    JSONData extends JsonValue = any,
+> extends InternalHttpCrawlingContext<UserData, JSONData> {
+    querySelectorAll(selector: string, timeoutMs?: number): Promise<Cheerio<AnyNode>>;
+    querySelectorOne(selector: string, timeoutMs?: number): Promise<Cheerio<AnyNode>>;
+}
 
 export type HttpRequestHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
@@ -272,21 +301,23 @@ export type HttpRequestHandler<
  *
  * This crawler downloads each URL using a plain HTTP request and doesn't do any HTML parsing.
  *
- * The source URLs are represented using {@apilink Request} objects that are fed from
- * {@apilink RequestList} or {@apilink RequestQueue} instances provided by the {@apilink HttpCrawlerOptions.requestList}
- * or {@apilink HttpCrawlerOptions.requestQueue} constructor options, respectively.
+ * The source URLs are represented using {@apilink Request} objects that are fed from the
+ * {@apilink IRequestManager|request manager} provided via the {@apilink HttpCrawlerOptions.requestManager|`requestManager`}
+ * constructor option (a {@apilink RequestQueue} is itself a request manager). To read from a read-only source such
+ * as a {@apilink RequestList} while still being able to enqueue new requests, combine it with a queue into a
+ * {@apilink RequestManagerTandem} via {@apilink IRequestLoader.toTandem|`requestLoader.toTandem()`} and pass the
+ * result as `requestManager`.
  *
- * If both {@apilink HttpCrawlerOptions.requestList} and {@apilink HttpCrawlerOptions.requestQueue} are used,
- * the instance first processes URLs from the {@apilink RequestList} and automatically enqueues all of them
- * to {@apilink RequestQueue} before it starts their processing. This ensures that a single URL is not crawled multiple times.
+ * > The {@apilink HttpCrawlerOptions.requestList|`requestList`} and {@apilink HttpCrawlerOptions.requestQueue|`requestQueue`}
+ * > options are deprecated; they are still accepted and folded into a single `requestManager` for back-compat.
  *
  * The crawler finishes when there are no more {@apilink Request} objects to crawl.
  *
- * We can use the `preNavigationHooks` to adjust `gotOptions`:
+ * We can use the `preNavigationHooks` to adjust the crawling context before the request is made:
  *
  * ```javascript
  * preNavigationHooks: [
- *     (crawlingContext, gotOptions) => {
+ *     (crawlingContext) => {
  *         // ...
  *     },
  * ]
@@ -299,11 +330,11 @@ export type HttpRequestHandler<
  * Beware that the parsing behavior differs for HTML, XML, JSON and other types of content.
  * For details, see {@apilink HttpCrawlerOptions.requestHandler}.
  *
- * New requests are only dispatched when there is enough free CPU and memory available,
- * using the functionality provided by the {@apilink AutoscaledPool} class.
- * All {@apilink AutoscaledPool} configuration options can be passed to the `autoscaledPoolOptions`
- * parameter of the constructor. For user convenience, the `minConcurrency` and `maxConcurrency`
- * {@apilink AutoscaledPool} options are available directly in the constructor.
+ * New requests are only dispatched when there is enough free CPU and memory available, as judged by the crawler's
+ * {@apilink ConcurrencySystem}.
+ * Concurrency is tuned via the `minConcurrency`, `maxConcurrency` and `maxRequestsPerMinute` options of the
+ * constructor, or, for finer control, by injecting a pre-configured
+ * {@apilink ConcurrencySystem|`concurrencySystem`}.
  *
  * **Example usage:**
  *
@@ -329,112 +360,77 @@ export type HttpRequestHandler<
  * @category Crawlers
  */
 export class HttpCrawler<
-    Context extends InternalHttpCrawlingContext<any, any, HttpCrawler<Context>>,
-> extends BasicCrawler<Context> {
+    Context extends InternalHttpCrawlingContext<any, any> = InternalHttpCrawlingContext,
+    ContextExtension = Dictionary<never>,
+    ExtendedContext extends Context = Context & ContextExtension,
+    Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>,
+    StatisticStateExtension extends object = {},
+> extends BasicCrawler<Context, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
+    // Internal storage uses the base (non-extended) context types. The public option types are
+    // extension-aware for consumer DX, but internally the pipeline composes hooks against the
+    // concrete crawling context, which does not statically carry `ContextExtension`. The members
+    // added by `extendContext` are present at runtime regardless.
+    #preNavigationHooks: InternalHttpHook<CrawlingContext>[];
+    #postNavigationHooks: InternalHttpHook<CrawlingContextWithResponse>[];
+    #saveResponseCookies: boolean;
+    #navigationTimeoutMillis: number;
+    #ignoreTlsErrors: boolean;
+    #suggestResponseEncoding?: string;
+    #forceResponseEncoding?: string;
+    readonly #supportedMimeTypes: Set<string>;
+    readonly #downloadAbortControllers = new WeakMap<CrawlingRequest, AbortController>();
+
     /**
-     * A reference to the underlying {@apilink ProxyConfiguration} class that manages the crawler's proxies.
-     * Only available if used by the crawler.
+     * @internal
      */
-    proxyConfiguration?: ProxyConfiguration;
-
-    protected userRequestHandlerTimeoutMillis: number;
-    protected preNavigationHooks: InternalHttpHook<Context>[];
-    protected postNavigationHooks: InternalHttpHook<Context>[];
-    protected persistCookiesPerSession: boolean;
-    protected navigationTimeoutMillis: number;
-    protected ignoreSslErrors: boolean;
-    protected suggestResponseEncoding?: string;
-    protected forceResponseEncoding?: string;
-    protected additionalHttpErrorStatusCodes: Set<number>;
-    protected ignoreHttpErrorStatusCodes: Set<number>;
-    protected readonly supportedMimeTypes: Set<string>;
-
     protected static override optionsShape = {
         ...BasicCrawler.optionsShape,
-        handlePageFunction: ow.optional.function,
 
-        navigationTimeoutSecs: ow.optional.number,
-        ignoreSslErrors: ow.optional.boolean,
-        additionalMimeTypes: ow.optional.array.ofType(ow.string),
-        suggestResponseEncoding: ow.optional.string,
-        forceResponseEncoding: ow.optional.string,
-        proxyConfiguration: ow.optional.object.validate(validators.proxyConfiguration),
-        persistCookiesPerSession: ow.optional.boolean,
+        navigationTimeoutSecs: schemas.anyNumber.default(30),
+        ignoreTlsErrors: z.boolean().default(false),
+        additionalMimeTypes: schemas.arrayOf(z.string(), 'strings').default(() => []),
+        suggestResponseEncoding: z.string().optional(),
+        forceResponseEncoding: z.string().optional(),
+        saveResponseCookies: z.boolean().default(true),
 
-        additionalHttpErrorStatusCodes: ow.optional.array.ofType(ow.number),
-        ignoreHttpErrorStatusCodes: ow.optional.array.ofType(ow.number),
-
-        preNavigationHooks: ow.optional.array,
-        postNavigationHooks: ow.optional.array,
+        preNavigationHooks: schemas.anyArray.default(() => []),
+        postNavigationHooks: schemas.anyArray.default(() => []),
     };
+
+    /** @internal */
+    protected static optionsSchema = z.strictObject(HttpCrawler.optionsShape);
 
     /**
      * All `HttpCrawlerOptions` parameters are passed via an options object.
      */
     constructor(
-        options: HttpCrawlerOptions<Context> = {},
-        override readonly config = Configuration.getGlobalConfig(),
+        options: HttpCrawlerOptions<Context, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> &
+            RequireContextPipeline<InternalHttpCrawlingContext, Context> = {} as any,
     ) {
-        ow(options, 'HttpCrawlerOptions', ow.object.exactShape(HttpCrawler.optionsShape));
-
         const {
-            requestHandler,
-            handlePageFunction,
-
-            requestHandlerTimeoutSecs = 60,
-            navigationTimeoutSecs = 30,
-            ignoreSslErrors = true,
-            additionalMimeTypes = [],
+            navigationTimeoutSecs,
+            ignoreTlsErrors,
+            additionalMimeTypes,
             suggestResponseEncoding,
             forceResponseEncoding,
-            proxyConfiguration,
-            persistCookiesPerSession,
-            preNavigationHooks = [],
-            postNavigationHooks = [],
-            additionalHttpErrorStatusCodes = [],
-            ignoreHttpErrorStatusCodes = [],
-
-            // Ignored
-            handleRequestFunction,
+            saveResponseCookies,
+            preNavigationHooks,
+            postNavigationHooks,
 
             // BasicCrawler
-            autoscaledPoolOptions = HTTP_OPTIMIZED_AUTOSCALED_POOL_OPTIONS,
+            contextPipelineBuilder,
             ...basicCrawlerOptions
-        } = options;
+        } = parseArgument(options, HttpCrawler.optionsSchema, 'HttpCrawlerOptions');
 
-        super(
-            {
-                ...basicCrawlerOptions,
-                requestHandler,
-                autoscaledPoolOptions,
-                // We need to add some time for internal functions to finish,
-                // but not too much so that we would stall the crawler.
-                requestHandlerTimeoutSecs:
-                    navigationTimeoutSecs + requestHandlerTimeoutSecs + BASIC_CRAWLER_TIMEOUT_BUFFER_SECS,
-            },
-            config,
-        );
-
-        this._handlePropertyNameChange({
-            newName: 'requestHandler',
-            oldName: 'handlePageFunction',
-            propertyKey: 'requestHandler',
-            newProperty: requestHandler,
-            oldProperty: handlePageFunction,
-            allowUndefined: true,
+        super({
+            ...basicCrawlerOptions,
+            contextPipelineBuilder:
+                contextPipelineBuilder ??
+                (() => this.buildContextPipeline() as ContextPipeline<CrawlingContext, Context>),
         });
 
-        if (!this.requestHandler) {
-            this.requestHandler = this.router;
-        }
-
-        // Cookies should be persisted per session only if session pool is used
-        if (!this.useSessionPool && persistCookiesPerSession) {
-            throw new Error('You cannot use "persistCookiesPerSession" without "useSessionPool" set to true.');
-        }
-
-        this.supportedMimeTypes = new Set([...HTML_AND_XML_MIME_TYPES, APPLICATION_JSON_MIME_TYPE]);
-        if (additionalMimeTypes.length) this._extendSupportedMimeTypes(additionalMimeTypes);
+        this.#supportedMimeTypes = new Set([...HTML_AND_XML_MIME_TYPES, APPLICATION_JSON_MIME_TYPE]);
+        if (additionalMimeTypes.length) this.#extendSupportedMimeTypes(additionalMimeTypes);
 
         if (suggestResponseEncoding && forceResponseEncoding) {
             this.log.warning(
@@ -442,159 +438,274 @@ export class HttpCrawler<
             );
         }
 
-        this.userRequestHandlerTimeoutMillis = requestHandlerTimeoutSecs * 1000;
-        this.navigationTimeoutMillis = navigationTimeoutSecs * 1000;
-        this.ignoreSslErrors = ignoreSslErrors;
-        this.suggestResponseEncoding = suggestResponseEncoding;
-        this.forceResponseEncoding = forceResponseEncoding;
-        this.additionalHttpErrorStatusCodes = new Set([...additionalHttpErrorStatusCodes]);
-        this.ignoreHttpErrorStatusCodes = new Set([...ignoreHttpErrorStatusCodes]);
-        this.proxyConfiguration = proxyConfiguration;
-        this.preNavigationHooks = preNavigationHooks;
-        this.postNavigationHooks = [
-            ({ request, response }) => this._abortDownloadOfBody(request, response!),
-            ...postNavigationHooks,
+        this.#navigationTimeoutMillis = navigationTimeoutSecs * 1000;
+        this.#ignoreTlsErrors = ignoreTlsErrors;
+        this.#suggestResponseEncoding = suggestResponseEncoding;
+        this.#forceResponseEncoding = forceResponseEncoding;
+        // Cast away the extension-aware option types to the base internal storage types (see the field
+        // declarations above). This is sound - the hooks only ever receive the base context plus the
+        // members `extendContext` added at runtime.
+        this.#preNavigationHooks = preNavigationHooks as InternalHttpHook<CrawlingContext>[];
+        this.#postNavigationHooks = [
+            ({ request, response }) => this.#abortDownloadOfBody(request, response!),
+            ...(postNavigationHooks as InternalHttpHook<CrawlingContextWithResponse>[]),
         ];
 
-        if (this.useSessionPool) {
-            this.persistCookiesPerSession = persistCookiesPerSession ?? true;
-        } else {
-            this.persistCookiesPerSession = false;
-        }
+        this.#saveResponseCookies = saveResponseCookies;
     }
 
-    /**
-     * **EXPERIMENTAL**
-     * Function for attaching CrawlerExtensions such as the Unblockers.
-     * @param extension Crawler extension that overrides the crawler configuration.
-     */
-    use(extension: CrawlerExtension) {
-        ow(extension, ow.object.instanceOf(CrawlerExtension));
-
-        const className = this.constructor.name;
-
-        const extensionOptions = extension.getCrawlerOptions();
-
-        for (const [key, value] of Object.entries(extensionOptions)) {
-            const isConfigurable = Object.hasOwn(this, key);
-            const originalType = typeof this[key as keyof this];
-            const extensionType = typeof value; // What if we want to null something? It is really needed?
-            const isSameType = originalType === extensionType || value == null; // fast track for deleting keys
-            const exists = this[key as keyof this] != null;
-
-            if (!isConfigurable) {
-                // Test if the property can be configured on the crawler
-                throw new Error(
-                    `${extension.name} tries to set property "${key}" that is not configurable on ${className} instance.`,
-                );
-            }
-
-            if (!isSameType && exists) {
-                // Assuming that extensions will only add up configuration
-                throw new Error(
-                    `${extension.name} tries to set property of different type "${extensionType}". "${className}.${key}: ${originalType}".`,
-                );
-            }
-
-            this.log.warning(`${extension.name} is overriding "${className}.${key}: ${originalType}" with ${value}.`);
-
-            this[key as keyof this] = value as this[keyof this];
-        }
+    /** @internal */
+    protected override getNavigationTimeoutMillis(): number {
+        return this.#navigationTimeoutMillis;
     }
 
-    /**
-     * Wrapper around requestHandler that opens and closes pages etc.
-     */
-    protected override async _runRequestHandler(crawlingContext: Context) {
-        const { request, session } = crawlingContext;
+    /** @internal */
+    protected override createDefaultConcurrencySystem(options: ConcurrencySystemOptions): ConcurrencySystem {
+        return super.createDefaultConcurrencySystem({
+            ...HTTP_OPTIMIZED_CONCURRENCY_SYSTEM_OPTIONS,
+            ...options,
+        });
+    }
 
-        if (this.proxyConfiguration) {
-            const sessionId = session ? session.id : undefined;
-            crawlingContext.proxyInfo = await this.proxyConfiguration.newProxyInfo(sessionId, { request });
-        }
+    protected buildContextPipeline(): ContextPipeline<CrawlingContext, InternalHttpCrawlingContext> {
+        // When navigation is skipped, `prepareHttpRequest` has already installed throwing getters for
+        // the response-derived members, so the guarded action is bypassed and the context left untouched.
+        const skipGuard =
+            <Ctx extends CrawlingContext, Ext>(
+                action: (ctx: Ctx) => Awaitable<void | Ext>,
+            ): ContextMiddleware<Ctx, Ext> =>
+            async (ctx) =>
+                (ctx.request.skipNavigation ? {} : ((await action(ctx)) ?? {})) as Ext;
 
-        if (!request.skipNavigation) {
-            await this._handleNavigation(crawlingContext);
-            tryCancel();
-
-            const parsed = await this._parseResponse(request, crawlingContext.response!, crawlingContext);
-            const response = parsed.response!;
-            const contentType = parsed.contentType!;
-            tryCancel();
-
-            // `??=` because descendant classes may already set optimized version
-            crawlingContext.waitForSelector ??= async (selector?: string, _timeoutMs?: number) => {
-                const $ = cheerio.load(parsed.body!.toString());
-
-                if ($(selector).get().length === 0) {
-                    throw new Error(`Selector '${selector}' not found.`);
+        // A single navigation window covers the pre-navigation hooks, the navigation, and the post-navigation
+        // hooks: the whole phase shares one `navigationTimeoutSecs` budget, so a slow hook eats into the same
+        // window the navigation uses instead of each step being timed on its own.
+        const navigationTimedOut = `Navigation timed out after ${this.#navigationTimeoutMillis / 1000} seconds.`;
+        const windowGuard = <Ctx extends CrawlingContext, Ext>(
+            step: (ctx: Ctx) => Awaitable<void | Ext>,
+        ): ContextMiddleware<Ctx, Ext> =>
+            skipGuard(async (ctx: Ctx) => {
+                const remaining = remainingNavigationWindowMillis(ctx, this.#navigationTimeoutMillis);
+                if (remaining <= 0) {
+                    throw new TimeoutError(navigationTimedOut);
                 }
-            };
-            crawlingContext.parseWithCheerio ??= async (selector?: string, timeoutMs?: number) => {
-                const $ = cheerio.load(parsed.body!.toString());
-
-                if (selector) {
-                    await crawlingContext.waitForSelector(selector, timeoutMs);
-                }
-
-                return $;
-            };
-
-            if (this.useSessionPool) {
-                this._throwOnBlockedRequest(crawlingContext.session!, response.statusCode!);
-            }
-
-            if (this.persistCookiesPerSession) {
-                crawlingContext.session!.setCookiesFromResponse(response);
-            }
-
-            request.loadedUrl = response.url;
-
-            if (!this.requestMatchesEnqueueStrategy(request)) {
-                this.log.debug(
-                    // eslint-disable-next-line dot-notation
-                    `Skipping request ${request.id} (starting url: ${request.url} -> loaded url: ${request.loadedUrl}) because it does not match the enqueue strategy (${request['enqueueStrategy']}).`,
-                );
-
-                request.noRetry = true;
-                request.state = RequestState.SKIPPED;
-
-                await this.handleSkippedRequest({ url: request.url, reason: 'redirect' });
-
-                return;
-            }
-
-            Object.assign(crawlingContext, parsed);
-
-            Object.defineProperty(crawlingContext, 'json', {
-                get() {
-                    if (contentType.type !== APPLICATION_JSON_MIME_TYPE) return null;
-                    const jsonString = parsed.body!.toString(contentType.encoding);
-                    return JSON.parse(jsonString);
-                },
+                return addTimeoutToPromise(async () => step(ctx), remaining, navigationTimedOut);
             });
+
+        let pipeline = ContextPipeline.create<CrawlingContext>().compose(this.#prepareHttpRequest.bind(this));
+
+        for (const hook of this.#preNavigationHooks) {
+            pipeline = pipeline.compose(windowGuard(hook));
         }
 
+        let pipelineWithNavigation = pipeline.compose(skipGuard(this.makeHttpRequest.bind(this)));
+
+        for (const hook of this.#postNavigationHooks) {
+            pipelineWithNavigation = pipelineWithNavigation.compose(windowGuard(hook));
+        }
+
+        return pipelineWithNavigation
+            .compose(this.#processHttpResponse.bind(this))
+            .compose(this.#handleBlockedRequestByContent.bind(this));
+    }
+
+    async #prepareHttpRequest(crawlingContext: CrawlingContext): Promise<Partial<CrawlingContextWithResponse>> {
+        const { request } = crawlingContext;
+
+        if (request.skipNavigation) {
+            return {
+                request: skippedNavigationRequest(request) as LoadedRequest<CrawlingRequest>,
+                get response(): InternalHttpCrawlingContext['response'] {
+                    throw new NavigationSkippedError(
+                        'The `response` property is not available - `skipNavigation` was used',
+                    );
+                },
+            } as Partial<CrawlingContextWithResponse>;
+        }
+
+        request.state = RequestState.BEFORE_NAV;
+        return {};
+    }
+
+    // oxlint-disable-next-line crawlee/prefer-private-fields -- patched by @crawlee/otel
+    private async makeHttpRequest(
+        crawlingContext: CrawlingContext,
+    ): Promise<Omit<CrawlingContextWithResponse, keyof CrawlingContext> & Partial<CrawlingContextWithResponse>> {
+        tryCancel();
+
+        const { request, session } = crawlingContext;
+        const proxyUrl = crawlingContext.proxyInfo?.url;
+
+        const downloadAbortController = new AbortController();
+        this.#downloadAbortControllers.set(request, downloadAbortController);
+
+        // Bound the request by whatever is left of the shared navigation window (the pre-navigation hooks may
+        // have already spent part of it), so it produces a clean navigation-timeout error rather than the raw
+        // client abort.
+        const httpResponse = await addTimeoutToPromise(
+            async () => this.#requestFunction({ request, session, proxyUrl, signal: downloadAbortController.signal }),
+            Math.max(1, remainingNavigationWindowMillis(crawlingContext, this.#navigationTimeoutMillis)),
+            `Navigation timed out after ${this.#navigationTimeoutMillis / 1000} seconds.`,
+        );
+        tryCancel();
+
+        request.loadedUrl = httpResponse?.url;
+        request.state = RequestState.AFTER_NAV;
+
+        return { request: request as LoadedRequest<CrawlingRequest>, response: httpResponse };
+    }
+
+    async #processHttpResponse(
+        crawlingContext: CrawlingContextWithResponse,
+    ): Promise<
+        Omit<InternalHttpCrawlingContext, keyof CrawlingContextWithResponse> & Partial<InternalHttpCrawlingContext>
+    > {
+        if (crawlingContext.request.skipNavigation) {
+            return {
+                get contentType(): InternalHttpCrawlingContext['contentType'] {
+                    throw new NavigationSkippedError(
+                        'The `contentType` property is not available - `skipNavigation` was used',
+                    );
+                },
+                get body(): InternalHttpCrawlingContext['body'] {
+                    throw new NavigationSkippedError(
+                        'The `body` property is not available - `skipNavigation` was used',
+                    );
+                },
+                get json(): InternalHttpCrawlingContext['json'] {
+                    throw new NavigationSkippedError(
+                        'The `json` property is not available - `skipNavigation` was used',
+                    );
+                },
+                get waitForSelector(): InternalHttpCrawlingContext['waitForSelector'] {
+                    throw new NavigationSkippedError(
+                        'The `waitForSelector` method is not available - `skipNavigation` was used',
+                    );
+                },
+                get parseWithCheerio(): InternalHttpCrawlingContext['parseWithCheerio'] {
+                    throw new NavigationSkippedError(
+                        'The `parseWithCheerio` method is not available - `skipNavigation` was used',
+                    );
+                },
+                get querySelectorAll(): InternalHttpCrawlingContext['querySelectorAll'] {
+                    throw new NavigationSkippedError(
+                        'The `querySelectorAll` method is not available - `skipNavigation` was used',
+                    );
+                },
+                get querySelectorOne(): InternalHttpCrawlingContext['querySelectorOne'] {
+                    throw new NavigationSkippedError(
+                        'The `querySelectorOne` method is not available - `skipNavigation` was used',
+                    );
+                },
+            };
+        }
+
+        tryCancel();
+
+        // Before `parseResponse`, which throws for error status codes - a 429 the user opted into treating as an
+        // error is still a rate limit the domain should back off from.
+        if (crawlingContext.response.status === 429) {
+            const retryAfter = crawlingContext.response.headers.get('retry-after');
+            if (this.recordDomainRateLimit(crawlingContext.request.url, retryAfter)) {
+                // This is the one path that never reads the body, so cancel it to release the connection
+                // rather than leaving it to the garbage collector.
+                await crawlingContext.response.body?.cancel().catch(() => {});
+                throw new RequestThrottledError(`${crawlingContext.request.url} responded with 429.`);
+            }
+        }
+
+        // Reading the body is still part of the navigation, so it draws from the same shared window: on a server
+        // that streams the body slowly the request completes (headers arrive) but the body read would otherwise
+        // run unbounded. `extendTimeout` from a post-navigation hook has already pushed this deadline out if asked.
+        const remaining = remainingNavigationWindowMillis(crawlingContext, this.#navigationTimeoutMillis);
+        if (remaining <= 0) {
+            throw new TimeoutError(`Navigation timed out after ${this.#navigationTimeoutMillis / 1000} seconds.`);
+        }
+        const parsed = await addTimeoutToPromise(
+            async () => this.#parseResponse(crawlingContext.request, crawlingContext.response),
+            remaining,
+            `Navigation timed out after ${this.#navigationTimeoutMillis / 1000} seconds.`,
+        ).catch((error) => {
+            // Stop the download along with the read, so a body that never ends doesn't outlive the request.
+            this.#downloadAbortControllers.get(crawlingContext.request)?.abort();
+            throw error;
+        });
+        tryCancel();
+        const response = parsed.response!;
+        const contentType = parsed.contentType!;
+
+        const loadBody = async () => {
+            const { load } = await import('cheerio/slim');
+
+            return load(parsed.body!.toString(), { xmlMode: contentType.type.includes('xml') });
+        };
+        const querySelectorAll = async (selector: string, _timeoutMs?: number) => {
+            const matches = (await loadBody())(selector);
+
+            if (matches.length === 0) {
+                throw new Error(`Selector '${selector}' not found.`);
+            }
+
+            return matches;
+        };
+        const querySelectorOne = async (selector: string, timeoutMs?: number) =>
+            (await querySelectorAll(selector, timeoutMs)).first();
+        const waitForSelector = async (selector: string, timeoutMs?: number) => {
+            await querySelectorAll(selector, timeoutMs);
+        };
+        const parseWithCheerio = async (selector?: string, timeoutMs?: number) => {
+            const $ = await loadBody();
+
+            if (selector) {
+                await (crawlingContext as InternalHttpCrawlingContext).waitForSelector(selector, timeoutMs);
+            }
+
+            return $;
+        };
+
+        this.throwOnBlockedRequest(response.status);
+
+        if (this.#saveResponseCookies) {
+            try {
+                for (const cookie of getCookiesFromResponse(response)) {
+                    if (!cookie) continue;
+                    try {
+                        await crawlingContext.session.cookieJar.setCookie(cookie, response.url, {
+                            ignoreError: false,
+                        });
+                    } catch (e) {
+                        this.log.debug(`Could not set cookie: ${(e as Error).message}`);
+                    }
+                }
+            } catch (e) {
+                this.log.exception(e as Error, 'Could not get cookies from response');
+            }
+        }
+
+        return {
+            get json() {
+                if (contentType.type !== APPLICATION_JSON_MIME_TYPE) return null;
+                const jsonString = parsed.body!.toString(contentType.encoding);
+                return JSON.parse(jsonString);
+            },
+            waitForSelector,
+            querySelectorOne,
+            querySelectorAll,
+            parseWithCheerio,
+            contentType,
+            body: parsed.body,
+        };
+    }
+
+    async #handleBlockedRequestByContent(crawlingContext: InternalHttpCrawlingContext): Promise<{}> {
         if (this.retryOnBlocked) {
-            const error = await this.isRequestBlocked(crawlingContext);
+            const error = await this.#isRequestBlocked(crawlingContext);
             if (error) throw new SessionError(error);
         }
-
-        request.state = RequestState.REQUEST_HANDLER;
-        try {
-            await addTimeoutToPromise(
-                async () => Promise.resolve(this.requestHandler(crawlingContext as LoadedContext<Context>)),
-                this.userRequestHandlerTimeoutMillis,
-                `requestHandler timed out after ${this.userRequestHandlerTimeoutMillis / 1000} seconds.`,
-            );
-            request.state = RequestState.DONE;
-        } catch (e: any) {
-            request.state = RequestState.ERROR;
-            throw e;
-        }
+        return {};
     }
 
-    protected override async isRequestBlocked(crawlingContext: Context): Promise<string | false> {
+    async #isRequestBlocked(crawlingContext: InternalHttpCrawlingContext): Promise<string | false> {
         if (HTML_AND_XML_MIME_TYPES.includes(crawlingContext.contentType.type)) {
             const $ = await crawlingContext.parseWithCheerio();
 
@@ -605,104 +716,11 @@ export class HttpCrawler<
             }
         }
 
-        const blockedStatusCodes =
-            // eslint-disable-next-line dot-notation
-            (this.sessionPool?.['blockedStatusCodes'].length ?? 0) > 0
-                ? // eslint-disable-next-line dot-notation
-                  this.sessionPool!['blockedStatusCodes']
-                : BLOCKED_STATUS_CODES;
-
-        if (blockedStatusCodes.includes(crawlingContext.response.statusCode!)) {
-            return `Blocked by status code ${crawlingContext.response.statusCode}`;
+        if (this.blockedStatusCodes.has(crawlingContext.response.status!)) {
+            return `Blocked by status code ${crawlingContext.response.status}`;
         }
 
         return false;
-    }
-
-    protected async _handleNavigation(crawlingContext: Context) {
-        const gotOptions = {} as OptionsInit;
-        const { request, session } = crawlingContext;
-        const preNavigationHooksCookies = this._getCookieHeaderFromRequest(request);
-
-        request.state = RequestState.BEFORE_NAV;
-        // Execute pre navigation hooks before applying session pool cookies,
-        // as they may also set cookies in the session
-        await this._executeHooks(this.preNavigationHooks, crawlingContext, gotOptions);
-        tryCancel();
-
-        const postNavigationHooksCookies = this._getCookieHeaderFromRequest(request);
-
-        this._applyCookies(crawlingContext, gotOptions, preNavigationHooksCookies, postNavigationHooksCookies);
-
-        const proxyUrl = crawlingContext.proxyInfo?.url;
-
-        crawlingContext.response = await addTimeoutToPromise(
-            async () => this._requestFunction({ request, session, proxyUrl, gotOptions }),
-            this.navigationTimeoutMillis,
-            `request timed out after ${this.navigationTimeoutMillis / 1000} seconds.`,
-        );
-        tryCancel();
-
-        request.state = RequestState.AFTER_NAV;
-        await this._executeHooks(this.postNavigationHooks, crawlingContext, gotOptions);
-        tryCancel();
-    }
-
-    /**
-     * Sets the cookie header to `gotOptions` based on the provided request and session headers, as well as any changes that occurred due to hooks.
-     */
-    protected _applyCookies(
-        { session, request }: CrawlingContext,
-        gotOptions: OptionsInit,
-        preHookCookies: string,
-        postHookCookies: string,
-    ) {
-        const sessionCookie = session?.getCookieString(request.url) ?? '';
-        let alteredGotOptionsCookies = gotOptions.headers?.Cookie || gotOptions.headers?.cookie || '';
-
-        if (gotOptions.headers?.Cookie && gotOptions.headers?.cookie) {
-            const { Cookie: upperCaseHeader, cookie: lowerCaseHeader } = gotOptions.headers;
-
-            this.log.warning(
-                `Encountered mixed casing for the cookie headers in the got options for request ${request.url} (${request.id}). Their values will be merged`,
-            );
-
-            const sourceCookies = [];
-
-            if (Array.isArray(lowerCaseHeader)) {
-                sourceCookies.push(...lowerCaseHeader);
-            } else {
-                sourceCookies.push(lowerCaseHeader);
-            }
-
-            if (Array.isArray(upperCaseHeader)) {
-                sourceCookies.push(...upperCaseHeader);
-            } else {
-                sourceCookies.push(upperCaseHeader);
-            }
-
-            alteredGotOptionsCookies = mergeCookies(request.url, sourceCookies);
-        }
-
-        const sourceCookies = [sessionCookie, preHookCookies];
-
-        if (Array.isArray(alteredGotOptionsCookies)) {
-            sourceCookies.push(...alteredGotOptionsCookies);
-        } else {
-            sourceCookies.push(alteredGotOptionsCookies);
-        }
-
-        sourceCookies.push(postHookCookies);
-
-        const mergedCookie = mergeCookies(request.url, sourceCookies);
-
-        gotOptions.headers ??= {};
-        Reflect.deleteProperty(gotOptions.headers, 'Cookie');
-        Reflect.deleteProperty(gotOptions.headers, 'cookie');
-
-        if (mergedCookie !== '') {
-            gotOptions.headers.Cookie = mergedCookie;
-        }
     }
 
     /**
@@ -710,29 +728,19 @@ export class HttpCrawler<
      * on the request such as only downloading the request body if the
      * received content type matches text/html, application/xml, application/xhtml+xml.
      */
-    protected async _requestFunction({
-        request,
-        session,
-        proxyUrl,
-        gotOptions,
-    }: RequestFunctionOptions): Promise<PlainResponse> {
-        if (!TimeoutError) {
-            // @ts-ignore
-            ({ TimeoutError } = await import('got-scraping'));
-        }
-
-        const opts = this._getRequestOptions(request, session, proxyUrl, gotOptions);
+    async #requestFunction({ request, session, proxyUrl, signal }: RequestFunctionOptions): Promise<Response> {
+        const opts = this.#getRequestOptions(request, proxyUrl);
 
         try {
-            return await this._requestAsBrowser(opts, session);
+            return await this.#requestAsBrowser(opts, session, signal);
         } catch (e) {
-            if (e instanceof TimeoutError) {
-                this._handleRequestTimeout(session);
-                return undefined as unknown as PlainResponse;
+            if (e instanceof Error && e.constructor.name === 'TimeoutError') {
+                this.#handleRequestTimeout(session);
+                return new Response(); // this will never happen, as handleRequestTimeout always throws
             }
 
             if (this.isProxyError(e as Error)) {
-                throw new SessionError(this._getMessageFromError(e as Error) as string);
+                throw new SessionError(this.getMessageFromError(e as Error));
             } else {
                 throw e;
             }
@@ -742,21 +750,17 @@ export class HttpCrawler<
     /**
      * Encodes and parses response according to the provided content type
      */
-    protected async _parseResponse(request: Request, responseStream: IncomingMessage, crawlingContext: Context) {
-        const { statusCode } = responseStream;
-        const { type, charset } = parseContentTypeFromResponse(responseStream);
-        const { response, encoding } = this._encodeResponse(request, responseStream, charset);
-        const contentType = { type, encoding };
+    async #parseResponse(request: CrawlingRequest, response: Response) {
+        const { status } = response;
+        const { type, charset } = parseContentTypeFromResponse(response);
 
-        if (statusCode! >= 400 && statusCode! <= 599) {
-            this.stats.registerStatusCode(statusCode!);
+        if (status >= 400 && status <= 599) {
+            this.statistics.registerStatusCode(status);
         }
 
-        const excludeError = this.ignoreHttpErrorStatusCodes.has(statusCode!);
-        const includeError = this.additionalHttpErrorStatusCodes.has(statusCode!);
-
-        if ((statusCode! >= 500 && !excludeError) || includeError) {
-            const body = await readStreamToString(response, encoding);
+        if (this.isErrorStatusCode(status)) {
+            const { response: decoded } = this.#encodeResponse(request, response, charset);
+            const body = await decoded.text(); // TODO - this always uses UTF-8 (see https://developer.mozilla.org/en-US/docs/Web/API/Request/text)
 
             // Errors are often sent as JSON, so attempt to parse them,
             // despite Accept header being set to text/html.
@@ -764,72 +768,59 @@ export class HttpCrawler<
                 const errorResponse = JSON.parse(body);
                 let { message } = errorResponse;
                 if (!message) message = util.inspect(errorResponse, { depth: 1, maxArrayLength: 10 });
-                throw new Error(`${statusCode} - ${message}`);
+                throw new Error(`${status} - ${message}`);
             }
 
-            if (includeError) {
-                throw new Error(`${statusCode} - Error status code was set by user.`);
+            if (this.additionalHttpErrorStatusCodes.has(status)) {
+                throw new Error(`${status} - Error status code was set by user.`);
             }
 
             // It's not a JSON, so it's probably some text. Get the first 100 chars of it.
-            throw new Error(`${statusCode} - Internal Server Error: ${body.slice(0, 100)}`);
-        } else if (HTML_AND_XML_MIME_TYPES.includes(type)) {
-            const isXml = type.includes('xml');
-            const parsed = await this._parseHTML(response, isXml, crawlingContext);
-            return { ...parsed, isXml, response, contentType };
-        } else {
-            const body = await concatStreamToBuffer(response);
-            return {
-                body,
-                response,
-                contentType,
-                enqueueLinks: async () => Promise.resolve({ processedRequests: [], unprocessedRequests: [] }),
-            };
+            throw new Error(`${status} - Internal Server Error: ${body.slice(0, 100)}`);
         }
-    }
 
-    protected async _parseHTML(
-        response: IncomingMessage,
-        _isXml: boolean,
-        _crawlingContext: Context,
-    ): Promise<Partial<Context>> {
+        if (HTML_AND_XML_MIME_TYPES.includes(type) && !charset && !this.#forceResponseEncoding) {
+            // The charset comes from the document itself, so the raw bytes are what we need -
+            // decoding them through `encodeResponse` first would consume the body for nothing.
+            const rawBytes = Buffer.from(await response.arrayBuffer());
+            const metaCharset = extractCharsetFromHtmlBytes(rawBytes);
+            const charsetToUse = metaCharset ?? this.#suggestResponseEncoding ?? 'utf-8';
+            const body = iconv.encodingExists(charsetToUse)
+                ? iconv.decode(rawBytes, charsetToUse)
+                : rawBytes.toString('utf8');
+            return { response, contentType: { type, encoding: 'utf-8' as BufferEncoding }, body };
+        }
+
+        const { response: reencodedResponse, encoding } = this.#encodeResponse(request, response, charset);
+        const contentType = { type, encoding };
+
+        if (HTML_AND_XML_MIME_TYPES.includes(type)) {
+            return { response, contentType, body: await reencodedResponse.text() };
+        }
+
         return {
-            body: await concatStreamToBuffer(response),
-        } as Partial<Context>;
+            body: Buffer.from(await reencodedResponse.bytes()),
+            response,
+            contentType,
+        };
     }
 
     /**
      * Combines the provided `requestOptions` with mandatory (non-overridable) values.
      */
-    protected _getRequestOptions(request: Request, session?: Session, proxyUrl?: string, gotOptions?: OptionsInit) {
-        const requestOptions: OptionsInit & Required<Pick<OptionsInit, 'url'>> & { isStream: true } = {
+    #getRequestOptions(request: CrawlingRequest, proxyUrl?: string) {
+        const requestOptions = {
             url: request.url,
-            method: request.method as Method,
+            method: request.method,
             proxyUrl,
-            timeout: { request: this.navigationTimeoutMillis },
-            cookieJar: this.persistCookiesPerSession ? session?.cookieJar : undefined,
-            sessionToken: session,
-            ...gotOptions,
-            headers: { ...request.headers, ...gotOptions?.headers },
-            https: {
-                ...gotOptions?.https,
-                rejectUnauthorized: !this.ignoreSslErrors,
-            },
-            isStream: true,
+            timeout: this.#navigationTimeoutMillis,
+            headers: request.headers,
+            body: undefined as string | undefined,
         };
 
-        // Delete any possible lowercased header for cookie as they are merged in _applyCookies under the uppercase Cookie header
-        Reflect.deleteProperty(requestOptions.headers!, 'cookie');
-
-        // TODO this is incorrect, the check for man in the middle needs to be done
-        //   on individual proxy level, not on the `proxyConfiguration` level,
-        //   because users can use normal + MITM proxies in a single configuration.
-        // Disable SSL verification for MITM proxies
-        if (this.proxyConfiguration && this.proxyConfiguration.isManInTheMiddle) {
-            requestOptions.https = {
-                ...requestOptions.https,
-                rejectUnauthorized: false,
-            };
+        if (requestOptions.headers?.cookie || requestOptions.headers?.Cookie) {
+            requestOptions.headers!.Cookie = this.getCookieHeaderFromRequest(request);
+            delete requestOptions.headers!.cookie;
         }
 
         if (/PATCH|POST|PUT/.test(request.method)) requestOptions.body = request.payload ?? '';
@@ -837,18 +828,18 @@ export class HttpCrawler<
         return requestOptions;
     }
 
-    protected _encodeResponse(
-        request: Request,
-        response: IncomingMessage,
+    #encodeResponse(
+        request: CrawlingRequest,
+        response: Response,
         encoding: BufferEncoding,
     ): {
         encoding: BufferEncoding;
-        response: IncomingMessage;
+        response: Response;
     } {
-        if (this.forceResponseEncoding) {
-            encoding = this.forceResponseEncoding as BufferEncoding;
-        } else if (!encoding && this.suggestResponseEncoding) {
-            encoding = this.suggestResponseEncoding as BufferEncoding;
+        if (this.#forceResponseEncoding) {
+            encoding = this.#forceResponseEncoding as BufferEncoding;
+        } else if (!encoding && this.#suggestResponseEncoding) {
+            encoding = this.#suggestResponseEncoding as BufferEncoding;
         }
 
         // Fall back to utf-8 if we still don't have encoding.
@@ -862,18 +853,21 @@ export class HttpCrawler<
         // Try to re-encode a variety of unsupported encodings to utf-8
         if (iconv.encodingExists(encoding)) {
             const encodeStream = iconv.encodeStream(utf8);
-            const decodeStream = iconv.decodeStream(encoding).on('error', (err) => encodeStream.emit('error', err));
-            response.on('error', (err: Error) => decodeStream.emit('error', err));
-            const encodedResponse = response.pipe(decodeStream).pipe(encodeStream) as NodeJS.ReadWriteStream & {
-                statusCode?: number;
-                headers: IncomingHttpHeaders;
-                url?: string;
-            };
-            encodedResponse.statusCode = response.statusCode;
-            encodedResponse.headers = response.headers;
-            encodedResponse.url = response.url;
+            const decodeStream = iconv
+                .decodeStream(encoding)
+                .on('error', (err: Error) => encodeStream.emit('error', err));
+            const reencodedBody = response.body
+                ? Readable.toWeb(
+                      Readable.from(
+                          Readable.fromWeb(response.body as any)
+                              .pipe(decodeStream)
+                              .pipe(encodeStream),
+                      ),
+                  )
+                : null;
+
             return {
-                response: encodedResponse as any,
+                response: new ResponseWithUrl(reencodedBody as any, response),
                 encoding: utf8,
             };
         }
@@ -884,44 +878,41 @@ export class HttpCrawler<
     /**
      * Checks and extends supported mime types
      */
-    protected _extendSupportedMimeTypes(additionalMimeTypes: (string | RequestLike | ResponseLike)[]) {
+    #extendSupportedMimeTypes(additionalMimeTypes: string[]) {
         for (const mimeType of additionalMimeTypes) {
             if (mimeType === '*/*') {
-                this.supportedMimeTypes.add(mimeType);
+                this.#supportedMimeTypes.add(mimeType);
                 continue;
             }
 
-            try {
-                const parsedType = contentTypeParser.parse(mimeType);
-                this.supportedMimeTypes.add(parsedType.type);
-            } catch (err) {
+            const parsedType = parseContentType(mimeType);
+            if (!isTypeValid(parsedType.type)) {
                 throw new Error(`Can not parse mime type ${mimeType} from "options.additionalMimeTypes".`);
             }
+
+            this.#supportedMimeTypes.add(parsedType.type);
         }
     }
 
     /**
      * Handles timeout request
      */
-    protected _handleRequestTimeout(session?: Session) {
-        session?.markBad();
-        throw new Error(`request timed out after ${this.requestHandlerTimeoutMillis / 1000} seconds.`);
+    #handleRequestTimeout(session: ISession) {
+        session.markBad();
+        throw new Error(`Request timed out after ${this.#navigationTimeoutMillis / 1000} seconds.`);
     }
 
-    private _abortDownloadOfBody(request: Request, response: IncomingMessage) {
-        const { statusCode } = response;
+    #abortDownloadOfBody(request: CrawlingRequest, response: Response) {
+        const { status } = response;
         const { type } = parseContentTypeFromResponse(response);
 
-        // eslint-disable-next-line dot-notation -- accessing private property
-        const blockedStatusCodes = this.sessionPool ? this.sessionPool['blockedStatusCodes'] : [];
-        // if we retry the request, can the Content-Type change?
-        const isTransientContentType = statusCode! >= 500 || blockedStatusCodes.includes(statusCode!);
+        const isTransientContentType = status >= 500 || this.blockedStatusCodes.has(status);
 
-        if (!this.supportedMimeTypes.has(type) && !this.supportedMimeTypes.has('*/*') && !isTransientContentType) {
+        if (!this.#supportedMimeTypes.has(type) && !this.#supportedMimeTypes.has('*/*') && !isTransientContentType) {
             request.noRetry = true;
             throw new Error(
                 `Resource ${request.url} served Content-Type ${type}, ` +
-                    `but only ${Array.from(this.supportedMimeTypes).join(', ')} are allowed. Skipping resource.`,
+                    `but only ${Array.from(this.#supportedMimeTypes).join(', ')} are allowed. Skipping resource.`,
             );
         }
     }
@@ -929,117 +920,52 @@ export class HttpCrawler<
     /**
      * @internal wraps public utility for mocking purposes
      */
-    private _requestAsBrowser = async (
-        options: OptionsInit & { url: string | URL; isStream: true },
-        session?: Session,
-    ) => {
-        const response = await this.httpClient.stream(
-            processHttpRequestOptions({
-                ...(options as any),
-                cookieJar: options.cookieJar,
-                responseType: 'text',
-            }),
-            (redirectResponse, updatedRequest) => {
-                if (this.persistCookiesPerSession) {
-                    session!.setCookiesFromResponse(redirectResponse);
+    #requestAsBrowser = async (options: Dictionary<any>, session: ISession, signal: AbortSignal) => {
+        const opts = processHttpRequestOptions({
+            ...(options as any),
+            responseType: 'text',
+        });
 
-                    const cookieString = session!.getCookieString(updatedRequest.url!.toString());
-                    if (cookieString !== '') {
-                        updatedRequest.headers.Cookie = cookieString;
-                    }
-                }
+        // When saveResponseCookies is false, the response cookies must not mutate the
+        // session jar. Reads still go through the session (so session.setCookie() in pre-nav
+        // hooks keeps working) but a per-request clone is passed in so writes are discarded.
+        const cookieJar = this.#saveResponseCookies ? session.cookieJar : await session.cookieJar.clone();
+
+        // Bind the request to the shared navigation window instead of a fixed per-request timeout, so
+        // `extendTimeout()` can push the deadline and a fixed `AbortSignal.timeout` won't fire on its own and
+        // kill a lazily-read body mid-extension. The window's signal only covers the header phase; the body read is
+        // bounded separately (see `processHttpResponse`), which aborts `signal` when it fails, so a slow-streaming
+        // body still fails cleanly with a navigation timeout and its download stops too.
+        const cancelSignal = storage.getStore()?.cancelTask.signal;
+        const requestSignal = cancelSignal ? AbortSignal.any([cancelSignal, signal]) : signal;
+
+        const response = await this.httpClient.sendRequest(
+            new Request(opts.url, {
+                body: opts.body ? (Readable.toWeb(opts.body) as any) : undefined,
+                headers: new Headers(opts.headers),
+                method: opts.method,
+                // Node-specific option to make the request body work with streams
+                duplex: 'half',
+            } as RequestInit),
+            {
+                session,
+                cookieJar,
+                proxyUrl: opts.proxyUrl,
+                signal: requestSignal,
+                timeoutMillis: cancelSignal ? undefined : opts.timeout,
+                ignoreTlsErrors: this.#ignoreTlsErrors,
             },
         );
 
-        return addResponsePropertiesToStream(response.stream, response);
+        return response;
     };
 }
 
 interface RequestFunctionOptions {
-    request: Request;
-    session?: Session;
+    request: CrawlingRequest;
+    session: ISession;
     proxyUrl?: string;
-    gotOptions: OptionsInit;
-}
-
-/**
- * The stream object returned from got does not have the below properties.
- * At the same time, you can't read data directly from the response stream,
- * because they won't get emitted unless you also read from the primary
- * got stream. To be able to work with only one stream, we move the expected props
- * from the response stream to the got stream.
- * @internal
- */
-function addResponsePropertiesToStream(stream: Readable, response: StreamingHttpResponse) {
-    const properties: (keyof PlainResponse)[] = [
-        'statusCode',
-        'statusMessage',
-        'headers',
-        'complete',
-        'httpVersion',
-        'rawHeaders',
-        'rawTrailers',
-        'trailers',
-        'url',
-        'request',
-    ];
-
-    stream.on('end', () => {
-        // @ts-expect-error
-        if (stream.rawTrailers) stream.rawTrailers = response.rawTrailers; // TODO BC with got - remove in 4.0
-
-        // @ts-expect-error
-        if (stream.trailers) stream.trailers = response.trailers;
-
-        // @ts-expect-error
-        stream.complete = response.complete;
-    });
-
-    for (const prop of properties) {
-        if (!(prop in stream)) {
-            (stream as any)[prop] = (response as any)[prop];
-        }
-    }
-
-    return stream as unknown as PlainResponse;
-}
-
-/**
- * Gets parsed content type from response object
- * @param response HTTP response object
- */
-function parseContentTypeFromResponse(response: unknown): { type: string; charset: BufferEncoding } {
-    ow(
-        response,
-        ow.object.partialShape({
-            url: ow.string.url,
-            headers: new ObjectPredicate<Record<string, unknown>>(),
-        }),
-    );
-
-    const { url, headers } = response;
-    let parsedContentType;
-
-    if (headers['content-type']) {
-        try {
-            parsedContentType = contentTypeParser.parse(headers['content-type'] as string);
-        } catch {
-            // Can not parse content type from Content-Type header. Try to parse it from file extension.
-        }
-    }
-
-    // Parse content type from file extension as fallback
-    if (!parsedContentType) {
-        const parsedUrl = new URL(url);
-        const contentTypeFromExtname =
-            mime.contentType(extname(parsedUrl.pathname)) || 'application/octet-stream; charset=utf-8'; // Fallback content type, specified in https://tools.ietf.org/html/rfc7231#section-3.1.1.5
-        parsedContentType = contentTypeParser.parse(contentTypeFromExtname);
-    }
-
-    return {
-        type: parsedContentType.type,
-        charset: parsedContentType.parameters.charset as BufferEncoding,
-    };
+    signal: AbortSignal;
 }
 
 /**
@@ -1068,7 +994,16 @@ function parseContentTypeFromResponse(response: unknown): { type: string; charse
  */
 export function createHttpRouter<
     Context extends HttpCrawlingContext = HttpCrawlingContext,
+    Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>,
+>(routes?: RouterRoutes<Context, Routes>): RouterHandler<Context, Routes>;
+export function createHttpRouter<
+    Context extends HttpCrawlingContext = HttpCrawlingContext,
     UserData extends Dictionary = GetUserDataFromRequest<Context['request']>,
->(routes?: RouterRoutes<Context, UserData>) {
-    return Router.create<Context>(routes);
+>(routes?: RouterRoutes<Context, Record<string, UserData>>): RouterHandler<Context, Record<string, UserData>>;
+export function createHttpRouter<
+    Context extends HttpCrawlingContext = HttpCrawlingContext,
+    const Schemas extends RouteSchemas = RouteSchemas,
+>(schemas: Schemas): RouterHandler<Context, RoutesFromSchemas<Schemas>>;
+export function createHttpRouter(routesOrSchemas?: any): any {
+    return Router.create(routesOrSchemas);
 }

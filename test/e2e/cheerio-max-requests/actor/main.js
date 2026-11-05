@@ -1,5 +1,5 @@
 import { Actor } from 'apify';
-import { CheerioCrawler, Dataset } from '@crawlee/cheerio';
+import { CheerioCrawler, ConcurrencySystem, Dataset } from '@crawlee/cheerio';
 
 const mainOptions = {
     exit: Actor.isAtHome(),
@@ -10,9 +10,12 @@ const mainOptions = {
 };
 
 await Actor.main(async () => {
+    // The caller owns an injected system's lifecycle - start it before the crawler runs and stop it afterwards.
+    const concurrencySystem = new ConcurrencySystem({ desiredConcurrency: 2 });
+
     const crawler = new CheerioCrawler({
         maxRequestsPerCrawl: 10,
-        autoscaledPoolOptions: { desiredConcurrency: 2 },
+        concurrencySystem,
         async requestHandler({ $, request }) {
             const {
                 url,
@@ -49,5 +52,10 @@ await Actor.main(async () => {
         },
     });
 
-    await crawler.run([{ url: 'https://crawlee.dev/js/docs/examples', userData: { label: 'START' } }]);
+    await concurrencySystem.start();
+    try {
+        await crawler.run([{ url: 'https://crawlee.dev/js/docs/examples', userData: { label: 'START' } }]);
+    } finally {
+        await concurrencySystem.stop();
+    }
 }, mainOptions);

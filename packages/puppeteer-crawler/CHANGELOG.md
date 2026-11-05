@@ -3,6 +3,36 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.18.1](https://github.com/apify/crawlee/compare/v3.18.0...v3.18.1) (2026-08-12)
+
+**Note:** Version bump only for package @crawlee/puppeteer
+
+
+
+
+
+# [3.18.0](https://github.com/apify/crawlee/compare/v3.17.0...v3.18.0) (2026-08-04)
+
+### Bug Fixes
+
+* allow any `clickOptions` in `enqueueLinksByClickingElements` ([#3823](https://github.com/apify/crawlee/issues/3823)) ([abcbfb1](https://github.com/apify/crawlee/commit/abcbfb158ab3edbb9e7e4c5c6f1d937dea9bb4dd))
+* **playwright,puppeteer:** only intercept requests for non-GET methods or payloads ([#3819](https://github.com/apify/crawlee/issues/3819)) ([1942f1e](https://github.com/apify/crawlee/commit/1942f1ec827cb69953a95abae2086400498b32d8))
+
+### Features
+
+* opt-in schema validation of request userData per router label ([#3851](https://github.com/apify/crawlee/issues/3851)) ([c7347f9](https://github.com/apify/crawlee/commit/c7347f94f72980b7c424fb4fc7dc8f990f360d70)), closes [#3747](https://github.com/apify/crawlee/issues/3747) [#3748](https://github.com/apify/crawlee/issues/3748) [#3747](https://github.com/apify/crawlee/issues/3747) [#3082](https://github.com/apify/crawlee/issues/3082)
+* support `puppeteer@25` ([#3869](https://github.com/apify/crawlee/issues/3869)) ([1430062](https://github.com/apify/crawlee/commit/1430062c2ba49c32ecb4cd4a14edd2d9a71c7ac3)), closes [#3772](https://github.com/apify/crawlee/issues/3772)
+* type-safe router labels via per-label userData map ([#3747](https://github.com/apify/crawlee/issues/3747)) ([1124aca](https://github.com/apify/crawlee/commit/1124aca3c5eb527c097decd7263a6816c411369e)), closes [#3082](https://github.com/apify/crawlee/issues/3082)
+
+
+# [3.17.0](https://github.com/apify/crawlee/compare/v3.16.0...v3.17.0) (2026-06-04)
+
+**Note:** Version bump only for package @crawlee/puppeteer
+
+
+
+
+
 # [3.16.0](https://github.com/apify/crawlee/compare/v3.15.3...v3.16.0) (2026-02-06)
 
 

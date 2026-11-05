@@ -1,5 +1,5 @@
-import { Actor, LogLevel, log as Logger } from 'apify';
-import { CheerioCrawler, Dataset } from '@crawlee/cheerio';
+import { Actor, log as Logger } from 'apify';
+import { ApifyLogAdapter, CheerioCrawler, Dataset } from '@crawlee/cheerio';
 
 const mainOptions = {
     exit: Actor.isAtHome(),
@@ -14,7 +14,7 @@ await Actor.main(async () => {
         async requestHandler({ $, enqueueLinks, request, log }) {
             const { url } = request;
             await enqueueLinks({
-                globs: ['https://crawlee.dev/js/docs/**'],
+                include: ['https://crawlee.dev/js/docs/**'],
             });
 
             const pageTitle = $('title').first().text();
@@ -22,13 +22,11 @@ await Actor.main(async () => {
 
             await Dataset.pushData({ url, pageTitle });
         },
-        experiments: {
-            requestLocking: true,
-        },
-        log: Logger.child({
-            prefix: 'CheerioCrawler',
-            // level: LogLevel.DEBUG,
-        }),
+        logger: new ApifyLogAdapter(
+            Logger.child({
+                prefix: 'CheerioCrawler',
+            }),
+        ),
     });
 
     try {

@@ -1,10 +1,11 @@
-import * as cheerio from 'cheerio';
-
-import { htmlToText } from './cheerio';
+import { htmlToText } from './cheerio.js';
 
 // Regex inspired by https://zapier.com/blog/extract-links-email-phone-regex/
+// The dot-atom local part and domain labels use RFC 5321 length bounds ({1,64}, {0,62})
+// instead of unbounded quantifiers to avoid quadratic backtracking (ReDoS) on long
+// dotted or hyphenated inputs, e.g. text scraped by parseHandlesFromHtml().
 const EMAIL_REGEX_STRING =
-    '(?:[a-z0-9!#$%&\'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&\'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\\])';
+    '(?:[a-z0-9!#$%&\'*+/=?^_`{|}~-]{1,64}(?:\\.[a-z0-9!#$%&\'*+/=?^_`{|}~-]{1,64}){0,32}|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?\\.)+[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?|\\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\\])';
 
 /**
  * Regular expression to exactly match a single email address.
@@ -35,6 +36,8 @@ export function emailsFromText(text: string): string[] {
 /**
  * The function extracts email addresses from a list of URLs.
  * Basically it looks for all `mailto:` URLs and returns valid email addresses from them.
+ * A `mailto:` URL can list several comma-separated, percent-encoded addresses and end with a query
+ * such as `?subject=Hello`, see [RFC 6068](https://www.rfc-editor.org/rfc/rfc6068).
  * Note that the function preserves the order of emails and keep duplicates.
  * @param urls Array of URLs.
  * @return Array of emails addresses found.
@@ -48,8 +51,18 @@ export function emailsFromUrls(urls: string[]): string[] {
         if (!url) continue;
         if (!EMAIL_URL_PREFIX_REGEX.test(url)) continue;
 
-        const email = url.replace(EMAIL_URL_PREFIX_REGEX, '').trim();
-        if (EMAIL_REGEX.test(email)) emails.push(email);
+        // Characters like `?` and `,` inside an address must be percent-encoded, so it's safe
+        // to split on them before decoding.
+        const [addresses] = url.replace(EMAIL_URL_PREFIX_REGEX, '').split('?');
+        for (const address of addresses.split(',')) {
+            let email = address.trim();
+            try {
+                email = decodeURIComponent(email).trim();
+            } catch {
+                // Keep the raw value if it isn't valid percent-encoding
+            }
+            if (EMAIL_REGEX.test(email)) emails.push(email);
+        }
     }
 
     return emails;
@@ -155,8 +168,17 @@ export function phonesFromUrls(urls: string[]): string[] {
         if (!url) continue;
         if (!PHONE_URL_PREFIX_REGEX.test(url)) continue;
 
-        const phone = url.replace(PHONE_URL_PREFIX_REGEX, '').trim();
-        if (PHONE_REGEX.test(phone)) phones.push(phone);
+        // Per RFC 3966, parameters such as `;ext=89` can follow the number, and `-`, `.`, `(` and `)`
+        // are only visual separators. They are checked without separators too, so a one-digit country
+        // code like in `tel:+1-555-123-4567` is accepted.
+        const [number] = url.replace(PHONE_URL_PREFIX_REGEX, '').split(';');
+        let phone = number.trim();
+        try {
+            phone = decodeURIComponent(phone).trim();
+        } catch {
+            // Keep the raw value if it isn't valid percent-encoding
+        }
+        if (PHONE_REGEX.test(phone) || PHONE_REGEX.test(phone.replace(/[-.() ]/g, ''))) phones.push(phone);
     }
     return phones;
 }
@@ -385,7 +407,7 @@ export const TWITTER_REGEX = new RegExp(`^${TWITTER_REGEX_STRING}$`, 'i');
  * ```
  * import { social } from 'crawlee';
  *
- * const matches = text.match(social.TWITTER_REGEX_STRING);
+ * const matches = text.match(social.TWITTER_REGEX_GLOBAL);
  * if (matches) console.log(`${matches.length} Twitter profiles found!`);
  * ```
  */
@@ -658,7 +680,12 @@ export const DISCORD_REGEX_GLOBAL = new RegExp(DISCORD_REGEX_STRING, 'ig');
  *   so that the caller doesn't need to parse the HTML document again, if needed.
  * @return An object with the social handles.
  */
-export function parseHandlesFromHtml(html: string, data: Record<string, unknown> | null = null): SocialHandles {
+export async function parseHandlesFromHtml(
+    html: string,
+    data: Record<string, unknown> | null = null,
+): Promise<SocialHandles> {
+    const cheerio = await import('cheerio/slim');
+
     const result: SocialHandles = {
         emails: [],
         phones: [],
@@ -675,10 +702,10 @@ export function parseHandlesFromHtml(html: string, data: Record<string, unknown>
 
     if ((typeof html as unknown) !== 'string') return result;
 
-    const $ = cheerio.load(html, { decodeEntities: true });
+    const $ = cheerio.load(html, { xml: { decodeEntities: true } });
     if (data) data.$ = $;
 
-    const text = htmlToText($);
+    const text = await htmlToText($);
     if (data) data.text = text;
 
     // NOTE: we need to parse each text separately, orherwise we might concatenate unrelated texts

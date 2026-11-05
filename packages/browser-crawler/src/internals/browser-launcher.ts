@@ -1,15 +1,27 @@
 import fs from 'node:fs';
+import { createRequire } from 'node:module';
 import os from 'node:os';
 
-import { Configuration } from '@crawlee/basic';
-import type { BrowserPlugin, BrowserPluginOptions } from '@crawlee/browser-pool';
-import type { Constructor, Dictionary } from '@crawlee/utils';
-import ow from 'ow';
+import { Configuration, serviceLocator } from '@crawlee/basic';
+import {
+    type BrowserPlugin,
+    type BrowserPluginOptions,
+    BrowserPool,
+    type BrowserPoolHooks,
+    type BrowserPoolOptions,
+    type RemoteBrowserOptions,
+    RemoteBrowserProvider,
+} from '@crawlee/browser-pool';
+import type { Constructor, Dictionary } from '@crawlee/types';
+import { schemas } from '@crawlee/utils/internal';
+import { z } from 'zod';
 
 const DEFAULT_VIEWPORT = {
     width: 1366,
     height: 768,
 };
+
+const require = createRequire(import.meta.url);
 
 export interface BrowserLaunchContext<TOptions, Launcher> extends BrowserPluginOptions<TOptions> {
     /**
@@ -47,13 +59,6 @@ export interface BrowserLaunchContext<TOptions, Launcher> extends BrowserPluginO
     useIncognitoPages?: boolean;
 
     /**
-     * @experimental
-     * Like `useIncognitoPages`, but for persistent contexts, so cache is used for faster loading.
-     * Works best with Firefox. Unstable on Chromium.
-     */
-    experimentalContainers?: boolean;
-
-    /**
      * Sets the [User Data Directory](https://chromium.googlesource.com/chromium/src/+/master/docs/user_data_dir.md) path.
      * The user data directory contains profile data such as history, bookmarks, and cookies, as well as other per-installation local state.
      * If not specified, a temporary directory is used instead.
@@ -89,6 +94,28 @@ export interface BrowserLaunchContext<TOptions, Launcher> extends BrowserPluginO
 }
 
 /**
+ * The {@apilink BrowserPool} options a launcher-built pool accepts: everything the pool itself takes except
+ * `browserPlugins`, which the launcher derives from its launch context. The hooks are deliberately unconstrained -
+ * the browser they run against is only known to the concrete `*BrowserPool()` factory, which is where the
+ * caller-facing types are pinned down.
+ */
+type LauncherBrowserPoolOptions = Omit<BrowserPoolOptions, 'browserPlugins'> & {
+    [Hook in keyof BrowserPoolHooks<any, any, any>]?: readonly ((...args: any[]) => unknown)[];
+};
+
+/**
+ * The remote-connection configuration a browser crawler accepts on its `remoteBrowser` option. Library-specific
+ * connect settings (e.g. Playwright's `protocol`) are added by the concrete crawler's options.
+ */
+export interface CrawlerRemoteBrowserOptions extends RemoteBrowserOptions {
+    /**
+     * Maximum number of remote browsers open at once; see {@apilink BrowserPoolOptions.maxOpenBrowsers}. Defaults
+     * to the {@apilink RemoteBrowserProvider.maxOpenBrowsers|provider's value}, or `Infinity`.
+     */
+    maxOpenBrowsers?: number;
+}
+
+/**
  * Abstract class for creating browser launchers, such as `PlaywrightLauncher` and `PuppeteerLauncher`.
  * @ignore
  */
@@ -104,21 +131,27 @@ export abstract class BrowserLauncher<
     useChrome?: boolean;
     launchOptions: Dictionary;
     otherLaunchContextProps: Dictionary;
-    // to be provided by child classes;
+    // to be provided by child classes; `RemotePlugin` only by those supporting remote browsers
     Plugin!: T;
+    RemotePlugin?: T;
     userAgent?: string;
 
+    /**
+     * @internal
+     */
     protected static optionsShape = {
-        proxyUrl: ow.optional.string.url,
-        useChrome: ow.optional.boolean,
-        useIncognitoPages: ow.optional.boolean,
-        browserPerProxy: ow.optional.boolean,
-        experimentalContainers: ow.optional.boolean,
-        ignoreProxyCertificate: ow.optional.boolean,
-        userDataDir: ow.optional.string,
-        launchOptions: ow.optional.object,
-        userAgent: ow.optional.string,
+        proxyUrl: z.url().optional(),
+        useChrome: z.boolean().optional(),
+        useIncognitoPages: z.boolean().optional(),
+        browserPerProxy: z.boolean().optional(),
+        ignoreProxyCertificate: z.boolean().optional(),
+        userDataDir: z.string().optional(),
+        launchOptions: schemas.anyObject.optional(),
+        userAgent: z.string().optional(),
     };
+
+    /** @internal */
+    protected static optionsSchema = z.strictObject(BrowserLauncher.optionsShape);
 
     static requireLauncherOrThrow<T>(launcher: string, apifyImageName: string): T {
         try {
@@ -143,7 +176,7 @@ export abstract class BrowserLauncher<
      */
     constructor(
         launchContext: BrowserLaunchContext<LaunchOptions, Launcher>,
-        readonly config = Configuration.getGlobalConfig(),
+        readonly configuration = Configuration.getGlobalConfiguration(),
     ) {
         const {
             launcher,
@@ -154,7 +187,7 @@ export abstract class BrowserLauncher<
             ...otherLaunchContextProps
         } = launchContext;
 
-        this._validateProxyUrlProtocol(proxyUrl);
+        this.#validateProxyUrlProtocol(proxyUrl);
 
         // those need to be reassigned otherwise they are {} in types
         this.launcher = launcher!;
@@ -168,12 +201,70 @@ export abstract class BrowserLauncher<
     /**
      * @ignore
      */
-    createBrowserPlugin(): Plugin {
-        return new this.Plugin(this.launcher, {
+    createBrowserPlugin(remoteBrowser?: CrawlerRemoteBrowserOptions): Plugin {
+        const options = {
             proxyUrl: this.proxyUrl,
             launchOptions: this.createLaunchOptions(),
             ...this.otherLaunchContextProps,
-        });
+        };
+
+        if (!remoteBrowser) {
+            return new this.Plugin(this.launcher, options);
+        }
+
+        if (!this.RemotePlugin) {
+            throw new Error(`${this.constructor.name} does not support remote browsers.`);
+        }
+
+        const { maxOpenBrowsers: _, ...remoteOptions } = remoteBrowser;
+        return new this.RemotePlugin(this.launcher, { ...options, ...remoteOptions });
+    }
+
+    /**
+     * Builds a {@apilink BrowserPool} running a single plugin for this launcher's browser. Shared body of the
+     * per-library `*BrowserPool()` factories, which exist so that configuring a pool never requires assembling
+     * a plugin by hand — and therefore never lets the plugin drift away from the crawler it is used with.
+     * With `remoteBrowser`, the plugin connects to a remote browser service instead of launching locally.
+     * @internal
+     */
+    createBrowserPool({
+        remoteBrowser,
+        ...options
+    }: LauncherBrowserPoolOptions & { remoteBrowser?: CrawlerRemoteBrowserOptions } = {}): BrowserPool<
+        { browserPlugins: [Plugin] },
+        [Plugin]
+    > {
+        const provider = remoteBrowser?.endpoint instanceof RemoteBrowserProvider ? remoteBrowser.endpoint : undefined;
+        const maxOpenBrowsers = options.maxOpenBrowsers ?? remoteBrowser?.maxOpenBrowsers ?? provider?.maxOpenBrowsers;
+
+        // The hook types `BrowserPool` derives from `Plugin` are unresolvable while `Plugin` is still a free type
+        // parameter, so the argument cannot be checked here. The concrete `*BrowserPool()` factories are where the
+        // caller-facing hook types get pinned down.
+        return new BrowserPool<{ browserPlugins: [Plugin] }, [Plugin]>({
+            ...this.#resolveFingerprinting(options),
+            ...(maxOpenBrowsers !== undefined && { maxOpenBrowsers }),
+            browserPlugins: [this.createBrowserPlugin(remoteBrowser)],
+        } as any);
+    }
+
+    /**
+
+     * A custom `userAgent` and Crawlee's fingerprint injection would both write the same headers, so an
+     * explicitly requested user agent wins.
+     */
+    #resolveFingerprinting<T extends { useFingerprints?: boolean }>(options: T): T {
+        if (!this.userAgent) {
+            return options;
+        }
+
+        if (options.useFingerprints) {
+            serviceLocator
+                .getLogger()
+                .child({ prefix: 'BrowserLauncher' })
+                .info('Custom user agent provided, disabling automatic browser fingerprint injection!');
+        }
+
+        return { ...options, useFingerprints: false };
     }
 
     /**
@@ -194,7 +285,7 @@ export abstract class BrowserLauncher<
             ...this.launchOptions,
         };
 
-        if (this.config.get('disableBrowserSandbox')) {
+        if (this.configuration.disableBrowserSandbox) {
             launchOptions.args.push('--no-sandbox');
         }
 
@@ -203,28 +294,28 @@ export abstract class BrowserLauncher<
         }
 
         if (launchOptions.headless == null) {
-            launchOptions.headless = this._getDefaultHeadlessOption();
+            launchOptions.headless = this.getDefaultHeadlessOption();
         }
 
         if (this.useChrome && !launchOptions.executablePath) {
-            launchOptions.executablePath = this._getChromeExecutablePath();
+            launchOptions.executablePath = this.#getChromeExecutablePath();
         }
 
         return launchOptions;
     }
 
-    protected _getDefaultHeadlessOption(): boolean {
-        return this.config.get('headless')! && !this.config.get('xvfb', false);
+    protected getDefaultHeadlessOption(): boolean {
+        return this.configuration.headless && !this.configuration.xvfb;
     }
 
-    protected _getChromeExecutablePath(): string {
-        return this.config.get('chromeExecutablePath', this._getTypicalChromeExecutablePath());
+    #getChromeExecutablePath(): string {
+        return this.configuration.chromeExecutablePath ?? this.#getTypicalChromeExecutablePath();
     }
 
     /**
      * Gets a typical path to Chrome executable, depending on the current operating system.
      */
-    protected _getTypicalChromeExecutablePath(): string {
+    #getTypicalChromeExecutablePath(): string {
         /**
          * Returns path of Chrome executable by its OS environment variable to deal with non-english language OS.
          * Taking also into account the old [chrome 380177 issue](https://bugs.chromium.org/p/chromium/issues/detail?id=380177).
@@ -253,7 +344,7 @@ export abstract class BrowserLauncher<
         }
     }
 
-    protected _validateProxyUrlProtocol(proxyUrl?: string): void {
+    #validateProxyUrlProtocol(proxyUrl?: string): void {
         if (!proxyUrl) return;
 
         if (!/^(http|https|socks4|socks5)/i.test(proxyUrl)) {
