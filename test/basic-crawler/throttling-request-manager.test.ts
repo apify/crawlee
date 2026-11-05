@@ -726,6 +726,56 @@ describe('ThrottlingRequestManager', () => {
         expect(await subQueue.getPendingCount()).toBe(0);
     });
 
+    describe('readiness during cooldown', () => {
+        beforeEach(() => {
+            freezeClock();
+        });
+
+        test('finishes as soon as the last request is handled', async () => {
+            const manager = new ThrottlingRequestManager({
+                inner: await createQueue(),
+                domains: ['example.com'],
+                minCrawlDelaySecs: 60,
+            });
+            await manager.addRequest({ url: 'https://example.com/1' });
+            await manager.markRequestAsHandled(await pollForNextRequest(manager));
+
+            expect(await manager.checkReadiness()).toEqual({ status: 'finished' });
+        });
+
+        test('waits while a domain has in-flight work', async () => {
+            const manager = new ThrottlingRequestManager({
+                inner: await createQueue(),
+                domains: ['example.com'],
+                minCrawlDelaySecs: 60,
+            });
+            await manager.addRequest({ url: 'https://example.com/1' });
+            await pollForNextRequest(manager);
+
+            expect(await manager.checkReadiness()).toEqual({ status: 'waiting', readyAt: Date.now() + 60_000 });
+        });
+
+        test('a finished domain does not set the wake-up time ahead of one with work left', async () => {
+            const manager = new ThrottlingRequestManager({ inner: await createQueue(), domains: 'all' });
+            for (const [domain, intervalMs] of [
+                ['finished.com', 10_000],
+                ['busy.com', 20_000],
+            ] as const) {
+                manager.recordPacingSignal({
+                    url: `https://${domain}/1`,
+                    reason: 'minInterval',
+                    intervalMs,
+                    scope: 'hostname',
+                });
+                await manager.addRequest({ url: `https://${domain}/1` });
+                await manager.markRequestAsHandled(await pollForNextRequest(manager));
+            }
+            await manager.addRequest({ url: 'https://busy.com/2' });
+
+            expect(await manager.checkReadiness()).toEqual({ status: 'waiting', readyAt: Date.now() + 20_000 });
+        });
+    });
+
     describe('stall detection', () => {
         beforeEach(() => {
             freezeClock();
