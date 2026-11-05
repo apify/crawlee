@@ -4,7 +4,6 @@ import type { BaseHttpClient } from '@crawlee/http-client';
 import type { ParseSitemapOptions } from '@crawlee/utils';
 import { EnqueueStrategy } from '@crawlee/utils';
 import { parseArgument, parseSitemap, schemas } from '@crawlee/utils/internal';
-import { minimatch } from 'minimatch';
 import type { RequiredDeep } from 'type-fest';
 import { z } from 'zod';
 
@@ -272,30 +271,14 @@ export class SitemapRequestLoader implements IRequestLoader {
     }
 
     /**
-     * Returns a function that checks whether the provided pattern matches the closure URL.
-     * @param url URL to be checked.
-     * @returns A matcher function that checks whether the pattern matches the closure URL.
-     */
-    #matchesUrl(url: string): (patternObject: UrlPatternObject) => boolean {
-        return (patternObject) => {
-            const { regexp, glob } = patternObject;
-
-            const matchesRegex = (regexp && url.match(regexp)) || false;
-            const matchesGlob = (glob && minimatch(url, glob, { nocase: true })) || false;
-
-            return Boolean(matchesRegex || matchesGlob);
-        };
-    }
-
-    /**
      * Checks whether the URL matches the `include` / `exclude` patterns provided in the `options`.
      * @param url URL to be checked.
      * @returns `true` if the URL matches the patterns, `false` otherwise.
      */
     #isUrlMatchingPatterns(url: string): boolean {
         return (
-            !this.#urlExcludePatternObjects.some(this.#matchesUrl(url)) &&
-            (this.#urlPatternObjects.length === 0 || this.#urlPatternObjects.some(this.#matchesUrl(url)))
+            !this.#urlExcludePatternObjects.some(({ match }) => match(url)) &&
+            (this.#urlPatternObjects.length === 0 || this.#urlPatternObjects.some(({ match }) => match(url)))
         );
     }
 
