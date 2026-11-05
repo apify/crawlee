@@ -951,8 +951,8 @@ importers:
         specifier: ^1.2.0
         version: 1.2.0
       devtools-protocol:
-        specifier: ^0.0.1729950
-        version: 0.0.1729950
+        specifier: ^0.0.1734725
+        version: 0.0.1734725
       domhandler:
         specifier: ^6.0.1
         version: 6.0.1
@@ -6819,8 +6819,8 @@ packages:
   devtools-protocol@0.0.1696802:
     resolution: {integrity: sha512-FO5/SENfvc2K8wRnWQflKcwuoTH4dBkXCWTQ9ebIWtuX8JM5+ZvCotaEmkfh21pO7TvIKGTM3hG4xFiq9WTwmg==}
 
-  devtools-protocol@0.0.1729950:
-    resolution: {integrity: sha512-KMGfQFLE9TpUCNH1IcLN1uwPIZl/BAtCJkU5U47L0EuZ+EWRypNWoQt8irh1kgb9jVoSd77V7fRuywzNx7TT5w==}
+  devtools-protocol@0.0.1734725:
+    resolution: {integrity: sha512-MR4wa1X950I/Xah+jSm5WyquFKm/7vWX1tzTCxqDlu2Oxb7sGHkZ3kMk/xKpCbJt1iwSvKTxwV6PSnJNw73Xqg==}
 
   diff@8.0.4:
     resolution: {integrity: sha512-DPi0FmjiSU5EvQV0++GFDOJ9ASQUVFh5kD+OzOnYdi7n3Wpm9hWWGfB/O2blfHcMVTL5WkQXSnRiK9makhrcnw==}
@@ -19351,7 +19351,7 @@ snapshots:
 
   devtools-protocol@0.0.1696802: {}
 
-  devtools-protocol@0.0.1729950: {}
+  devtools-protocol@0.0.1734725: {}
 
   diff@8.0.4: {}
 
