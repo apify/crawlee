@@ -195,13 +195,8 @@ function throttledUntil(state: DomainState): number {
 }
 
 /**
- * Whether a domain has refused every request for longer than the stall window and is still refusing. Idle time
- * does not count: the clock starts at the first 429, and a domain that merely has an old one is being waited
- * out, not stalling.
- *
- * Not dispatched to, so nothing refreshes `lastRateLimitedAt` and this lapses one window later. The domain then
- * gets a single burst to prove itself with, and is back here on the first 429 - once per window rather than once
- * per backoff, for as long as work elsewhere keeps the crawl alive.
+ * Still refusing, and has been for longer than the window. Not dispatched to, so this lapses a window after the
+ * last 429 and the domain gets one burst to prove itself with.
  */
 function isStalling(state: DomainState, now: number, maxStallMs: number): boolean {
     return (
