@@ -771,11 +771,15 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         return true;
     }
 
-    /** Records that a domain let a request through, which ends any rate-limit run stall detection was timing. */
+    /**
+     * Records that a domain let a request through, which ends any rate-limit run stall detection was timing
+     * and the run of 429s the backoff was doubling for.
+     */
     #recordProgress(url: string): void {
         const state = this.#getDomainState(url);
         if (state) {
             state.rateLimitedSince = 0;
+            state.consecutive429Count = 0;
         }
     }
 

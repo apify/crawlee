@@ -631,6 +631,27 @@ describe('ThrottlingRequestManager', () => {
         expect(await readyAt(manager)).toBe(Date.now() + 10_000);
     });
 
+    test('a request getting through restarts the backoff exponent', async () => {
+        const manager = new ThrottlingRequestManager({
+            inner: await createQueue(),
+            domains: ['example.com'],
+            baseDelaySecs: 10,
+        });
+        await manager.addRequest({ url: 'https://example.com/1' });
+        await manager.addRequest({ url: 'https://example.com/2' });
+        const request = await pollForNextRequest(manager);
+        freezeClock();
+
+        // Part of a burst comes back 429 while the rest is still being served; once that lands, the next
+        // burst's 429 is a fresh one - concurrency over the domain's rate must not double the delay forever.
+        manager.recordPacingSignal({ url: 'https://example.com/2', reason: 'rateLimited' });
+        advanceClock(11_000);
+        await manager.markRequestAsHandled(request);
+        manager.recordPacingSignal({ url: 'https://example.com/2', reason: 'rateLimited' });
+
+        expect(await readyAt(manager)).toBe(Date.now() + 10_000);
+    });
+
     test('caps the delay at maxDelaySecs', async () => {
         const manager = new ThrottlingRequestManager({
             inner: await createQueue(),
