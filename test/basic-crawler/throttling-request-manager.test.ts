@@ -142,7 +142,11 @@ describe('ThrottlingRequestManager', () => {
             }
         }
 
-        const result = await manager.addRequestsBatched(urls(), { batchSize: 2, maxNewRequests: 4 });
+        const result = await manager.addRequestsBatched(urls(), {
+            batchSize: 2,
+            maxNewRequests: 4,
+            waitForAllRequestsToBeAdded: true,
+        });
 
         expect(await manager.getTotalCount()).toBe(4);
         expect(result.requestsOverLimit).toHaveLength(6);

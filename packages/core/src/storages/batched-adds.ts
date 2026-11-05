@@ -62,8 +62,11 @@ export async function drainRequestBatches<TItem extends Source>(
 
     const deferred = activeStorageTransaction()?.policy.requestQueue === 'deferred';
 
+    // Leftovers are only reported when the caller waits anyway: draining an async producer just to find
+    // them could block indefinitely.
+    const reportsOverLimit = maxNewRequests !== undefined && waitForAllRequestsToBeAdded;
+
     let remainingBudget = maxNewRequests ?? Infinity;
-    const requestsOverLimit: Source[] = [];
 
     // Never hand a chunk more than the budget allows, so an over-large final batch cannot overshoot.
     const effectiveChunkSize = maxNewRequests !== undefined ? () => Math.min(batchSize, remainingBudget) : batchSize;
@@ -85,12 +88,15 @@ export async function drainRequestBatches<TItem extends Source>(
         addedRequests: ProcessedRequest[],
         waitForAll: Promise<ProcessedRequest[]>,
     ): Promise<AddRequestsBatchedResult> => {
-        if (maxNewRequests !== undefined) {
-            // `chunkedAsyncIterable` stops pulling once the budget-derived chunk size hits zero, so whatever
-            // is left is still sitting in `items` rather than in a chunk we have seen.
-            for await (const item of items) {
-                requestsOverLimit.push(item);
-            }
+        if (!reportsOverLimit) {
+            return { addedRequests, waitForAllRequestsToBeAdded: waitForAll };
+        }
+
+        // `chunkedAsyncIterable` stops pulling once the budget-derived chunk size hits zero, so whatever
+        // is left is still sitting in `items` rather than in a chunk we have seen.
+        const requestsOverLimit: Source[] = [];
+        for await (const item of items) {
+            requestsOverLimit.push(item);
         }
 
         return { addedRequests, waitForAllRequestsToBeAdded: waitForAll, requestsOverLimit };
@@ -118,9 +124,8 @@ export async function drainRequestBatches<TItem extends Source>(
         return added;
     };
 
-    // With a budget we must drain everything before we can report what went over it; under `deferred` a
-    // writer that finishes after commit would have nowhere to put its journal entries.
-    const awaitsRemainder = waitForAllRequestsToBeAdded || maxNewRequests !== undefined || deferred;
+    // Under `deferred` a writer that finishes after commit would have nowhere to put its journal entries.
+    const awaitsRemainder = waitForAllRequestsToBeAdded || deferred;
 
     // An un-awaited writer outlives the transaction scope it inherits, so it must not record into a
     // transaction that may already be closed. It writes directly - its write-through additions were never

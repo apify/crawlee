@@ -2221,7 +2221,7 @@ export class BasicCrawler<
 
         const result = await this.requestManager!.addRequestsBatched(filteredRequests(), {
             forefront: options.forefront,
-            waitForAllRequestsToBeAdded: options.waitForAllRequestsToBeAdded,
+            waitForAllRequestsToBeAdded: options.waitForAllRequestsToBeAdded || requestLimit !== undefined,
             batchSize: options.batchSize,
             waitBetweenBatchesMillis: options.waitBetweenBatchesMillis,
             maxNewRequests: requestLimit,
