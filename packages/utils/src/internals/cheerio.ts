@@ -54,32 +54,33 @@ export async function htmlToText(htmlOrCheerioElement: string | CheerioAPI): Pro
         last = part[part.length - 1];
     };
 
-    const process = (elems: Dictionary) => {
+    const process = (elems: Dictionary, inPre = false) => {
         const len = elems ? elems.length : 0;
         for (let i = 0; i < len; i++) {
             const elem = elems[i];
             if (elem.type === 'text') {
-                // Compress spaces, unless we're inside <pre> element
+                // Compress spaces, unless we're inside <pre> element (including nested elements like <pre><code>)
                 let compr;
-                if (elem.parent?.tagName === 'pre') {
+                if (inPre) {
                     // Strip single newline right after `<pre>` that htmlparser2 keeps
-                    compr = elem.parent.children?.[0] === elem ? elem.data.replace(/^\r?\n/, '') : elem.data;
+                    const isFirstInPre = elem.parent?.tagName === 'pre' && elem.parent.children?.[0] === elem;
+                    compr = isFirstInPre ? elem.data.replace(/^\r?\n/, '') : elem.data;
                 } else compr = elem.data.replace(/\s+/g, ' ');
                 // If text is empty or ends with a whitespace, don't add the leading whitespace
-                if (compr.startsWith(' ') && (last === '' || /\s/.test(last))) compr = compr.substring(1);
+                if (!inPre && compr.startsWith(' ') && (last === '' || /\s/.test(last))) compr = compr.substring(1);
                 push(compr);
             } else if (elem.type === 'comment' || SKIP_TAGS_REGEX.test(elem.tagName)) {
                 // Skip comments and special elements
             } else if (elem.tagName === 'br') {
                 push('\n');
             } else if (elem.tagName === 'td') {
-                process(elem.children);
+                process(elem.children, inPre);
                 push('\t');
             } else {
                 // Block elements must be surrounded by newlines (unless beginning of text)
                 const isBlockTag = BLOCK_TAGS_REGEX.test(elem.tagName);
                 if (isBlockTag && last !== '' && last !== '\n') push('\n');
-                process(elem.children);
+                process(elem.children, inPre || elem.tagName === 'pre');
                 if (isBlockTag && last !== '\n') push('\n');
             }
         }

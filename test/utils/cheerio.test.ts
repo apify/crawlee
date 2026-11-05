@@ -74,6 +74,9 @@ describe('htmlToText()', () => {
 
         await checkHtmlToText('<b>A  B  C  D  E\n\nF  G</b>', 'A B C D E F G');
         await checkHtmlToText('<pre>A  B  C  D  E\n\nF  G</pre>', 'A  B  C  D  E\n\nF  G');
+        await checkHtmlToText('<pre><code>A  B\n  C</code></pre>', 'A  B\n  C');
+        await checkHtmlToText('<pre>A  <b>B\n  <i>C  D</i></b></pre>', 'A  B\n  C  D');
+        await checkHtmlToText('<pre><code><span>a</span><br><span>    b</span></code></pre>', 'a\n    b');
 
         await checkHtmlToText(
             '<h1>Heading 1</h1><div><div><div><div>Deep  Div</div></div></div></div><h2>Heading       2</h2>',
