@@ -51,11 +51,13 @@ describe('Enqueue links shared functions', () => {
         test('should cache items', () => {
             const globs0 = constructGlobObjectsFromGlobs(['https://example.com/**/*']);
             const globs1 = constructGlobObjectsFromGlobs(['https://example.com/**/*']);
-            expect(globs0[0]).toEqual(globs1[0]);
+            expect(globs0[0]).toBe(globs1[0]);
 
-            const regexps0 = constructRegExpObjectsFromRegExps([/^https:\/\/example\.com\/(\w|\/)+/]);
-            const regexps1 = constructRegExpObjectsFromRegExps([/^https:\/\/example\.com\/(\w|\/)+/]);
-            expect(regexps0[0]).toEqual(regexps1[0]);
+            // RegExps are cached by instance, so the same one has to be passed twice
+            const regexp = /^https:\/\/example\.com\/(\w|\/)+/;
+            const regexps0 = constructRegExpObjectsFromRegExps([regexp]);
+            const regexps1 = constructRegExpObjectsFromRegExps([regexp]);
+            expect(regexps0[0]).toBe(regexps1[0]);
         });
     });
 
