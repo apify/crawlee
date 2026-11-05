@@ -22,8 +22,9 @@ import type { BrowserType } from 'playwright';
 import { Cheerio } from 'cheerio';
 import { CheerioAPI } from 'cheerio';
 import { Configuration } from '@crawlee/browser';
+import type { CrawlerRemoteBrowserOptions } from '@crawlee/browser';
 import type { CrawlingContext } from '@crawlee/basic';
-import type { CrawlingRequest } from '@crawlee/browser';
+import { CrawlingRequest } from '@crawlee/browser';
 import type { Dictionary } from '@crawlee/types';
 import type { Download } from 'playwright';
 import type { EnqueueLinksOptions } from '@crawlee/basic';
@@ -35,8 +36,6 @@ import type { LoadedRequest } from '@crawlee/browser';
 import type { Page } from 'playwright';
 import type { PlaywrightPlugin } from '@crawlee/browser-pool';
 import type { RecoverableStatePersistenceOptions } from '@crawlee/core';
-import type { RemoteBrowserPool } from '@crawlee/browser-pool';
-import type { RemoteBrowserPoolOptions } from '@crawlee/browser-pool';
 import type { Request as Request_2 } from '@crawlee/core';
 import { Request as Request_3 } from '@crawlee/browser';
 import type { RequestTransform } from '@crawlee/browser';
@@ -57,7 +56,7 @@ type AdaptiveHook<ContextExtension = Dictionary<never>> = BrowserHook<AdaptiveHo
 
 // Not exported by the entry point; reachable only as a referenced type.
 // @public (undocumented)
-interface AdaptiveHookContext extends Pick<AdaptivePlaywrightCrawlerContext, 'id' | 'session' | 'proxyInfo' | 'log'> {
+interface AdaptiveHookContext extends Pick<AdaptivePlaywrightCrawlerContext, 'id' | 'session' | 'proxyInfo' | 'log' | 'extendTimeout'> {
     // (undocumented)
     gotoOptions?: PlaywrightGotoOptions;
     // (undocumented)
@@ -88,8 +87,8 @@ export interface AdaptivePlaywrightCrawlerContext<UserData extends Dictionary = 
     enqueueLinks(options?: EnqueueLinksOptions): Promise<unknown>;
     page: Page;
     parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioAPI>;
-    querySelector(selector: string, timeoutMs?: number): Promise<Cheerio<AnyNode>>;
     querySelectorAll(selector: string, timeoutMs?: number): Promise<Cheerio<AnyNode>>;
+    querySelectorOne(selector: string, timeoutMs?: number): Promise<Cheerio<AnyNode>>;
     // (undocumented)
     request: LoadedRequest<CrawlingRequest<UserData>>;
     response: Response;
@@ -98,12 +97,13 @@ export interface AdaptivePlaywrightCrawlerContext<UserData extends Dictionary = 
 
 // @public (undocumented)
 export interface AdaptivePlaywrightCrawlerOptions<ContextExtension = Dictionary<never>, ExtendedContext extends AdaptivePlaywrightCrawlerContext = AdaptivePlaywrightCrawlerContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest_2<AdaptivePlaywrightCrawlerContext['request']>>, StatisticStateExtension extends AdaptivePlaywrightCrawlerStatisticState = AdaptivePlaywrightCrawlerStatisticState> extends Omit<BasicCrawlerOptions<AdaptivePlaywrightCrawlerContext, ContextExtension, ExtendedContext, Routes, StatisticStateExtension>, 'preNavigationHooks' | 'postNavigationHooks' | 'contextPipelineBuilder'>, Pick<PlaywrightCrawlerOptions, 'launchContext' | 'headless' | 'browserPool' | 'remoteBrowser'> {
+    navigationTimeoutSecs?: number;
     postNavigationHooks?: AdaptivePostNavigationHook<ContextExtension>[];
     preNavigationHooks?: AdaptiveHook<ContextExtension>[];
     renderingTypeDetectionRatio?: number;
     renderingTypePredictor?: IRenderingTypePredictor;
-    resultChecker?: (result: StorageTransactionView) => boolean;
-    resultComparator?: (resultA: StorageTransactionView, resultB: StorageTransactionView) => boolean | 'equal' | 'different' | 'inconclusive';
+    resultChecker?: (result: StorageTransactionView, context: AdaptiveResultContext) => boolean;
+    resultComparator?: (resultA: StorageTransactionView, resultB: StorageTransactionView, context: AdaptiveResultContext) => boolean | 'equal' | 'different' | 'inconclusive';
     shouldPropagateError?: (error: Error, context: PlaywrightCrawlingContext) => Awaitable<boolean>;
 }
 
@@ -124,6 +124,11 @@ export const adaptivePlaywrightCrawlerStatisticState: {
 type AdaptivePostNavigationHook<ContextExtension = Dictionary<never>> = BrowserHook<Omit<AdaptiveHookContext, 'request'> & {
     request: LoadedRequest<CrawlingRequest>;
 }, ContextExtension>;
+
+// @public
+export interface AdaptiveResultContext {
+    request: CrawlingRequest;
+}
 
 // Not exported by the entry point; reachable only as a referenced type.
 // @public (undocumented)
@@ -282,6 +287,7 @@ export interface PlaywrightBrowserPoolOptions extends Omit<BrowserPoolOptions, '
     configuration?: Configuration;
     headless?: boolean;
     launchContext?: PlaywrightLaunchContext;
+    remoteBrowser?: PlaywrightRemoteBrowserOptions;
 }
 
 declare namespace playwrightClickElements {
@@ -304,6 +310,8 @@ interface PlaywrightContextUtils {
     injectJQuery(): Promise<unknown>;
     listDownloads(): Promise<Download[]>;
     parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioAPI>;
+    querySelectorAll(selector: string, timeoutMs?: number): Promise<Cheerio<AnyNode>>;
+    querySelectorOne(selector: string, timeoutMs?: number): Promise<Cheerio<AnyNode>>;
     saveSnapshot(options?: SaveSnapshotOptions): Promise<void>;
     waitForSelector(selector: string, timeoutMs?: number): Promise<void>;
 }
@@ -321,6 +329,7 @@ export interface PlaywrightCrawlerOptions<ContextExtension = Dictionary<never>, 
     launchContext?: PlaywrightLaunchContext;
     postNavigationHooks?: BrowserHook<PlaywrightCrawlingContext<GetUserDataFromRequest<ExtendedContext['request']>>, ContextExtension>[];
     preNavigationHooks?: BrowserHook<PlaywrightCrawlingContext<GetUserDataFromRequest<ExtendedContext['request']>>, ContextExtension>[];
+    remoteBrowser?: PlaywrightRemoteBrowserOptions;
 }
 
 // @public (undocumented)
@@ -350,6 +359,11 @@ export interface PlaywrightLaunchContext extends BrowserLaunchContext<LaunchOpti
     userDataDir?: string;
 }
 
+// @public
+export interface PlaywrightRemoteBrowserOptions extends CrawlerRemoteBrowserOptions {
+    protocol?: 'cdp' | 'playwright';
+}
+
 declare namespace playwrightUtils {
     export {
         injectFile,
@@ -372,13 +386,6 @@ declare namespace playwrightUtils {
         PlaywrightContextUtils,
         enqueueLinksByClickingElements
     }
-}
-
-// @public
-export function remotePlaywrightBrowserPool(options: RemotePlaywrightBrowserPoolOptions): RemoteBrowserPool<Page>;
-
-// @public (undocumented)
-export interface RemotePlaywrightBrowserPoolOptions extends Pick<PlaywrightBrowserPoolOptions, 'launchContext' | 'headless' | 'configuration'>, Omit<RemoteBrowserPoolOptions, 'browserPlugins'> {
 }
 
 // @public (undocumented)

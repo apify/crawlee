@@ -117,7 +117,7 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = CrawlingC
     contextPipelineBuilder?: () => ContextPipeline<CrawlingContext, Context>;
     errorHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
     eventManager?: EventManager;
-    extendContext?: (context: CrawlingContext) => Awaitable<ContextExtension>;
+    extendContext?: ContextMiddleware<CrawlingContext, ContextExtension>;
     failedRequestHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
     httpClient?: BaseHttpClient;
     id?: string;
@@ -150,7 +150,7 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = CrawlingC
     statusMessageCallback?: StatusMessageCallback;
     statusMessageLoggingInterval?: number;
     storageBackend?: StorageBackend;
-    taskLoopOptions?: TaskLoopOptions;
+    taskLoopOptions?: TaskLoopPredicates;
     transactionalStorage?: boolean | Partial<StorageWritePolicy>;
 }
 
@@ -225,7 +225,7 @@ export type ContextMiddleware<TCrawlingContext, TCrawlingContextExtension> = (co
 
 // @public
 export abstract class ContextPipeline<TContextBase, TCrawlingContext extends TContextBase> {
-    abstract call(crawlingContext: TContextBase, finalContextConsumer: (finalContext: TCrawlingContext) => Awaitable<unknown>, onInitializationError: (error: unknown) => Awaitable<void>): Promise<void>;
+    abstract call(crawlingContext: TContextBase, finalContextConsumer: (finalContext: TCrawlingContext) => Awaitable<unknown>, onError: (error: unknown) => Awaitable<void>): Promise<void>;
     abstract chain<TFinalContext extends TCrawlingContext>(other: ContextPipeline<TCrawlingContext, TFinalContext>): ContextPipeline<TContextBase, TFinalContext>;
     abstract compose<TCrawlingContextExtension>(middleware: ContextMiddleware<TCrawlingContext, TCrawlingContextExtension>): ContextPipeline<TContextBase, TCrawlingContext & TCrawlingContextExtension>;
     static create<TContextBase>(): ContextPipeline<TContextBase, TContextBase>;
@@ -236,9 +236,9 @@ export class ContextPipelineCleanupError extends CriticalError {
     constructor(error: unknown, options?: ErrorOptions);
 }
 
-// @public (undocumented)
-export class ContextPipelineInterruptedError extends Error {
-    constructor(message?: string);
+// @public
+export class ContextPipelineInitializationError extends Error {
+    constructor(error: unknown, options?: ErrorOptions);
 }
 
 // @public
@@ -474,6 +474,7 @@ export interface IStatistics<StateExtension extends object = {}> {
     recordRequestFailure(id: number | string, retryCount: number): void;
     recordRequestStart(id: number | string): void;
     recordRequestSuccess(id: number | string, retryCount: number): void;
+    registerRetry?(retryCount: number): void;
     registerStatusCode(code: number): void;
     readonly requestRetryHistogram: number[];
     startCapturing(): Promise<void>;
@@ -586,7 +587,7 @@ export interface RegExpObject {
 // @public (undocumented)
 export type RequestHandler<Context extends CrawlingContext = CrawlingContext> = (inputs: Context) => Awaitable<void>;
 
-// @public (undocumented)
+// @public
 export class RequestHandlerError extends Error {
     constructor(error: unknown, options?: ErrorOptions);
 }
@@ -637,6 +638,7 @@ export interface RestrictedCrawlingContext<UserData extends Dictionary = Diction
     request: CrawlingRequest<UserData>;
     // (undocumented)
     session: ISession;
+    skipRequest(message?: string): never;
     useState: <State extends Dictionary = Dictionary>(defaultValue?: State) => Promise<State>;
 }
 
@@ -846,10 +848,11 @@ export interface SitemapRequestLoaderOptions extends UrlConstraints {
 export type SkippedRequestCallback = (args: {
     request: Request_2;
     reason: SkippedRequestReason;
+    message?: string;
 }) => Awaitable<void>;
 
 // @public (undocumented)
-export type SkippedRequestReason = 'robotsTxt' | 'limit' | 'enqueueLimit' | 'filters' | 'transform' | 'redirect' | 'depth';
+export type SkippedRequestReason = 'robotsTxt' | 'limit' | 'enqueueLimit' | 'filters' | 'transform' | 'redirect' | 'depth' | 'manual';
 
 // @public
 export class SnapshotStore<T extends LoadSnapshot = LoadSnapshot> {
@@ -895,6 +898,7 @@ export class Statistics<StateExtension extends object = {}, PersistedStateExtens
     readonly errorTrackerRetry: ErrorTracker;
     readonly id: string;
     persistState(): Promise<void>;
+    registerRetry(retryCount: number): void;
     registerStatusCode(code: number): void;
     get requestRetryHistogram(): number[];
     reset(): void;
@@ -997,11 +1001,6 @@ export interface StorageBackendLoadSignalOptions {
     maxErrors?: number;
     overloadedRatio?: number;
     snapshotIntervalSecs?: number;
-}
-
-// @public (undocumented)
-export interface TaskLoopOptions extends TaskLoopPredicates {
-    maybeRunIntervalSecs?: number;
 }
 
 // @public

@@ -31,9 +31,15 @@ describe('Router', () => {
         router.addDefaultHandler(async (ctx) => {
             logs.push(`default handled with url ${ctx.request.loadedUrl}`);
         });
-        router.use(({ request }) => void logs.push(`middleware 1: ${request.loadedUrl}`));
-        router.use(({ request }) => void logs.push(`middleware 2: ${request.loadedUrl}`));
-        router.use(({ request }) => void logs.push(`middleware 3: ${request.loadedUrl}`));
+        router.use(({ request }) => {
+            logs.push(`middleware 1: ${request.loadedUrl}`);
+        });
+        router.use(({ request }) => {
+            logs.push(`middleware 2: ${request.loadedUrl}`);
+        });
+        router.use(({ request }) => {
+            logs.push(`middleware 3: ${request.loadedUrl}`);
+        });
 
         const log = { info: vitest.fn(), warn: vitest.fn(), debug: vitest.fn() };
         await router({ request: { loadedUrl: 'https://example.com/A', label: 'A' }, log } as any);

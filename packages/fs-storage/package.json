@@ -3,7 +3,7 @@
     "version": "4.0.0",
     "description": "A file-system storage implementation of the Apify API",
     "engines": {
-        "node": ">=22.0.0"
+        "node": ">=22.13.0"
     },
     "type": "module",
     "exports": {

@@ -9,7 +9,7 @@ import type { BaseHttpClient } from '@crawlee/http-client';
 import type { CrawleeLogger } from '@crawlee/types';
 // Imported as a type only so `sax` (a fairly heavy parser) isn't loaded eagerly with @crawlee/utils.
 import type * as sax from 'sax';
-import MIMEType from 'whatwg-mimetype';
+import { MIMEType } from 'whatwg-mimetype';
 
 import { mergeAsyncIterables } from './iterables.js';
 import { RobotsTxtFile } from './robots.js';
@@ -42,37 +42,26 @@ class SitemapTxtParser extends Transform {
         super({
             readableObjectMode: true,
             transform: (chunk, _encoding, callback) => {
-                this.processBuffer(this.#decoder.write(chunk), false);
+                this.#processBuffer(this.#decoder.write(chunk), false);
                 callback();
             },
             flush: (callback) => {
-                this.processBuffer(this.#decoder.end(), true);
+                this.#processBuffer(this.#decoder.end(), true);
                 callback();
             },
         });
     }
 
-    private processBuffer(input: string, finalize: boolean): void {
-        this.#buffer += input;
+    #processBuffer(input: string, finalize: boolean): void {
+        const lines = (this.#buffer + input).split('\n');
 
-        if (finalize || this.#buffer.includes('\n')) {
-            const parts = this.#buffer
-                .split('\n')
-                .map((part) => part.trim())
-                .filter((part) => part.length > 0);
+        // The text after the last line break may be a partial line, so it waits for the next chunk.
+        this.#buffer = finalize ? '' : lines.pop()!;
 
-            if (finalize) {
-                for (const url of parts) {
-                    this.push({ type: 'url', loc: url } satisfies SitemapItem);
-                }
-
-                this.#buffer = '';
-            } else if (parts.length > 0) {
-                for (const url of parts.slice(0, -1)) {
-                    this.push({ type: 'url', loc: url } satisfies SitemapItem);
-                }
-
-                this.#buffer = parts.at(-1)!;
+        for (const line of lines) {
+            const url = line.trim();
+            if (url.length > 0) {
+                this.push({ type: 'url', loc: url } satisfies SitemapItem);
             }
         }
     }
@@ -87,7 +76,7 @@ class SitemapXmlParser extends Transform {
     #url: Partial<SitemapUrl> = {};
 
     static async create(): Promise<SitemapXmlParser> {
-        const { SAXParser } = await import('sax');
+        const { SAXParser } = (await import('sax')).default;
         return new SitemapXmlParser(new SAXParser(true));
     }
 
@@ -110,16 +99,16 @@ class SitemapXmlParser extends Transform {
         });
 
         this.#parser = parser;
-        this.#parser.onopentag = this.onOpenTag.bind(this);
-        this.#parser.onclosetag = this.onCloseTag.bind(this);
+        this.#parser.onopentag = this.#onOpenTag.bind(this);
+        this.#parser.onclosetag = this.#onCloseTag.bind(this);
 
-        this.#parser.ontext = this.onText.bind(this);
-        this.#parser.oncdata = this.onText.bind(this);
+        this.#parser.ontext = this.#onText.bind(this);
+        this.#parser.oncdata = this.#onText.bind(this);
 
         this.#parser.onerror = this.destroy.bind(this);
     }
 
-    private onOpenTag(node: sax.Tag | sax.QualifiedTag) {
+    #onOpenTag(node: sax.Tag | sax.QualifiedTag) {
         if (this.#rootTagName !== undefined) {
             if (
                 node.name === 'loc' ||
@@ -138,7 +127,7 @@ class SitemapXmlParser extends Transform {
         }
     }
 
-    private onCloseTag(name: string) {
+    #onCloseTag(name: string) {
         if (name === 'loc' || name === 'lastmod' || name === 'priority' || name === 'changefreq') {
             this.#currentTag = undefined;
         }
@@ -151,19 +140,24 @@ class SitemapXmlParser extends Transform {
         }
     }
 
-    private onText(text: string) {
+    #onText(text: string) {
+        text = text.trim();
+
+        // Whitespace around a CDATA section arrives as separate text events.
+        if (text === '') {
+            return;
+        }
+
         if (this.#currentTag === 'loc') {
             if (this.#rootTagName === 'sitemapindex') {
-                this.push({ type: 'sitemapUrl', url: text.trim() } satisfies SitemapItem);
+                this.push({ type: 'sitemapUrl', url: text } satisfies SitemapItem);
             }
 
             if (this.#rootTagName === 'urlset') {
                 this.#url ??= {};
-                this.#url.loc = text.trim();
+                this.#url.loc = text;
             }
         }
-
-        text = text.trim();
 
         if (this.#currentTag === 'lastmod') {
             const lastmod = new Date(text);
@@ -265,6 +259,11 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
 
         if (mimeType?.essence === 'text/plain' || url?.pathname.endsWith('.txt')) {
             return new SitemapTxtParser();
+        }
+
+        // A name like `sitemap.gz` says nothing about what was compressed. Sitemaps are XML unless named otherwise.
+        if (mimeType?.essence === 'application/gzip') {
+            return SitemapXmlParser.create();
         }
 
         throw new Error(`Unsupported sitemap content type (contentType = ${contentType}, url = ${url?.toString()})`);
@@ -385,48 +384,68 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
         // the loop (per-entry warnings could flood the log; individual drops are logged at debug level).
         let droppedUrlEntries = 0;
 
-        for await (const item of items) {
-            if (item.type === 'sitemapUrl' && !visitedSitemapUrls.has(item.url)) {
-                if (nestedSitemapFilter && !nestedSitemapFilter(item.url)) {
-                    logger?.debug(`Skipping sitemap ${item.url} due to nestedSitemapFilter.`);
-                    continue;
+        const iterator = items[Symbol.asyncIterator]();
+        try {
+            while (true) {
+                let next: IteratorResult<SitemapItem>;
+                try {
+                    next = await iterator.next();
+                } catch (e) {
+                    // Parsing failed: give up on this sitemap, keep the others.
+                    // Raw sources already logged the error in their pipeline callback.
+                    if (source.type !== 'raw') {
+                        logger?.warning(`Malformed sitemap content: ${source.url} (${e})`);
+                    }
+                    break;
                 }
+                if (next.done) break;
+                const item = next.value;
 
-                // Keep only nested sitemaps matching the strategy (and using http(s)) relative to the
-                // parent. Raw string sources have no parent URL, so the check is skipped.
-                if (source.type === 'url') {
-                    const { allowed, reason } = filterUrl(item.url, sitemapUrl!, enqueueStrategy);
-                    if (!allowed) {
-                        logger?.warning(`Skipping nested sitemap ${item.url} (parent ${source.url}): ${reason}.`);
+                if (item.type === 'sitemapUrl' && !visitedSitemapUrls.has(item.url)) {
+                    if (nestedSitemapFilter && !nestedSitemapFilter(item.url)) {
+                        logger?.debug(`Skipping sitemap ${item.url} due to nestedSitemapFilter.`);
                         continue;
+                    }
+
+                    // Keep only nested sitemaps matching the strategy (and using http(s)) relative to the
+                    // parent. Raw string sources have no parent URL, so the check is skipped.
+                    if (source.type === 'url') {
+                        const { allowed, reason } = filterUrl(item.url, sitemapUrl!, enqueueStrategy);
+                        if (!allowed) {
+                            logger?.warning(`Skipping nested sitemap ${item.url} (parent ${source.url}): ${reason}.`);
+                            continue;
+                        }
+                    }
+
+                    sources.push({ type: 'url', url: item.url, depth: (source.depth ?? 0) + 1 });
+                    if (emitNestedSitemaps) {
+                        yield { loc: item.url, originSitemapUrl: null } as any;
                     }
                 }
 
-                sources.push({ type: 'url', url: item.url, depth: (source.depth ?? 0) + 1 });
-                if (emitNestedSitemaps) {
-                    yield { loc: item.url, originSitemapUrl: null } as any;
-                }
-            }
-
-            if (item.type === 'url') {
-                // Keep only URL entries that match the enqueue strategy relative to the parent (see above).
-                if (source.type === 'url') {
-                    const { allowed, reason } = filterUrl(item.loc, sitemapUrl!, enqueueStrategy);
-                    if (!allowed) {
-                        droppedUrlEntries++;
-                        logger?.debug(`Skipping sitemap URL ${item.loc} (parent ${source.url}): ${reason}.`);
-                        continue;
+                if (item.type === 'url') {
+                    // Keep only URL entries that match the enqueue strategy relative to the parent (see above).
+                    if (source.type === 'url') {
+                        const { allowed, reason } = filterUrl(item.loc, sitemapUrl!, enqueueStrategy);
+                        if (!allowed) {
+                            droppedUrlEntries++;
+                            logger?.debug(`Skipping sitemap URL ${item.loc} (parent ${source.url}): ${reason}.`);
+                            continue;
+                        }
                     }
-                }
 
-                yield {
-                    ...item,
-                    originSitemapUrl:
-                        source.type === 'url'
-                            ? source.url
-                            : `raw://${createHash('sha256').update(source.content).digest('base64')}`,
-                };
+                    yield {
+                        ...item,
+                        originSitemapUrl:
+                            source.type === 'url'
+                                ? source.url
+                                : `raw://${createHash('sha256').update(source.content).digest('base64')}`,
+                    };
+                }
             }
+        } finally {
+            // Mirrors `for await` cleanup: destroys the stream when we stop early or the consumer bails out.
+            await iterator.return?.();
         }
 
         if (droppedUrlEntries > 0 && source.type === 'url') {
@@ -487,7 +506,7 @@ export class Sitemap {
         proxyUrl?: string,
         parseSitemapOptions?: ParseSitemapOptions,
     ): Promise<Sitemap> {
-        return await this.parse(
+        return await this.#parse(
             (Array.isArray(urls) ? urls : [urls]).map((url) => ({ type: 'url', url })),
             proxyUrl,
             parseSitemapOptions,
@@ -504,10 +523,10 @@ export class Sitemap {
         proxyUrl?: string,
         parseSitemapOptions?: ParseSitemapOptions,
     ): Promise<Sitemap> {
-        return await this.parse([{ type: 'raw', content }], proxyUrl, parseSitemapOptions);
+        return await this.#parse([{ type: 'raw', content }], proxyUrl, parseSitemapOptions);
     }
 
-    private static async parse(
+    static async #parse(
         sources: SitemapSource[],
         proxyUrl?: string,
         parseSitemapOptions?: ParseSitemapOptions,

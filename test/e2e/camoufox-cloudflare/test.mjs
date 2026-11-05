@@ -10,6 +10,9 @@ if (process.env.STORAGE_IMPLEMENTATION !== 'PLATFORM') {
     );
 }
 
+// TODO: re-enable once the platform run gets past the challenge; it never cleared there, earlier passes were false positives.
+await skipTest('Cloudflare does not clear the challenge on the platform (residential proxy)');
+
 const testActorDirname = getActorTestDir(import.meta.url);
 await initialize(testActorDirname);
 

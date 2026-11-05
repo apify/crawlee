@@ -81,10 +81,10 @@ export class FileDownload extends BasicCrawler<FileDownloadCrawlingContext> {
     }
 
     #buildContextPipeline(): ContextPipeline<CrawlingContext, FileDownloadCrawlingContext> {
-        return ContextPipeline.create<CrawlingContext>().compose(this.initiateDownload.bind(this));
+        return ContextPipeline.create<CrawlingContext>().compose(this.#initiateDownload.bind(this));
     }
 
-    private async initiateDownload(context: CrawlingContext, onCleanup: CleanupRegistrar) {
+    async #initiateDownload(context: CrawlingContext, onCleanup: CleanupRegistrar) {
         const response = await this.httpClient.sendRequest(context.request.intoFetchAPIRequest(), {
             session: context.session,
         });

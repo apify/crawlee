@@ -202,6 +202,7 @@ export interface ISession {
     fingerprint?: SessionFingerprint;
     // (undocumented)
     readonly id: string;
+    isBlocked(): boolean;
     isUsable(): boolean;
     markBad(): void;
     markGood(): void;
@@ -390,21 +391,21 @@ export interface RequestQueueOperationOptions {
 // @public (undocumented)
 export interface RequestSchema {
     // (undocumented)
-    errorMessages?: string[];
+    errorMessages?: string[] | null;
     // (undocumented)
-    handledAt?: string;
+    handledAt?: string | null;
     // (undocumented)
-    headers?: Dictionary<string>;
+    headers?: Dictionary<string> | null;
     // (undocumented)
     id?: string;
     // (undocumented)
-    loadedUrl?: string;
+    loadedUrl?: string | null;
     // (undocumented)
     method?: AllowedHttpMethods;
     // (undocumented)
-    noRetry?: boolean;
+    noRetry?: boolean | null;
     // (undocumented)
-    payload?: string;
+    payload?: string | null;
     // (undocumented)
     retryCount?: number;
     // (undocumented)

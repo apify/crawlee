@@ -58,30 +58,29 @@ export class KeyValueStoreBackend extends BaseClient implements storage.KeyValue
     modifiedAt = new Date();
 
     readonly #keyValueEntries = new Map<string, InternalKeyRecord>();
-    // kept as TS-private: storage-backend tests read this field at runtime
-    private readonly storageBackend: MemoryStorageBackend;
+    readonly #storageBackend: MemoryStorageBackend;
 
     constructor(options: KeyValueStoreBackendOptions) {
         super(options.id ?? randomUUID());
         this.name = options.name;
         this.cacheKey = options.cacheKey ?? this.name ?? this.id;
-        this.storageBackend = options.storageBackend;
+        this.#storageBackend = options.storageBackend;
     }
 
     async getMetadata(): Promise<storage.KeyValueStoreInfo> {
-        this.updateTimestamps(false);
+        this.#updateTimestamps(false);
         return this.toKeyValueStoreInfo();
     }
 
     async drop(): Promise<void> {
-        if (this.storageBackend.evictBackend('KeyValueStore', this.id)) {
+        if (this.#storageBackend.evictBackend('KeyValueStore', this.id)) {
             this.#keyValueEntries.clear();
         }
     }
 
     async purge(): Promise<void> {
         this.#keyValueEntries.clear();
-        this.updateTimestamps(true);
+        this.#updateTimestamps(true);
     }
 
     async listKeys(options: storage.KeyValueStoreListKeysOptions = {}): Promise<storage.KeyValueStoreListKeysResult> {
@@ -118,7 +117,7 @@ export class KeyValueStoreBackend extends BaseClient implements storage.KeyValue
         const pageItems = isTruncated ? filteredItems.slice(0, limit) : filteredItems;
         const nextExclusiveStartKey = isTruncated ? pageItems[pageItems.length - 1].key : undefined;
 
-        this.updateTimestamps(false);
+        this.#updateTimestamps(false);
 
         return {
             items: pageItems,
@@ -172,7 +171,7 @@ export class KeyValueStoreBackend extends BaseClient implements storage.KeyValue
             contentType: entry.contentType ?? (mime.contentType(entry.extension) || undefined),
         };
 
-        this.updateTimestamps(false);
+        this.#updateTimestamps(false);
 
         return record;
     }
@@ -214,7 +213,7 @@ export class KeyValueStoreBackend extends BaseClient implements storage.KeyValue
 
         this.#keyValueEntries.set(key, normalizedRecord);
 
-        this.updateTimestamps(true);
+        this.#updateTimestamps(true);
     }
 
     async deleteValue(key: string): Promise<void> {
@@ -222,7 +221,7 @@ export class KeyValueStoreBackend extends BaseClient implements storage.KeyValue
 
         if (this.#keyValueEntries.has(key)) {
             this.#keyValueEntries.delete(key);
-            this.updateTimestamps(true);
+            this.#updateTimestamps(true);
         }
     }
 
@@ -236,7 +235,7 @@ export class KeyValueStoreBackend extends BaseClient implements storage.KeyValue
         };
     }
 
-    private updateTimestamps(hasBeenModified: boolean) {
+    #updateTimestamps(hasBeenModified: boolean) {
         this.accessedAt = new Date();
 
         if (hasBeenModified) {

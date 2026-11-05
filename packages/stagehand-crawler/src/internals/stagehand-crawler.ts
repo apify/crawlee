@@ -31,10 +31,10 @@ import { assertBrowserPoolNotConfigured, parseArgument, schemas } from '@crawlee
 import type { Page, Response } from 'playwright';
 import { z } from 'zod';
 
-import { remoteStagehandBrowserPool, stagehandBrowserPool } from './stagehand-browser-pool';
-import type { StagehandController } from './stagehand-controller';
-import type { StagehandLaunchContext } from './stagehand-launcher';
-import { enhancePageWithStagehand } from './utils/stagehand-utils';
+import { stagehandBrowserPool } from './stagehand-browser-pool.js';
+import type { StagehandController } from './stagehand-controller.js';
+import type { StagehandLaunchContext } from './stagehand-launcher.js';
+import { enhancePageWithStagehand } from './utils/stagehand-utils.js';
 
 /**
  * Stagehand-specific configuration options.
@@ -449,27 +449,28 @@ export class StagehandCrawler<
             configuration,
             // The pool serves plain Playwright pages - a page only becomes a `StagehandPage` further down the
             // pipeline, once `setUpStagehand` enhances it - so its page type is narrower than the crawler's.
-            browserPoolBuilder: (remoteBrowser) =>
-                (remoteBrowser
-                    ? remoteStagehandBrowserPool({
-                          ...remoteBrowser,
-                          launchContext,
-                          stagehandOptions,
-                          headless,
-                          configuration,
-                      })
-                    : stagehandBrowserPool({
-                          launchContext,
-                          stagehandOptions,
-                          headless,
-                          configuration,
-                      })) as unknown as OwnedBrowserPool<StagehandPage>,
+            browserPoolBuilder: (remoteBrowser) => {
+                // Stagehand manages its own browser (local or Browserbase), so a Crawlee-level remote connection
+                // would be silently ignored.
+                if (remoteBrowser) {
+                    throw new Error(
+                        'StagehandCrawler does not support `remoteBrowser`. Use `stagehandOptions.env: "BROWSERBASE"` instead.',
+                    );
+                }
+
+                return stagehandBrowserPool({
+                    launchContext,
+                    stagehandOptions,
+                    headless,
+                    configuration,
+                }) as unknown as OwnedBrowserPool<StagehandPage>;
+            },
             contextPipelineBuilder: () => this.#buildContextPipeline(),
         });
     }
 
     #buildContextPipeline(): ContextPipeline<CrawlingContext, StagehandCrawlingContext> {
-        return this.buildContextPipeline().compose(this.setUpStagehand.bind(this));
+        return this.buildContextPipeline().compose(this.#setUpStagehand.bind(this));
     }
 
     /**
@@ -481,7 +482,7 @@ export class StagehandCrawler<
      * instance bound to the page's browser, which is why it reaches past the
      * {@apilink IBrowserPool} abstraction here.
      */
-    private getBrowserControllerByPage(page: StagehandPage): StagehandController | undefined {
+    #getBrowserControllerByPage(page: StagehandPage): StagehandController | undefined {
         if ('getBrowserControllerByPage' in this.browserPool) {
             return (
                 this.browserPool as unknown as {
@@ -496,10 +497,8 @@ export class StagehandCrawler<
     /**
      * Enhance the page with Stagehand AI methods.
      */
-    private async setUpStagehand(crawlingContext: {
-        page: Page;
-    }): Promise<{ stagehand: Stagehand; page: StagehandPage }> {
-        const controller = this.getBrowserControllerByPage(crawlingContext.page as StagehandPage);
+    async #setUpStagehand(crawlingContext: { page: Page }): Promise<{ stagehand: Stagehand; page: StagehandPage }> {
+        const controller = this.#getBrowserControllerByPage(crawlingContext.page as StagehandPage);
 
         if (!controller) {
             throw new Error(

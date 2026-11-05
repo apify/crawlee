@@ -1,6 +1,7 @@
 import type { DOMParser, InternalHttpCrawlingContext } from '@crawlee/http';
 import { extractUrlsFromCheerio } from '@crawlee/utils/internal';
-import type { CheerioAPI, CheerioOptions } from 'cheerio';
+import type { Cheerio, CheerioAPI, CheerioOptions } from 'cheerio';
+import type { AnyNode } from 'domhandler';
 // slim uses faster htmlparser2 parser and doesn't load extra libs like undici
 import * as cheerio from 'cheerio/slim';
 import { parseDocument } from 'htmlparser2';
@@ -14,7 +15,7 @@ export interface CheerioParseResult {
  * A {@apilink DOMParser} backed by [cheerio](https://www.npmjs.com/package/cheerio). Pass it to a
  * {@apilink DOMCrawler} to get the crawling context {@apilink CheerioCrawler} provides.
  */
-export function cheerioParser(): DOMParser<CheerioParseResult> {
+export function cheerioParser(): DOMParser<CheerioParseResult, Cheerio<AnyNode>, Cheerio<AnyNode>> {
     return {
         placeholderMembers: { $: true, body: true },
         parse(context: InternalHttpCrawlingContext) {
@@ -30,7 +31,11 @@ export function cheerioParser(): DOMParser<CheerioParseResult> {
             return { $, body };
         },
         extractLinks: ({ $ }, selector, baseUrl) => extractUrlsFromCheerio($, selector, baseUrl),
-        select: ({ $ }, selector) => $(selector).get(),
+        querySelectorAll: ({ $ }, selector) => $(selector),
+        querySelectorOne: ({ $ }, selector) => {
+            const match = $(selector).first();
+            return match.length ? match : undefined;
+        },
         toCheerio: ({ $ }) => $,
     };
 }

@@ -3,15 +3,13 @@ import { vi } from 'vitest';
 
 import { anonymizeProxySugar } from '../../packages/browser-pool/src/anonymize-proxy.js';
 
-describe('anonymizeProxySugar', () => {
-    // Mock the anonymizeProxy function from proxy-chain
-    beforeEach(() => {
-        vi.mock('proxy-chain', () => ({
-            anonymizeProxy: vi.fn((opts) => Promise.resolve(`anonymized-${opts.url}`)),
-            closeAnonymizedProxy: vi.fn(() => Promise.resolve()),
-        }));
-    });
+// Mock the anonymizeProxy function from proxy-chain
+vi.mock('proxy-chain', () => ({
+    anonymizeProxy: vi.fn((opts) => Promise.resolve(`anonymized-${opts.url}`)),
+    closeAnonymizedProxy: vi.fn(() => Promise.resolve()),
+}));
 
+describe('anonymizeProxySugar', () => {
     afterEach(() => {
         vi.clearAllMocks();
     });

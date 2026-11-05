@@ -21,7 +21,7 @@ Before you submit your pull request, consider the following guidelines:
 - Run tests before you start working, to be sure they all pass and your setup is working correctly:
 
     ```sh
-    yarn test
+    pnpm test
     ```
 
 - Be sure to **include appropriate test cases**. Tests help make it clear what the PR is fixing and also make sure the changes won't break over time.
@@ -34,9 +34,9 @@ Before you submit your pull request, consider the following guidelines:
 
 That's it! Thank you for your contribution!
 
-### Yarn
+### pnpm
 
-This project now uses yarn v4 to manage dependencies. You will need to install it, the easiest way is by using `corepack`:
+This project uses pnpm to manage dependencies. You will need to install it, the easiest way is by using `corepack`:
 
 ```shell
 corepack enable
