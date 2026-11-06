@@ -17,23 +17,23 @@ This page summarizes the breaking changes in Crawlee v4. There are many, so the 
 
 ## Upgrade with an AI coding tool
 
-Run the v4 CLI from your project directory to print a migration prompt:
+The v4 CLI prints a migration prompt for an AI coding tool. Run it with the v4 version of the CLI from the directory of the project you are migrating, then paste the output into a tool that can read your project:
 
 ```sh
 npx crawlee@4 upgrade
 ```
 
-A bare `crawlee` command in a v3 project runs its local v3 CLI, which does not have this command. The invoked v4 CLI keeps control of `upgrade` even when a v3 installation exists locally.
+The prompt only contains instructions. They ask the tool to inspect the project, plan, migrate and verify, and to ask once before creating a Git branch and making incremental commits.
 
-Paste the output into an AI coding tool that can read your project and the local files linked in the prompt. The links point into the npx cache; if your tool can only read files inside the project, pass `--export <dir>` to copy the guides into a directory of your choice and have the prompt link that copy. The command only prints instructions. They ask the tool to inspect, plan, migrate and verify, and to ask once before creating a Git branch and making incremental commits.
+Adjust the command to your situation:
 
-`upgrade` detects the current major from Crawlee runtime dependencies in the nearest `package.json`. It uses installed versions that match the declared ranges, or an unambiguous single-major range when dependencies are not installed. A non-semver specifier such as `latest` uses the installed version, and an installed version outside the declared range is ignored. In a workspace, run it from the package being migrated. If detection is ambiguous, specify the starting major:
+- **Your tool can only read files inside the project.** The prompt links guides in the npx cache. Run `npx crawlee@4 upgrade --export <dir>` to copy them into a directory of your choice and have the prompt link that copy.
+- **The project is a package in a workspace.** Run the command from that package's directory, not the workspace root.
+- **The command cannot tell which major you are on.** It reads the Crawlee runtime dependencies from the nearest `package.json`, preferring installed versions that match the declared ranges. When that is ambiguous, name the starting major: `npx crawlee@4 upgrade --from 3`.
+- **The project already uses v4 and you want to revisit the migration.** Run `npx crawlee@4 upgrade --from 3`.
+- **A bare `crawlee upgrade` says the command does not exist.** A v3 project runs its local v3 CLI, which has no `upgrade`. Use `npx crawlee@4 upgrade`.
 
-```sh
-npx crawlee@4 upgrade --from 3
-```
-
-`--to` defaults to the newest bundled migration. Only v3 to v4 is bundled initially. As guides for later majors are added, the command builds a sequence that completes and verifies each major before starting the next. It rejects a path with a missing guide rather than skipping a major. To revisit migration work in a project already using v4, use `--from 3`.
+`--to` defaults to the newest bundled migration, and only v3 to v4 is bundled for now. As guides for later majors are added, the command completes and verifies each major before starting the next, and rejects a path with a missing guide rather than skipping a major.
 
 ## What v4 does better
 
