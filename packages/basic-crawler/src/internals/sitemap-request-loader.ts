@@ -402,7 +402,8 @@ export class SitemapRequestLoader implements IRequestLoader {
                 emitNestedSitemaps: true,
                 enqueueStrategy: this.#enqueueStrategy,
             })) {
-                if (this.#abortLoading) break;
+                // Leave the sitemap in progress so `isSitemapFullyLoaded()` keeps reporting the abort.
+                if (this.#abortLoading) return;
 
                 if (!item.originSitemapUrl) {
                     // This is a nested sitemap
@@ -419,12 +420,12 @@ export class SitemapRequestLoader implements IRequestLoader {
             }
         } catch (e: any) {
             this.#log.error(`Error loading sitemap contents from ${sitemapUrl}:`, e);
-        } finally {
-            progress.inProgressSitemapUrls.delete(sitemapUrl);
-            progress.pendingSitemapUrls.delete(sitemapUrl);
-            progress.inProgressEntriesPerSitemap.delete(sitemapUrl);
-            progress.processedSitemapUrls.add(sitemapUrl);
         }
+
+        progress.inProgressSitemapUrls.delete(sitemapUrl);
+        progress.pendingSitemapUrls.delete(sitemapUrl);
+        progress.inProgressEntriesPerSitemap.delete(sitemapUrl);
+        progress.processedSitemapUrls.add(sitemapUrl);
     }
 
     /**

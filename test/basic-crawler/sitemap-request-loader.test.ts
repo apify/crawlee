@@ -917,6 +917,8 @@ describe('SitemapRequestLoader', () => {
                 await list.markRequestAsHandled(request);
             }
 
+            // Let the in-flight sitemap fetches (100ms) settle, so the check isn't racing them.
+            await sleep(200);
             expect(list.isSitemapFullyLoaded()).toBe(false);
             await expect(list.checkReadiness()).resolves.toEqual({ status: 'finished' });
         });
