@@ -200,3 +200,31 @@ test('crawler waits for the stream to be consumed', async () => {
     expect(bufferedData.length).toBe(5 * 1024);
     expect(bufferedData).toEqual(await ReadableStreamGenerator.getUint8Array(5 * 1024, 789));
 });
+
+test('verifies TLS certificates by default', async () => {
+    const crawler = new FileDownload({
+        maxRequestRetries: 0,
+        requestHandler: async () => {},
+    });
+
+    const stats = await crawler.run(['https://self-signed.badssl.com/']);
+
+    expect(stats.requestsFailed).toBe(1);
+});
+
+test('ignoreTlsErrors: true accepts invalid certificates', async () => {
+    let status: number | undefined;
+
+    const crawler = new FileDownload({
+        maxRequestRetries: 0,
+        ignoreTlsErrors: true,
+        requestHandler: async ({ response }) => {
+            status = response.status;
+        },
+    });
+
+    const stats = await crawler.run(['https://self-signed.badssl.com/']);
+
+    expect(stats.requestsFailed).toBe(0);
+    expect(status).toBe(200);
+});
