@@ -20,7 +20,7 @@ The `utils` object exported by `crawlee` is removed. Replace `utils.puppeteer` a
 
 `systemInfoV2` and `CRAWLEE_SYSTEM_INFO_V2` disappear; the new resource detection is the default. Utils no longer exports getMemoryInfo/MemoryInfo, isContainerized, isDocker, isLambda or getCgroupsVersion. For direct application use, read equivalent OS or cgroup values explicitly.
 
-Removed filterUrl, matchesEnqueueStrategy, UNSUPPORTED_SCHEME_MESSAGE and core filterRequestsByPatterns have no public replacement. Filtering belongs in enqueueLinks/addRequests.
+filterUrl, matchesEnqueueStrategy and UNSUPPORTED_SCHEME_MESSAGE leave the public surface and live in `@crawlee/utils/internal` without semver guarantees; core filterRequestsByPatterns is removed with no replacement. Filtering belongs in enqueueLinks/addRequests.
 
 Utils separates public helpers from `@crawlee/utils/internal`. Internal regex, blocked-detection, iterable and URL helpers move there, including URL_NO_COMMAS_REGEX, URL_WITH_COMMAS_REGEX, extractUrlsFromCheerio and tryAbsoluteURL. Core no longer re-exports parseArgument, schemas or tryAbsoluteURL. Prefer supported public helpers; internal imports have no semver guarantees. ArgumentValidationError stays exported by core.
 
@@ -58,7 +58,7 @@ Use this lookup for errors naming old symbols; read the referenced topic for mig
 | Other removed symbols | Reference |
 | --- | --- |
 | `context.blockResources`, `context.cacheResponses`, `puppeteerUtils.blockResources`, `puppeteerUtils.cacheResponses`; `RequestHandlerResult`, Adaptive `preventDirectStorageAccess`, `commitResult`; `PlaywrightLauncher`, `BrowserCrawler.launchContext`; `StagehandRequestHandler`, `stagehandUtils`, `AgentResult`, `StagehandLaunchContext.stagehandOptions`, `StagehandPlugin.getStagehandForBrowser`; `BrowserSpecification`, `GetFingerprintReturn`, browser-pool `FingerprintGenerator`, `BROWSER_POOL_EVENTS.BROWSER_CLOSED` | Browser reference |
-| `StreamHandlerContext`, `FileDownloadOptions.streamHandler`; `HttpResponse`, `HttpResponseWithoutBody`, `StreamingHttpResponse`, `ResponseTypes`, `BaseHttpResponseData`, `SimpleHeaders`, `processHttpRequestOptions`, `PlainResponse`; `ResponseLike`, `BrowserLikeResponse`, `RedirectHandler`; `MinimumSpeedStream`, `ByteCounterStream` | HTTP/download reference |
+| `StreamHandlerContext`, `FileDownloadOptions.streamHandler`; `HttpResponse`, `HttpResponseWithoutBody`, `StreamingHttpResponse`, `ResponseTypes`, `BaseHttpResponseData`, `SimpleHeaders`, `PlainResponse`; `ResponseLike`, `BrowserLikeResponse`, `RedirectHandler`; `MinimumSpeedStream`, `ByteCounterStream` | HTTP/download reference |
 | `checkAndSerialize`, `chunkBySize`, `maybeStringify`; `checkStorageAccess`, `withCheckedStorageAccess`; `StorageClient`, collection-client and lock types; `KeyValueStore.getInput`, `Configuration.inputKey`, `CRAWLEE_INPUT_KEY` | Storage reference |
 | `EVENT_SESSION_RETIRED`, `TieredProxy`, `TieredProxyOptions` | Sessions reference |
 | `IRequestList`, `SitemapRequestList`, `RequestQueueV1`, `RequestQueueV2`, `RequestProvider` | Requests reference |

@@ -24,7 +24,7 @@ protected fetch(input: Request, init?: RequestInit & CustomFetchOptions): Promis
 
 The base provides `sendRequest(request, options?)`; replace `stream()` with response-body streaming. Client options and mocks require actual instances. Pass a constructor `logger` instead of reading private `this.log`. Honor `ignoreTlsErrors` when supported.
 
-Replace `HttpResponse`, `HttpResponseWithoutBody`, `StreamingHttpResponse`, `ResponseTypes`, `BaseHttpResponseData`, `SimpleHeaders`, `processHttpRequestOptions`, `RedirectHandler` and `BrowserLikeResponse` with the native response contract. Import remaining types owned by `@crawlee/types` directly.
+Replace `HttpResponse`, `HttpResponseWithoutBody`, `StreamingHttpResponse`, `ResponseTypes`, `BaseHttpResponseData`, `SimpleHeaders`, `RedirectHandler` and `BrowserLikeResponse` with the native response contract. `processHttpRequestOptions` survives only in `@crawlee/utils/internal`, without semver guarantees. Import remaining types owned by `@crawlee/types` directly.
 
 ## FileDownload
 
