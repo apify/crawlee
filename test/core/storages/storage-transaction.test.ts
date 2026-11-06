@@ -14,7 +14,6 @@ import {
     withDirectStorageAccess,
     withStorageTransaction,
 } from '@crawlee/core';
-import { BaseHttpClient } from '@crawlee/http-client';
 import type { DatasetBackend } from '@crawlee/types';
 
 import { storage as timeoutStorage } from '@apify/timeout';
@@ -970,51 +969,6 @@ describe('RequestQueue in a transaction', () => {
         // Replaying through the batched frontend wrapper instead of the backend call would resolve
         // with chunks still in flight and drop the tail.
         await expect(queue.getTotalCount()).resolves.toBe(1500);
-    });
-
-    test('requestsFromUrl sources are observed through their expanded URLs in `enqueuedUrls`', async () => {
-        // Mocked at the HTTP client level: the list download goes through the queue's configured client.
-        const lists: Record<string, string[]> = {
-            'http://example.com/list-1': ['https://example.com/a', 'https://example.com/b'],
-            'http://example.com/list-2': ['https://example.com/c'],
-        };
-        // Carries the BaseHttpClient prototype so the queue's `z.instanceof` validation accepts it.
-        const sendRequest = vitest.fn(async (request: { url: string }) => {
-            return new Response(lists[request.url]?.join('\n') ?? '');
-        });
-        const httpClient = Object.assign(Object.create(BaseHttpClient.prototype) as BaseHttpClient, {
-            sendRequest,
-            stream: vitest.fn(async () => new Response()),
-        });
-
-        // There is no `enqueuedUrlLists` on the view - the list is downloaded at call time and the
-        // *fetched* URLs are journaled, under either policy.
-        const queue = await RequestQueue.open(null, { httpClient });
-
-        await withStorageTransaction(async (transaction) => {
-            await queue.addRequests([{ requestsFromUrl: 'http://example.com/list-1', label: 'from-list' }]);
-
-            // writeThrough (default): applied immediately, and journaled for introspection.
-            expect(transaction.enqueuedUrls).toEqual([
-                { url: 'https://example.com/a', label: 'from-list' },
-                { url: 'https://example.com/b', label: 'from-list' },
-            ]);
-        });
-
-        await expect(queue.getTotalCount()).resolves.toBe(2);
-
-        await withStorageTransaction(
-            async (transaction) => {
-                await queue.addRequests([{ requestsFromUrl: 'http://example.com/list-2' }]);
-
-                // deferred: journaled the same way, applied only at commit.
-                expect(transaction.enqueuedUrls).toEqual([{ url: 'https://example.com/c' }]);
-            },
-            { policy: { requestQueue: 'deferred' } },
-        );
-
-        expect(httpClient.sendRequest).toHaveBeenCalledTimes(2);
-        await expect(queue.getTotalCount()).resolves.toBe(3);
     });
 
     test('crawler bookkeeping operations are rejected inside a transaction', async () => {

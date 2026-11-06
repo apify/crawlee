@@ -1,11 +1,9 @@
 import {
     ArgumentValidationError,
     Configuration,
-    deserializeArray,
     EventType,
     KeyValueStore,
     MemoryStorageBackend,
-    ProxyConfiguration,
     Request,
     RequestList,
     REQUESTS_PERSISTENCE_KEY,
@@ -13,7 +11,6 @@ import {
     STATE_PERSISTENCE_KEY,
     StateValidationError,
 } from '@crawlee/core';
-import { BaseHttpClient } from '@crawlee/http-client';
 import { sleep } from '@crawlee/utils';
 import { beforeAll, type MockedFunction } from 'vitest';
 
@@ -30,20 +27,6 @@ function shuffle(array: unknown[]): unknown[] {
     }
     return out;
 }
-
-// `vitest.mockObject` clones the object and drops its prototype, so build the mock manually to
-// keep it an `instanceof BaseHttpClient`.
-const createMockHttpClient = () =>
-    Object.assign(Object.create(BaseHttpClient.prototype) as BaseHttpClient, {
-        sendRequest: vitest.fn(async (_request?: any, _options?: any) => new Response()),
-        stream: vitest.fn(async () => new Response()),
-    });
-
-let mockHttpClient = createMockHttpClient();
-
-beforeEach(async () => {
-    mockHttpClient = createMockHttpClient();
-});
 
 describe('RequestList', () => {
     let ll: number;
@@ -156,132 +139,6 @@ describe('RequestList', () => {
 
         for await (const request of requestList) {
             expect(request?.url).toBe(sources.shift());
-        }
-    });
-
-    test('should correctly load list from hosted files in correct order', async () => {
-        const list1 = ['https://example.com', 'https://google.com', 'https://wired.com'];
-        const list2 = ['https://another.com', 'https://page.com'];
-        mockHttpClient.sendRequest
-            .mockImplementationOnce(async () => {
-                await sleep(100);
-                return new Response(list1.join('\n'));
-            })
-            .mockResolvedValueOnce(new Response(list2.join('\n')));
-
-        const requestList = await RequestList.open({
-            sources: [
-                { method: 'GET', requestsFromUrl: 'http://example.com/list-1' },
-                { method: 'POST', requestsFromUrl: 'http://example.com/list-2' },
-            ],
-            httpClient: mockHttpClient,
-        });
-
-        expect(await requestList.fetchNextRequest()).toMatchObject({ method: 'GET', url: list1[0] });
-        expect(await requestList.fetchNextRequest()).toMatchObject({ method: 'GET', url: list1[1] });
-        expect(await requestList.fetchNextRequest()).toMatchObject({ method: 'GET', url: list1[2] });
-        expect(await requestList.fetchNextRequest()).toMatchObject({ method: 'POST', url: list2[0] });
-        expect(await requestList.fetchNextRequest()).toMatchObject({ method: 'POST', url: list2[1] });
-
-        expect(mockHttpClient.sendRequest).toBeCalledTimes(2);
-        expect(mockHttpClient.sendRequest.mock.calls.map(([request]) => request.url)).toEqual([
-            'http://example.com/list-1',
-            'http://example.com/list-2',
-        ]);
-    });
-
-    test('should use regex parameter to parse urls', async () => {
-        const listStr = 'kjnjkn"https://example.com/a/b/c?q=1#abc";,"HTTP://google.com/a/b/c";dgg:dd';
-        const listArr = ['https://example.com', 'HTTP://google.com'];
-
-        const regex = /(https:\/\/example.com|HTTP:\/\/google.com)/g;
-
-        mockHttpClient.sendRequest.mockResolvedValueOnce(new Response(listStr));
-
-        const requestList = await RequestList.open({
-            sources: [
-                {
-                    method: 'GET',
-                    requestsFromUrl: 'http://example.com/list-1',
-                    regex,
-                },
-            ],
-            httpClient: mockHttpClient,
-        });
-
-        expect(await requestList.fetchNextRequest()).toMatchObject({ method: 'GET', url: listArr[0] });
-        expect(await requestList.fetchNextRequest()).toMatchObject({ method: 'GET', url: listArr[1] });
-
-        expect(mockHttpClient.sendRequest).toBeCalled();
-        expect(mockHttpClient.sendRequest.mock.calls[0][0].url).toBe('http://example.com/list-1');
-    });
-
-    test('should fix gdoc sharing url in `requestsFromUrl` automatically (GH issue #639)', async () => {
-        const list = ['https://example.com', 'https://google.com', 'https://wired.com'];
-        const wrongUrls = [
-            'https://docs.google.com/spreadsheets/d/11UGSBOSXy5Ov2WEP9nr4kSIxQJmH18zh-5onKtBsovU',
-            'https://docs.google.com/spreadsheets/d/11UGSBOSXy5Ov2WEP9nr4kSIxQJmH18zh-5onKtBsovU/',
-            'https://docs.google.com/spreadsheets/d/11UGSBOSXy5Ov2WEP9nr4kSIxQJmH18zh-5onKtBsovU/edit?usp=sharing',
-            'https://docs.google.com/spreadsheets/d/11UGSBOSXy5Ov2WEP9nr4kSIxQJmH18zh-5onKtBsovU/123123132',
-            'https://docs.google.com/spreadsheets/d/11UGSBOSXy5Ov2WEP9nr4kSIxQJmH18zh-5onKtBsovU/?q=blablabla',
-            'https://docs.google.com/spreadsheets/d/11UGSBOSXy5Ov2WEP9nr4kSIxQJmH18zh-5onKtBsovU/edit#gid=0',
-        ];
-        const correctUrl =
-            'https://docs.google.com/spreadsheets/d/11UGSBOSXy5Ov2WEP9nr4kSIxQJmH18zh-5onKtBsovU/gviz/tq?tqx=out:csv';
-
-        mockHttpClient.sendRequest.mockImplementation(async () => new Response(list.join('\n')));
-
-        const requestList = await RequestList.open({
-            sources: wrongUrls.map((requestsFromUrl) => ({ requestsFromUrl })),
-            httpClient: mockHttpClient,
-        });
-
-        expect(await requestList.fetchNextRequest()).toMatchObject({ method: 'GET', url: list[0] });
-        expect(await requestList.fetchNextRequest()).toMatchObject({ method: 'GET', url: list[1] });
-        expect(await requestList.fetchNextRequest()).toMatchObject({ method: 'GET', url: list[2] });
-
-        expect(mockHttpClient.sendRequest.mock.calls[0][0]?.url).toBe(correctUrl);
-    });
-
-    test('should handle requestsFromUrl with no URLs', async () => {
-        mockHttpClient.sendRequest.mockResolvedValueOnce(new Response(''));
-
-        const requestList = await RequestList.open({
-            sources: [
-                {
-                    method: 'GET',
-                    requestsFromUrl: 'http://example.com/list-1',
-                },
-            ],
-            httpClient: mockHttpClient,
-        });
-
-        expect(await requestList.fetchNextRequest()).toBe(null);
-
-        expect(mockHttpClient.sendRequest).toBeCalledTimes(1);
-        expect(mockHttpClient.sendRequest.mock.calls[0][0].url).toBe('http://example.com/list-1');
-    });
-
-    test('should use the defined proxy server when using `requestsFromUrl`', async () => {
-        const proxyUrls = ['http://proxyurl.usedforthe.download', 'http://another.proxy.url'];
-
-        const proxyConfiguration = new ProxyConfiguration({
-            proxyUrls,
-        });
-
-        await RequestList.open({
-            sources: [
-                { requestsFromUrl: 'http://example.com/list-1' },
-                { requestsFromUrl: 'http://example.com/list-2' },
-                { requestsFromUrl: 'http://example.com/list-3' },
-            ],
-            proxyConfiguration,
-            httpClient: mockHttpClient,
-        });
-
-        expect(mockHttpClient.sendRequest).toBeCalledTimes(3);
-        for (const [, options] of mockHttpClient.sendRequest.mock.calls) {
-            expect(proxyUrls).toContain(options.proxyUrl);
         }
     });
 
@@ -452,41 +309,6 @@ describe('RequestList', () => {
         const requestList2 = await RequestList.open(opts2);
         expect(requestList2.areRequestsPersisted).toBe(true);
         expect(requestList2.requests).toEqual(requestList.requests);
-    });
-
-    test('should correctly persist sources from requestsFromUrl if persistRequestsKey is set', async () => {
-        const PERSIST_REQUESTS_KEY = 'some-key';
-        const getValueSpy = vitest.spyOn(KeyValueStore.prototype, 'getValue');
-        const setValueSpy = vitest.spyOn(KeyValueStore.prototype, 'setValue');
-        let persistedRequests: any;
-
-        const opts = {
-            sources: [
-                { url: 'https://example.com/1' },
-                { url: 'https://example.com/2' },
-                { requestsFromUrl: 'http://example.com/list-urls.txt', userData: { isFromUrl: true } },
-                { url: 'https://example.com/5' },
-            ],
-            persistRequestsKey: PERSIST_REQUESTS_KEY,
-            httpClient: mockHttpClient,
-        };
-
-        const urlsFromTxt = ['http://example.com/3', 'http://example.com/4'];
-        mockHttpClient.sendRequest.mockResolvedValueOnce(new Response(urlsFromTxt.join('\n')));
-
-        getValueSpy.mockResolvedValueOnce(null);
-        setValueSpy.mockImplementationOnce(async (_key, value) => {
-            persistedRequests = value;
-        });
-
-        const requestList = await RequestList.open(opts);
-        expect(requestList.areRequestsPersisted).toBe(true);
-        const requests = await deserializeArray(persistedRequests);
-        expect(requestList.requests).toHaveLength(5);
-        expect(requests).toEqual(requestList.requests);
-
-        expect(mockHttpClient.sendRequest).toBeCalledTimes(1);
-        expect(mockHttpClient.sendRequest.mock.calls[0][0].url).toBe('http://example.com/list-urls.txt');
     });
 
     test('handles correctly inconsistent inProgress fields in state', async () => {

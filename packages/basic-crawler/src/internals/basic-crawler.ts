@@ -1532,7 +1532,8 @@ export class BasicCrawler<
             const newCrawlDepth = request!.crawlDepth + 1;
             const requestsGenerator = this.addCrawlDepthRequestGenerator(requests, newCrawlDepth);
 
-            return await this.addRequests(requestsGenerator, options);
+            // The labels were checked by the typed `addRequests` signature, the generator only adds `crawlDepth`.
+            return await this.addRequests(requestsGenerator as TypedRequestsLike<Routes>, options);
         };
 
         const sendRequest = createSendRequest(this.httpClient, request!, session);

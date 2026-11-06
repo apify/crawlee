@@ -1,16 +1,12 @@
-import type { BaseHttpClient } from '@crawlee/http-client';
-import type { Dictionary } from '@crawlee/types';
-import { downloadListOfUrls } from '@crawlee/utils';
 import { z } from 'zod';
 
 import type { Configuration } from '../configuration.js';
 import type { CrawleeLogger } from '../log.js';
-import type { IProxyConfiguration } from '../proxy-configuration.js';
 import { convertStateSync, RecoverableState } from '../recoverable-state.js';
-import { type InternalSource, Request, type RequestOptions, type Source } from '../request.js';
+import { Request, type RequestOptions, type Source } from '../request.js';
 import { createDeserialize, serializeArray } from '../serialization.js';
 import { serviceLocator } from '../service-locator.js';
-import { parseArgument, schemas, validators } from '../validators.js';
+import { parseArgument, schemas } from '../validators.js';
 import { KeyValueStore } from './key-value-store.js';
 import type { IRequestLoader, RequestLoaderStatus } from './request-loader.js';
 import type { IRequestManager } from './request-manager.js';
@@ -47,8 +43,6 @@ const requestListOptionsSchema = z.strictObject({
     persistRequestsKey: z.string().optional(),
     state: persistedRequestListState.optional(),
     keepDuplicateUrls: z.boolean().default(false),
-    proxyConfiguration: validators.proxyConfiguration.optional(),
-    httpClient: schemas.httpClient.optional(),
 });
 const listNameSchema = z.string().nullish();
 const openOptionsSchema = z.looseObject({});
@@ -136,10 +130,6 @@ export interface RequestListOptions {
      * This is a measure to prevent memory leaks in situations when millions of sources are
      * added.
      *
-     * Additionally, the `requestsFromUrl` property may be used instead of `url`,
-     * which will instruct `RequestList` to download the source URLs from a given remote location.
-     * The URLs will be parsed from the received response.
-     *
      * ```
      * [
      *     // A single URL
@@ -147,17 +137,6 @@ export interface RequestListOptions {
      *
      *     // Modify Request options
      *     { method: PUT, 'https://example.com/put, payload: { foo: 'bar' }}
-     *
-     *     // Batch import of URLs from a file hosted on the web,
-     *     // where the URLs should be requested using the HTTP POST request
-     *     { method: 'POST', requestsFromUrl: 'http://example.com/urls.txt' },
-     *
-     *     // Batch import from remote file, using a specific regular expression to extract the URLs.
-     *     { requestsFromUrl: 'http://example.com/urls.txt', regex: /https:\/\/example.com\/.+/ },
-     *
-     *     // Get list of URLs from a Google Sheets document. Just add "/gviz/tq?tqx=out:csv" to the Google Sheet URL.
-     *     // For details, see https://help.apify.com/en/articles/2906022-scraping-a-list-of-urls-from-a-google-sheets-document
-     *     { requestsFromUrl: 'https://docs.google.com/spreadsheets/d/1-2mUcRAiBbCTVA5KcpFdEYWflLMLp9DDU3iJutvES4w/gviz/tq?tqx=out:csv' }
      * ]
      * ```
      */
@@ -202,13 +181,6 @@ export interface RequestListOptions {
      * ```
      */
     sourcesFunction?: RequestListSourcesFunction;
-
-    /**
-     * Used to pass the proxy configuration for the `requestsFromUrl` objects.
-     * Takes advantage of the internal address rotation and authentication process.
-     * If undefined, the `requestsFromUrl` requests will be made without proxy.
-     */
-    proxyConfiguration?: IProxyConfiguration;
 
     /**
      * Identifies the key in the default key-value store under which `RequestList` periodically stores its
@@ -274,18 +246,10 @@ export interface RequestListOptions {
 
     /** @internal */
     configuration?: Configuration;
-
-    /**
-     * The HTTP client to be used to download `requestsFromUrl` URLs.
-     *
-     * If not specified the `RequestList` will use the default HTTP client.
-     */
-    httpClient?: BaseHttpClient;
 }
 
 /**
  * Represents a static list of URLs to crawl.
- * The URLs can be provided either in code or parsed from a text file hosted on the web.
  * `RequestList` is used by {@apilink BasicCrawler}, {@apilink CheerioCrawler}, {@apilink PuppeteerCrawler}
  * and {@apilink PlaywrightCrawler} as a source of URLs to crawl.
  *
@@ -322,7 +286,6 @@ export interface RequestListOptions {
  * const requestList = await RequestList.open('my-request-list', [
  *     'http://www.example.com/page-1',
  *     { url: 'http://www.example.com/page-2', method: 'POST', userData: { foo: 'bar' }},
- *     { requestsFromUrl: 'http://www.example.com/my-url-list.txt', userData: { isFromUrl: true } },
  * ]);
  * ```
  *
@@ -332,10 +295,6 @@ export interface RequestListOptions {
  *     // Separate requests
  *     { url: 'http://www.example.com/page-1', method: 'GET', headers: { ... } },
  *     { url: 'http://www.example.com/page-2', userData: { foo: 'bar' }},
- *
- *     // Bulk load of URLs from file `http://www.example.com/my-url-list.txt`
- *     // Note that all URLs must start with http:// or https://
- *     { requestsFromUrl: 'http://www.example.com/my-url-list.txt', userData: { isFromUrl: true } },
  * ], {
  *     // Persist the state to avoid re-crawling which can lead to data duplications.
  *     // Keep in mind that the sources have to be immutable or this will throw an error.
@@ -393,8 +352,6 @@ export class RequestList implements IRequestLoader {
     #keepDuplicateUrls: boolean;
     #sources: RequestListSource[];
     #sourcesFunction?: RequestListSourcesFunction;
-    #proxyConfiguration?: IProxyConfiguration;
-    #httpClient?: BaseHttpClient;
 
     /**
      * To create new instance of `RequestList` we need to use `RequestList.open()` factory method.
@@ -402,16 +359,8 @@ export class RequestList implements IRequestLoader {
      * @internal
      */
     private constructor(options: RequestListOptions = {}) {
-        const {
-            sources,
-            sourcesFunction,
-            persistStateKey,
-            persistRequestsKey,
-            state,
-            proxyConfiguration,
-            keepDuplicateUrls,
-            httpClient,
-        } = parseArgument(options, requestListOptionsSchema);
+        const { sources, sourcesFunction, persistStateKey, persistRequestsKey, state, keepDuplicateUrls } =
+            parseArgument(options, requestListOptionsSchema);
 
         if (!(sources || sourcesFunction)) {
             throw new Error('At least one of "sources" or "sourcesFunction" must be provided.');
@@ -419,7 +368,6 @@ export class RequestList implements IRequestLoader {
 
         this.#persistStateKey = persistStateKey ? `CRAWLEE_${persistStateKey}` : persistStateKey;
         this.#persistRequestsKey = persistRequestsKey ? `CRAWLEE_${persistRequestsKey}` : persistRequestsKey;
-        this.#httpClient = httpClient;
 
         this.#stateCodec = buildRequestListStateCodec({
             requests: this.requests,
@@ -452,9 +400,6 @@ export class RequestList implements IRequestLoader {
         // Will be empty after initialization to save memory.
         this.#sources = sources ? [...sources] : [];
         this.#sourcesFunction = sourcesFunction;
-
-        // The proxy configuration used for `requestsFromUrl` requests.
-        this.#proxyConfiguration = proxyConfiguration;
     }
 
     /**
@@ -532,12 +477,7 @@ export class RequestList implements IRequestLoader {
             // oxlint-disable-next-line typescript/no-array-delete
             delete this.#sources[i];
 
-            if (typeof source === 'object' && (source as Dictionary).requestsFromUrl) {
-                const fetchedRequests = await this.#fetchRequestsFromUrl(source as InternalSource);
-                await this.#addFetchedRequests(source as InternalSource, fetchedRequests);
-            } else {
-                this.#addRequest(source);
-            }
+            this.#addRequest(source);
         }
 
         // Drop the original array full of empty indexes.
@@ -681,60 +621,11 @@ export class RequestList implements IRequestLoader {
         this.inProgress.delete(uniqueKey);
     }
 
-    /**
-     * Adds all fetched requests from a URL from a remote resource.
-     */
-    async #addFetchedRequests(source: InternalSource, fetchedRequests: RequestOptions[]) {
-        const { requestsFromUrl, regex } = source;
-        const originalLength = this.requests.length;
-
-        fetchedRequests.forEach((request) => this.#addRequest(request));
-
-        const fetchedCount = fetchedRequests.length;
-        const importedCount = this.requests.length - originalLength;
-
-        this.#log.info('Fetched and loaded Requests from a remote resource.', {
-            requestsFromUrl,
-            regex,
-            fetchedCount,
-            importedCount,
-            duplicateCount: fetchedCount - importedCount,
-            sample: JSON.stringify(fetchedRequests.slice(0, 5)),
-        });
-    }
-
     async #getPersistedState<T>(key: string): Promise<T> {
         this.#store ??= await KeyValueStore.open();
         const state = await this.#store.getValue<T>(key);
 
         return state!;
-    }
-
-    /**
-     * Fetches URLs from requestsFromUrl and returns them in format of list of requests
-     */
-    async #fetchRequestsFromUrl(source: InternalSource): Promise<RequestOptions[]> {
-        const { requestsFromUrl, regex, ...sharedOpts } = source;
-
-        // Download remote resource and parse URLs.
-        let urlsArr;
-        try {
-            urlsArr = await this.#downloadListOfUrls({
-                url: requestsFromUrl,
-                urlRegExp: regex,
-                proxyUrl: (await this.#proxyConfiguration?.newProxyInfo())?.url,
-            });
-        } catch (err) {
-            throw new Error(`Cannot fetch a request list from ${requestsFromUrl}: ${err}`);
-        }
-
-        // Skip if resource contained no URLs.
-        if (!urlsArr.length) {
-            this.#log.warning('The fetched list contains no valid URLs.', { requestsFromUrl, regex });
-            return [];
-        }
-
-        return urlsArr.map((url) => ({ url, ...sharedOpts }));
     }
 
     /**
@@ -890,11 +781,6 @@ export class RequestList implements IRequestLoader {
      *  This is a measure to prevent memory leaks in situations when millions of sources are
      *  added.
      *
-     *  Additionally, the `requestsFromUrl` property may be used instead of `url`,
-     *  which will instruct {@apilink RequestList} to download the source URLs from a given remote location.
-     *  The URLs will be parsed from the received response. In this case you can limit the URLs
-     *  using `regex` parameter containing regular expression pattern for URLs to be included.
-     *
      *  For details, see the {@apilink RequestListOptions.sources}
      * @param [options]
      *   The {@apilink RequestList} options. Note that the `listName` parameter supersedes
@@ -929,16 +815,6 @@ export class RequestList implements IRequestLoader {
         await rl.#initialize();
 
         return rl;
-    }
-
-    /**
-     * @internal wraps public utility for mocking purposes
-     */
-    async #downloadListOfUrls(options: { url: string; urlRegExp?: RegExp; proxyUrl?: string }): Promise<string[]> {
-        return downloadListOfUrls({
-            ...options,
-            httpClient: this.#httpClient,
-        });
     }
 }
 

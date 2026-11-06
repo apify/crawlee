@@ -15,7 +15,6 @@ import {
 } from '@crawlee/core';
 import { sleep } from '@crawlee/utils';
 import { FileSystemStorageBackend } from '@crawlee/fs-storage';
-import { BaseHttpClient } from '@crawlee/http-client';
 
 describe('ThrottlingRequestManager', () => {
     beforeEach(() => {
@@ -242,40 +241,12 @@ describe('ThrottlingRequestManager', () => {
         });
     });
 
-    test('warns that requestsFromUrl sources cannot be domain-routed', async () => {
-        // The manager logs through a `child()` of the shared logger; collapsing `child` onto the
-        // logger itself is the only way to see what it emits.
-        const logger = serviceLocator.getLogger();
-        vitest.spyOn(logger, 'child').mockReturnValue(logger);
-        const warning = vitest.spyOn(logger, 'warning').mockImplementation(() => {});
-
-        // The inner queue downloads the lists, so serve them locally: whatever a live host returns (an empty
-        // list, an error) would be logged through the same spied logger.
-        const httpClient = Object.assign(Object.create(BaseHttpClient.prototype) as BaseHttpClient, {
-            sendRequest: vitest.fn(async () => new Response('https://example.com/1\nhttps://example.com/2')),
-            stream: vitest.fn(async () => new Response()),
-        });
-
-        const manager = new ThrottlingRequestManager({
-            inner: await RequestQueue.open({ name: 'inner-queue' }, { httpClient }),
-            domains: ['example.com'],
-        });
-
-        await manager.addRequestsBatched([
-            { requestsFromUrl: 'https://example.com/urls.txt' },
-            { requestsFromUrl: 'https://example.com/more.txt' },
-        ]);
-
-        expect(warning).toHaveBeenCalledTimes(1);
-        expect(warning.mock.calls[0][0]).toMatch(/requestsFromUrl/);
-    });
-
     test('a request fetched from the inner manager is handed back to it', async () => {
         const inner = await createQueue();
         const manager = new ThrottlingRequestManager({ inner, domains: ['example.com'] });
 
-        // Bypasses routing, exactly as a `RequestList` transfer or a `requestsFromUrl` expansion does - so the
-        // request sits in the inner manager despite belonging to a throttled domain.
+        // Bypasses routing, exactly as a `RequestList` transfer does - so the request sits in the inner manager
+        // despite belonging to a throttled domain.
         await inner.addRequest({ url: 'https://example.com/1' });
 
         const request = (await manager.fetchNextRequest())!;

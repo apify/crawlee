@@ -8,7 +8,6 @@ import type { AllowedHttpMethods } from '@crawlee/types';
 import { ArgumentValidationError } from '@crawlee/utils';
 import { AsyncEventEmitter } from '@vladfrangu/async_event_emitter';
 import type { Awaitable } from '@crawlee/types';
-import { BaseHttpClient } from '@crawlee/http-client';
 import type { BatchAddRequestsResult } from '@crawlee/types';
 import type { BetterIntervalID } from '@apify/utilities';
 import type { Constructor } from '@crawlee/types';
@@ -679,11 +678,9 @@ export class RequestList implements IRequestLoader {
 
 // @public (undocumented)
 export interface RequestListOptions {
-    httpClient?: BaseHttpClient;
     keepDuplicateUrls?: boolean;
     persistRequestsKey?: string;
     persistStateKey?: string;
-    proxyConfiguration?: IProxyConfiguration;
     sources?: RequestListSource[];
     sourcesFunction?: RequestListSourcesFunction;
     state?: RequestListState;
@@ -905,10 +902,7 @@ export class SessionRetiredError extends SessionError {
 }
 
 // @public (undocumented)
-export type Source = (Partial<RequestOptions> & {
-    requestsFromUrl?: string;
-    regex?: RegExp;
-}) | Request_2;
+export type Source = Partial<RequestOptions> | Request_2;
 
 // @public
 export type StateConversion<TFrom, TTo> = ((value: TFrom) => Awaitable<TTo>) | StandardSchemaV1<TFrom, TTo>;
@@ -939,8 +933,6 @@ export class StorageInstanceManager {
 // @public
 export interface StorageOpenOptions {
     configuration?: Configuration;
-    httpClient?: BaseHttpClient;
-    proxyConfiguration?: IProxyConfiguration;
     storageBackend?: StorageBackend;
 }
 

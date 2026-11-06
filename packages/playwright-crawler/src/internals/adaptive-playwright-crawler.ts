@@ -10,6 +10,7 @@ import type {
     RestrictedCrawlingContext,
     RouterRoutes,
     StatisticStateExtensionOptions,
+    TypedRequestsLike,
 } from '@crawlee/basic';
 import {
     BasicCrawler,
@@ -963,7 +964,7 @@ export class AdaptivePlaywrightCrawler<
 
         // The per-attempt transaction buffers these (the queue policy defaults to `deferred` here),
         // so a discarded attempt's enqueues never reach the queue.
-        return await this.addRequests(requestsWithDepth, {
+        return await this.addRequests(requestsWithDepth as TypedRequestsLike<Routes>, {
             ...options,
             baseUrl,
             strategy: options.strategy ?? EnqueueStrategy.SameHostname,

@@ -493,12 +493,6 @@ interface ComputeUniqueKeyOptions {
     alwaysEnqueue?: boolean;
 }
 
-export type Source = (Partial<RequestOptions> & { requestsFromUrl?: string; regex?: RegExp }) | CrawleeRequest;
-
-/** @internal */
-export interface InternalSource {
-    requestsFromUrl: string;
-    regex?: RegExp;
-}
+export type Source = Partial<RequestOptions> | CrawleeRequest;
 
 export { CrawleeRequest as Request };
