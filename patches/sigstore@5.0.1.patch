@@ -1,5 +1,5 @@
 diff --git a/dist/config.js b/dist/config.js
-index 373149fe22fb750faeefba5d20a0e432bb91df14..000fbba94c277639c264740599560382f8706399 100644
+index 373149f..000fbba 100644
 --- a/dist/config.js
 +++ b/dist/config.js
 @@ -23,7 +23,7 @@ const core_1 = require("@sigstore/core");
