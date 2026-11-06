@@ -300,6 +300,34 @@ Reading the run input is an Apify platform concern, so Crawlee no longer has any
 - **`Configuration.inputKey` and the `CRAWLEE_INPUT_KEY` environment variable are removed.** The Apify SDK's `Configuration` defines `inputKey` itself.
 - **The default key-value store is purged in full**, `INPUT` included. Sparing a key, and claiming a bare `<key>` / `<key>.json` file as the record `<key>` (see [Out-of-band key-value files](#out-of-band-key-value-files-eg-a-hand-placed-inputjson)), is left to subclasses of `FileSystemStorageBackend` through its two protected hooks, `keyValueStoreAdoptionCandidates` and `purgeKeyValueStore`. The Apify SDK's `ApifyFileSystemStorageBackend` does this for its run input; plain Crawlee treats a hand-placed `INPUT.json` as any other file.
 
+### `requestsFromUrl` sources moved to the Apify SDK
+
+Downloading URLs from a `{ requestsFromUrl }` source served the "Link remote text file" option of Apify Actor inputs, so it moved to the Apify SDK. `RequestList`, `RequestQueue` and the crawlers' `run()` / `addRequests()` no longer accept `requestsFromUrl` (nor the `regex` option next to it), and the `proxyConfiguration` and `httpClient` options of `RequestList.open()` and `RequestQueue.open()`, which only served those downloads, are removed.
+
+In an Actor, turn the input into a `RequestList` with `ApifyRequestList` from `apify`:
+
+**Before:**
+```typescript
+const { startUrls } = await Actor.getInput();
+await crawler.run(startUrls);
+```
+
+**After:**
+```typescript
+import { ApifyRequestList } from 'apify';
+
+const { startUrls } = await Actor.getInput();
+await crawler.run(await ApifyRequestList.open({ requestListSourcesInput: startUrls }));
+```
+
+Elsewhere, download the list yourself with `downloadListOfUrls()`, whose `urlRegExp`, `proxyUrl` and `httpClient` options replace the removed ones:
+
+```typescript
+import { downloadListOfUrls } from 'crawlee';
+
+await crawler.run(await downloadListOfUrls({ url: 'https://example.com/urls.txt' }));
+```
+
 ### Service management moved from `Configuration` to `ServiceLocator`
 
 The service management functionality has been extracted from `Configuration` into a new `ServiceLocator` class.
@@ -876,7 +904,7 @@ The mechanism can be disabled entirely with `transactionalStorage: false` on any
 #### Removed symbols and options
 
 - `checkStorageAccess` and `withCheckedStorageAccess` are superseded by the transaction mechanism; the per-call-site helper is now `withDirectStorageAccess()`.
-- The experimental `AdaptivePlaywrightCrawler` no longer needs its bespoke write-buffering machinery: the `preventDirectStorageAccess` option is gone (direct storage calls are now captured by the per-attempt transaction instead of throwing), and `RequestHandlerResult` is replaced by the read-only `StorageTransactionView`, which the `resultChecker` / `resultComparator` callbacks (and `fullResultComparator`) now receive. The view keeps the familiar accessors (`datasetItems`, `enqueuedUrls`, `keyValueStoreChanges`), so most callbacks only need a type change. The `calls` and `enqueuedUrlLists` accessors are gone — `requestsFromUrl` sources are now expanded when added, so the fetched URLs appear in `enqueuedUrls` (and are what `fullResultComparator` compares). The `commitResult` override point is gone too; use an `afterStorageCommit()` callback to run logic once the winning attempt's writes have landed (or failed to).
+- The experimental `AdaptivePlaywrightCrawler` no longer needs its bespoke write-buffering machinery: the `preventDirectStorageAccess` option is gone (direct storage calls are now captured by the per-attempt transaction instead of throwing), and `RequestHandlerResult` is replaced by the read-only `StorageTransactionView`, which the `resultChecker` / `resultComparator` callbacks (and `fullResultComparator`) now receive. The view keeps the familiar accessors (`datasetItems`, `enqueuedUrls`, `keyValueStoreChanges`), so most callbacks only need a type change. The `calls` and `enqueuedUrlLists` accessors are gone. The `commitResult` override point is gone too; use an `afterStorageCommit()` callback to run logic once the winning attempt's writes have landed (or failed to).
 
 ### `storageObject` is removed from storage classes
 
@@ -1118,7 +1146,7 @@ With `respectRobotsTxtFile` enabled, a site that answers `/robots.txt` with a `5
 
 - A crawl that discovers more than `maxThrottledDomains` domains (100 by default) throws instead of quietly running out of steam. Pass your own `ThrottlingRequestManager` as `requestManager` to raise the ceiling — or crawl fewer sites.
 - Combined with a manager that paces on its own, a `ThrottlingRequestManager` with `domains: 'all'` and `throttleBy: 'registrableDomain'` takes the delay as its `minCrawlDelaySecs` floor, wherever it sits in a composition. One that paces only *some* domains throws instead — set `domains: 'all'`, or configure the delay there yourself and drop the option.
-- Requests that never pass through the request manager — those from a `requestsFromUrl` list — are not paced, and the crawler warns when it hands one out.
+- Requests that never pass through the request manager — those from a `RequestList` — are not paced, and the crawler warns when it hands one out.
 
 ### Internal KVS keys renamed
 

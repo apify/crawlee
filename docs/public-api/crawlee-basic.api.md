@@ -483,16 +483,13 @@ export interface IStatistics<StateExtension extends object = {}> {
 }
 
 // @public
-export type LabeledSource<Routes extends Record<keyof Routes, Dictionary>> = string extends keyof Routes ? string | Source : string | Request_2 | ({
-    requestsFromUrl?: string;
-    regex?: RegExp;
-} & ({
+export type LabeledSource<Routes extends Record<keyof Routes, Dictionary>> = string extends keyof Routes ? string | Source : string | Request_2 | {
     [Label in keyof Routes & string]: Omit<Partial<RequestOptions<Routes[Label]>>, 'label'> & {
         label: Label;
     };
 }[keyof Routes & string] | (Omit<Partial<RequestOptions>, 'label'> & {
     label?: undefined;
-})));
+});
 
 // @public
 export type LoadedRequest<R extends Request_2> = R & Required<Pick<R, 'id' | 'loadedUrl'>>;

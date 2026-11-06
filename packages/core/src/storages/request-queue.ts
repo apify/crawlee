@@ -1,6 +1,5 @@
 import { inspect } from 'node:util';
 
-import type { BaseHttpClient } from '@crawlee/http-client';
 import type {
     BatchAddRequestsResult,
     Constructor,
@@ -12,7 +11,6 @@ import type {
     RequestSchema,
 } from '@crawlee/types';
 import { isAsyncIterable, isIterable } from '@crawlee/utils/internal';
-import { downloadListOfUrls } from '@crawlee/utils';
 import type { ReadonlyDeep } from 'type-fest';
 import { z } from 'zod';
 
@@ -24,8 +22,7 @@ import { getObjectType } from '../debug.js';
 import type { EventManager } from '../events/event-manager.js';
 import { EventType } from '../events/event-manager.js';
 import type { CrawleeLogger } from '../log.js';
-import type { IProxyConfiguration } from '../proxy-configuration.js';
-import type { InternalSource, RequestOptions, Source } from '../request.js';
+import type { RequestOptions, Source } from '../request.js';
 import { Request } from '../request.js';
 import { serviceLocator } from '../service-locator.js';
 import { parseArgument, schemas, validators } from '../validators.js';
@@ -89,8 +86,6 @@ const uniqueKeySchema = z.string();
 const openOptionsSchema = z.strictObject({
     configuration: z.instanceof(Configuration).optional(),
     storageBackend: validators.storageBackend.optional(),
-    proxyConfiguration: validators.proxyConfiguration.optional(),
-    httpClient: schemas.httpClient.optional(),
 });
 
 /**
@@ -131,7 +126,6 @@ export class RequestQueue implements IStorage, IRequestManager {
     readonly id: string;
     readonly name?: string;
     readonly backend: RequestQueueBackend;
-    #proxyConfiguration?: IProxyConfiguration;
 
     readonly log: CrawleeLogger;
 
@@ -154,8 +148,6 @@ export class RequestQueue implements IStorage, IRequestManager {
      * lowered, before being forwarded to the storage backend.
      */
     #expectedRequestProcessingSecs = 0;
-
-    #httpClient?: BaseHttpClient;
 
     readonly #events: EventManager;
 
@@ -180,8 +172,6 @@ export class RequestQueue implements IStorage, IRequestManager {
         this.name = options.metadata.name;
         this.#events = serviceLocator.getEventManager();
         this.backend = options.backend;
-
-        this.#proxyConfiguration = options.proxyConfiguration;
 
         this.#requestCache = new LruCache({ maxLength: MAX_CACHED_REQUESTS });
         this.#requestSeenCache = new RequestDeduplicationCache();
@@ -234,13 +224,6 @@ export class RequestQueue implements IStorage, IRequestManager {
 
         parseArgument(requestLike, schemas.anyObject);
         const { forefront } = parseArgument(options, operationOptionsSchema);
-
-        if ('requestsFromUrl' in requestLike) {
-            const requests = await this.#fetchRequestsFromUrl(requestLike as InternalSource);
-            const processedRequests = await this.#addFetchedRequests(requestLike as InternalSource, requests, options);
-
-            return { ...processedRequests[0], forefront };
-        }
 
         parseArgument(requestLike, newRequestLikeSchema);
 
@@ -503,9 +486,6 @@ export class RequestQueue implements IStorage, IRequestManager {
         for await (const requestLike of requestsLike) {
             if (typeof requestLike === 'string') {
                 requests.push(new Request({ url: requestLike }));
-            } else if ('requestsFromUrl' in requestLike) {
-                const fetchedRequests = await this.#fetchRequestsFromUrl(requestLike as InternalSource);
-                await this.#addFetchedRequests(requestLike as InternalSource, fetchedRequests, options);
             } else {
                 requests.push(
                     requestLike instanceof Request ? requestLike : new Request(requestLike as RequestOptions),
@@ -596,8 +576,6 @@ export class RequestQueue implements IStorage, IRequestManager {
         const { forefront, waitForAllRequestsToBeAdded, batchSize, waitBetweenBatchesMillis, maxNewRequests } =
             parseArgument(options, addRequestsBatchedOptionsSchema);
 
-        const addRequest = this.addRequest.bind(this);
-
         async function* generateRequests() {
             for await (const opts of requests) {
                 // Validate the input
@@ -613,24 +591,9 @@ export class RequestQueue implements IStorage, IRequestManager {
                             `Request options are not valid, the 'id' property must not be present. Input: ${inspect(opts)}`,
                         );
                     }
-
-                    if (
-                        (opts as any).requestsFromUrl !== undefined &&
-                        typeof (opts as any).requestsFromUrl !== 'string'
-                    ) {
-                        throw new Error(
-                            `Request options are not valid, the 'requestsFromUrl' property is not a string. Input: ${inspect(opts)}`,
-                        );
-                    }
                 }
 
-                if (opts && typeof opts === 'object' && 'requestsFromUrl' in opts) {
-                    // Handle URL lists right away
-                    await addRequest(opts, { forefront });
-                } else {
-                    // Yield valid requests
-                    yield typeof opts === 'string' ? { url: opts } : (opts as RequestOptions);
-                }
+                yield typeof opts === 'string' ? { url: opts } : (opts as RequestOptions);
             }
         }
 
@@ -992,66 +955,6 @@ export class RequestQueue implements IStorage, IRequestManager {
     }
 
     /**
-     * Fetches URLs from requestsFromUrl and returns them in format of list of requests
-     */
-    async #fetchRequestsFromUrl(source: InternalSource): Promise<RequestOptions[]> {
-        const { requestsFromUrl, regex, ...sharedOpts } = source;
-
-        // Download remote resource and parse URLs.
-        let urlsArr;
-        try {
-            urlsArr = await this.#downloadListOfUrls({
-                url: requestsFromUrl,
-                urlRegExp: regex,
-                proxyUrl: (await this.#proxyConfiguration?.newProxyInfo())?.url,
-            });
-        } catch (err) {
-            throw new Error(`Cannot fetch a request list from ${requestsFromUrl}: ${err}`);
-        }
-
-        // Skip if resource contained no URLs.
-        if (!urlsArr.length) {
-            this.log.warning('The fetched list contains no valid URLs.', { requestsFromUrl, regex });
-            return [];
-        }
-
-        return urlsArr.map((url) => ({ url, ...sharedOpts }));
-    }
-
-    /**
-     * Adds all fetched requests from a URL from a remote resource.
-     */
-    async #addFetchedRequests(
-        source: InternalSource,
-        fetchedRequests: RequestOptions[],
-        options: RequestQueueOperationOptions,
-    ) {
-        const { requestsFromUrl, regex } = source;
-        const { addedRequests } = await this.addRequestsBatched(fetchedRequests, options);
-
-        this.log.info('Fetched and loaded Requests from a remote resource.', {
-            requestsFromUrl,
-            regex,
-            fetchedCount: fetchedRequests.length,
-            importedCount: addedRequests.length,
-            duplicateCount: fetchedRequests.length - addedRequests.length,
-            sample: JSON.stringify(fetchedRequests.slice(0, 5)),
-        });
-
-        return addedRequests;
-    }
-
-    /**
-     * @internal wraps public utility for mocking purposes
-     */
-    async #downloadListOfUrls(options: { url: string; urlRegExp?: RegExp; proxyUrl?: string }): Promise<string[]> {
-        return downloadListOfUrls({
-            ...options,
-            httpClient: this.#httpClient,
-        });
-    }
-
-    /**
      * Opens a request queue and returns a promise resolving to an instance
      * of the {@apilink RequestQueue} class.
      *
@@ -1090,8 +993,6 @@ export class RequestQueue implements IStorage, IRequestManager {
                 backendOpener: () => storageBackend.createRequestQueueBackend(resolved),
                 backendCacheKey: storageBackend.getStorageBackendCacheKey?.() ?? storageBackend.constructor.name,
             });
-        queue.#proxyConfiguration = parsedOptions.proxyConfiguration;
-        queue.#httpClient = parsedOptions.httpClient;
 
         return queue;
     }
@@ -1110,13 +1011,6 @@ export interface RequestQueueOptions {
     /** Resolved metadata for the request queue, as returned by the backend's `getMetadata()`. */
     metadata: RequestQueueInfo;
     backend: RequestQueueBackend;
-
-    /**
-     * Used to pass the proxy configuration for the `requestsFromUrl` objects.
-     * Takes advantage of the internal address rotation and authentication process.
-     * If undefined, the `requestsFromUrl` requests will be made without proxy.
-     */
-    proxyConfiguration?: IProxyConfiguration;
 }
 
 export interface RequestQueueOperationOptions {

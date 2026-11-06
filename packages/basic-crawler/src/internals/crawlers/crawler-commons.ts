@@ -38,14 +38,12 @@ export type LabeledSource<Routes extends Record<keyof Routes, Dictionary>> = str
     :
           | string
           | Request
-          | ({ requestsFromUrl?: string; regex?: RegExp } & (
-                | {
-                      [Label in keyof Routes & string]: Omit<Partial<RequestOptions<Routes[Label]>>, 'label'> & {
-                          label: Label;
-                      };
-                  }[keyof Routes & string]
-                | (Omit<Partial<RequestOptions>, 'label'> & { label?: undefined })
-            ));
+          | {
+                [Label in keyof Routes & string]: Omit<Partial<RequestOptions<Routes[Label]>>, 'label'> & {
+                    label: Label;
+                };
+            }[keyof Routes & string]
+          | (Omit<Partial<RequestOptions>, 'label'> & { label?: undefined });
 
 /**
  * The iterable/array of {@apilink LabeledSource} inputs accepted by the label-aware `addRequests`/`run`

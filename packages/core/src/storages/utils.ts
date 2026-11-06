@@ -1,10 +1,8 @@
 import crypto from 'node:crypto';
 
-import type { BaseHttpClient } from '@crawlee/http-client';
 import type { Dictionary, StorageBackend } from '@crawlee/types';
 
 import { Configuration } from '../configuration.js';
-import type { IProxyConfiguration } from '../proxy-configuration.js';
 import { serviceLocator } from '../service-locator.js';
 import { KeyValueStore } from './key-value-store.js';
 
@@ -241,16 +239,4 @@ export interface StorageOpenOptions {
      * Optional storage backend that should be used to open storages.
      */
     storageBackend?: StorageBackend;
-
-    /**
-     * Used to pass the proxy configuration for the `requestsFromUrl` objects.
-     * Takes advantage of the internal address rotation and authentication process.
-     * If undefined, the `requestsFromUrl` requests will be made without proxy.
-     */
-    proxyConfiguration?: IProxyConfiguration;
-
-    /**
-     * HTTP client to be used to download the list of URLs in `RequestQueue`.
-     */
-    httpClient?: BaseHttpClient;
 }

@@ -4,24 +4,9 @@ import { resolve } from 'node:path';
 
 import type { LoadedRequest } from '@crawlee/basic';
 import { CrawlingRequest, NavigationSkippedError, skippedNavigationRequest } from '@crawlee/basic';
-import { MemoryStorageBackend, ProxyConfiguration, Request, RequestQueue, serviceLocator } from '@crawlee/core';
-import { BaseHttpClient } from '@crawlee/http-client';
+import { MemoryStorageBackend, Request, RequestQueue, serviceLocator } from '@crawlee/core';
 import { FileSystemStorageBackend } from '@crawlee/fs-storage';
 import { sleep } from '@crawlee/utils';
-
-// `vitest.mockObject` clones the object and drops its prototype, so build the mock manually to
-// keep it an `instanceof BaseHttpClient`.
-const createMockHttpClient = () =>
-    Object.assign(Object.create(BaseHttpClient.prototype) as BaseHttpClient, {
-        sendRequest: vitest.fn(async (_request?: any, _options?: any) => new Response()),
-        stream: vitest.fn(async () => new Response()),
-    });
-
-let mockHttpClient = createMockHttpClient();
-
-beforeEach(async () => {
-    mockHttpClient = createMockHttpClient();
-});
 
 describe('RequestQueue remote', () => {
     beforeEach(async () => {
@@ -474,129 +459,6 @@ describe('RequestQueue remote', () => {
             await queue.fetchNextRequest();
             expect(queue.stats.headItemReadCount).toBe(headReadsBefore + 1);
         });
-    });
-});
-
-describe('RequestQueue with requestsFromUrl', () => {
-    beforeEach(async () => {
-        serviceLocator.setStorageBackend(new MemoryStorageBackend());
-        vitest.restoreAllMocks();
-    });
-
-    test('should correctly load list from hosted files in correct order', async () => {
-        const list1 = ['https://example.com', 'https://google.com', 'https://wired.com'];
-        const list2 = ['https://another.com', 'https://page.com'];
-        mockHttpClient.sendRequest
-            .mockImplementationOnce(async () => {
-                await sleep(100);
-                return new Response(list1.join('\n'));
-            })
-            .mockResolvedValueOnce(new Response(list2.join('\n')));
-
-        const queue = await RequestQueue.open(null, { httpClient: mockHttpClient });
-        await queue.addRequests([
-            { method: 'GET', requestsFromUrl: 'http://example.com/list-1' },
-            { method: 'POST', requestsFromUrl: 'http://example.com/list-2' },
-        ]);
-
-        expect(await queue.fetchNextRequest()).toMatchObject({ method: 'GET', url: list1[0] });
-        expect(await queue.fetchNextRequest()).toMatchObject({ method: 'GET', url: list1[1] });
-        expect(await queue.fetchNextRequest()).toMatchObject({ method: 'GET', url: list1[2] });
-        expect(await queue.fetchNextRequest()).toMatchObject({ method: 'POST', url: list2[0] });
-        expect(await queue.fetchNextRequest()).toMatchObject({ method: 'POST', url: list2[1] });
-
-        expect(mockHttpClient.sendRequest).toHaveBeenCalledTimes(2);
-        expect(mockHttpClient.sendRequest.mock.calls.map(([request]) => request.url)).toEqual([
-            'http://example.com/list-1',
-            'http://example.com/list-2',
-        ]);
-    });
-
-    test('should use regex parameter to parse urls', async () => {
-        const listStr = 'kjnjkn"https://example.com/a/b/c?q=1#abc";,"HTTP://google.com/a/b/c";dgg:dd';
-        const listArr = ['https://example.com', 'HTTP://google.com'];
-
-        mockHttpClient.sendRequest.mockResolvedValueOnce(new Response(listStr));
-
-        const regex = /(https:\/\/example.com|HTTP:\/\/google.com)/g;
-        const queue = await RequestQueue.open(null, {
-            httpClient: mockHttpClient,
-        });
-        await queue.addRequest({
-            method: 'GET',
-            requestsFromUrl: 'http://example.com/list-1',
-            regex,
-        });
-
-        expect(await queue.fetchNextRequest()).toMatchObject({ method: 'GET', url: listArr[0] });
-        expect(await queue.fetchNextRequest()).toMatchObject({ method: 'GET', url: listArr[1] });
-        await queue.drop();
-
-        expect(mockHttpClient.sendRequest).toHaveBeenCalled();
-        expect(mockHttpClient.sendRequest.mock.calls[0][0].url).toBe('http://example.com/list-1');
-    });
-
-    test('should fix gdoc sharing url in `requestsFromUrl` automatically (GH issue #639)', async () => {
-        const list = ['https://example.com', 'https://google.com', 'https://wired.com'];
-        const wrongUrls = [
-            'https://docs.google.com/spreadsheets/d/11UGSBOSXy5Ov2WEP9nr4kSIxQJmH18zh-5onKtBsovU',
-            'https://docs.google.com/spreadsheets/d/11UGSBOSXy5Ov2WEP9nr4kSIxQJmH18zh-5onKtBsovU/',
-            'https://docs.google.com/spreadsheets/d/11UGSBOSXy5Ov2WEP9nr4kSIxQJmH18zh-5onKtBsovU/edit?usp=sharing',
-            'https://docs.google.com/spreadsheets/d/11UGSBOSXy5Ov2WEP9nr4kSIxQJmH18zh-5onKtBsovU/123123132',
-            'https://docs.google.com/spreadsheets/d/11UGSBOSXy5Ov2WEP9nr4kSIxQJmH18zh-5onKtBsovU/?q=blablabla',
-            'https://docs.google.com/spreadsheets/d/11UGSBOSXy5Ov2WEP9nr4kSIxQJmH18zh-5onKtBsovU/edit#gid=0',
-        ];
-        const correctUrl =
-            'https://docs.google.com/spreadsheets/d/11UGSBOSXy5Ov2WEP9nr4kSIxQJmH18zh-5onKtBsovU/gviz/tq?tqx=out:csv';
-
-        mockHttpClient.sendRequest.mockImplementation(async () => new Response(list.join('\n'), { status: 200 }));
-
-        const queue = await RequestQueue.open(null, {
-            httpClient: mockHttpClient,
-        });
-        await queue.addRequests(wrongUrls.map((requestsFromUrl) => ({ requestsFromUrl })));
-
-        expect(await queue.fetchNextRequest()).toMatchObject({ method: 'GET', url: list[0] });
-        expect(await queue.fetchNextRequest()).toMatchObject({ method: 'GET', url: list[1] });
-        expect(await queue.fetchNextRequest()).toMatchObject({ method: 'GET', url: list[2] });
-
-        expect(mockHttpClient.sendRequest.mock.calls[0][0].url).toBe(correctUrl);
-        await queue.drop();
-    });
-
-    test('should handle requestsFromUrl with no URLs', async () => {
-        mockHttpClient.sendRequest.mockResolvedValueOnce(new Response(''));
-
-        const queue = await RequestQueue.open(null, { httpClient: mockHttpClient });
-        await queue.addRequest({
-            method: 'GET',
-            requestsFromUrl: 'http://example.com/list-1',
-        });
-
-        expect(await queue.fetchNextRequest()).toBe(null);
-
-        expect(mockHttpClient.sendRequest).toHaveBeenCalledTimes(1);
-        expect(mockHttpClient.sendRequest.mock.calls[0][0].url).toBe('http://example.com/list-1');
-    });
-
-    test('should use the defined proxy server when using `requestsFromUrl`', async () => {
-        const proxyUrls = ['http://proxyurl.usedforthe.download', 'http://another.proxy.url'];
-
-        const proxyConfiguration = new ProxyConfiguration({
-            proxyUrls,
-        });
-
-        const queue = await RequestQueue.open(null, { proxyConfiguration, httpClient: mockHttpClient });
-        await queue.addRequests([
-            { requestsFromUrl: 'http://example.com/list-1' },
-            { requestsFromUrl: 'http://example.com/list-2' },
-            { requestsFromUrl: 'http://example.com/list-3' },
-        ]);
-
-        expect(mockHttpClient.sendRequest).toHaveBeenCalledTimes(3);
-        for (const [, options] of mockHttpClient.sendRequest.mock.calls) {
-            expect(proxyUrls).toContain(options.proxyUrl);
-        }
     });
 });
 

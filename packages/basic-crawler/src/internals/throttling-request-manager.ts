@@ -439,20 +439,6 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         return this.#resolvedInner;
     }
 
-    /** Warns once about sources that cannot be routed by domain, because their URLs are not known yet. */
-    #warnIfNotRoutable(requestLike: Source): void {
-        if ('requestsFromUrl' in requestLike && requestLike.requestsFromUrl !== undefined && this.#throttlingEnabled) {
-            // The URL list is only fetched once the owning manager expands it, so we cannot know which domains
-            // it covers and cannot route it. Warn instead of silently exempting those URLs from throttling.
-            this.#warnOnce(
-                'urlListNotRouted',
-                `Requests loaded via \`requestsFromUrl\` cannot be routed to a per-domain queue, because their URLs ` +
-                    `are not known at insertion time. They will be added to the inner request manager and will not ` +
-                    `be throttled, even if they belong to a configured domain.`,
-            );
-        }
-    }
-
     #warnOnce(key: string, message: string): void {
         if (this.#warnedAbout.has(key)) {
             return;
@@ -803,8 +789,6 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     // --- IRequestManager Implementation ---
 
     async addRequest(requestLike: Source, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo> {
-        this.#warnIfNotRoutable(requestLike);
-
         const manager = await this.#selectManagerOrThrow(requestLike.url ?? '');
 
         return manager.addRequest(requestLike, options);
@@ -846,8 +830,6 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
                 const overflowing = new Set<string>();
 
                 for (const request of chunk) {
-                    this.#warnIfNotRoutable(request);
-
                     const url = request.url ?? '';
                     const manager = await this.#selectManager(url);
 
@@ -1146,15 +1128,13 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         }
 
         if (request !== null && this.#throttlesEveryDomain) {
-            // Requests that were never routed by domain - a `RequestList`, a `requestsFromUrl` expansion - are
-            // handed out as fast as the crawler asks for them, because there is no per-domain queue to hold
-            // them back in.
+            // Requests that were never routed by domain - e.g. from a `RequestList` - are handed out as fast as the
+            // crawler asks for them, because there is no per-domain queue to hold them back in.
             this.#warnOnce(
                 'innerNotThrottled',
-                `Requests read directly from the wrapped request manager (for instance from a \`RequestList\` or a ` +
-                    `\`requestsFromUrl\` list) are not throttled, because they are not stored per domain. Enqueue ` +
-                    `them through the crawler - \`crawler.run(requests)\` or \`crawler.addRequests()\` - to have ` +
-                    `their domains paced.`,
+                `Requests read directly from the wrapped request manager (for instance from a \`RequestList\`) are ` +
+                    `not throttled, because they are not stored per domain. Enqueue them through the crawler - ` +
+                    `\`crawler.run(requests)\` or \`crawler.addRequests()\` - to have their domains paced.`,
             );
         }
 
