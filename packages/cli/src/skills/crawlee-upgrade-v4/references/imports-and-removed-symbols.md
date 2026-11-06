@@ -34,7 +34,7 @@ Use this lookup for errors naming old symbols; read the referenced topic for mig
 | --- | --- |
 | `BasicCrawler._cleanupContext`, `HttpCrawler.use`, `CrawlerExtension` | ContextPipeline; crawler internals |
 | `BasicCrawler.isRequestBlocked`, `BrowserCrawler._handleNavigation`, `HttpCrawler._handleNavigation`, `HttpCrawler._parseHTML` | Supported handlers/hooks/pipelines; crawler internals |
-| `BasicCrawler.events` | `BasicCrawler.serviceLocator` |
+| `BasicCrawler.events` | The `serviceLocator` export of `@crawlee/core`: `serviceLocator.getEventManager()`; the crawler scopes it to its own services while its methods run |
 | `BasicCrawler._tagUserHandlerError`, `handledRequestsCount` setter, `crawlingContexts` | Removed internals; use statistics/public hooks or application state |
 | `BrowserRequestHandler`, `BrowserErrorHandler`, `BrowserCrawler.userProvidedRequestHandler`, `requestHandlerTimeoutInnerMillis`, `HttpCrawler.userRequestHandlerTimeoutMillis` | Inferred handler options and timeout options |
 | `BrowserCrawler._enhanceCrawlingContextWithPageInfo` | ContextPipeline |
