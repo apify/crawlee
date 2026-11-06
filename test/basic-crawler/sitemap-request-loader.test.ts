@@ -289,6 +289,49 @@ beforeAll(async () => {
             ].join('\n'),
         );
     });
+
+    // Sitemaps for concurrency testing
+    const concurrencyLoadTimes: Record<string, number> = {};
+
+    for (const n of [1, 2, 3]) {
+        app.get(`/sitemap-slow-${n}.xml`, async (req, res) => {
+            concurrencyLoadTimes[`slow-${n}-start`] = Date.now();
+            res.setHeader('content-type', 'text/xml');
+            await sleep(100);
+            res.write(
+                [
+                    '<?xml version="1.0" encoding="UTF-8"?>',
+                    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+                    `<url><loc>http://not-exists.com/slow-${n}-page-1</loc></url>`,
+                    `<url><loc>http://not-exists.com/slow-${n}-page-2</loc></url>`,
+                    '</urlset>',
+                ].join('\n'),
+            );
+            concurrencyLoadTimes[`slow-${n}-end`] = Date.now();
+            res.end();
+        });
+    }
+
+    app.get('/sitemap-index-slow.xml', async (req, res) => {
+        res.setHeader('content-type', 'text/xml');
+        res.end(
+            [
+                '<?xml version="1.0" encoding="UTF-8"?>',
+                '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+                ...[1, 2, 3].map((n) => `<sitemap><loc>${url}/sitemap-slow-${n}.xml</loc></sitemap>`),
+                '</sitemapindex>',
+            ].join('\n'),
+        );
+    });
+
+    app.get('/concurrency-load-times', (req, res) => {
+        res.json(concurrencyLoadTimes);
+    });
+
+    app.delete('/concurrency-load-times', (req, res) => {
+        Object.keys(concurrencyLoadTimes).forEach((key) => delete concurrencyLoadTimes[key]);
+        res.status(204).end();
+    });
 });
 
 afterAll(async () => {
@@ -768,4 +811,147 @@ describe('SitemapRequestLoader', () => {
             ]),
         );
     }, 10_000);
+
+    describe('concurrency', () => {
+        const slowIndexOptions = { enqueueStrategy: 'all' as const };
+
+        beforeEach(async () => {
+            await fetch(`${url}/concurrency-load-times`, { method: 'DELETE' });
+        });
+
+        const getStartTimes = async () => {
+            const loadTimes = await fetch(`${url}/concurrency-load-times`).then(async (r) => r.json());
+            return [loadTimes['slow-1-start'], loadTimes['slow-2-start'], loadTimes['slow-3-start']].sort(
+                (a, b) => a - b,
+            );
+        };
+
+        test('loads multiple sitemaps in parallel', async () => {
+            const list = await SitemapRequestLoader.open({
+                ...slowIndexOptions,
+                sitemapUrls: [`${url}/sitemap-index-slow.xml`],
+                concurrency: 3,
+            });
+
+            for await (const request of list) {
+                await list.markRequestAsHandled(request);
+            }
+
+            expect(await list.getHandledCount()).toBe(6);
+
+            // Sequential loading would put the starts ~100ms apart
+            const startTimes = await getStartTimes();
+            expect(startTimes[2] - startTimes[0]).toBeLessThan(80);
+        });
+
+        test('concurrency=1 loads sitemaps sequentially', async () => {
+            const list = await SitemapRequestLoader.open({
+                ...slowIndexOptions,
+                sitemapUrls: [`${url}/sitemap-index-slow.xml`],
+                concurrency: 1,
+            });
+
+            for await (const request of list) {
+                await list.markRequestAsHandled(request);
+            }
+
+            expect(await list.getHandledCount()).toBe(6);
+
+            const loadTimes = await fetch(`${url}/concurrency-load-times`).then(async (r) => r.json());
+            expect(loadTimes['slow-2-start']).toBeGreaterThanOrEqual(loadTimes['slow-1-end'] - 20);
+        });
+
+        test('respects the concurrency limit', async () => {
+            const list = await SitemapRequestLoader.open({
+                ...slowIndexOptions,
+                sitemapUrls: [`${url}/sitemap-index-slow.xml`],
+                concurrency: 2,
+            });
+
+            for await (const request of list) {
+                await list.markRequestAsHandled(request);
+            }
+
+            expect(await list.getHandledCount()).toBe(6);
+
+            const startTimes = await getStartTimes();
+            expect(startTimes[1] - startTimes[0]).toBeLessThan(50);
+            expect(startTimes[2] - startTimes[0]).toBeGreaterThan(80);
+        });
+
+        test('collects all URLs without duplicates', async () => {
+            const list = await SitemapRequestLoader.open({
+                ...slowIndexOptions,
+                sitemapUrls: [`${url}/sitemap-index-slow.xml`],
+                concurrency: 3,
+            });
+
+            const urls: string[] = [];
+            for await (const request of list) {
+                urls.push(request.url);
+                await list.markRequestAsHandled(request);
+            }
+
+            expect(urls.sort()).toEqual(
+                [1, 2, 3].flatMap((n) => [
+                    `http://not-exists.com/slow-${n}-page-1`,
+                    `http://not-exists.com/slow-${n}-page-2`,
+                ]),
+            );
+        });
+
+        test('abort signal stops concurrent loading', async () => {
+            const controller = new AbortController();
+
+            const list = await SitemapRequestLoader.open({
+                ...slowIndexOptions,
+                sitemapUrls: [`${url}/sitemap-index-slow.xml`],
+                concurrency: 3,
+                signal: controller.signal,
+            });
+
+            await sleep(50);
+            controller.abort();
+
+            for await (const request of list) {
+                await list.markRequestAsHandled(request);
+            }
+
+            // Let the in-flight sitemap fetches (100ms) settle, so the check isn't racing them.
+            await sleep(200);
+            expect(list.isSitemapFullyLoaded()).toBe(false);
+            await expect(list.checkReadiness()).resolves.toEqual({ status: 'finished' });
+        });
+
+        test('state persistence works with concurrency', async () => {
+            const options = {
+                ...slowIndexOptions,
+                sitemapUrls: [`${url}/sitemap-index-slow.xml`],
+                persistStateKey: 'concurrency-persist',
+                concurrency: 2,
+            };
+
+            {
+                const list = await SitemapRequestLoader.open(options);
+
+                while ((await list.checkReadiness()).status !== 'ready') {
+                    await sleep(20);
+                }
+
+                const request = await list.fetchNextRequest();
+                await list.markRequestAsHandled(request!);
+
+                await list.persistState();
+            }
+
+            const newList = await SitemapRequestLoader.open(options);
+            const urls = new Set<string>();
+            for await (const request of newList) {
+                urls.add(request.url);
+                await newList.markRequestAsHandled(request);
+            }
+
+            expect(urls.size).toBeGreaterThanOrEqual(5);
+        });
+    });
 });
