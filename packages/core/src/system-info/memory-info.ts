@@ -1,11 +1,12 @@
 import { execSync } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
-import { freemem, totalmem } from 'node:os';
+import { freemem, platform, totalmem } from 'node:os';
 
 import type { CrawleeLogger } from '@crawlee/types';
 
 import { getCgroupsVersion, isLambda } from './runtime.js';
 import { psTree } from './ps-tree.js';
+import { getCgroupMemoryInfo } from './cgroup-memory.js';
 
 const MEMORY_FILE_PATHS = {
     TOTAL: {
@@ -41,8 +42,8 @@ export interface MemoryInfo {
 /**
  * Returns memory statistics of the process and the system, see {@apilink MemoryInfo}.
  *
- * If the process runs inside of a container, the `getMemoryInfo` gets container memory limits,
- * otherwise it gets system memory limits.
+ * On Linux, `getMemoryInfo` respects memory limits of the process cgroup and its ancestors,
+ * including systemd scopes outside containers. Otherwise it gets system memory limits.
  *
  * Beware that the function is quite inefficient because it spawns a new process.
  * Therefore you shouldn't call it too often, like more than once per second.
@@ -91,51 +92,65 @@ export async function getMemoryInfo(
         totalBytes = parseInt(process.env.AWS_LAMBDA_FUNCTION_MEMORY_SIZE!, 10) * 1000000;
         usedBytes = mainProcessBytes + childProcessesBytes;
         freeBytes = totalBytes - usedBytes;
-    } else if (containerized) {
-        // When running inside a container, use container memory limits
-
-        const cgroupsVersion = await getCgroupsVersion();
-
-        try {
-            if (cgroupsVersion === null) {
-                throw new Error('cgroup not available');
+    } else {
+        let cgroupMemory: Awaited<ReturnType<typeof getCgroupMemoryInfo>>;
+        let cgroupReadFailed = false;
+        if (platform() === 'linux' || containerized) {
+            try {
+                cgroupMemory = await getCgroupMemoryInfo(totalmem, freemem);
+            } catch (error) {
+                cgroupReadFailed = true;
+                logger?.warningOnce(`Unable to read process cgroup memory limits. Cause: ${(error as Error).message}`);
             }
-            let [totalBytesStr, usedBytesStr] = await Promise.all([
-                readFile(MEMORY_FILE_PATHS.TOTAL[cgroupsVersion], 'utf8'),
-                readFile(MEMORY_FILE_PATHS.USED[cgroupsVersion], 'utf8'),
-            ]);
+        }
+        if (cgroupMemory) {
+            ({ totalBytes, usedBytes, freeBytes } = cgroupMemory);
+        } else if (containerized && !cgroupReadFailed) {
+            // When running inside a container, use container memory limits
 
-            // Cgroups V2 files contains newline character. Getting rid of it for better handling in later part of the code.
-            totalBytesStr = totalBytesStr.replace(/[^a-zA-Z0-9 ]/g, '');
-            usedBytesStr = usedBytesStr.replace(/[^a-zA-Z0-9 ]/g, '');
+            const cgroupsVersion = await getCgroupsVersion();
 
-            // Cgroups V2 contains 'max' string if memory is not limited
-            // See https://git.kernel.org/pub/scm/linux/kernel/git/tj/cgroup.git/tree/Documentation/admin-guide/cgroup-v2.rst (see "memory.max")
-            if (totalBytesStr === 'max') {
+            try {
+                if (cgroupsVersion === null) {
+                    throw new Error('cgroup not available');
+                }
+                let [totalBytesStr, usedBytesStr] = await Promise.all([
+                    readFile(MEMORY_FILE_PATHS.TOTAL[cgroupsVersion], 'utf8'),
+                    readFile(MEMORY_FILE_PATHS.USED[cgroupsVersion], 'utf8'),
+                ]);
+
+                // Cgroups V2 files contains newline character. Getting rid of it for better handling in later part of the code.
+                totalBytesStr = totalBytesStr.replace(/[^a-zA-Z0-9 ]/g, '');
+                usedBytesStr = usedBytesStr.replace(/[^a-zA-Z0-9 ]/g, '');
+
+                // Cgroups V2 contains 'max' string if memory is not limited
+                // See https://git.kernel.org/pub/scm/linux/kernel/git/tj/cgroup.git/tree/Documentation/admin-guide/cgroup-v2.rst (see "memory.max")
+                if (totalBytesStr === 'max') {
+                    totalBytes = totalmem();
+                    // Cgroups V1 is set to number related to platform and page size if memory is not limited
+                    // See https://unix.stackexchange.com/q/420906
+                } else {
+                    totalBytes = parseInt(totalBytesStr, 10);
+                    const containerRunsWithUnlimitedMemory = totalBytes > Number.MAX_SAFE_INTEGER;
+                    if (containerRunsWithUnlimitedMemory) totalBytes = totalmem();
+                }
+                usedBytes = parseInt(usedBytesStr, 10);
+                freeBytes = totalBytes - usedBytes;
+            } catch (err) {
+                logger?.warningOnce(
+                    'Your environment is containerized, but your system does not support memory cgroups. ' +
+                        "If you're running containers with limited memory, memory auto-scaling will not work properly.\n\n" +
+                        `Cause: ${(err as Error).message}`,
+                );
                 totalBytes = totalmem();
-                // Cgroups V1 is set to number related to platform and page size if memory is not limited
-                // See https://unix.stackexchange.com/q/420906
-            } else {
-                totalBytes = parseInt(totalBytesStr, 10);
-                const containerRunsWithUnlimitedMemory = totalBytes > Number.MAX_SAFE_INTEGER;
-                if (containerRunsWithUnlimitedMemory) totalBytes = totalmem();
+                freeBytes = freemem();
+                usedBytes = totalBytes - freeBytes;
             }
-            usedBytes = parseInt(usedBytesStr, 10);
-            freeBytes = totalBytes - usedBytes;
-        } catch (err) {
-            logger?.warningOnce(
-                'Your environment is containerized, but your system does not support memory cgroups. ' +
-                    "If you're running containers with limited memory, memory auto-scaling will not work properly.\n\n" +
-                    `Cause: ${(err as Error).message}`,
-            );
+        } else {
             totalBytes = totalmem();
             freeBytes = freemem();
             usedBytes = totalBytes - freeBytes;
         }
-    } else {
-        totalBytes = totalmem();
-        freeBytes = freemem();
-        usedBytes = totalBytes - freeBytes;
     }
 
     return {
