@@ -1,7 +1,6 @@
-import { anonymizeProxy, closeAnonymizedProxy } from 'proxy-chain';
-
 type PromiseVoid = () => Promise<void>;
 
+/** @internal */
 export interface AnonymizeProxySugarOptions {
     ignoreProxyCertificate?: boolean;
 }
@@ -24,6 +23,7 @@ export const anonymizeProxySugar = async (
         if (url.username || url.password || options?.ignoreProxyCertificate) {
             // trim off trailing slash if it's present
             const proxyUrlString = url.href.endsWith('/') ? url.href.slice(0, -1) : url.href;
+            const { anonymizeProxy, closeAnonymizedProxy } = await import('proxy-chain');
             const anonymized = await anonymizeProxy({
                 url: proxyUrlString,
                 port: 0,

@@ -1,0 +1,20 @@
+---
+id: puppeteer-recursive-crawl
+title: Puppeteer recursive crawl
+---
+
+import RunnableCodeBlock from '@site/src/components/RunnableCodeBlock';
+import ApiLink from '@site/src/components/ApiLink';
+import CrawlSource from '!!raw-loader!roa-loader!./puppeteer_recursive_crawl.ts';
+
+Run the following example to perform a recursive crawl of a website using <ApiLink to="puppeteer-crawler/class/PuppeteerCrawler">`PuppeteerCrawler`</ApiLink>.
+
+:::tip
+
+To run this example on the Apify Platform, select the `apify/actor-node-puppeteer-chrome` image for your Dockerfile.
+
+:::
+
+<RunnableCodeBlock className="language-js" type="puppeteer">
+	{CrawlSource}
+</RunnableCodeBlock>

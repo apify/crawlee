@@ -31,7 +31,7 @@ The [`crawlee`](https://www.npmjs.com/package/crawlee) package consists of sever
 - [`@crawlee/memory-storage`](https://crawlee.dev/js/api/memory-storage): [`@apify/storage-local`](https://npmjs.com/package/@apify/storage-local) alternative
 - [`@crawlee/browser-pool`](https://crawlee.dev/js/api/browser-pool): previously [`browser-pool`](https://npmjs.com/package/browser-pool) package
 - [`@crawlee/utils`](https://crawlee.dev/js/api/utils): utility methods
-- [`@crawlee/types`](https://crawlee.dev/js/api/types): holds TS interfaces mainly about the [`StorageClient`](https://crawlee.dev/js/api/core/interface/StorageClient)
+- [`@crawlee/types`](https://crawlee.dev/js/api/types): holds TS interfaces mainly about the [`StorageClient`](https://crawlee.dev/js/api/3.10/core/interface/StorageClient)
 
 ### Installing Crawlee
 

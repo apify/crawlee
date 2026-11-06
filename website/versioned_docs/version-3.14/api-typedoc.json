@@ -129710,7 +129710,7 @@
 										"summary": [
 											{
 												"kind": "text",
-												"text": "Returns an object containing general information about the dataset.\n\nThe function returns the same object as the Apify API Client's\n[getDataset](https://docs.apify.com/api/apify-client-js/latest#ApifyClient-datasets-getDataset)\nfunction, which in turn calls the\n[Get dataset](https://apify.com/docs/api/v2#/reference/datasets/dataset/get-dataset)\nAPI endpoint.\n\n**Example:**\n"
+												"text": "Returns an object containing general information about the dataset.\n\nThe function returns the same object as the Apify API Client's\n[DatasetClient.get()](https://docs.apify.com/api/client/js/reference/class/DatasetClient#get)\nfunction, which in turn calls the\n[Get dataset](https://apify.com/docs/api/v2#/reference/datasets/dataset/get-dataset)\nAPI endpoint.\n\n**Example:**\n"
 											},
 											{
 												"kind": "code",
@@ -161947,7 +161947,7 @@
 										"summary": [
 											{
 												"kind": "text",
-												"text": "Returns an object containing general information about the request queue.\n\nThe function returns the same object as the Apify API Client's\n[getQueue](https://docs.apify.com/api/apify-client-js/latest#ApifyClient-requestQueues)\nfunction, which in turn calls the\n[Get request queue](https://apify.com/docs/api/v2#/reference/request-queues/queue/get-request-queue)\nAPI endpoint.\n\n**Example:**\n"
+												"text": "Returns an object containing general information about the request queue.\n\nThe function returns the same object as the Apify API Client's\n[RequestQueueClient.get()](https://docs.apify.com/api/client/js/reference/class/RequestQueueClient#get)\nfunction, which in turn calls the\n[Get request queue](https://apify.com/docs/api/v2#/reference/request-queues/queue/get-request-queue)\nAPI endpoint.\n\n**Example:**\n"
 											},
 											{
 												"kind": "code",
@@ -164179,7 +164179,7 @@
 										"summary": [
 											{
 												"kind": "text",
-												"text": "Returns an object containing general information about the request queue.\n\nThe function returns the same object as the Apify API Client's\n[getQueue](https://docs.apify.com/api/apify-client-js/latest#ApifyClient-requestQueues)\nfunction, which in turn calls the\n[Get request queue](https://apify.com/docs/api/v2#/reference/request-queues/queue/get-request-queue)\nAPI endpoint.\n\n**Example:**\n"
+												"text": "Returns an object containing general information about the request queue.\n\nThe function returns the same object as the Apify API Client's\n[RequestQueueClient.get()](https://docs.apify.com/api/client/js/reference/class/RequestQueueClient#get)\nfunction, which in turn calls the\n[Get request queue](https://apify.com/docs/api/v2#/reference/request-queues/queue/get-request-queue)\nAPI endpoint.\n\n**Example:**\n"
 											},
 											{
 												"kind": "code",
@@ -166551,7 +166551,7 @@
 										"summary": [
 											{
 												"kind": "text",
-												"text": "Returns an object containing general information about the request queue.\n\nThe function returns the same object as the Apify API Client's\n[getQueue](https://docs.apify.com/api/apify-client-js/latest#ApifyClient-requestQueues)\nfunction, which in turn calls the\n[Get request queue](https://apify.com/docs/api/v2#/reference/request-queues/queue/get-request-queue)\nAPI endpoint.\n\n**Example:**\n"
+												"text": "Returns an object containing general information about the request queue.\n\nThe function returns the same object as the Apify API Client's\n[RequestQueueClient.get()](https://docs.apify.com/api/client/js/reference/class/RequestQueueClient#get)\nfunction, which in turn calls the\n[Get request queue](https://apify.com/docs/api/v2#/reference/request-queues/queue/get-request-queue)\nAPI endpoint.\n\n**Example:**\n"
 											},
 											{
 												"kind": "code",

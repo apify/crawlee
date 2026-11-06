@@ -8,33 +8,35 @@ const packages = [
     'basic-crawler',
     'browser-crawler',
     'http-crawler',
+    'http-client',
     'cheerio-crawler',
     'puppeteer-crawler',
     'playwright-crawler',
-    'jsdom-crawler',
-    'linkedom-crawler',
     'stagehand-crawler',
-    'memory-storage',
+    'fs-storage',
     'utils',
     'types',
     'impit-client',
+    'got-scraping-client',
+    'otel',
 ];
 const packagesOrder = [
     '@crawlee/core',
     '@crawlee/cheerio',
     '@crawlee/playwright',
     '@crawlee/puppeteer',
-    '@crawlee/jsdom',
-    '@crawlee/linkedom',
     '@crawlee/stagehand',
     '@crawlee/basic',
     '@crawlee/http',
+    '@crawlee/http-client',
     '@crawlee/browser',
-    '@crawlee/memory-storage',
+    '@crawlee/fs-storage',
     '@crawlee/browser-pool',
     '@crawlee/utils',
     '@crawlee/types',
     '@crawlee/impit-client',
+    '@crawlee/got-scraping-client',
+    '@crawlee/otel',
 ];
 
 /** @type {Partial<import('@docusaurus/types').DocusaurusConfig>} */
@@ -90,10 +92,17 @@ module.exports = {
                     showLastUpdateAuthor: true,
                     showLastUpdateTime: true,
                     path: '../docs',
+                    exclude: ['**/node_modules/**'],
                     routeBasePath: 'js/docs',
                     sidebarPath: './sidebars.js',
                     rehypePlugins: [externalLinkProcessor],
                     disableVersioning: !!process.env.CRAWLEE_DOCS_FAST,
+                    versions: {
+                        // drop the label once 4.0.0 is stable and the 4.0 snapshot exists
+                        current: {
+                            label: '4.0 (RC)',
+                        },
+                    },
                     editUrl: (doc) => {
                         return `https://github.com/apify/crawlee/edit/master/website/${doc.versionDocsDirPath}/${doc.docPath}`;
                     },
@@ -166,6 +175,22 @@ module.exports = {
                         from: '/js/docs/guides/apify-platform',
                         to: '/js/docs/deployment/apify-platform',
                     },
+                    {
+                        from: '/js/docs/3.13/experiments/experiments-system-infomation-v2',
+                        to: '/js/docs/3.13/experiments/experiments-system-information-v2',
+                    },
+                    {
+                        from: '/js/docs/3.14/experiments/experiments-system-infomation-v2',
+                        to: '/js/docs/3.14/experiments/experiments-system-information-v2',
+                    },
+                    {
+                        from: '/js/docs/3.15/experiments/experiments-system-infomation-v2',
+                        to: '/js/docs/3.15/experiments/experiments-system-information-v2',
+                    },
+                    {
+                        from: '/js/docs/3.16/experiments/experiments-system-infomation-v2',
+                        to: '/js/docs/3.16/experiments/experiments-system-information-v2',
+                    },
                 ],
                 // createRedirects(existingPath) {
                 //     if (!existingPath.endsWith('/')) {
@@ -198,7 +223,7 @@ module.exports = {
                 ],
                 content: {
                     excludeRoutes: ['/js/api/3.*/**', '/js/api/3.*', '/js/api/next/**', '/js/api/next'],
-                    includeVersionedDocs: false,
+                    includeVersionedDocs: true,
                     enableLlmsFullTxt: true,
                     includeBlog: true,
                     includePages: true,

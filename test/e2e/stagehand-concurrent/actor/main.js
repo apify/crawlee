@@ -1,4 +1,4 @@
-import { StagehandCrawler } from '@crawlee/stagehand';
+import { StagehandCrawler, stagehandBrowserPool } from '@crawlee/stagehand';
 import { Actor } from 'apify';
 import { z } from 'zod';
 
@@ -11,26 +11,30 @@ const mainOptions = {
 };
 
 await Actor.main(async () => {
-    const browserIds = new Set();
+    // Playwright's Browser has no `process()`, so number the instances by object identity.
+    const browserIds = new Map();
+    const getBrowserId = (browser) => {
+        if (!browserIds.has(browser)) browserIds.set(browser, `browser-${browserIds.size + 1}`);
+        return browserIds.get(browser);
+    };
 
     const crawler = new StagehandCrawler({
         maxConcurrency: 3,
         maxRequestsPerCrawl: 3,
-        // Force one page per browser to ensure multiple browsers are used
-        browserPoolOptions: {
+        browserPool: stagehandBrowserPool({
+            // Force one page per browser to ensure multiple browsers are used
             maxOpenPagesPerBrowser: 1,
-        },
-        stagehandOptions: {
-            env: 'LOCAL',
-            model: 'anthropic/claude-haiku-4-5-20251001',
-            verbose: 0,
-        },
-        async requestHandler({ page, request, browserController, log, pushData }) {
+            stagehandOptions: {
+                env: 'LOCAL',
+                model: 'anthropic/claude-haiku-4-5-20251001',
+                verbose: 0,
+            },
+        }),
+        async requestHandler({ page, request, log, pushData }) {
             log.info(`Processing ${request.loadedUrl}`);
 
-            // Track which browser instance handled this request
-            const browserId = browserController.id;
-            browserIds.add(browserId);
+            // Track which browser instance handled this request via the underlying Playwright browser
+            const browserId = getBrowserId(page.context().browser());
 
             // Simple extraction - just get the page title
             const result = await page.extract(

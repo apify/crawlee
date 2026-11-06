@@ -1,0 +1,80 @@
+---
+id: map-and-reduce
+title: Dataset Map and Reduce methods
+---
+
+import RunnableCodeBlock from '@site/src/components/RunnableCodeBlock';
+import ApiLink from '@site/src/components/ApiLink';
+import MapSource from '!!raw-loader!roa-loader!./map.ts';
+import ReduceSource from '!!raw-loader!roa-loader!./reduce.ts';
+
+This example shows an easy use-case of the <ApiLink to="core/class/Dataset">`Dataset`</ApiLink> <ApiLink to="core/class/Dataset#map">`map`</ApiLink>
+and <ApiLink to="core/class/Dataset#reduce">`reduce`</ApiLink> methods. Both methods can be used to simplify
+the dataset results workflow process. Both can be called on the <ApiLink to="core/class/Dataset">dataset</ApiLink> directly.
+
+Important to mention is that both methods return a new result (`map` returns a new array and `reduce` can return any type) - neither method updates
+the dataset in any way.
+
+Examples for both methods are demonstrated on a simple dataset containing the results scraped from a page: the `URL` and a hypothetical number of
+`h1` - `h3` header elements under the `headingCount` key.
+
+This data structure is stored in the default dataset under `{PROJECT_FOLDER}/storage/datasets/default/`. If you want to simulate the
+functionality, you can use the <ApiLink to="core/class/Dataset#pushData">`dataset.pushData()`</ApiLink>
+method to save the example `JSON array` to your dataset.
+
+```json
+[
+    {
+        "url": "https://crawlee.dev/",
+        "headingCount": 11
+    },
+    {
+        "url": "https://crawlee.dev/storage",
+        "headingCount": 8
+    },
+    {
+        "url": "https://crawlee.dev/proxy",
+        "headingCount": 4
+    }
+]
+```
+
+### Map
+
+The dataset `map` method is very similar to standard Array mapping methods. It produces a new array of values by mapping each value in the existing
+array through a transformation function and an options parameter.
+
+The `map` method used to check if are there more than 5 header elements on each page:
+
+<RunnableCodeBlock className="language-js" type="cheerio">
+	{MapSource}
+</RunnableCodeBlock>
+
+The `moreThan5headers` variable is an array of `headingCount` attributes where the number of headers is greater than 5.
+
+The `map` method's result value saved to the <ApiLink to="core/class/KeyValueStore">`key-value store`</ApiLink> should be:
+
+```javascript
+[11, 8]
+```
+
+### Reduce
+
+The dataset `reduce` method does not produce a new array of values - it reduces a list of values down to a single value. The method iterates through
+the items in the dataset using the <ApiLink to="core/class/Dataset#reduce">`memo` argument</ApiLink>. After performing the necessary
+calculation, the `memo` is sent to the next iteration, while the item just processed is reduced (removed).
+
+Using the `reduce` method to get the total number of headers scraped (all items in the dataset):
+
+<RunnableCodeBlock className="language-js" type="cheerio">
+	{ReduceSource}
+</RunnableCodeBlock>
+
+The original dataset will be reduced to a single value, `pagesHeadingCount`, which contains the count of all headers for all scraped pages (all
+dataset items).
+
+The `reduce` method's result value saved to the <ApiLink to="core/class/KeyValueStore">`key-value store`</ApiLink> should be:
+
+```javascript
+23
+```

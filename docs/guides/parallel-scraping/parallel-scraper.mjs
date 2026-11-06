@@ -1,5 +1,6 @@
 import { fork } from 'node:child_process';
 
+import { FileSystemStorageBackend } from '@crawlee/fs-storage';
 import { Configuration, Dataset, PlaywrightCrawler, log } from 'crawlee';
 
 import { router } from './routes.mjs';
@@ -73,18 +74,21 @@ if (!process.env.IN_WORKER_THREAD) {
     // or a configuration option. This is just for show 😈
     workerLogger.setLevel(log.LEVELS.DEBUG);
 
-    // Disable the automatic purge on start
-    // This is needed when running locally, as otherwise multiple processes will try to clear the default storage (and that will cause clashes)
-    Configuration.set('purgeOnStart', false);
-
     // Get the request queue
     const requestQueue = await getOrInitQueue(false);
 
-    // Configure crawlee to store the worker-specific data in a separate directory (needs to be done AFTER the queue is initialized when running locally)
+    // Disable the automatic purge on start, so we don't lose the queue we prepared
     const config = new Configuration({
-        storageClientOptions: {
-            localDataDirectory: `./storage/worker-${process.env.WORKER_INDEX}`,
-        },
+        purgeOnStart: false,
+    });
+
+    // Store the worker's own internal state (its default dataset, key-value store, etc.) in a separate
+    // directory so the workers don't collide with each other. This directory is private to a single
+    // worker, so we set `requestQueueAccess: 'single'` — the concurrency-safe locking only matters for
+    // the shared `shop-urls` queue, which gets its own storage backend in `requestQueue.mjs`.
+    const storageBackend = new FileSystemStorageBackend({
+        localDataDirectory: `./storage/worker-${process.env.WORKER_INDEX}`,
+        requestQueueAccess: 'single',
     });
 
     workerLogger.debug('Setting up crawler.');
@@ -94,16 +98,16 @@ if (!process.env.IN_WORKER_THREAD) {
             // Instead of the long requestHandler with
             // if clauses we provide a router instance.
             requestHandler: router,
-            // Enable the request locking experiment so that we can actually use the queue.
-            // highlight-start
-            experiments: {
-                requestLocking: true,
-            },
             // Provide the request queue we've pre-filled in previous steps
+            // highlight-start
             requestQueue,
             // highlight-end
             // Let's also limit the crawler's concurrency, we don't want to overload a single process 🐌
             maxConcurrency: 5,
+            // Use the worker-specific, concurrency-safe storage backend we created above
+            // highlight-start
+            storageBackend,
+            // highlight-end
         },
         config,
     );

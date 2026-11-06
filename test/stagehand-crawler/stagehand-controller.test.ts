@@ -1,7 +1,7 @@
-import log from '@apify/log';
+import { serviceLocator } from '@crawlee/core';
 
-import { StagehandController } from '../../packages/stagehand-crawler/src/internals/stagehand-controller';
-import type { StagehandPlugin } from '../../packages/stagehand-crawler/src/internals/stagehand-plugin';
+import { StagehandController } from '../../packages/stagehand-crawler/src/internals/stagehand-controller.js';
+import type { StagehandPlugin } from '../../packages/stagehand-crawler/src/internals/stagehand-plugin.js';
 
 describe('StagehandController', () => {
     let mockPlugin: StagehandPlugin;
@@ -140,8 +140,9 @@ describe('StagehandController', () => {
         const controller = new StagehandController(mockPlugin, stagehandInstances);
         (controller as any).browser = mockBrowser;
 
-        // Mock log.error to prevent output and verify it's called
-        const logErrorSpy = vi.spyOn(log, 'error').mockImplementation(() => {});
+        // Mock logger.error to prevent output and verify it's called
+        const logger = serviceLocator.getLogger();
+        const logErrorSpy = vi.spyOn(logger, 'error').mockImplementation(() => {});
 
         // Should not throw
         await expect((controller as any)._close()).resolves.toBeUndefined();
@@ -169,6 +170,81 @@ describe('StagehandController', () => {
 
         // Should not throw
         await expect((controller as any)._kill()).resolves.toBeUndefined();
+    });
+
+    describe('newPage', () => {
+        let mockCdpSession: any;
+        let mockPage: any;
+
+        beforeEach(() => {
+            mockCdpSession = {
+                send: vi.fn().mockResolvedValue({ frameTree: { frame: { id: 'MAIN_FRAME_1' } } }),
+                detach: vi.fn().mockResolvedValue(undefined),
+            };
+
+            mockPage = {
+                once: vi.fn(),
+                close: vi.fn().mockResolvedValue(undefined),
+                context: vi.fn().mockReturnValue({
+                    newCDPSession: vi.fn().mockResolvedValue(mockCdpSession),
+                }),
+            };
+
+            mockBrowser.contexts = vi.fn().mockReturnValue([{ newPage: vi.fn().mockResolvedValue(mockPage) }]);
+            mockStagehand.context.resolvePageByMainFrameId = vi.fn().mockReturnValue(undefined);
+        });
+
+        const createController = () => {
+            const controller = new StagehandController(mockPlugin, stagehandInstances);
+            controller.assignBrowser(mockBrowser, {} as never);
+            controller.activate();
+
+            return controller;
+        };
+
+        test('should not return the page before Stagehand registers it', async () => {
+            // Stagehand registers pages from a CDP event, so the page is unresolvable for a short while.
+            let attempts = 0;
+            mockStagehand.context.resolvePageByMainFrameId = vi.fn(() =>
+                ++attempts < 3 ? undefined : { v3Page: true },
+            );
+
+            const page = await createController().newPage();
+
+            expect(page).toBe(mockPage);
+            expect(attempts).toBe(3);
+            expect(mockStagehand.context.resolvePageByMainFrameId).toHaveBeenCalledWith('MAIN_FRAME_1');
+            expect(mockPage.close).not.toHaveBeenCalled();
+        });
+
+        test('should detach the CDP session used to read the main frame id', async () => {
+            mockStagehand.context.resolvePageByMainFrameId = vi.fn().mockReturnValue({ v3Page: true });
+
+            await createController().newPage();
+
+            expect(mockCdpSession.send).toHaveBeenCalledWith('Page.getFrameTree');
+            expect(mockCdpSession.detach).toHaveBeenCalled();
+        });
+
+        test('should close the page and fail when Stagehand never registers it', async () => {
+            // The page never resolves, so the wait has to run to its full deadline - fake timers keep that
+            // instant instead of stalling the test for the 10s default timeout.
+            vi.useFakeTimers();
+
+            try {
+                const newPage = createController().newPage();
+                const assertion = expect(newPage).rejects.toThrow(
+                    'Failed to create new page: Stagehand did not register the page within 10000ms',
+                );
+
+                await vi.advanceTimersByTimeAsync(10_100);
+                await assertion;
+            } finally {
+                vi.useRealTimers();
+            }
+
+            expect(mockPage.close).toHaveBeenCalled();
+        });
     });
 
     // Note: Proxy authentication is now handled at the plugin level using anonymizeProxySugar

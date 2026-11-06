@@ -1,24 +1,6 @@
-import type {
-    BrowserFingerprintWithHeaders as Fingerprint,
-    FingerprintGeneratorOptions as FingerprintOptionsOriginal,
-} from 'fingerprint-generator';
-
-export interface FingerprintGenerator {
-    getFingerprint: (fingerprintGeneratorOptions?: FingerprintGeneratorOptions) => GetFingerprintReturn;
-}
-
-export interface GetFingerprintReturn {
-    fingerprint: Fingerprint;
-}
+import type { FingerprintGeneratorOptions as FingerprintOptionsOriginal } from 'fingerprint-generator';
 
 export interface FingerprintGeneratorOptions extends Partial<FingerprintOptionsOriginal> {}
-
-const SUPPORTED_HTTP_VERSIONS = ['1', '2'] as const;
-
-/**
- * String specifying the HTTP version to use.
- */
-type HttpVersion = (typeof SUPPORTED_HTTP_VERSIONS)[number];
 
 export enum BrowserName {
     chrome = 'chrome',
@@ -27,26 +9,7 @@ export enum BrowserName {
     edge = 'edge',
 }
 
-export interface BrowserSpecification {
-    /**
-     * String representing the browser name.
-     */
-    name: BrowserName;
-    /**
-     * Minimum version of browser used.
-     */
-    minVersion?: number;
-    /**
-     * Maximum version of browser used.
-     */
-    maxVersion?: number;
-    /**
-     * HTTP version to be used for header generation (the headers differ depending on the version).
-     */
-    httpVersion?: HttpVersion;
-}
-
-export const enum OperatingSystemsName {
+export enum OperatingSystemsName {
     linux = 'linux',
     macos = 'macos',
     windows = 'windows',
@@ -60,7 +23,7 @@ export const enum OperatingSystemsName {
     ios = 'ios',
 }
 
-export const enum DeviceCategory {
+export enum DeviceCategory {
     /**
      * Describes mobile devices (mobile phones, tablets...). These devices usually have smaller, vertical screens and load lighter versions of websites.
      * > Note: Generating `android` and `ios` devices will not work without setting the device to `mobile` first.

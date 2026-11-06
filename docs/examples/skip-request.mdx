@@ -1,0 +1,14 @@
+---
+id: skip-request
+title: Skipping requests
+---
+
+import RunnableCodeBlock from '@site/src/components/RunnableCodeBlock';
+import ApiLink from '@site/src/components/ApiLink';
+import SkipRequestSource from '!!raw-loader!roa-loader!./skip-request.ts';
+
+Calling <ApiLink to="basic-crawler/interface/RestrictedCrawlingContext#skipRequest">`skipRequest()`</ApiLink> stops processing the current request without counting it as a failure: it is marked as handled, is not retried, does not reach `failedRequestHandler`, and its storage writes are rolled back. It works in `extendContext`, navigation hooks, the request handler and the `errorHandler`, and each skip is reported to <ApiLink to="basic-crawler/interface/BasicCrawlerOptions#onSkippedRequest">`onSkippedRequest`</ApiLink>.
+
+<RunnableCodeBlock className="language-js" type="cheerio">
+	{SkipRequestSource}
+</RunnableCodeBlock>

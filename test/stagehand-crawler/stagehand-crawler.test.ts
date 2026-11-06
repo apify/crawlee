@@ -1,7 +1,14 @@
 import { z } from 'zod';
 
-import { createStagehandRouter, StagehandCrawler } from '../../packages/stagehand-crawler/src';
-import { enhancePageWithStagehand } from '../../packages/stagehand-crawler/src/internals/utils/stagehand-utils';
+import type { IBrowserPool } from '@crawlee/types';
+
+import type { StagehandBrowserPool, StagehandPage } from '../../packages/stagehand-crawler/src/index.js';
+import {
+    createStagehandRouter,
+    stagehandBrowserPool,
+    StagehandCrawler,
+} from '../../packages/stagehand-crawler/src/index.js';
+import { enhancePageWithStagehand } from '../../packages/stagehand-crawler/src/internals/utils/stagehand-utils.js';
 
 // Mock Stagehand to avoid actual browser launches and API calls
 vi.mock('@browserbasehq/stagehand', () => {
@@ -106,6 +113,26 @@ describe('StagehandCrawler', () => {
         });
 
         expect(crawler).toBeDefined();
+    });
+
+    // The launcher used to be built before `BrowserCrawler` folded `headless` into the launch context, so the
+    // option never reached the plugin.
+    test('forwards headless to the browser plugin', () => {
+        const crawler = new StagehandCrawler({ headless: false, stagehandOptions: { env: 'LOCAL' } });
+
+        expect((crawler.browserPool as unknown as StagehandBrowserPool).browserPlugins[0].launchOptions).toMatchObject({
+            headless: false,
+        });
+    });
+
+    test('rejects the options that would configure its own pool when a browserPool is passed in', () => {
+        // The pool serves plain Playwright pages, the crawler types its own as enhanced `StagehandPage`s.
+        const browserPool = stagehandBrowserPool() as unknown as IBrowserPool<StagehandPage>;
+
+        expect(() => new StagehandCrawler({ browserPool, stagehandOptions: { env: 'LOCAL' } })).toThrow(
+            'StagehandCrawler: `stagehandOptions` cannot be combined with `browserPool`',
+        );
+        expect(() => new StagehandCrawler({ browserPool })).not.toThrow();
     });
 });
 

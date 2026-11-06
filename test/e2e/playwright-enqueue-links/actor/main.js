@@ -1,6 +1,5 @@
 import { PlaywrightCrawler, Dataset, log } from '@crawlee/playwright';
 import { Actor } from 'apify';
-import deepEqual from 'deep-equal';
 
 process.env.APIFY_LOG_LEVEL = 'DEBUG';
 
@@ -15,18 +14,16 @@ const mainOptions = {
 await Actor.main(async () => {
     const crawler = new PlaywrightCrawler({
         maxRequestsPerCrawl: 30,
-        requestHandler: async ({ page, request, enqueueLinks, closeCookieModals }) => {
+        requestHandler: async ({ page, request, enqueueLinks }) => {
             const { url, loadedUrl } = request;
 
             const pageTitle = await page.title();
             log.info(`URL: ${url}; LOADED_URL: ${loadedUrl}; TITLE: ${pageTitle}`);
 
-            await closeCookieModals();
-
             const results = await enqueueLinks();
 
             if (loadedUrl.startsWith('https://drive')) {
-                const isEqual = deepEqual(results, { processedRequests: [], unprocessedRequests: [] });
+                const isEqual = results.addedRequests.length === 0;
                 await Dataset.pushData({ isEqual });
             }
         },

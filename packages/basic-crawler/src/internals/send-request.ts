@@ -1,12 +1,9 @@
-import {
-    type BaseHttpClient,
-    type HttpRequestOptions,
-    processHttpRequestOptions,
-    type Request,
-    type Session,
-} from '@crawlee/core';
-// @ts-expect-error This throws a compilation error due to got-scraping being ESM only but we only import types, so its alllll gooooood
-import type { GotResponse, Method } from 'got-scraping';
+import { Readable } from 'node:stream';
+
+import type { Request as CrawleeRequest } from '@crawlee/core';
+import type { BaseHttpClient } from '@crawlee/http-client';
+import type { HttpRequestOptions, ISession, SendRequestOptions } from '@crawlee/types';
+import { processHttpRequestOptions } from '@crawlee/utils/internal';
 
 /**
  * Prepares a function to be used as the `sendRequest` context helper.
@@ -15,40 +12,43 @@ import type { GotResponse, Method } from 'got-scraping';
  * @param httpClient The HTTP client that will perform the requests.
  * @param originRequest The crawling request being processed.
  * @param session The user session associated with the current request.
- * @param getProxyUrl A function that will return the proxy URL that should be used for handling the request.
  */
-export function createSendRequest(
-    httpClient: BaseHttpClient,
-    originRequest: Request,
-    session: Session | undefined,
-    getProxyUrl: () => string | undefined,
-) {
-    return async <Response = string>(
-        // TODO the type information here (and in crawler_commons) is outright wrong... for BC - replace this with generic HttpResponse in v4
-        overrideOptions: Partial<HttpRequestOptions> = {},
-    ): Promise<GotResponse<Response>> => {
-        const cookieJar = session
-            ? {
-                  getCookieString: async (url: string) => session.getCookieString(url),
-                  setCookie: async (rawCookie: string, url: string) => session.setCookie(rawCookie, url),
-                  ...overrideOptions?.cookieJar,
-              }
-            : overrideOptions?.cookieJar;
+export function createSendRequest(httpClient: BaseHttpClient, originRequest: CrawleeRequest, session: ISession) {
+    return async (
+        overrideRequest: Partial<HttpRequestOptions> = {},
+        overrideOptions: SendRequestOptions = {},
+    ): Promise<Response> => {
+        const baseRequest = originRequest.intoFetchAPIRequest();
 
-        const requestOptions = processHttpRequestOptions({
-            url: originRequest.url,
-            method: originRequest.method as Method, // Narrow type to omit CONNECT
-            headers: originRequest.headers,
-            proxyUrl: getProxyUrl(),
-            sessionToken: session,
-            responseType: 'text',
-            ...overrideOptions,
-            cookieJar,
+        const mergedHeaders = new Headers(baseRequest.headers);
+        if (overrideRequest.headers) {
+            overrideRequest.headers.forEach((value, key) => {
+                mergedHeaders.set(key, value);
+            });
+        }
+
+        const opts = processHttpRequestOptions({
+            ...overrideRequest,
+            url: overrideRequest.url ?? baseRequest.url,
+            method: overrideRequest.method ?? originRequest.method,
+            headers: mergedHeaders,
         });
 
-        // Fill in body as the last step - `processHttpRequestOptions` may use either `body`, `json` or `form` so we cannot override it beforehand
-        requestOptions.body ??= originRequest.payload;
+        const request = new Request(opts.url, {
+            method: opts.method,
+            headers: opts.headers,
+            body: opts.body ? Readable.toWeb(opts.body) : baseRequest.body,
+            // Node-specific option to make the request body work with streams
+            duplex: 'half',
+        } as RequestInit);
 
-        return httpClient.sendRequest<any>(requestOptions);
+        return httpClient.sendRequest(request, {
+            session,
+            cookieJar: overrideOptions.cookieJar ?? opts.cookieJar ?? session.cookieJar,
+            proxyUrl: overrideOptions.proxyUrl ?? opts.proxyUrl,
+            timeoutMillis: overrideOptions.timeoutMillis ?? opts.timeout,
+            signal: overrideOptions.signal ?? opts.signal,
+            ignoreTlsErrors: overrideOptions.ignoreTlsErrors,
+        });
     };
 }

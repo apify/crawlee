@@ -4,9 +4,11 @@ import path from 'node:path';
 import { setTimeout } from 'node:timers/promises';
 
 import bodyParser from 'body-parser';
-import { entries } from 'crawlee';
 import type { Application } from 'express';
 import express from 'express';
+import iconv from 'iconv-lite';
+
+import { entries } from './typedefs.js';
 
 export const startExpressAppPromise = async (app: Application, port: number) => {
     return new Promise<Server>((resolve) => {
@@ -24,8 +26,8 @@ export const responseSamples = {
         '    <title>Web Scraping, Data Extraction and Automation &#xb7; Apify</title>\n' +
         '</item>\n' +
         '</items>',
-    complexXml: fs.readFileSync(path.join(__dirname, 'data/complex.xml'), 'utf-8'),
-    image: fs.readFileSync(path.join(__dirname, 'data/apify.png')),
+    complexXml: fs.readFileSync(path.join(import.meta.dirname, 'data/complex.xml'), 'utf-8'),
+    image: fs.readFileSync(path.join(import.meta.dirname, 'data/apify.png')),
     html: `<!doctype html>
     <html>
     <head>
@@ -112,6 +114,50 @@ console.log('Hello world!');
     <body>
         <a href="/special/redirect-outside">click me</a>
     </body>
+</html>`,
+    // the real scripts live on https://<id>.<id>.<region>.token.awswaf.com and .captcha.awswaf.com,
+    // the local paths keep the tests off the network
+    awsWafChallenge: (bodyScript: string) => `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title></title>
+    <script type="text/javascript">
+    window.awsWafCookieDomainList = ['dummypage.co'];
+    window.gokuProps = { "key": "AQIDAHjcYu", "iv": "CgAGUjJldAAABiGQ", "context": "loYdKdld00dlbxeUxL9OCW1a9K3GDRIu" };
+    </script>
+    <script src="/special/fb423e1ef94f.6277d64d.us-east-1.token.awswaf.com/fb423e1ef94f/c3382d439950/916d943f6a58/challenge.js"></script>
+</head>
+<body>
+    <div id="challenge-container"></div>
+    ${bodyScript}
+    <noscript>
+        <h1>JavaScript is disabled</h1>
+        In order to continue, we need to verify that you're not a robot.
+    </noscript>
+</body>
+</html>`,
+    awsWafCaptcha: `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Human Verification</title>
+    <script type="text/javascript">
+    window.awsWafCookieDomainList = ['dummypage.co'];
+    window.gokuProps = { "key": "AQIDAHjcYu", "iv": "CgAGcDJmLAAABfB7", "context": "loYdKdld00dlbxeUxL9OCW1a9K3GDRIu" };
+    </script>
+    <script src="/special/fb423e1ef94f.6277d64d.us-east-1.token.awswaf.com/fb423e1ef94f/c3382d439950/916d943f6a58/challenge.js"></script>
+    <script src="/special/fb423e1ef94f.6277d64d.us-east-1.captcha.awswaf.com/fb423e1ef94f/c3382d439950/916d943f6a58/captcha.js"></script>
+</head>
+<body>
+    <div id="captcha-container"></div>
+    <noscript>
+        <h1>JavaScript is disabled</h1>
+        In order to continue, you need to verify that you're not a robot by solving a CAPTCHA puzzle.
+    </noscript>
+</body>
 </html>`,
     cloudflareBlocking: `
 <!DOCTYPE html>
@@ -316,7 +362,28 @@ export async function runExampleComServer(): Promise<[Server, number]> {
             res.type('html').status(403).send(responseSamples.cloudflareBlocking);
         });
 
+        special.get('/awsWafChallengePassed', async (_req, res) => {
+            // a passed challenge reloads the page, which then gets the real content
+            const pass = `<script>setTimeout(() => window.location.replace('/special/html-type'), 500);</script>`;
+            res.type('html').status(202).send(responseSamples.awsWafChallenge(pass));
+        });
+
+        special.get('/awsWafChallengeFailed', async (_req, res) => {
+            // a failed challenge reloads the page as well, and gets the CAPTCHA instead
+            const fail = `<script>setTimeout(() => window.location.replace('/special/awsWafCaptcha'), 500);</script>`;
+            res.type('html').status(202).send(responseSamples.awsWafChallenge(fail));
+        });
+
+        special.get('/awsWafCaptcha', async (_req, res) => {
+            res.type('html').status(405).send(responseSamples.awsWafCaptcha);
+        });
+
         special.get('/outside-iframe', (_req, res) => {
+            res.type('html').send(responseSamples.outsideIframe);
+        });
+
+        special.get('/outside-iframe-csp', (_req, res) => {
+            res.setHeader('Content-Security-Policy', "require-trusted-types-for 'script'");
             res.type('html').send(responseSamples.outsideIframe);
         });
 
@@ -330,6 +397,24 @@ export async function runExampleComServer(): Promise<[Server, number]> {
 
         special.get('/html-entities', (_req, res) => {
             res.type('html').send('&quot;&lt;&gt;"<>');
+        });
+
+        special.get('/meta-charset', (_req, res) => {
+            const text = 'Žluťoučký kůň';
+            const html = `<html><head><meta http-equiv="Content-Type" content="text/html; charset=windows-1250"></head><body>${text}</body></html>`;
+            res.setHeader('content-type', 'text/html');
+            res.end(iconv.encode(html, 'windows-1250'));
+        });
+
+        special.get('/set-cookie', (req, res) => {
+            const cookieName = (req.query.name as string) || 'testCookie';
+            const cookieValue = (req.query.value as string) || 'testValue';
+            res.setHeader('set-cookie', `${cookieName}=${cookieValue}; Path=/`);
+            res.type('html').send('<html><body>Cookie set</body></html>');
+        });
+
+        special.get('/get-cookies', (req, res) => {
+            res.json({ cookies: req.headers.cookie || '' });
         });
     })();
 
@@ -349,7 +434,7 @@ export async function runExampleComServer(): Promise<[Server, number]> {
     app.use('/special', special);
     app.use('/cacheable', cacheable);
 
-    app.get('**/*', async (req, res) => {
+    app.get('{*splat}', async (req, res) => {
         await setTimeout(50);
         res.send(responseSamples.html);
     });

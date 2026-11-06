@@ -1,0 +1,246 @@
+---
+id: typescript-project
+title: TypeScript Projects
+description: Stricter, safer, and better development experience
+---
+
+import ApiLink from '@site/src/components/ApiLink';
+
+Crawlee is built with TypeScript, which means it provides the type definition directly in the package. This allows writing code with auto-completion for TypeScript and JavaScript code alike. Besides that, projects written in TypeScript can take advantage of compile-time type-checking and avoid many coding mistakes, while providing documentation for functions, parameters and return values. It will also help with refactoring a lot, and ensuring the least amount of bugs will sneak through.
+
+## Setting up a TypeScript project
+
+To use TypeScript in our projects, we'll need the following prerequisites:
+
+1. TypeScript compiler `tsc` installed somewhere:
+
+    ```shell script
+    npm install --save-dev typescript
+    ```
+
+    TypeScript can be a development dependency in our project, as shown above. There's no need to pollute the production environment or the system's global repository with TypeScript.
+
+2. A build script invoking `tsc` and a correctly specified `main` entry point defined in the `package.json` (pointing to the built code):
+
+    ```json
+    {
+        "scripts": {
+            "build": "tsc"
+        },
+        "main": "dist/main.js"
+    }
+    ```
+
+3. Type declarations for NodeJS, so we can take advantage of type-checking in all the features we'll use:
+
+    ```shell script
+    npm install --save-dev @types/node
+    ```
+
+4. TypeScript configuration file allowing `tsc` to understand the project layout and the features used in the project:
+
+    > We are extending the [`@apify/tsconfig`](https://github.com/apify/apify-tsconfig), it contains [the set of rules](https://github.com/apify/apify-tsconfig/blob/main/tsconfig.json) we believe are worth following.
+
+    > To be able to use feature called [Top level await](https://blog.saeloun.com/2021/11/25/ecmascript-top-level-await.html), we will need to set the `module` and `target` compiler options to `ES2022` or above. This will make the project compile to [ECMAScript Modules](https://nodejs.org/api/esm.html).
+
+    ```json title="tsconfig.json"
+    {
+        "extends": "@apify/tsconfig",
+        "compilerOptions": {
+            "module": "ES2022",
+            "target": "ES2022",
+            "outDir": "dist"
+        },
+        "include": [
+            "./src/**/*"
+        ]
+    }
+    ```
+
+    Place the content above inside a `tsconfig.json` in the root folder.
+
+    Also, to enjoy using the types in `.js` source files, VSCode users that are using JavaScript should create a `jsconfig.json` with the same content and add `"checkJs": true` to `"compilerOptions"`.
+
+    > If we want to use one of the browser crawlers, we will also need to add `"lib": ["DOM"]` to the compiler options.
+
+    Ensure that you have installed `@apify/tsconfig`
+
+    ```shell script
+    npm install --save-dev @apify/tsconfig
+    ```
+
+### Running the project with `ts-node`
+
+During development, it's handy to run the project directly instead of compiling the TypeScript code to JavaScript every time. We can use `ts-node` for that, just install it as a dev dependency and add a new NPM script:
+
+```shell script
+npm install --save-dev ts-node
+```
+
+> As mentioned above, our project will be compiled to use ES Modules. Because of this, we need to use the `ts-node-esm` binary.
+
+> We use the `-T` or `--transpileOnly` flag, this means the code will **not** be type-checked, which results in faster compilation. If you don't mind the added time and want to do the type checking, just remove this flag.
+
+```json title="package.json"
+{
+    "scripts": {
+        "start:dev": "ts-node-esm -T src/main.ts"
+    }
+}
+```
+
+### Running in production
+
+To run the project in production, we first need to compile it via build script. After that, we will have the compiled JavaScript code in the `dist`, and we can use `node dist/main.js` to run it.
+
+```json title="package.json"
+{
+    "scripts": {
+        "start:prod": "node dist/main.js"
+    }
+}
+```
+
+## Docker build
+
+For `Dockerfile` we recommend using multi-stage build, so we don't install the dev dependencies like TypeScript in the final image:
+
+```dockerfile title="Dockerfile"
+# using multistage build, as we need dev deps to build the TS source code
+FROM apify/actor-node:20 AS builder
+
+# copy all files, install all dependencies (including dev deps) and build the project
+COPY . ./
+RUN npm install --include=dev \
+    && npm run build
+
+# create final image
+FROM apify/actor-node:20
+# copy only necessary files
+COPY --from=builder /usr/src/app/package*.json ./
+COPY --from=builder /usr/src/app/dist ./dist
+
+# install only prod deps
+RUN npm --quiet set progress=false \
+    && npm install --only=prod --no-optional
+
+# run compiled code
+CMD npm run start:prod
+```
+
+### Putting it all together
+
+Let's wrap it up to. In addition to the scripts we described above, we also need to set the `type: 'module'` in the `package.json` to be able to use the Top level await described above. For convenience, we will have 3 `start` scripts, the default one will be an alias to `start:dev`, which is our `ts-node` script that does not require compilation (nor type checking). The production script (`start:prod`) is then used in the `Dockerfile`, after explicit `npm run build` call.
+
+```json title="package.json"
+{
+    "name": "my-crawlee-project",
+    "type": "module",
+    "main": "dist/main.js",
+    "dependencies": {
+        "crawlee": "3.0.0"
+    },
+    "devDependencies": {
+        "@apify/tsconfig": "^0.1.0",
+        "@types/node": "^18.14.0",
+        "ts-node": "^10.8.0",
+        "typescript": "^4.7.4"
+    },
+    "scripts": {
+        "start": "npm run start:dev",
+        "start:prod": "node dist/main.js",
+        "start:dev": "ts-node-esm -T src/main.ts",
+        "build": "tsc"
+    }
+}
+```
+
+## Type-safe router labels and `userData`
+
+When you structure a crawler with a <ApiLink to="core/class/Router">`Router`</ApiLink>, different labels usually carry a different shape of `request.userData` — a `PRODUCT` request might hold `{ sku, price }` while a `CATEGORY` request holds `{ categoryId }`. By default `userData` is loosely typed (`Record<string, unknown>`), so a typo in a label or a wrong `userData` property is only caught at runtime.
+
+You can instead declare a **route map** — an `interface` (or `type`) that maps each label to the shape of `userData` expected for it — and pass it as the second type argument to a `createXRouter` factory (or <ApiLink to="core/class/Router#create">`Router.create`</ApiLink>). Handlers then get `request.userData` typed per label, and unknown labels become a compile-time error:
+
+```ts
+import { createCheerioRouter, type CheerioCrawlingContext } from 'crawlee';
+
+interface Routes {
+    PRODUCT: { sku: string; price: number };
+    CATEGORY: { categoryId: string };
+}
+
+const router = createCheerioRouter<CheerioCrawlingContext, Routes>();
+
+router.addHandler('PRODUCT', async ({ request }) => {
+    request.userData.sku; // string
+    request.userData.price; // number
+});
+
+router.addHandler('CATEGORY', async ({ request }) => {
+    request.userData.categoryId; // string
+});
+
+// ❌ compile error: 'TYPO' is not a label declared in `Routes`
+router.addHandler('TYPO', async () => {});
+```
+
+The default handler registered via `addDefaultHandler` is a fallback for any request (including labels not in the map), so its `request.userData` stays loosely typed (`Record<string, unknown>` by default) — pass an explicit type argument to narrow it.
+
+This is a compile-time-only feature with **no runtime cost**, and it is fully backwards compatible — omitting the route map keeps the original loose typing, and passing a plain `userData` shape (e.g. `createCheerioRouter<CheerioCrawlingContext, { token: string }>()`) still types every handler with that shape, exactly as before.
+
+### Validating `userData` with a schema
+
+The route map above only exists at the type level. If your `userData` comes from an untyped source — an Actor input, a scraped value, an external API — a wrong shape still slips through at runtime. Instead of a plain type map, you can pass a **schema per label** using any [Standard Schema](https://standardschema.dev)-compliant library ([Zod](https://zod.dev), [Valibot](https://valibot.dev), [ArkType](https://arktype.io), …). A single map then drives both the inferred `userData` **type** and its **runtime validation**:
+
+```ts
+import { createCheerioRouter } from 'crawlee';
+import { z } from 'zod';
+
+const router = createCheerioRouter({
+    PRODUCT: z.object({ sku: z.string(), price: z.coerce.number() }),
+    CATEGORY: z.object({ categoryId: z.string() }),
+});
+
+router.addHandler('PRODUCT', async ({ request }) => {
+    request.userData.sku; // string — inferred from the schema
+    request.userData.price; // number — coerced by the schema before the handler runs
+});
+
+// ❌ compile error: 'TYPO' is not a label declared in the schema map
+router.addHandler('TYPO', async () => {});
+```
+
+When a request is handled, its `userData` is validated against the schema registered for its label and replaced with the parsed (and coerced) value before the handler runs. The same schemas also validate `userData` **when requests are added** through the crawler — via `crawler.addRequests()`, `crawler.run()`, and the `addRequests`/`enqueueLinks` context helpers — so a bad shape fails fast at the point of insertion rather than deep inside a handler, and the queue stores the parsed value rather than the raw input. A request whose `userData` does not match its label's schema throws a <ApiLink to="core/class/RequestValidationError">`RequestValidationError`</ApiLink> (a non-retryable error, since re-running it would fail identically). Labels without a registered schema are left untouched.
+
+Crawlee stores the request's `label` inside `userData`, but validating it is **opt-in**: schemas that don't describe `label` (including `z.strictObject()` ones) are unaffected by it, and the label is preserved even when a schema strips undeclared keys. Declare it if you want it checked — useful as a discriminator:
+
+```ts
+const router = createCheerioRouter({
+    // the label is validated only because the schema asks for it
+    PRODUCT: z.object({ label: z.literal('PRODUCT'), sku: z.string() }),
+});
+```
+
+To validate requests handled by the **default route** — those whose label has no route of its own — register a schema under the exported `defaultRoute` key. It is used only for validation, so it does not add a label to the inferred route map:
+
+```ts
+import { createCheerioRouter, defaultRoute } from 'crawlee';
+import { z } from 'zod';
+
+const router = createCheerioRouter({
+    PRODUCT: z.object({ sku: z.string() }),
+    [defaultRoute]: z.object({ page: z.coerce.number() }),
+});
+
+router.addDefaultHandler(async ({ request }) => {
+    request.userData.page; // validated (and coerced) by the defaultRoute schema
+});
+```
+
+Like the plain route map, this is opt-in and backwards compatible: a router created without a schema map behaves exactly as before, with no validation.
+
+:::note
+
+The schema map and the type-only route map are two alternative styles — a schema map already infers the `userData` types, so you don't also pass a `<Context, Routes>` type argument. Pick one: `createCheerioRouter<Context, Routes>()` for compile-time typing only, or `createCheerioRouter({ LABEL: schema })` for typing plus runtime validation.
+
+:::

@@ -1,12 +1,10 @@
 import type { Dictionary } from '@crawlee/types';
-import type { CheerioAPI, load } from 'cheerio';
-import * as cheerio from 'cheerio';
+import type { CheerioAPI } from 'cheerio';
 
-import { tryAbsoluteURL } from './extract-urls';
+import { tryAbsoluteURL } from './extract-urls.js';
 
-/** @deprecated use CheerioAPI instead */
-export type CheerioRoot = ReturnType<typeof load>;
-export type { CheerioAPI, Cheerio, Element } from 'cheerio';
+export type { CheerioAPI, Cheerio } from 'cheerio';
+export type { Element } from 'domhandler';
 
 // NOTE: We are skipping 'noscript' since it's content is evaluated as text, instead of HTML elements. That damages the results.
 const SKIP_TAGS_REGEX = /^(script|style|canvas|svg|noscript)$/i;
@@ -30,51 +28,60 @@ const BLOCK_TAGS_REGEX =
  *
  * Note that the function uses [cheerio](https://www.npmjs.com/package/cheerio) to parse the HTML.
  * Optionally, to avoid duplicate parsing of HTML and thus improve performance, you can pass
- * an existing Cheerio object to the function instead of the HTML text. The HTML should be parsed
- * with the `decodeEntities` option set to `true`. For example:
+ * an existing Cheerio object to the function instead of the HTML text.
  *
  * ```javascript
  * import * as cheerio from 'cheerio';
  * const html = '<html><body>Some text</body></html>';
- * const text = htmlToText(cheerio.load(html, { decodeEntities: true }));
+ * const text = htmlToText(cheerio.load(html));
  * ```
  * @param htmlOrCheerioElement HTML text or parsed HTML represented using a [cheerio](https://www.npmjs.com/package/cheerio) function.
  * @return Plain text
  */
-export function htmlToText(htmlOrCheerioElement: string | CheerioRoot): string {
+export async function htmlToText(htmlOrCheerioElement: string | CheerioAPI): Promise<string> {
+    const { load } = await import('cheerio/slim');
+
     if (!htmlOrCheerioElement) return '';
 
-    const $ =
-        typeof htmlOrCheerioElement === 'function'
-            ? htmlOrCheerioElement
-            : cheerio.load(htmlOrCheerioElement, { decodeEntities: true });
-    let text = '';
+    const $ = typeof htmlOrCheerioElement === 'function' ? htmlOrCheerioElement : load(htmlOrCheerioElement);
+    // Never read the accumulated text mid-loop: each read flattens V8's cons-string, making the traversal quadratic
+    const parts: string[] = [];
+    let last = '';
 
-    const process = (elems: Dictionary) => {
+    const push = (part: string) => {
+        if (!part) return;
+        parts.push(part);
+        last = part[part.length - 1];
+    };
+
+    const process = (elems: Dictionary, inPre = false) => {
         const len = elems ? elems.length : 0;
         for (let i = 0; i < len; i++) {
             const elem = elems[i];
             if (elem.type === 'text') {
-                // Compress spaces, unless we're inside <pre> element
+                // Compress spaces, unless we're inside <pre> element (including nested elements like <pre><code>)
                 let compr;
-                if (elem.parent && elem.parent.tagName === 'pre') compr = elem.data;
-                else compr = elem.data.replace(/\s+/g, ' ');
+                if (inPre) {
+                    // Strip single newline right after `<pre>` that htmlparser2 keeps
+                    const isFirstInPre = elem.parent?.tagName === 'pre' && elem.parent.children?.[0] === elem;
+                    compr = isFirstInPre ? elem.data.replace(/^\r?\n/, '') : elem.data;
+                } else compr = elem.data.replace(/\s+/g, ' ');
                 // If text is empty or ends with a whitespace, don't add the leading whitespace
-                if (compr.startsWith(' ') && /(^|\s)$/.test(text)) compr = compr.substring(1);
-                text += compr;
+                if (!inPre && compr.startsWith(' ') && (last === '' || /\s/.test(last))) compr = compr.substring(1);
+                push(compr);
             } else if (elem.type === 'comment' || SKIP_TAGS_REGEX.test(elem.tagName)) {
                 // Skip comments and special elements
             } else if (elem.tagName === 'br') {
-                text += '\n';
+                push('\n');
             } else if (elem.tagName === 'td') {
-                process(elem.children);
-                text += '\t';
+                process(elem.children, inPre);
+                push('\t');
             } else {
                 // Block elements must be surrounded by newlines (unless beginning of text)
                 const isBlockTag = BLOCK_TAGS_REGEX.test(elem.tagName);
-                if (isBlockTag && !/(^|\n)$/.test(text)) text += '\n';
-                process(elem.children);
-                if (isBlockTag && !text.endsWith('\n')) text += '\n';
+                if (isBlockTag && last !== '' && last !== '\n') push('\n');
+                process(elem.children, inPre || elem.tagName === 'pre');
+                if (isBlockTag && last !== '\n') push('\n');
             }
         }
     };
@@ -83,7 +90,7 @@ export function htmlToText(htmlOrCheerioElement: string | CheerioRoot): string {
     const $body = $('body');
     process($body.length > 0 ? $body : $.root());
 
-    return text.trim();
+    return parts.join('').trim();
 }
 
 /**

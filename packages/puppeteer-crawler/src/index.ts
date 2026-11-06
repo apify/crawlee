@@ -1,20 +1,11 @@
 export * from '@crawlee/browser';
-export * from './internals/puppeteer-crawler';
-export * from './internals/puppeteer-launcher';
+export * from './internals/puppeteer-browser-pool.js';
+export * from './internals/puppeteer-crawler.js';
+export * from './internals/puppeteer-launcher.js';
 
-export * as puppeteerRequestInterception from './internals/utils/puppeteer_request_interception';
-export type { InterceptHandler } from './internals/utils/puppeteer_request_interception';
+export type { InterceptHandler } from './internals/utils/puppeteer-request-interception.js';
 
-export * as puppeteerUtils from './internals/utils/puppeteer_utils';
-export type {
-    BlockRequestsOptions,
-    CompiledScriptFunction,
-    CompiledScriptParams,
-    DirectNavigationOptions as PuppeteerDirectNavigationOptions,
-    InfiniteScrollOptions,
-    InjectFileOptions,
-    SaveSnapshotOptions,
-} from './internals/utils/puppeteer_utils';
+export * as puppeteerUtils from './internals/utils/puppeteer-utils.js';
+export type { DirectNavigationOptions as PuppeteerDirectNavigationOptions } from './internals/utils/puppeteer-utils.js';
 
-export * as puppeteerClickElements from './internals/enqueue-links/click-elements';
-export type { EnqueueLinksByClickingElementsOptions } from './internals/enqueue-links/click-elements';
+export type { EnqueueLinksByClickingElementsOptions } from './internals/enqueue-links/click-elements.js';

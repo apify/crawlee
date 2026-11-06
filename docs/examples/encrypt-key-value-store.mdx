@@ -1,0 +1,17 @@
+---
+id: encrypt-key-value-store
+title: Encrypt key-value store records
+---
+
+import CodeBlock from '@theme/CodeBlock';
+import EncryptKeyValueStoreSource from '!!raw-loader!./encrypt-key-value-store.ts';
+
+Any transform on data going to and from storage — encryption, compression, redaction, caching — belongs in a wrapper around the storage backend. Pass the wrapper wherever a backend goes: the crawler's `storageBackend` option, the `storageBackend` option of `Dataset.open()` / `KeyValueStore.open()` / `RequestQueue.open()`, or `serviceLocator.setStorageBackend()`.
+
+This example encrypts every key-value store record, `useState()` included, and passes datasets and request queues through untouched. To transform those as well, wrap the sub-backend returned by `createDatasetBackend()` (`pushData()` / `getData()`) or `createRequestQueueBackend()` (`addBatchOfRequests()` and the methods that return requests) the same way.
+
+Don't subclass `KeyValueStore` for this. Inside a request handler, its writes are recorded in the [storage transaction](../guides/result-storage.mdx#transactional-storage)'s journal and replayed through `setValue()` again on commit, so an override would run twice. The wrapper sits below the journal: a committed write passes through it once, a rolled-back one never reaches it, and reads inside the handler see their own untransformed writes.
+
+<CodeBlock language="js">
+	{EncryptKeyValueStoreSource}
+</CodeBlock>

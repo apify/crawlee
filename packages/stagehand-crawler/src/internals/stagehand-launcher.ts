@@ -1,10 +1,11 @@
 import type { BrowserLaunchContext } from '@crawlee/browser';
 import { BrowserLauncher, Configuration } from '@crawlee/browser';
-import ow from 'ow';
+import { parseArgument, schemas } from '@crawlee/utils/internal';
 import type { BrowserType, LaunchOptions } from 'playwright';
+import { z } from 'zod';
 
-import type { StagehandOptions } from './stagehand-crawler';
-import { StagehandPlugin } from './stagehand-plugin';
+import type { StagehandOptions } from './stagehand-crawler.js';
+import { StagehandPlugin } from './stagehand-plugin.js';
 
 /**
  * Launch context for Stagehand crawler with AI-specific options.
@@ -15,11 +16,6 @@ export interface StagehandLaunchContext extends BrowserLaunchContext<LaunchOptio
      * These will be passed to Stagehand's localBrowserLaunchOptions after fingerprinting is applied.
      */
     launchOptions?: LaunchOptions & Parameters<BrowserType['launchPersistentContext']>[1];
-
-    /**
-     * Stagehand-specific configuration for AI operations.
-     */
-    stagehandOptions?: StagehandOptions;
 
     /**
      * URL to a HTTP proxy server. It must define the port number,
@@ -36,24 +32,6 @@ export interface StagehandLaunchContext extends BrowserLaunchContext<LaunchOptio
      * @default false
      */
     useChrome?: boolean;
-
-    /**
-     * With this option selected, all pages will be opened in a new incognito browser context.
-     * @default false
-     */
-    useIncognitoPages?: boolean;
-
-    /**
-     * Sets the User Data Directory path.
-     * The user data directory contains profile data such as history, bookmarks, and cookies.
-     */
-    userDataDir?: string;
-
-    /**
-     * By default this function uses `require("playwright").chromium`.
-     * If you want to use a different browser you can pass it by this property.
-     */
-    launcher?: BrowserType;
 }
 
 /**
@@ -63,23 +41,32 @@ export interface StagehandLaunchContext extends BrowserLaunchContext<LaunchOptio
  * @ignore
  */
 export class StagehandLauncher extends BrowserLauncher<StagehandPlugin> {
+    /**
+     * @internal
+     */
     protected static override optionsShape = {
         ...BrowserLauncher.optionsShape,
-        launcher: ow.optional.object,
-        launchContextOptions: ow.optional.object,
-        stagehandOptions: ow.optional.object,
+        // Passthrough schemas — the launcher module object must keep its prototype through parsing.
+        launcher: schemas.anyObject.optional(),
+        launchContextOptions: schemas.anyObject.optional(),
+        stagehandOptions: schemas.anyObject.optional(),
     };
 
-    private readonly stagehandOptions: StagehandOptions;
+    /** @internal */
+    protected static override optionsSchema = z.strictObject(StagehandLauncher.optionsShape);
+
+    readonly #stagehandOptions: StagehandOptions;
 
     /**
      * All StagehandLauncher parameters are passed via the launchContext object.
      */
     constructor(
-        launchContext: StagehandLaunchContext = {},
-        override readonly config = Configuration.getGlobalConfig(),
+        // `stagehandOptions` is not part of the public `StagehandLaunchContext`: it is how
+        // `stagehandBrowserPool()` threads the crawler's resolved Stagehand options through the launcher.
+        launchContext: StagehandLaunchContext & { stagehandOptions?: StagehandOptions } = {},
+        override readonly configuration = Configuration.getGlobalConfiguration(),
     ) {
-        ow(launchContext, 'StagehandLaunchContext', ow.object.exactShape(StagehandLauncher.optionsShape));
+        const parsedContext = parseArgument(launchContext, StagehandLauncher.optionsSchema, 'StagehandLaunchContext');
 
         const {
             launcher = BrowserLauncher.requireLauncherOrThrow<typeof import('playwright')>(
@@ -87,9 +74,9 @@ export class StagehandLauncher extends BrowserLauncher<StagehandPlugin> {
                 'apify/actor-node-playwright-*',
             ).chromium,
             stagehandOptions = {},
-        } = launchContext;
+        } = parsedContext;
 
-        const { launchOptions = {}, ...rest } = launchContext;
+        const { launchOptions = {}, ...rest } = parsedContext;
 
         // Call super first before initializing properties
         super(
@@ -97,14 +84,14 @@ export class StagehandLauncher extends BrowserLauncher<StagehandPlugin> {
                 ...rest,
                 launchOptions: {
                     ...launchOptions,
-                    executablePath: getDefaultExecutablePath(launchContext, config),
+                    executablePath: getDefaultExecutablePath(parsedContext, configuration),
                 },
                 launcher,
             },
-            config,
+            configuration,
         );
 
-        this.stagehandOptions = {
+        this.#stagehandOptions = {
             env: 'LOCAL',
             model: 'openai/gpt-4.1-mini',
             ...stagehandOptions,
@@ -121,7 +108,7 @@ export class StagehandLauncher extends BrowserLauncher<StagehandPlugin> {
             ...this.otherLaunchContextProps,
             proxyUrl: this.proxyUrl,
             launchOptions: this.createLaunchOptions(),
-            stagehandOptions: this.stagehandOptions, // Set AFTER to override any unresolved options
+            stagehandOptions: this.#stagehandOptions, // Set AFTER to override any unresolved options
         });
     }
 }
@@ -130,8 +117,11 @@ export class StagehandLauncher extends BrowserLauncher<StagehandPlugin> {
  * Gets the default executable path for the browser.
  * @ignore
  */
-function getDefaultExecutablePath(launchContext: StagehandLaunchContext, config: Configuration): string | undefined {
-    const pathFromPlaywrightImage = config.get('defaultBrowserPath');
+function getDefaultExecutablePath(
+    launchContext: StagehandLaunchContext,
+    configuration: Configuration,
+): string | undefined {
+    const pathFromPlaywrightImage = configuration.defaultBrowserPath;
     const { launchOptions = {} } = launchContext;
 
     if (launchOptions.executablePath) {
