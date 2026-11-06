@@ -298,7 +298,9 @@ describe('RequestManagerTandem', () => {
             false,
         );
 
-        // ...and the pacer acted on the signals rather than merely accepting them.
+        // ...and the pacer acted on the signals rather than merely accepting them. The clocks only show on a
+        // domain with work left; the list's request is not the throttler's.
+        await throttler.addRequest({ url: 'https://example.com/2' });
         await expect(throttler.checkReadiness()).resolves.toMatchObject({ status: 'waiting' });
 
         // A floor covering every domain reaches it the same way, and this pacer covers only `example.com`.

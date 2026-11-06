@@ -4,7 +4,6 @@ import type { BaseHttpClient } from '@crawlee/http-client';
 import type { ParseSitemapOptions } from '@crawlee/utils';
 import { EnqueueStrategy } from '@crawlee/utils';
 import { parseArgument, parseSitemap, schemas } from '@crawlee/utils/internal';
-import { minimatch } from 'minimatch';
 import type { RequiredDeep } from 'type-fest';
 import { z } from 'zod';
 
@@ -125,6 +124,7 @@ interface SitemapParsingProgress {
     inProgressSitemapUrl: string | null;
     inProgressEntries: Set<string>;
     pendingSitemapUrls: Set<string>;
+    processedSitemapUrls: Set<string>;
 }
 
 interface SitemapRequestLoaderState {
@@ -170,6 +170,10 @@ export class SitemapRequestLoader implements IRequestLoader {
          * Set of sitemap URLs that have not been parsed yet. If the set is empty and `inProgressSitemapUrl` is `null`, the sitemap loading is finished.
          */
         pendingSitemapUrls: new Set<string>(),
+        /**
+         * Set of sitemap URLs that have already been parsed. Keeps sitemap indexes that reference each other from being loaded again.
+         */
+        processedSitemapUrls: new Set<string>(),
     };
 
     /**
@@ -272,30 +276,14 @@ export class SitemapRequestLoader implements IRequestLoader {
     }
 
     /**
-     * Returns a function that checks whether the provided pattern matches the closure URL.
-     * @param url URL to be checked.
-     * @returns A matcher function that checks whether the pattern matches the closure URL.
-     */
-    #matchesUrl(url: string): (patternObject: UrlPatternObject) => boolean {
-        return (patternObject) => {
-            const { regexp, glob } = patternObject;
-
-            const matchesRegex = (regexp && url.match(regexp)) || false;
-            const matchesGlob = (glob && minimatch(url, glob, { nocase: true })) || false;
-
-            return Boolean(matchesRegex || matchesGlob);
-        };
-    }
-
-    /**
      * Checks whether the URL matches the `include` / `exclude` patterns provided in the `options`.
      * @param url URL to be checked.
      * @returns `true` if the URL matches the patterns, `false` otherwise.
      */
     #isUrlMatchingPatterns(url: string): boolean {
         return (
-            !this.#urlExcludePatternObjects.some(this.#matchesUrl(url)) &&
-            (this.#urlPatternObjects.length === 0 || this.#urlPatternObjects.some(this.#matchesUrl(url)))
+            !this.#urlExcludePatternObjects.some(({ match }) => match(url)) &&
+            (this.#urlPatternObjects.length === 0 || this.#urlPatternObjects.some(({ match }) => match(url)))
         );
     }
 
@@ -385,7 +373,9 @@ export class SitemapRequestLoader implements IRequestLoader {
                 })) {
                     if (!item.originSitemapUrl) {
                         // This is a nested sitemap
-                        this.#sitemapParsingProgress.pendingSitemapUrls.add(item.loc);
+                        if (!this.#sitemapParsingProgress.processedSitemapUrls.has(item.loc)) {
+                            this.#sitemapParsingProgress.pendingSitemapUrls.add(item.loc);
+                        }
                         continue;
                     }
 
@@ -399,6 +389,7 @@ export class SitemapRequestLoader implements IRequestLoader {
             }
 
             this.#sitemapParsingProgress.pendingSitemapUrls.delete(sitemapUrl);
+            this.#sitemapParsingProgress.processedSitemapUrls.add(sitemapUrl);
             this.#sitemapParsingProgress.inProgressEntries.clear();
             this.#sitemapParsingProgress.inProgressSitemapUrl = null;
         }
@@ -538,6 +529,7 @@ export class SitemapRequestLoader implements IRequestLoader {
                 pendingSitemapUrls: Array.from(this.#sitemapParsingProgress.pendingSitemapUrls),
                 inProgressSitemapUrl: this.#sitemapParsingProgress.inProgressSitemapUrl,
                 inProgressEntries: Array.from(this.#sitemapParsingProgress.inProgressEntries),
+                processedSitemapUrls: Array.from(this.#sitemapParsingProgress.processedSitemapUrls),
             },
             // Re-queue in-progress requests to the front so they are retried if the state is restored.
             urlQueue: [...this.inProgress, ...urlQueue],
@@ -565,6 +557,7 @@ export class SitemapRequestLoader implements IRequestLoader {
             pendingSitemapUrls: new Set(state.sitemapParsingProgress.pendingSitemapUrls),
             inProgressSitemapUrl: state.sitemapParsingProgress.inProgressSitemapUrl,
             inProgressEntries: new Set(state.sitemapParsingProgress.inProgressEntries),
+            processedSitemapUrls: new Set(state.sitemapParsingProgress.processedSitemapUrls ?? []),
         };
 
         this.#requestData = new Map(state.requestData ?? []);
