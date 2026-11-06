@@ -211,7 +211,7 @@ export function fullResultComparator(resultA: StorageTransactionView, resultB: S
 function gotoExtended(page: Page, request: Request_3, gotoOptions?: PlaywrightDirectNavigationOptions): Promise<Response_2 | null>;
 
 // @public
-function handleCloudflareChallenge(page: Page, url: string, options?: HandleCloudflareChallengeOptions): Promise<Response_2 | undefined>;
+function handleCloudflareChallenge(page: Page, url: string, options?: HandleCloudflareChallengeOptions, response?: Response_2): Promise<Response_2 | undefined>;
 
 // @public
 export function handleCloudflareChallengeHook(options?: HandleCloudflareChallengeOptions): PlaywrightHook;
