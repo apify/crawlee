@@ -55,10 +55,12 @@ export async function downloadListOfUrls(options: DownloadListOfUrlsOptions): Pr
     const { url, encoding, urlRegExp, proxyUrl, httpClient } = parseArgument(options, downloadListOfUrlsOptionsSchema);
 
     // Try to detect wrong urls and fix them. Currently, detects only sharing url instead of csv download one.
-    const match = /^(https:\/\/docs\.google\.com\/spreadsheets\/d\/(?:\w|-)+)\/?/.exec(url);
+    // Links published to the web (`/spreadsheets/d/e/<id>/pub?output=csv`) and links that already point
+    // at an export (`/gviz/...`, `/export...`) are downloadable as they are, so they're left alone.
+    const match = /^(https:\/\/docs\.google\.com\/spreadsheets\/d\/(?!e\/)(?:\w|-)+)(\/(?:gviz|export)\b)?/.exec(url);
     let fixedUrl = url;
 
-    if (match) {
+    if (match && !match[2]) {
         fixedUrl = `${match[1]}/gviz/tq?tqx=out:csv`;
     }
 

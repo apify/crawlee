@@ -28,6 +28,44 @@ describe('downloadListOfUrls()', () => {
             }),
         ).resolves.toEqual(arr);
     });
+
+    describe('Google Sheets URLs', () => {
+        const requestedUrl = async (url: string) => {
+            let requested: string | undefined;
+            const mockClient = Object.assign(Object.create(BaseHttpClient.prototype) as BaseHttpClient, {
+                async sendRequest(request: Request) {
+                    requested = request.url;
+                    return new Response('');
+                },
+            });
+            await downloadListOfUrls({ url, httpClient: mockClient });
+            return requested;
+        };
+
+        const id = '1-2mUcRAiBbCTVA5KcpFdEYWflLMLp9DDU3iJutvES4w';
+
+        test('rewrites a sharing link to the CSV export', async () => {
+            await expect(requestedUrl(`https://docs.google.com/spreadsheets/d/${id}/edit?usp=sharing`)).resolves.toBe(
+                `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv`,
+            );
+            await expect(requestedUrl(`https://docs.google.com/spreadsheets/d/${id}`)).resolves.toBe(
+                `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv`,
+            );
+        });
+
+        test('keeps a link published to the web', async () => {
+            const url =
+                'https://docs.google.com/spreadsheets/d/e/2PACX-1vSabc_DEF-123/pub?gid=0&single=true&output=csv';
+            await expect(requestedUrl(url)).resolves.toBe(url);
+        });
+
+        test('keeps a link that already points at an export', async () => {
+            const gviz = `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv&sheet=Second`;
+            await expect(requestedUrl(gviz)).resolves.toBe(gviz);
+            const exportUrl = `https://docs.google.com/spreadsheets/d/${id}/export?format=csv&gid=123`;
+            await expect(requestedUrl(exportUrl)).resolves.toBe(exportUrl);
+        });
+    });
 });
 
 describe('extractUrls()', () => {
