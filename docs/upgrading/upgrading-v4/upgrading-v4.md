@@ -506,7 +506,7 @@ The `PersistenceOptions` argument of `persistState()` and `resetStore()` and the
 
 With both `state` and `persistStateKey` set, the record now wins. Previously `state` did. The option is also validated up front: `nextIndex` must be a non-negative integer and `inProgress` an array of unique keys. The `@internal` `isStatePersisted` flag is gone.
 
-Both `SessionPool` and `RequestList` now persist through `RecoverableState`, like `Statistics`. The persisted records keep their shape, so records written by v3 still load.
+Both `SessionPool` and `RequestList` now persist through `RecoverableState`, like `Statistics`. The persisted record **shape** is unchanged, but the default / prefixed KVS keys changed from `SDK_` to `CRAWLEE_` (see [Internal KVS keys renamed](#internal-kvs-keys-renamed)). A v3 run's record under the old key is not picked up, so a persisted list or pool restarts after the upgrade unless you finish the crawl first.
 
 ### `retireOnBlockedStatusCodes` is removed from `Session`
 
@@ -1123,6 +1123,8 @@ With `respectRobotsTxtFile` enabled, a site that answers `/robots.txt` with a `5
 ### Internal KVS keys renamed
 
 Several internal Crawlee keys were prefixed with the `SDK_` prefix for legacy reasons — these keys now start with `CRAWLEE_` instead. These are, e.g., `CRAWLEE_SESSION_POOL_STATE` or `CRAWLEE_CRAWLER_STATISTICS_{n}`.
+
+`RequestList` also prefixes user-supplied `persistStateKey` / `persistRequestsKey` values with `CRAWLEE_` (v3 used `SDK_`). There is no fallback read of the old key, so a list persisted by v3 is not resumed after upgrading — the same restart behavior already documented for [`SitemapRequestLoader`](./request-loaders.md#sitemaprequestlist-renamed-to-sitemaprequestloader).
 
 ## Only if you subclassed crawlers or touched internals
 
