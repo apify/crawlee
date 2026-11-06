@@ -12,7 +12,7 @@ The full list of removed exports and members, for ctrl-F purposes. Where a repla
 
 - `BasicCrawler._cleanupContext` (protected) - this is now handled by the `ContextPipeline`
 - `BasicCrawler.isRequestBlocked` (protected)
-- `BasicCrawler.events` (protected) - this should be accessed via `BasicCrawler.serviceLocator`
+- `BasicCrawler.events` (protected) - use the `serviceLocator` export of `@crawlee/core` instead (`serviceLocator.getEventManager()`); the crawler scopes it to its own services while its methods run
 - `BrowserRequestHandler` and `BrowserErrorHandler` types in `@crawlee/browser`
 - `BrowserCrawler.userProvidedRequestHandler` (protected)
 - `BrowserCrawler.requestHandlerTimeoutInnerMillis` (protected)
