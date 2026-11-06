@@ -830,6 +830,7 @@ export class SitemapRequestLoader implements IRequestLoader {
 
 // @public (undocumented)
 export interface SitemapRequestLoaderOptions extends UrlConstraints {
+    concurrency?: number;
     enqueueStrategy?: EnqueueStrategy | `${EnqueueStrategy}`;
     httpClient?: BaseHttpClient;
     maxBufferSize?: number;
