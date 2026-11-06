@@ -79,7 +79,10 @@ async function handleRequest(request: PuppeteerRequest, interceptRequestHandlers
     const originalContinue = request.continue.bind(request);
     request.continue = async (overrides = {}) => {
         wasContinued = true;
-        const headers = browserifyHeaders({ ...accumulatedOverrides.headers, ...overrides.headers });
+        const headers = browserifyHeaders({
+            ...accumulatedOverrides.headers,
+            ...(overrides.headers instanceof Headers ? Object.fromEntries(overrides.headers) : overrides.headers),
+        });
         Object.assign(accumulatedOverrides, overrides, { headers });
     };
 
