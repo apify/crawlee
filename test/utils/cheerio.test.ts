@@ -100,6 +100,28 @@ describe('htmlToText()', () => {
         );
     });
 
+    test('separates HTML5 block elements and table header cells', async () => {
+        await checkHtmlToText(
+            '<section>Call 555-1234</section><section>9876 Main St</section>',
+            'Call 555-1234\n9876 Main St',
+        );
+        await checkHtmlToText(
+            '<header>Head</header><nav>Menu</nav><main><article>One</article><article>Two</article></main><aside>Side</aside><footer>Foot</footer>',
+            'Head\nMenu\nOne\nTwo\nSide\nFoot',
+        );
+        await checkHtmlToText('A<hr>B', 'A\nB');
+        await checkHtmlToText('<dl><dt>Term</dt><dd>Definition</dd></dl>', 'Term\nDefinition');
+        await checkHtmlToText(
+            '<figure><img src="x.png"><figcaption>Caption</figcaption></figure>After',
+            'Caption\nAfter',
+        );
+        await checkHtmlToText('<details><summary>Summary</summary>Details</details>', 'Summary\nDetails');
+        await checkHtmlToText(
+            '<table><tr><th>Name</th><th>Phone</th></tr><tr><td>Alice</td><td>555-1234</td></tr></table>',
+            'Name\tPhone\t\nAlice\t555-1234',
+        );
+    });
+
     test('handles HTML entities correctly', async () => {
         await checkHtmlToText('<span>&aacute; &eacute;</span>', 'á é');
     });
