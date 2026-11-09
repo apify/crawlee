@@ -1043,10 +1043,10 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         }
     }
 
-    async setExpectedRequestProcessingTime(secs: number): Promise<void> {
+    async setExpectedRequestProcessingTime(processingTimeSecs: number): Promise<void> {
         // Remembered so a manager opened later still gets the hint, without opening one now just to pass it along.
-        this.#expectedRequestProcessingSecs = secs;
-        await this.#forEachManager((manager) => manager.setExpectedRequestProcessingTime?.(secs));
+        this.#expectedRequestProcessingSecs = processingTimeSecs;
+        await this.#forEachManager((manager) => manager.setExpectedRequestProcessingTime?.(processingTimeSecs));
     }
 
     /**
@@ -1054,14 +1054,14 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
      * Extending a lock must not consume the in-flight marker that later routes
      * {@link ThrottlingRequestManager.markRequestAsHandled} / {@link ThrottlingRequestManager.reclaimRequest}.
      */
-    async extendRequestProcessingTime(request: Request, secs: number): Promise<boolean> {
+    async extendRequestProcessingTime(request: Request, extensionSecs: number): Promise<boolean> {
         const key = request.id ?? request.uniqueKey;
 
         const manager = this.#inFlightFromInner.has(key)
             ? this.#resolvedInner!
             : await this.#selectManagerOrThrow(request.url);
 
-        return (await manager.extendRequestProcessingTime?.(request, secs)) ?? false;
+        return (await manager.extendRequestProcessingTime?.(request, extensionSecs)) ?? false;
     }
 
     /**

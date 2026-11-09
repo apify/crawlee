@@ -858,13 +858,13 @@ export class RequestQueue implements IStorage, IRequestManager {
      * ever raise the reservation duration, never lower it — otherwise a short-lived consumer could cut
      * short the reservation of a long-lived one and have its in-flight request stolen.
      */
-    async setExpectedRequestProcessingTime(secs: number): Promise<void> {
-        if (secs <= this.#expectedRequestProcessingSecs) {
+    async setExpectedRequestProcessingTime(processingTimeSecs: number): Promise<void> {
+        if (processingTimeSecs <= this.#expectedRequestProcessingSecs) {
             return;
         }
 
-        this.#expectedRequestProcessingSecs = secs;
-        await this.backend.setExpectedRequestProcessingTime?.(secs);
+        this.#expectedRequestProcessingSecs = processingTimeSecs;
+        await this.backend.setExpectedRequestProcessingTime?.(processingTimeSecs);
     }
 
     /**
@@ -872,12 +872,12 @@ export class RequestQueue implements IStorage, IRequestManager {
      * Unlike {@link RequestQueue.setExpectedRequestProcessingTime}, which sizes every future lock,
      * this only touches the one request it is given.
      */
-    async extendRequestProcessingTime(request: Request, secs: number): Promise<boolean> {
+    async extendRequestProcessingTime(request: Request, extensionSecs: number): Promise<boolean> {
         if (!request.id) {
             return false;
         }
 
-        return (await this.backend.extendRequestProcessingTime?.(request.id, secs)) ?? false;
+        return (await this.backend.extendRequestProcessingTime?.(request.id, extensionSecs)) ?? false;
     }
 
     /**

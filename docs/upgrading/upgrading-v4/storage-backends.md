@@ -74,7 +74,7 @@ The request queue backend's surface was reshaped. The frontend-owned distributed
 | `updateRequest(request, opts?)` | `markRequestAsHandled(request)` / `reclaimRequest(request, opts?)` |
 | `listHead(opts?)` | `fetchNextRequest()` (returns a single request, marks it in progress) |
 | `listAndLockHead(opts)` | Removed (locking is internal to the client) |
-| `prolongRequestLock(id, opts)` | `extendRequestProcessingTime(requestId, secs)` (optional — per-request lock extension for locking backends; wired to `context.extendTimeout`) |
+| `prolongRequestLock(id, opts)` | `extendRequestProcessingTime(requestId, extensionSecs)` (optional — per-request lock extension for locking backends; wired to `context.extendTimeout`) |
 | `deleteRequestLock(id, opts?)` | Removed |
 | `deleteRequest(id)` | Removed |
 | _(n/a)_ | `isEmpty()` (new — `true` when no pending requests are left to fetch) |
@@ -108,7 +108,7 @@ The `requestLocking` crawler experiment has been removed, along with the `experi
 
 The `RequestQueue.requestLockSecs` property has been removed. Because request locking is now internal to the storage backend, the lock duration is no longer configured on the queue. When you run a crawler, it automatically tells the queue how long it expects to hold a request (based on `requestHandlerTimeoutMillis`), so a long-running request handler will not have its request handed out a second time — you usually don't need to configure anything.
 
-If you use a `RequestQueue` outside of a crawler and your processing may exceed the 3-minute default lock, call `setExpectedRequestProcessingTime(secs)` on the queue to raise it:
+If you use a `RequestQueue` outside of a crawler and your processing may exceed the 3-minute default lock, call `setExpectedRequestProcessingTime(processingTimeSecs)` on the queue to raise it:
 
 ```typescript
 import { RequestQueue } from 'crawlee';

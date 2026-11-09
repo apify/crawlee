@@ -229,9 +229,9 @@ export class RequestManagerTandem implements IRequestManager {
      * reserved. The manager is opened lazily, so the value is remembered and applied once it resolves.
      * @inheritdoc
      */
-    async setExpectedRequestProcessingTime(secs: number): Promise<void> {
-        this.#expectedRequestProcessingSecs = secs;
-        await this.#resolvedRequestManager?.setExpectedRequestProcessingTime?.(secs);
+    async setExpectedRequestProcessingTime(processingTimeSecs: number): Promise<void> {
+        this.#expectedRequestProcessingSecs = processingTimeSecs;
+        await this.#resolvedRequestManager?.setExpectedRequestProcessingTime?.(processingTimeSecs);
     }
 
     /**
@@ -244,7 +244,7 @@ export class RequestManagerTandem implements IRequestManager {
         return this.#resolvedRequestManager?.recordPacingSignal(signal) ?? false;
     }
 
-    async extendRequestProcessingTime(request: Request, secs: number): Promise<boolean> {
-        return (await this.#getRequestManager()).extendRequestProcessingTime?.(request, secs) ?? false;
+    async extendRequestProcessingTime(request: Request, extensionSecs: number): Promise<boolean> {
+        return (await this.#getRequestManager()).extendRequestProcessingTime?.(request, extensionSecs) ?? false;
     }
 }

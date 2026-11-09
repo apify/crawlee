@@ -351,7 +351,7 @@ export interface QueueOperationInfo {
 export interface RequestQueueBackend {
     addBatchOfRequests(requests: RequestSchema[], options?: RequestQueueOperationOptions): Promise<BatchAddRequestsResult>;
     drop(): Promise<void>;
-    extendRequestProcessingTime?(requestId: string, secs: number): Promise<boolean>;
+    extendRequestProcessingTime?(requestId: string, extensionSecs: number): Promise<boolean>;
     fetchNextRequest(): Promise<UpdateRequestSchema | undefined>;
     getMetadata(): Promise<RequestQueueInfo>;
     getRequest(uniqueKey: string): Promise<UpdateRequestSchema | undefined>;
@@ -360,7 +360,7 @@ export interface RequestQueueBackend {
     markRequestAsHandled(request: UpdateRequestSchema): Promise<QueueOperationInfo | undefined>;
     purge(): Promise<void>;
     reclaimRequest(request: UpdateRequestSchema, options?: RequestQueueOperationOptions): Promise<QueueOperationInfo | undefined>;
-    setExpectedRequestProcessingTime?(secs: number): Promise<void>;
+    setExpectedRequestProcessingTime?(processingTimeSecs: number): Promise<void>;
 }
 
 // @public (undocumented)
