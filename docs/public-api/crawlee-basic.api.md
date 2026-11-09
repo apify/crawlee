@@ -1019,7 +1019,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     addRequest(requestLike: Source, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo>;
     addRequestsBatched(requests: RequestsLike, options?: AddRequestsBatchedOptions): Promise<AddRequestsBatchedResult>;
     checkReadiness(): Promise<RequestSourceStatus>;
-    extendRequestProcessingTimeSecs(request: Request_2, secs: number): Promise<boolean>;
+    extendRequestProcessingTime(request: Request_2, extensionSecs: number): Promise<boolean>;
     fetchNextRequest<R extends Dictionary = Dictionary>(): Promise<Request_2<R> | null>;
     // (undocumented)
     getHandledCount(): Promise<number>;
@@ -1034,7 +1034,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     reclaimRequest(request: Request_2, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo | null>;
     recordPacingSignal(signal: PacingSignal): boolean;
     // (undocumented)
-    setExpectedRequestProcessingTimeSecs(secs: number): Promise<void>;
+    setExpectedRequestProcessingTime(processingTimeSecs: number): Promise<void>;
 }
 
 // @public
