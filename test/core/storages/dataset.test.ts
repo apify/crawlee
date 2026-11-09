@@ -398,6 +398,46 @@ describe('dataset', () => {
         });
     });
 
+    describe('read snapshots', () => {
+        test.each([false, true])('getData isolates nested values with desc=%s', async (desc) => {
+            const dataset = await Dataset.open<{ sku: string; price: { amount: number }; tags: string[] }>();
+            const products = [
+                { sku: 'BOOK-1', price: { amount: 25 }, tags: ['books'] },
+                { sku: 'BOOK-2', price: { amount: 30 }, tags: ['books'] },
+                { sku: 'BOOK-3', price: { amount: 35 }, tags: ['books'] },
+            ];
+            await dataset.pushData(products);
+            const { modifiedAt } = await dataset.getInfo();
+            const options = { desc, offset: 1, limit: 1 };
+            const first = await dataset.getData(options);
+            const second = await dataset.getData(options);
+
+            expect(first).toEqual({ items: [products[1]], count: 1, total: 3, desc, offset: 1, limit: 1 });
+            first.items[0].price.amount = 20;
+            first.items[0].tags.push('sale');
+
+            expect(second.items).toEqual([products[1]]);
+            expect((await dataset.getData()).items).toEqual(products);
+            expect((await dataset.getInfo()).modifiedAt).toEqual(modifiedAt);
+            expect(dataset.stats.writeCount).toBe(1);
+        });
+
+        test('map can transform nested values without changing storage', async () => {
+            const dataset = await Dataset.open<{ price: { amount: number }; tags: string[] }>();
+            const product = { price: { amount: 25 }, tags: ['books'] };
+            await dataset.pushData(product);
+
+            const mapped = await dataset.map((item) => {
+                item.price.amount = 15;
+                item.tags.push('sale');
+                return item;
+            });
+
+            expect(mapped).toEqual([{ price: { amount: 15 }, tags: ['books', 'sale'] }]);
+            expect((await dataset.getData()).items).toEqual([product]);
+        });
+    });
+
     describe('utils', () => {
         test('assertJsonSerializable() works', () => {
             // Valid objects
