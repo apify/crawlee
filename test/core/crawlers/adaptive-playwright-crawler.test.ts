@@ -1283,6 +1283,37 @@ describe('AdaptivePlaywrightCrawler', () => {
         expect(pageClosedInCleanup).toBe(false);
     });
 
+    test('closes the page of a timed-out browser attempt without waiting for its request handler', async () => {
+        const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+            detectionProbabilityRecommendation: 0,
+            renderingType: 'clientOnly',
+        });
+
+        let pageClosed: Promise<boolean> | undefined;
+        let pageClosedOnTimeout: boolean | undefined;
+
+        const crawler = await makeOneshotCrawler(
+            {
+                renderingTypePredictor,
+                requestHandlerTimeoutSecs: 3,
+                requestHandler: async ({ page }) => {
+                    pageClosed = new Promise((resolve) => {
+                        page.once('close', () => resolve(true));
+                    });
+                    await pageClosed;
+                },
+                failedRequestHandler: async () => {
+                    pageClosedOnTimeout = await Promise.race([pageClosed, sleep(1000).then(() => false)]);
+                },
+            },
+            [`http://${HOSTNAME}:${port}/static`],
+        );
+
+        await crawler.run();
+
+        expect(pageClosedOnTimeout).toBe(true);
+    });
+
     test('should persist RenderingTypePredictor state on PERSIST_STATE events', async () => {
         const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = vi.fn(async ({ pushData }) => {
             await pushData({ content: 'test data' });
