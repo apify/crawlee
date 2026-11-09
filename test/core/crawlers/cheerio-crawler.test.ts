@@ -224,7 +224,15 @@ describe('CheerioCrawler', () => {
         });
         await strictCrawler.run([`${serverAddress}/?tls=strict`]);
 
-        expect(captured).toEqual([true, false]);
+        const lenientCrawler = new CheerioCrawler({
+            httpClient: capturingClient,
+            ignoreTlsErrors: true,
+            maxConcurrency: 1,
+            requestHandler: () => {},
+        });
+        await lenientCrawler.run([`${serverAddress}/?tls=lenient`]);
+
+        expect(captured).toEqual([false, false, true]);
     });
 
     test('should work with skipNavigation', async () => {
@@ -608,6 +616,41 @@ describe('CheerioCrawler', () => {
                 expect(Date.now() - startedAt).toBeLessThan(3000);
             } finally {
                 slowServer.close();
+            }
+        });
+
+        test('stops downloading a response body that outlives the navigation window', async () => {
+            let closed = false;
+            const endlessServer = createServer((_req, res) => {
+                res.writeHead(200, { 'content-type': 'text/html' });
+                const interval = setInterval(() => res.write('x'.repeat(1024)), 10);
+                res.on('close', () => {
+                    clearInterval(interval);
+                    closed = true;
+                });
+            });
+            await new Promise<void>((resolve) => endlessServer.listen(0, resolve));
+            const { port: endlessPort } = endlessServer.address() as AddressInfo;
+
+            try {
+                const failed: Request[] = [];
+                const cheerioCrawler = new CheerioCrawler({
+                    navigationTimeoutSecs: 1,
+                    maxRequestRetries: 0,
+                    httpClient: new ImpitHttpClient(),
+                    requestHandler: () => {},
+                    failedRequestHandler: ({ request }) => {
+                        failed.push(request);
+                    },
+                });
+
+                await cheerioCrawler.run([`http://localhost:${endlessPort}/`]);
+
+                expect(failed).toHaveLength(1);
+                await vi.waitFor(() => expect(closed).toBe(true), { timeout: 2000 });
+            } finally {
+                endlessServer.closeAllConnections();
+                endlessServer.close();
             }
         });
     });

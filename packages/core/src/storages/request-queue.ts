@@ -640,6 +640,7 @@ export class RequestQueue implements IStorage, IRequestManager {
             waitBetweenBatchesMillis,
             waitForAllRequestsToBeAdded,
             maxNewRequests,
+            log: this.log,
 
             /**
              * Requests the backend reports as unprocessed are warned about and skipped rather than retried:
@@ -1165,13 +1166,11 @@ export interface AddRequestsBatchedOptions extends RequestQueueOperationOptions 
 
     /**
      * If set, only this many *actually new* requests (i.e. not already present in the queue) will be added.
-     * Once the budget is reached, remaining requests from the iterable will be collected in
-     * {@apilink AddRequestsBatchedResult.requestsOverLimit|`requestsOverLimit`} instead.
+     * Once the budget is reached, remaining requests from the iterable are left unconsumed, or collected in
+     * {@apilink AddRequestsBatchedResult.requestsOverLimit|`requestsOverLimit`} if
+     * {@apilink AddRequestsBatchedOptions.waitForAllRequestsToBeAdded|`waitForAllRequestsToBeAdded`} is set.
      *
      * This is useful in combination with `maxRequestsPerCrawl` to avoid duplicate URLs consuming the budget.
-     *
-     * **Note:** Setting this option implicitly enables {@apilink AddRequestsBatchedOptions.waitForAllRequestsToBeAdded|`waitForAllRequestsToBeAdded`},
-     * since all batches must complete before leftover requests can be accurately reported.
      */
     maxNewRequests?: number;
 }
@@ -1199,7 +1198,8 @@ export interface AddRequestsBatchedResult {
     /**
      * Requests from the input that were not added to the queue because the
      * {@apilink AddRequestsBatchedOptions.maxNewRequests|`maxNewRequests`} budget was reached.
-     * Empty when `maxNewRequests` is not set.
+     * `undefined` unless both `maxNewRequests` and
+     * {@apilink AddRequestsBatchedOptions.waitForAllRequestsToBeAdded|`waitForAllRequestsToBeAdded`} are set.
      */
     requestsOverLimit?: Source[];
 }

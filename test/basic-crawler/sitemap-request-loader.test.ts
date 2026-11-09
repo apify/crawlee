@@ -5,6 +5,7 @@ import { finished } from 'node:stream/promises';
 
 import { CrawlingRequest, SitemapRequestLoader } from '@crawlee/basic';
 import { MemoryStorageBackend, type Request, serviceLocator } from '@crawlee/core';
+import { FetchHttpClient } from '@crawlee/http-client';
 import { sleep } from '@crawlee/utils';
 import express from 'express';
 import { startExpressAppPromise } from '../shared/_helper.js';
@@ -200,6 +201,32 @@ beforeAll(async () => {
         res.end();
     });
 
+    // Two sitemap indexes referencing each other; only `cycle-a` also points at an actual urlset.
+    app.get('/cycle-a.xml', async (req, res) => {
+        res.setHeader('content-type', 'text/xml');
+        res.end(
+            [
+                '<?xml version="1.0" encoding="UTF-8"?>',
+                '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+                `<sitemap><loc>${url}/cycle-b.xml</loc></sitemap>`,
+                `<sitemap><loc>${url}/sitemap.xml</loc></sitemap>`,
+                '</sitemapindex>',
+            ].join('\n'),
+        );
+    });
+
+    app.get('/cycle-b.xml', async (req, res) => {
+        res.setHeader('content-type', 'text/xml');
+        res.end(
+            [
+                '<?xml version="1.0" encoding="UTF-8"?>',
+                '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+                `<sitemap><loc>${url}/cycle-a.xml</loc></sitemap>`,
+                '</sitemapindex>',
+            ].join('\n'),
+        );
+    });
+
     // --- Fixtures for the enqueue-strategy filtering tests ---
     // The server answers on both `localhost` and `127.0.0.1` (distinct hostnames), so the `127.0.0.1`
     // variant is a reachable "cross-host" target — a dropped entry is distinguishable from a failed fetch.
@@ -261,6 +288,49 @@ beforeAll(async () => {
                 '</urlset>',
             ].join('\n'),
         );
+    });
+
+    // Sitemaps for concurrency testing
+    const concurrencyLoadTimes: Record<string, number> = {};
+
+    for (const n of [1, 2, 3]) {
+        app.get(`/sitemap-slow-${n}.xml`, async (req, res) => {
+            concurrencyLoadTimes[`slow-${n}-start`] = Date.now();
+            res.setHeader('content-type', 'text/xml');
+            await sleep(100);
+            res.write(
+                [
+                    '<?xml version="1.0" encoding="UTF-8"?>',
+                    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+                    `<url><loc>http://not-exists.com/slow-${n}-page-1</loc></url>`,
+                    `<url><loc>http://not-exists.com/slow-${n}-page-2</loc></url>`,
+                    '</urlset>',
+                ].join('\n'),
+            );
+            concurrencyLoadTimes[`slow-${n}-end`] = Date.now();
+            res.end();
+        });
+    }
+
+    app.get('/sitemap-index-slow.xml', async (req, res) => {
+        res.setHeader('content-type', 'text/xml');
+        res.end(
+            [
+                '<?xml version="1.0" encoding="UTF-8"?>',
+                '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+                ...[1, 2, 3].map((n) => `<sitemap><loc>${url}/sitemap-slow-${n}.xml</loc></sitemap>`),
+                '</sitemapindex>',
+            ].join('\n'),
+        );
+    });
+
+    app.get('/concurrency-load-times', (req, res) => {
+        res.json(concurrencyLoadTimes);
+    });
+
+    app.delete('/concurrency-load-times', (req, res) => {
+        Object.keys(concurrencyLoadTimes).forEach((key) => delete concurrencyLoadTimes[key]);
+        res.status(204).end();
     });
 });
 
@@ -643,18 +713,27 @@ describe('SitemapRequestLoader', () => {
     });
 
     test('default `same-hostname` strategy drops cross-host nested sitemaps before fetching them', async () => {
-        const list = await SitemapRequestLoader.open({ sitemapUrls: [`${url}/cross-host-index.xml`] });
-        // The cross-host nested sitemap is never fetched, so its `child-page` URL is absent.
+        const cross = url.replace('localhost', '127.0.0.1');
+        const httpClient = new FetchHttpClient();
+        const sendRequest = vitest.spyOn(httpClient, 'sendRequest');
+        const list = await SitemapRequestLoader.open({ sitemapUrls: [`${url}/cross-host-index.xml`], httpClient });
+
         expect(await collectUrls(list)).toEqual([]);
+        expect(sendRequest.mock.calls.map(([request]) => request.url)).not.toContain(`${cross}/cross-host-child.xml`);
     });
 
     test('`enqueueStrategy: all` follows cross-host nested sitemaps', async () => {
         const cross = url.replace('localhost', '127.0.0.1');
+        const httpClient = new FetchHttpClient();
+        const sendRequest = vitest.spyOn(httpClient, 'sendRequest');
         const list = await SitemapRequestLoader.open({
             sitemapUrls: [`${url}/cross-host-index.xml`],
             enqueueStrategy: 'all',
+            httpClient,
         });
+
         expect(await collectUrls(list)).toEqual([`${cross}/child-page`]);
+        expect(sendRequest.mock.calls.map(([request]) => request.url)).toContain(`${cross}/cross-host-child.xml`);
     });
 
     test('non-http(s) schemes are dropped even with `enqueueStrategy: all`', async () => {
@@ -673,6 +752,28 @@ describe('SitemapRequestLoader', () => {
         // The strategy is persisted on the request so it keeps being enforced after navigation.
         expect(CrawlingRequest.fromSchema(request!).enqueueStrategy).toBe('same-hostname');
     });
+
+    test('sitemap indexes referencing each other are each loaded only once', async () => {
+        const list = await SitemapRequestLoader.open({ sitemapUrls: [`${url}/cycle-a.xml`], enqueueStrategy: 'all' });
+
+        const urls: string[] = [];
+        for await (const request of list) {
+            urls.push(request.url);
+            await list.markRequestAsHandled(request);
+            // Guard against the loader cycling between the two indexes forever.
+            if (urls.length > 20) break;
+        }
+
+        expect(list.isSitemapFullyLoaded()).toBe(true);
+        expect(urls).toEqual([
+            'http://not-exists.com/',
+            'http://not-exists.com/catalog?item=12&desc=vacation_hawaii',
+            'http://not-exists.com/catalog?item=73&desc=vacation_new_zealand',
+            'http://not-exists.com/catalog?item=74&desc=vacation_newfoundland',
+            'http://not-exists.com/catalog?item=83&desc=vacation_usa',
+        ]);
+        await list.teardown();
+    }, 10_000);
 
     test('persistState does not deadlock a backpressured sitemap load', async () => {
         // `maxBufferSize: 1` makes the background loader block on backpressure right after
@@ -710,4 +811,147 @@ describe('SitemapRequestLoader', () => {
             ]),
         );
     }, 10_000);
+
+    describe('concurrency', () => {
+        const slowIndexOptions = { enqueueStrategy: 'all' as const };
+
+        beforeEach(async () => {
+            await fetch(`${url}/concurrency-load-times`, { method: 'DELETE' });
+        });
+
+        const getStartTimes = async () => {
+            const loadTimes = await fetch(`${url}/concurrency-load-times`).then(async (r) => r.json());
+            return [loadTimes['slow-1-start'], loadTimes['slow-2-start'], loadTimes['slow-3-start']].sort(
+                (a, b) => a - b,
+            );
+        };
+
+        test('loads multiple sitemaps in parallel', async () => {
+            const list = await SitemapRequestLoader.open({
+                ...slowIndexOptions,
+                sitemapUrls: [`${url}/sitemap-index-slow.xml`],
+                concurrency: 3,
+            });
+
+            for await (const request of list) {
+                await list.markRequestAsHandled(request);
+            }
+
+            expect(await list.getHandledCount()).toBe(6);
+
+            // Sequential loading would put the starts ~100ms apart
+            const startTimes = await getStartTimes();
+            expect(startTimes[2] - startTimes[0]).toBeLessThan(80);
+        });
+
+        test('concurrency=1 loads sitemaps sequentially', async () => {
+            const list = await SitemapRequestLoader.open({
+                ...slowIndexOptions,
+                sitemapUrls: [`${url}/sitemap-index-slow.xml`],
+                concurrency: 1,
+            });
+
+            for await (const request of list) {
+                await list.markRequestAsHandled(request);
+            }
+
+            expect(await list.getHandledCount()).toBe(6);
+
+            const loadTimes = await fetch(`${url}/concurrency-load-times`).then(async (r) => r.json());
+            expect(loadTimes['slow-2-start']).toBeGreaterThanOrEqual(loadTimes['slow-1-end'] - 20);
+        });
+
+        test('respects the concurrency limit', async () => {
+            const list = await SitemapRequestLoader.open({
+                ...slowIndexOptions,
+                sitemapUrls: [`${url}/sitemap-index-slow.xml`],
+                concurrency: 2,
+            });
+
+            for await (const request of list) {
+                await list.markRequestAsHandled(request);
+            }
+
+            expect(await list.getHandledCount()).toBe(6);
+
+            const startTimes = await getStartTimes();
+            expect(startTimes[1] - startTimes[0]).toBeLessThan(50);
+            expect(startTimes[2] - startTimes[0]).toBeGreaterThan(80);
+        });
+
+        test('collects all URLs without duplicates', async () => {
+            const list = await SitemapRequestLoader.open({
+                ...slowIndexOptions,
+                sitemapUrls: [`${url}/sitemap-index-slow.xml`],
+                concurrency: 3,
+            });
+
+            const urls: string[] = [];
+            for await (const request of list) {
+                urls.push(request.url);
+                await list.markRequestAsHandled(request);
+            }
+
+            expect(urls.sort()).toEqual(
+                [1, 2, 3].flatMap((n) => [
+                    `http://not-exists.com/slow-${n}-page-1`,
+                    `http://not-exists.com/slow-${n}-page-2`,
+                ]),
+            );
+        });
+
+        test('abort signal stops concurrent loading', async () => {
+            const controller = new AbortController();
+
+            const list = await SitemapRequestLoader.open({
+                ...slowIndexOptions,
+                sitemapUrls: [`${url}/sitemap-index-slow.xml`],
+                concurrency: 3,
+                signal: controller.signal,
+            });
+
+            await sleep(50);
+            controller.abort();
+
+            for await (const request of list) {
+                await list.markRequestAsHandled(request);
+            }
+
+            // Let the in-flight sitemap fetches (100ms) settle, so the check isn't racing them.
+            await sleep(200);
+            expect(list.isSitemapFullyLoaded()).toBe(false);
+            await expect(list.checkReadiness()).resolves.toEqual({ status: 'finished' });
+        });
+
+        test('state persistence works with concurrency', async () => {
+            const options = {
+                ...slowIndexOptions,
+                sitemapUrls: [`${url}/sitemap-index-slow.xml`],
+                persistStateKey: 'concurrency-persist',
+                concurrency: 2,
+            };
+
+            {
+                const list = await SitemapRequestLoader.open(options);
+
+                while ((await list.checkReadiness()).status !== 'ready') {
+                    await sleep(20);
+                }
+
+                const request = await list.fetchNextRequest();
+                await list.markRequestAsHandled(request!);
+
+                await list.persistState();
+            }
+
+            const newList = await SitemapRequestLoader.open(options);
+            const urls = new Set<string>();
+            for await (const request of newList) {
+                urls.add(request.url);
+                await newList.markRequestAsHandled(request);
+            }
+
+            expect(urls.size).toBeGreaterThanOrEqual(5);
+        });
+    });
 });

@@ -1,7 +1,7 @@
 import { Readable } from 'node:stream';
 import { text } from 'node:stream/consumers';
 
-import { processHttpRequestOptions } from '../../packages/http-crawler/src/internals/utils.js';
+import { processHttpRequestOptions } from '@crawlee/utils/internal';
 
 describe('processHttpRequestOptions', () => {
     test('applies search parameters to the request URL', () => {

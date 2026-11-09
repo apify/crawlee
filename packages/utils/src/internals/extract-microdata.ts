@@ -75,25 +75,30 @@ function parseItem(context: ExtractionContext, element: Element, ancestors: Set<
 
 function collectPropertyElements(context: ExtractionContext, scope: Element): Element[] {
     const elements: Element[] = [];
+    // An `itemref` can point at an element already reached from the item's own subtree, or at one that
+    // contains another referenced element. The spec visits every element once, so each property counts once.
+    const visited = new Set<Element>();
 
-    collectFromNodes(scope.children, elements);
+    collectFromNodes(scope.children, elements, visited);
 
     for (const id of uniqueTokens(scope.attribs.itemref)) {
         const referenced = (context.idIndex ??= indexIds(context.$)).get(id);
 
         if (referenced) {
-            collectFromNodes([referenced], elements);
+            collectFromNodes([referenced], elements, visited);
         }
     }
 
     return elements;
 }
 
-function collectFromNodes(nodes: AnyNode[], elements: Element[]): void {
+function collectFromNodes(nodes: AnyNode[], elements: Element[], visited: Set<Element>): void {
     for (const node of nodes) {
-        if (!isTag(node)) {
+        if (!isTag(node) || visited.has(node)) {
             continue;
         }
+
+        visited.add(node);
 
         if ('itemprop' in node.attribs) {
             elements.push(node);
@@ -101,7 +106,7 @@ function collectFromNodes(nodes: AnyNode[], elements: Element[]): void {
 
         // A nested item owns everything below it, so its subtree is not part of the enclosing item.
         if (!('itemscope' in node.attribs)) {
-            collectFromNodes(node.children, elements);
+            collectFromNodes(node.children, elements, visited);
         }
     }
 }

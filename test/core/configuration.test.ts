@@ -281,6 +281,15 @@ describe('Configuration', () => {
             expect(typeof config.memoryMbytes).toBe('number');
         });
 
+        it('loads crawlee.json saved with a UTF-8 byte order mark', () => {
+            // e.g. written by PowerShell 5.1 `Set-Content -Encoding UTF8` or "UTF-8 with BOM" in an editor
+            writeFileSync(crawleeJsonPath, `\uFEFF${JSON.stringify({ chromeExecutablePath: 'from-file' })}`);
+            fileCreated = true;
+
+            const config = new Configuration();
+            expect(config.chromeExecutablePath).toBe('from-file');
+        });
+
         it('handles missing crawlee.json gracefully', () => {
             // No file created — should fall through to defaults
             const config = new Configuration();

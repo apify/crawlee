@@ -4,9 +4,9 @@ packages:
   - website
 
 catalog:
-  playwright: 1.64.1
-  playwright-core: 1.64.1
-  zod: ^4.5.4
+  playwright: 1.65.0
+  playwright-core: 1.65.0
+  zod: ^4.6.7
 
 minimumReleaseAge: 1440
 minimumReleaseAgeExclude:
@@ -19,7 +19,6 @@ minimumReleaseAgeExclude:
 
 overrides:
   "@puppeteer/browsers": "^3.0.4"
-  tar: "^7.5.16"
   # The e2e tests run the `apify` SDK against the local 4.x workspace packages.
   # The default `latest`/`next` tags are the 3.x SDK, which is not runtime
   # compatible with `@crawlee/core@4` (e.g. `Configuration.INTEGER_VARS` was
@@ -37,7 +36,7 @@ overrides:
   # `optionsShape`/`exactShape` mismatches. header-generator's ow usage is limited to the
   # long-stable basic predicate API (string/number/object.exactShape/oneOf/ofType), so it's safe
   # to dedupe onto the same major version everyone else uses.
-  "header-generator>ow": "^2.0.0"
+  "header-generator>ow": "^3.0.0"
   # A transitive playwright(-core) (stagehand) drifting from the pinned playwright breaks playwright-extra's types.
   playwright: "catalog:"
   playwright-core: "catalog:"
@@ -49,6 +48,7 @@ overrides:
 # proceed when new build-requesting deps appear without a manual entry).
 allowBuilds:
   "@apify/ui-icons": true
+  '@google/genai': set this to true or false
   "@playwright/browser-chromium": true
   "@playwright/browser-firefox": true
   "@playwright/browser-webkit": true
@@ -85,3 +85,4 @@ publicHoistPattern:
 patchedDependencies:
   '@docusaurus/core@3.10.2': patches/@docusaurus__core@3.10.2.patch
   '@signalwire/docusaurus-plugin-llms-txt@1.2.2': patches/@signalwire__docusaurus-plugin-llms-txt@1.2.2.patch
+  sigstore@5.0.1: patches/sigstore@5.0.1.patch

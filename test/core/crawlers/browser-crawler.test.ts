@@ -17,7 +17,16 @@ import {
 } from '@crawlee/basic';
 import { bindMethodsToServiceLocator, MemoryStorageBackend, serviceLocator, ServiceLocator } from '@crawlee/core';
 import type { PuppeteerGoToOptions } from '@crawlee/puppeteer';
-import { EnqueueStrategy, ProxyConfiguration, Request, RequestList, RequestState, Session } from '@crawlee/puppeteer';
+import {
+    EnqueueStrategy,
+    NavigationSkippedError,
+    ProxyConfiguration,
+    Request,
+    RequestList,
+    RequestQueue,
+    RequestState,
+    Session,
+} from '@crawlee/puppeteer';
 import { sleep } from '@crawlee/utils';
 import type { HTTPResponse } from 'puppeteer';
 import puppeteer from 'puppeteer';
@@ -115,6 +124,32 @@ describe('BrowserCrawler', () => {
         processed.forEach((request, id) => {
             expect(request.url).toEqual(sourcesCopy[id].url);
             expect(request.userData.title).toBe('Example Domain');
+        });
+    });
+
+    test.concurrent('marks a skipNavigation request as handled via the proxied context', async () => {
+        // A RequestQueue (unlike RequestList) serializes the whole request during bookkeeping.
+        const requestQueue = await RequestQueue.open();
+        const { uniqueKey } = await requestQueue.addRequest({
+            url: `${serverAddress}/`,
+            userData: { foo: 'bar' },
+            skipNavigation: true,
+        });
+        const failedRequestHandler = vitest.fn();
+
+        await new BrowserCrawlerTest({
+            browserPoolOptions: { browserPlugins: [new PuppeteerPlugin(puppeteer)] },
+            requestQueue,
+            requestHandler: async ({ request }) => {
+                expect(() => request.loadedUrl).toThrow(NavigationSkippedError);
+            },
+            failedRequestHandler,
+        }).run();
+
+        expect(failedRequestHandler).not.toHaveBeenCalled();
+        expect(await requestQueue.getRequest(uniqueKey)).toMatchObject({
+            handledAt: expect.any(String),
+            userData: { foo: 'bar' },
         });
     });
 
@@ -870,6 +905,66 @@ describe('BrowserCrawler', () => {
         expect(errorMessages).toHaveLength(urls.length * (maxRequestRetries + 1));
         expect(errorMessages.every((x) => x.includes('Detected a session error, retiring session...'))).toBe(true);
         expect(processed).toBe(false);
+    });
+
+    test.concurrent('retryOnBlocked should retry on an AWS WAF challenge that ends in a CAPTCHA', async () => {
+        const puppeteerPlugin = new PuppeteerPlugin(puppeteer);
+
+        const urls = [new URL('/special/awsWafChallengeFailed', serverAddress).href];
+        const maxRequestRetries = 1;
+
+        let processed = false;
+        const errorMessages: string[] = [];
+
+        const crawler = new BrowserCrawlerTest({
+            browserPoolOptions: {
+                browserPlugins: [puppeteerPlugin],
+            },
+            retryOnBlocked: true,
+            maxRequestRetries,
+            requestHandler: async () => {
+                processed = true;
+            },
+            failedRequestHandler: async ({ request }) => {
+                errorMessages.push(...request.errorMessages);
+            },
+        });
+
+        await crawler.run(urls);
+
+        expect(errorMessages).toHaveLength(urls.length * (maxRequestRetries + 1));
+        expect(
+            errorMessages.every((x) => x.includes('AWS WAF challenge failed') && x.includes('#captcha-container')),
+        ).toBe(true);
+        expect(processed).toBe(false);
+    });
+
+    test.concurrent('retryOnBlocked should wait for an AWS WAF challenge to resolve', async () => {
+        const puppeteerPlugin = new PuppeteerPlugin(puppeteer);
+
+        const urls = [new URL('/special/awsWafChallengePassed', serverAddress).href];
+
+        const handled: { title: string; status?: number }[] = [];
+        const errorMessages: string[] = [];
+
+        const crawler = new BrowserCrawlerTest({
+            browserPoolOptions: {
+                browserPlugins: [puppeteerPlugin],
+            },
+            retryOnBlocked: true,
+            maxRequestRetries: 0,
+            requestHandler: async ({ page, response }) => {
+                handled.push({ title: await page.title(), status: response?.status() });
+            },
+            failedRequestHandler: async ({ request }) => {
+                errorMessages.push(...request.errorMessages);
+            },
+        });
+
+        await crawler.run(urls);
+
+        expect(errorMessages).toHaveLength(0);
+        expect(handled).toStrictEqual([{ title: 'Example Domain', status: 200 }]);
     });
 
     test.concurrent('retryOnBlocked throws on "blocked" status codes', async () => {

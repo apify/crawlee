@@ -29,7 +29,7 @@ jobs:
             matrix:
                 # tests on windows are extremely unstable
                 # os: [ ubuntu-22.04, windows-2019 ]
-                os: [ ubuntu-22.04 ]
+                os: [ ubuntu-26.04 ]
                 node-version: [ 22, 24, 26 ]
 
         steps:
@@ -59,6 +59,10 @@ jobs:
             -   name: Install Puppeteer Chrome
                 run: pnpm exec puppeteer browsers install chrome
 
+            # the ubuntu-26.04 runner's AppArmor blocks unprivileged user namespaces, so Puppeteer's sandboxed Chromium fails with "No usable sandbox!"
+            -   name: Allow Chromium sandbox
+                run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+
             -   name: Build
                 run: pnpm ci:build
 
@@ -74,7 +78,7 @@ jobs:
 
     api_surface:
         name: Public API surface
-        runs-on: ubuntu-22.04
+        runs-on: ubuntu-26.04
 
         steps:
             -   name: Checkout repository
@@ -106,7 +110,7 @@ jobs:
     docs:
         name: Docs build
         if: (!contains(github.event.head_commit.message, '[skip ci]') && github.ref != 'refs/heads/master')
-        runs-on: ubuntu-22.04
+        runs-on: ubuntu-26.04
         steps:
             -   name: Checkout Source code
                 uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -235,7 +239,7 @@ jobs:
 
     lint:
         name: Lint
-        runs-on: ubuntu-22.04
+        runs-on: ubuntu-26.04
 
         steps:
             -   name: Checkout repository
@@ -268,7 +272,7 @@ jobs:
         name: Release @next
         if: github.event_name == 'push' && github.ref == 'refs/heads/master' && (!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, 'docs:'))
         needs: build_and_test
-        runs-on: ubuntu-22.04
+        runs-on: ubuntu-26.04
 
         steps:
             -   name: Checkout repository

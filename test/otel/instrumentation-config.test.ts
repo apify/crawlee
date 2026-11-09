@@ -244,7 +244,7 @@ describe('requestHandlingInstrumentationMethods', () => {
         ['makeHttpRequest', 0],
         ['navigate', 0],
         ['handleFailedRequestHandler', 0],
-        // `requestFunctionErrorHandler(error, crawlingContext, request, source)`
+        // `requestFunctionErrorHandler(error, crawlingContext, source)`
         ['requestFunctionErrorHandler', 1],
     ])('%s reads request attributes from argument %i', (methodName, contextArgIndex) => {
         const methods = requestHandlingInstrumentationMethods.filter((m) => m.methodName === methodName);

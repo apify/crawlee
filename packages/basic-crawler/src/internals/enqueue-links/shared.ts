@@ -17,7 +17,7 @@ const MAX_ENQUEUE_LINKS_CACHE_SIZE = 1000;
  * each glob/regexp is only compiled once and then kept in a cache.
  * @ignore
  */
-const enqueueLinksPatternCache = new Map();
+const enqueueLinksPatternCache = new Map<UrlPatternInput, UrlPatternObject>();
 
 export interface GlobObject {
     glob: string;
@@ -79,14 +79,10 @@ export function createSkippedRequestArgs(
 /**
  * @ignore
  */
-export function updateEnqueueLinksPatternCache(
-    item: GlobInput | RegExpInput,
-    pattern: RegExpObject | GlobObject,
-): void {
+export function updateEnqueueLinksPatternCache(item: UrlPatternInput, pattern: UrlPatternObject): void {
     enqueueLinksPatternCache.set(item, pattern);
     if (enqueueLinksPatternCache.size > MAX_ENQUEUE_LINKS_CACHE_SIZE) {
-        const key = enqueueLinksPatternCache.keys().next().value;
-        enqueueLinksPatternCache.delete(key);
+        enqueueLinksPatternCache.delete(enqueueLinksPatternCache.keys().next().value!);
     }
 }
 
@@ -95,7 +91,7 @@ export function updateEnqueueLinksPatternCache(
  * to construct Glob objects from Glob pattern strings.
  * @ignore
  */
-export function constructGlobObjectsFromGlobs(globs: readonly GlobInput[]): GlobObject[] {
+export function constructGlobObjectsFromGlobs(globs: readonly GlobInput[]): (GlobObject & UrlPatternObject)[] {
     return globs
         .filter((glob) => {
             // Skip possibly nullish, empty strings
@@ -114,15 +110,12 @@ export function constructGlobObjectsFromGlobs(globs: readonly GlobInput[]): Glob
             return false;
         })
         .map((item) => {
-            // Get glob object from cache.
-            let globObject = enqueueLinksPatternCache.get(item);
-            if (globObject) return globObject;
+            const cached = enqueueLinksPatternCache.get(item);
+            if (cached) return cached as GlobObject & UrlPatternObject;
 
-            if (typeof item === 'string') {
-                globObject = { glob: validateGlobPattern(item) };
-            } else {
-                globObject = { glob: validateGlobPattern(item.glob) };
-            }
+            const glob = validateGlobPattern(typeof item === 'string' ? item : item.glob);
+            const minimatch = new Minimatch(glob, { nocase: true });
+            const globObject = { glob, match: (url: string) => minimatch.match(url) };
 
             updateEnqueueLinksPatternCache(item, globObject);
 
@@ -145,17 +138,15 @@ export function validateGlobPattern(glob: string): string {
  * to check RegExps input and return valid RegExps.
  * @ignore
  */
-export function constructRegExpObjectsFromRegExps(regexps: readonly RegExpInput[]): RegExpObject[] {
+export function constructRegExpObjectsFromRegExps(
+    regexps: readonly RegExpInput[],
+): (RegExpObject & UrlPatternObject)[] {
     return regexps.map((item) => {
-        // Get regexp object from cache.
-        let regexpObject = enqueueLinksPatternCache.get(item);
-        if (regexpObject) return regexpObject;
+        const cached = enqueueLinksPatternCache.get(item);
+        if (cached) return cached as RegExpObject & UrlPatternObject;
 
-        if (item instanceof RegExp) {
-            regexpObject = { regexp: item };
-        } else {
-            regexpObject = { regexp: item.regexp };
-        }
+        const regexp = item instanceof RegExp ? item : item.regexp;
+        const regexpObject = { regexp, match: (url: string) => regexp.test(url) };
 
         updateEnqueueLinksPatternCache(item, regexpObject);
 
@@ -171,6 +162,7 @@ export function constructRegExpObjectsFromRegExps(regexps: readonly RegExpInput[
 export interface UrlPatternObject {
     glob?: string;
     regexp?: RegExp;
+    match: (url: string) => boolean;
 }
 
 /**
@@ -205,23 +197,20 @@ export function filterRequestOptionsByPatterns(
     strategy?: EnqueueStrategyOption,
     onSkippedRequestOptions?: (options: RequestOptions) => void,
 ): RequestOptions[] {
-    const excludeMatchers = excludePatterns.map(createPatternObjectMatcher);
-    const includeMatchers = includePatterns?.length ? includePatterns.map(createPatternObjectMatcher) : undefined;
-
     return requestOptions
         .filter((opts) => {
-            const matchesExclude = excludeMatchers.some(({ match }) => match(opts.url));
+            const matchesExclude = excludePatterns.some(({ match }) => match(opts.url));
             if (matchesExclude) {
                 onSkippedRequestOptions?.(opts);
             }
             return !matchesExclude;
         })
         .map((opts) => {
-            if (!includeMatchers) {
+            if (!includePatterns?.length) {
                 return { ...opts, enqueueStrategy: strategy };
             }
 
-            for (const { match } of includeMatchers) {
+            for (const { match } of includePatterns) {
                 if (match(opts.url)) {
                     return { ...opts, enqueueStrategy: strategy };
                 }
@@ -297,23 +286,6 @@ export function createRequestOptions(
 
             return requestOptions;
         });
-}
-
-/**
- * @ignore
- */
-function createPatternObjectMatcher(urlPatternObject: UrlPatternObject) {
-    const { regexp, glob } = urlPatternObject;
-    let match: (url: string) => boolean;
-    if (regexp) {
-        match = (url: string) => regexp.test(url);
-    } else if (glob) {
-        const m = new Minimatch(glob, { nocase: true });
-        match = (url: string) => m.match(url);
-    } else {
-        match = () => false;
-    }
-    return { match };
 }
 
 /**

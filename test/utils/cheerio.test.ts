@@ -74,6 +74,9 @@ describe('htmlToText()', () => {
 
         await checkHtmlToText('<b>A  B  C  D  E\n\nF  G</b>', 'A B C D E F G');
         await checkHtmlToText('<pre>A  B  C  D  E\n\nF  G</pre>', 'A  B  C  D  E\n\nF  G');
+        await checkHtmlToText('<pre><code>A  B\n  C</code></pre>', 'A  B\n  C');
+        await checkHtmlToText('<pre>A  <b>B\n  <i>C  D</i></b></pre>', 'A  B\n  C  D');
+        await checkHtmlToText('<pre><code><span>a</span><br><span>    b</span></code></pre>', 'a\n    b');
 
         await checkHtmlToText(
             '<h1>Heading 1</h1><div><div><div><div>Deep  Div</div></div></div></div><h2>Heading       2</h2>',
@@ -97,6 +100,28 @@ describe('htmlToText()', () => {
         );
     });
 
+    test('separates HTML5 block elements and table header cells', async () => {
+        await checkHtmlToText(
+            '<section>Call 555-1234</section><section>9876 Main St</section>',
+            'Call 555-1234\n9876 Main St',
+        );
+        await checkHtmlToText(
+            '<header>Head</header><nav>Menu</nav><main><article>One</article><article>Two</article></main><aside>Side</aside><footer>Foot</footer>',
+            'Head\nMenu\nOne\nTwo\nSide\nFoot',
+        );
+        await checkHtmlToText('A<hr>B', 'A\nB');
+        await checkHtmlToText('<dl><dt>Term</dt><dd>Definition</dd></dl>', 'Term\nDefinition');
+        await checkHtmlToText(
+            '<figure><img src="x.png"><figcaption>Caption</figcaption></figure>After',
+            'Caption\nAfter',
+        );
+        await checkHtmlToText('<details><summary>Summary</summary>Details</details>', 'Summary\nDetails');
+        await checkHtmlToText(
+            '<table><tr><th>Name</th><th>Phone</th></tr><tr><td>Alice</td><td>555-1234</td></tr></table>',
+            'Name\tPhone\t\nAlice\t555-1234',
+        );
+    });
+
     test('handles HTML entities correctly', async () => {
         await checkHtmlToText('<span>&aacute; &eacute;</span>', 'á é');
     });
@@ -105,6 +130,15 @@ describe('htmlToText()', () => {
         const { html, text } = htmlToTextData;
         // Careful here - don't change any whitespace in the text below or the test will break, even trailing!
         await checkHtmlToText(html, text, true);
+    });
+
+    test('handles documents with many nodes in linear time', async () => {
+        const count = 160_000;
+        const html = `<html><body><div>${'<i> a</i>'.repeat(count)}</div></body></html>`;
+        const start = performance.now();
+        const text = await htmlToText(html);
+        expect(performance.now() - start).toBeLessThan(2_000);
+        expect(text).toEqual('a'.repeat(count).split('').join(' '));
     });
 
     test('works with Cheerio object', async () => {

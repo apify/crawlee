@@ -117,7 +117,7 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = CrawlingC
     contextPipelineBuilder?: () => ContextPipeline<CrawlingContext, Context>;
     errorHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
     eventManager?: EventManager;
-    extendContext?: (context: CrawlingContext) => Awaitable<ContextExtension>;
+    extendContext?: ContextMiddleware<CrawlingContext, ContextExtension>;
     failedRequestHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
     httpClient?: BaseHttpClient;
     id?: string;
@@ -474,6 +474,7 @@ export interface IStatistics<StateExtension extends object = {}> {
     recordRequestFailure(id: number | string, retryCount: number): void;
     recordRequestStart(id: number | string): void;
     recordRequestSuccess(id: number | string, retryCount: number): void;
+    registerRetry?(retryCount: number): void;
     registerStatusCode(code: number): void;
     readonly requestRetryHistogram: number[];
     startCapturing(): Promise<void>;
@@ -829,6 +830,7 @@ export class SitemapRequestLoader implements IRequestLoader {
 
 // @public (undocumented)
 export interface SitemapRequestLoaderOptions extends UrlConstraints {
+    concurrency?: number;
     enqueueStrategy?: EnqueueStrategy | `${EnqueueStrategy}`;
     httpClient?: BaseHttpClient;
     maxBufferSize?: number;
@@ -897,6 +899,7 @@ export class Statistics<StateExtension extends object = {}, PersistedStateExtens
     readonly errorTrackerRetry: ErrorTracker;
     readonly id: string;
     persistState(): Promise<void>;
+    registerRetry(retryCount: number): void;
     registerStatusCode(code: number): void;
     get requestRetryHistogram(): number[];
     reset(): void;

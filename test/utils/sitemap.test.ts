@@ -1,3 +1,5 @@
+import { gzipSync } from 'node:zlib';
+
 import { FetchHttpClient } from '@crawlee/http-client';
 import nock from 'nock';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -139,6 +141,21 @@ describe('Sitemap', () => {
                     `<lastmod>
                         2004-12-23
                     </lastmod>`,
+                    '</sitemap>',
+                    '</sitemapindex>',
+                ].join('\n'),
+            )
+            .get('/sitemap_parent_with_malformed_child.xml')
+            .reply(
+                200,
+                [
+                    '<?xml version="1.0" encoding="UTF-8"?>',
+                    '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+                    '<sitemap>',
+                    '<loc>http://not-exists.com/not_actual_xml.xml</loc>',
+                    '</sitemap>',
+                    '<sitemap>',
+                    '<loc>http://not-exists.com/sitemap_child.xml</loc>',
                     '</sitemap>',
                     '</sitemapindex>',
                 ].join('\n'),
@@ -407,6 +424,22 @@ describe('Sitemap', () => {
         expect(sitemap.urls).toEqual([]);
     });
 
+    it('keeps urls from other sitemaps when one of them is malformed', async () => {
+        const sitemap = await Sitemap.load(
+            ['http://not-exists.com/not_actual_xml.xml', 'http://not-exists.com/sitemap_child.xml'],
+            undefined,
+            { httpClient: new FetchHttpClient() },
+        );
+        expect(sitemap.urls).toHaveLength(5);
+    });
+
+    it('keeps urls from other nested sitemaps when one of them is malformed', async () => {
+        const sitemap = await Sitemap.load('http://not-exists.com/sitemap_parent_with_malformed_child.xml', undefined, {
+            httpClient: new FetchHttpClient(),
+        });
+        expect(sitemap.urls).toHaveLength(5);
+    });
+
     it('handles CDATA in loc tags', async () => {
         const sitemap = await Sitemap.load('http://not-exists.com/sitemap_cdata.xml', undefined, {
             httpClient: new FetchHttpClient(),
@@ -446,6 +479,51 @@ describe('Sitemap', () => {
         expect(sitemap.urls).toHaveLength(0);
         expect(logger.warning).not.toHaveBeenCalled();
         expect(logger.warningOnce).not.toHaveBeenCalled();
+    });
+
+    it('loads a gzipped XML sitemap whose name has no inner extension', async () => {
+        nock('http://gzipped.com')
+            .get('/sitemap.gz')
+            .reply(
+                200,
+                gzipSync(
+                    '<?xml version="1.0" encoding="UTF-8"?><urlset><url><loc>http://gzipped.com/page</loc></url></urlset>',
+                ),
+                { 'content-type': 'application/gzip' },
+            );
+
+        const sitemap = await Sitemap.load('http://gzipped.com/sitemap.gz', undefined, {
+            httpClient: new FetchHttpClient(),
+            sitemapRetries: 0,
+        });
+
+        expect(sitemap.urls).toEqual(['http://gzipped.com/page']);
+    });
+
+    it('keeps sitemap.txt lines apart when a network chunk ends on a line break', async () => {
+        const urls = Array.from({ length: 300 }, (_, i) => `http://not-exists.com/page-${i}`);
+        const httpClient = new FetchHttpClient();
+        httpClient.sendRequest = async () =>
+            new Response(
+                new ReadableStream({
+                    start(controller) {
+                        for (const url of urls) {
+                            controller.enqueue(new TextEncoder().encode(`${url}\n`));
+                        }
+                        controller.close();
+                    },
+                }),
+                { headers: { 'content-type': 'text/plain' } },
+            );
+
+        const parsed: string[] = [];
+        for await (const item of parseSitemap([{ type: 'url', url: 'http://not-exists.com/sitemap.txt' }], undefined, {
+            httpClient,
+        })) {
+            parsed.push(item.loc);
+        }
+
+        expect(parsed).toEqual(urls);
     });
 
     it('handles sitemap.txt correctly', async () => {

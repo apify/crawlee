@@ -2,7 +2,8 @@ import { rm } from 'node:fs/promises';
 import { resolve } from 'node:path';
 /* eslint-disable dot-notation */
 
-import { CrawlingRequest } from '@crawlee/basic';
+import type { LoadedRequest } from '@crawlee/basic';
+import { CrawlingRequest, NavigationSkippedError, skippedNavigationRequest } from '@crawlee/basic';
 import { MemoryStorageBackend, ProxyConfiguration, Request, RequestQueue, serviceLocator } from '@crawlee/core';
 import { BaseHttpClient } from '@crawlee/http-client';
 import { FileSystemStorageBackend } from '@crawlee/fs-storage';
@@ -376,6 +377,20 @@ describe('RequestQueue remote', () => {
         expect(r3.userData.__crawlee).toEqual({ maxRetries: 2 });
     });
 
+    test('requests created from the same userData object do not share it', () => {
+        // With a `__crawlee` bag, like a `userData` taken from another request.
+        const userData: Record<string, unknown> = { label: 'DETAIL', tags: ['docs'], __crawlee: {} };
+        const first = new CrawlingRequest({ url: 'http://example.com/1', userData });
+        const second = new CrawlingRequest({ url: 'http://example.com/2', userData });
+
+        first.userData.canonicalUrl = 'http://example.com/canonical';
+        (first.userData.tags as string[]).push('first');
+        first.sessionId = 'first-session';
+
+        expect(second.userData).toEqual({ label: 'DETAIL', tags: ['docs'] });
+        expect(second.sessionId).toBeUndefined();
+    });
+
     describe('setExpectedRequestProcessingTime', () => {
         test('forwards the value to the client, but only ever raises it', async () => {
             const queue = await RequestQueue.open();
@@ -742,6 +757,32 @@ describe('RequestQueue background batches', () => {
         await queue.markRequestAsHandled(req!);
         expect((await queue.checkReadiness()).status).toBe('finished');
     }, 10_000);
+});
+
+describe('RequestQueue bookkeeping with a skipNavigation request', () => {
+    beforeEach(async () => {
+        serviceLocator.setStorageBackend(new MemoryStorageBackend());
+        vitest.clearAllMocks();
+    });
+
+    test.each([{ method: 'markRequestAsHandled' }, { method: 'reclaimRequest' }] as const)(
+        '$method accepts the proxied request',
+        async ({ method }) => {
+            const queue = await RequestQueue.open();
+            await queue.addRequest({ url: 'http://example.com/', userData: { foo: 'bar' }, skipNavigation: true });
+            const fetched = (await queue.fetchNextRequest())!;
+            const proxied = skippedNavigationRequest(fetched) as LoadedRequest<Request>;
+
+            await expect(queue[method](proxied)).resolves.not.toBeNull();
+
+            // Hiding `loadedUrl` from enumeration must not disarm the guard for user code.
+            expect(() => proxied.loadedUrl).toThrow(NavigationSkippedError);
+            expect(await queue.getRequest(fetched.uniqueKey)).toMatchObject({
+                url: 'http://example.com/',
+                userData: { foo: 'bar' },
+            });
+        },
+    );
 });
 
 describe('MemoryStorageBackend request queue', () => {

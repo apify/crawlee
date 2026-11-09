@@ -142,7 +142,11 @@ describe('ThrottlingRequestManager', () => {
             }
         }
 
-        const result = await manager.addRequestsBatched(urls(), { batchSize: 2, maxNewRequests: 4 });
+        const result = await manager.addRequestsBatched(urls(), {
+            batchSize: 2,
+            maxNewRequests: 4,
+            waitForAllRequestsToBeAdded: true,
+        });
 
         expect(await manager.getTotalCount()).toBe(4);
         expect(result.requestsOverLimit).toHaveLength(6);
@@ -631,6 +635,27 @@ describe('ThrottlingRequestManager', () => {
         expect(await readyAt(manager)).toBe(Date.now() + 10_000);
     });
 
+    test('a request getting through restarts the backoff exponent', async () => {
+        const manager = new ThrottlingRequestManager({
+            inner: await createQueue(),
+            domains: ['example.com'],
+            baseDelaySecs: 10,
+        });
+        await manager.addRequest({ url: 'https://example.com/1' });
+        await manager.addRequest({ url: 'https://example.com/2' });
+        const request = await pollForNextRequest(manager);
+        freezeClock();
+
+        // Part of a burst comes back 429 while the rest is still being served; once that lands, the next
+        // burst's 429 is a fresh one - concurrency over the domain's rate must not double the delay forever.
+        manager.recordPacingSignal({ url: 'https://example.com/2', reason: 'rateLimited' });
+        advanceClock(11_000);
+        await manager.markRequestAsHandled(request);
+        manager.recordPacingSignal({ url: 'https://example.com/2', reason: 'rateLimited' });
+
+        expect(await readyAt(manager)).toBe(Date.now() + 10_000);
+    });
+
     test('caps the delay at maxDelaySecs', async () => {
         const manager = new ThrottlingRequestManager({
             inner: await createQueue(),
@@ -705,6 +730,56 @@ describe('ThrottlingRequestManager', () => {
         expect(await subQueue.getPendingCount()).toBe(0);
     });
 
+    describe('readiness during cooldown', () => {
+        beforeEach(() => {
+            freezeClock();
+        });
+
+        test('finishes as soon as the last request is handled', async () => {
+            const manager = new ThrottlingRequestManager({
+                inner: await createQueue(),
+                domains: ['example.com'],
+                minCrawlDelaySecs: 60,
+            });
+            await manager.addRequest({ url: 'https://example.com/1' });
+            await manager.markRequestAsHandled(await pollForNextRequest(manager));
+
+            expect(await manager.checkReadiness()).toEqual({ status: 'finished' });
+        });
+
+        test('waits while a domain has in-flight work', async () => {
+            const manager = new ThrottlingRequestManager({
+                inner: await createQueue(),
+                domains: ['example.com'],
+                minCrawlDelaySecs: 60,
+            });
+            await manager.addRequest({ url: 'https://example.com/1' });
+            await pollForNextRequest(manager);
+
+            expect(await manager.checkReadiness()).toEqual({ status: 'waiting', readyAt: Date.now() + 60_000 });
+        });
+
+        test('a finished domain does not set the wake-up time ahead of one with work left', async () => {
+            const manager = new ThrottlingRequestManager({ inner: await createQueue(), domains: 'all' });
+            for (const [domain, intervalMs] of [
+                ['finished.com', 10_000],
+                ['busy.com', 20_000],
+            ] as const) {
+                manager.recordPacingSignal({
+                    url: `https://${domain}/1`,
+                    reason: 'minInterval',
+                    intervalMs,
+                    scope: 'hostname',
+                });
+                await manager.addRequest({ url: `https://${domain}/1` });
+                await manager.markRequestAsHandled(await pollForNextRequest(manager));
+            }
+            await manager.addRequest({ url: 'https://busy.com/2' });
+
+            expect(await manager.checkReadiness()).toEqual({ status: 'waiting', readyAt: Date.now() + 20_000 });
+        });
+    });
+
     describe('stall detection', () => {
         beforeEach(() => {
             freezeClock();
@@ -765,14 +840,69 @@ describe('ThrottlingRequestManager', () => {
             expect((await manager.checkReadiness()).status).toBe('ready');
         });
 
+        test('a domain cooling down with requests left holds off a stalling domain until its cooldown ends', async () => {
+            const manager = new ThrottlingRequestManager({
+                inner: await createQueue(),
+                domains: ['blocked.com', 'slow.com'],
+                baseDelaySecs: 10,
+                maxDomainStallSecs: 30,
+            });
+            await manager.addRequest({ url: 'https://blocked.com/1' });
+            manager.recordPacingSignal({ url: 'https://blocked.com/1', reason: 'rateLimited' });
+            await manager.addRequest({ url: 'https://slow.com/1' });
+
+            // `slow.com` starts its first backoff, then `blocked.com` refuses again past its stall window.
+            advanceClock(31_000);
+            manager.recordPacingSignal({ url: 'https://slow.com/1', reason: 'rateLimited' });
+            advanceClock(5_000);
+            manager.recordPacingSignal({ url: 'https://blocked.com/1', reason: 'rateLimited' });
+
+            const cooling = await manager.checkReadiness();
+            expect(cooling).toMatchObject({ status: 'waiting', readyAt: expect.any(Number) });
+
+            // Once `slow.com` can be dispatched again, the crawl has work to do.
+            advanceClock((cooling as { readyAt: number }).readyAt - Date.now());
+            expect((await manager.checkReadiness()).status).toBe('ready');
+
+            // With that request handled, only the stalling domain is left to report.
+            const request = (await manager.fetchNextRequest())!;
+            expect(request.url).toBe('https://slow.com/1');
+            await manager.markRequestAsHandled(request);
+            expect((await manager.checkReadiness()).status).toBe('stalled');
+        });
+
+        test('a stalling domain is not dispatched to while work elsewhere keeps the crawl alive', async () => {
+            const manager = await stallingManager();
+            await manager.addRequest({ url: 'https://example.com/1' });
+            manager.recordPacingSignal({ url: 'https://example.com/1', reason: 'rateLimited' });
+            stallFor(manager, 'https://example.com/1');
+            await manager.addRequest({ url: 'https://slow.com/1' });
+
+            // Its backoff lapsed long ago, but the crawl is not going to keep hammering a domain it has given up on.
+            advanceClock(1_000);
+            const slow = (await manager.fetchNextRequest())!;
+            expect(slow.url).toBe('https://slow.com/1');
+            expect(await manager.fetchNextRequest()).toBeNull();
+            await manager.markRequestAsHandled(slow);
+
+            // One window without a 429 earns it a single burst - which it refuses, so it is stalled again at once.
+            advanceClock(30_000);
+            const probe = (await manager.fetchNextRequest())!;
+            expect(probe.url).toBe('https://example.com/1');
+            manager.recordPacingSignal({ url: probe.url, reason: 'rateLimited' });
+            await manager.reclaimRequest(probe, { forefront: true });
+            expect((await manager.checkReadiness()).status).toBe('stalled');
+        });
+
         test('a handled request resets the clock', async () => {
             const manager = await stallingManager();
             await manager.addRequest({ url: 'https://example.com/1' });
             await manager.addRequest({ url: 'https://example.com/2' });
             manager.recordPacingSignal({ url: 'https://example.com/1', reason: 'rateLimited' });
             stallFor(manager, 'https://example.com/1');
-            advanceClock(1_000);
 
+            // The one burst it is granted per window lets a request through this time.
+            advanceClock(31_000);
             await manager.markRequestAsHandled((await manager.fetchNextRequest())!);
 
             expect((await manager.checkReadiness()).status).not.toBe('stalled');

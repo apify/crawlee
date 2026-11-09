@@ -2,7 +2,7 @@
 id: remote-browser
 title: "Remote browser services"
 sidebar_label: "Remote browsers"
-description: Connect Crawlee crawlers to remote browser services like Browserbase, Browserless, or Steel.
+description: Connect Crawlee crawlers to remote browser services like Browser Use, Browserbase, Browserless, or Steel.
 ---
 
 import ApiLink from '@site/src/components/ApiLink';
@@ -12,7 +12,7 @@ import RemoteBrowserConfigSource from '!!raw-loader!./remote-browser-config.ts';
 import RemoteBrowserProviderSource from '!!raw-loader!./remote-browser-provider.ts';
 import RemoteBrowserPuppeteerSource from '!!raw-loader!./remote-browser-puppeteer.ts';
 
-Instead of launching a local browser, Crawlee can connect to a remote browser service like [Browserbase](https://browserbase.com/), [Browserless](https://browserless.io/), [Steel](https://steel.dev/), or any service that exposes a WebSocket/CDP endpoint. The crawler manages session rotation and the request lifecycle the same way it does locally — only the browser itself runs elsewhere.
+Instead of launching a local browser, Crawlee can connect to a remote browser service like [Browser Use](https://browser-use.com/), [Browserbase](https://browserbase.com/), [Browserless](https://browserless.io/), [Steel](https://steel.dev/), or any service that exposes a WebSocket/CDP endpoint. The crawler manages session rotation and the request lifecycle the same way it does locally — only the browser itself runs elsewhere.
 
 Use this when you need IPs in specific regions, want to offload CPU/memory from your runner, or need stealth features the service provides.
 
@@ -82,6 +82,7 @@ const browserPool = new BrowserPool({
     browserPlugins: [
         new RemotePlaywrightPlugin(playwright.chromium, { endpoint: 'wss://production-sfo.browserless.io?token=xxx' }),
         new RemotePlaywrightPlugin(playwright.chromium, { endpoint: 'wss://connect.browserbase.com?apiKey=xxx' }),
+        new RemotePlaywrightPlugin(playwright.chromium, { endpoint: 'wss://connect.browser-use.com?apiKey=xxx' }),
     ],
 });
 ```
