@@ -1151,6 +1151,9 @@ describe('utils.social', () => {
             expect('https://www.pinterest.com/username'.match(PINTEREST_REGEX)![1]).toBe('username');
             expect('pinterest.com/user_name.gold'.match(PINTEREST_REGEX)![1]).toBe('user_name.gold');
             expect('https://cz.pinterest.com/username/board'.match(PINTEREST_REGEX)![1]).toBe('username/board');
+            // usernames that only start with "pin" are still usernames
+            expect('https://www.pinterest.com/pinkdesigns'.match(PINTEREST_REGEX)![1]).toBe('pinkdesigns');
+            expect('https://www.pinterest.com/pinterest/'.match(PINTEREST_REGEX)![1]).toBe('pinterest');
 
             expect(
                 `
