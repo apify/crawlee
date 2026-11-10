@@ -300,6 +300,10 @@ Reading the run input is an Apify platform concern, so Crawlee no longer has any
 - **`Configuration.inputKey` and the `CRAWLEE_INPUT_KEY` environment variable are removed.** The Apify SDK's `Configuration` defines `inputKey` itself.
 - **The default key-value store is purged in full**, `INPUT` included. Sparing a key, and claiming a bare `<key>` / `<key>.json` file as the record `<key>` (see [Out-of-band key-value files](#out-of-band-key-value-files-eg-a-hand-placed-inputjson)), is left to subclasses of `FileSystemStorageBackend` through its two protected hooks, `keyValueStoreAdoptionCandidates` and `purgeKeyValueStore`. The Apify SDK's `ApifyFileSystemStorageBackend` does this for its run input; plain Crawlee treats a hand-placed `INPUT.json` as any other file.
 
+### Google Sheets sharing links are no longer rewritten
+
+`downloadListOfUrls()` and `requestsFromUrl` sources no longer turn a Google Sheets sharing link into the link of its CSV export. `Actor.getInput()` from `apify` does this for the Actor input now; elsewhere, use the CSV export link (`https://docs.google.com/spreadsheets/d/<id>/gviz/tq?tqx=out:csv`) directly.
+
 ### Service management moved from `Configuration` to `ServiceLocator`
 
 The service management functionality has been extracted from `Configuration` into a new `ServiceLocator` class.

@@ -216,33 +216,6 @@ describe('RequestList', () => {
         expect(mockHttpClient.sendRequest.mock.calls[0][0].url).toBe('http://example.com/list-1');
     });
 
-    test('should fix gdoc sharing url in `requestsFromUrl` automatically (GH issue #639)', async () => {
-        const list = ['https://example.com', 'https://google.com', 'https://wired.com'];
-        const wrongUrls = [
-            'https://docs.google.com/spreadsheets/d/11UGSBOSXy5Ov2WEP9nr4kSIxQJmH18zh-5onKtBsovU',
-            'https://docs.google.com/spreadsheets/d/11UGSBOSXy5Ov2WEP9nr4kSIxQJmH18zh-5onKtBsovU/',
-            'https://docs.google.com/spreadsheets/d/11UGSBOSXy5Ov2WEP9nr4kSIxQJmH18zh-5onKtBsovU/edit?usp=sharing',
-            'https://docs.google.com/spreadsheets/d/11UGSBOSXy5Ov2WEP9nr4kSIxQJmH18zh-5onKtBsovU/123123132',
-            'https://docs.google.com/spreadsheets/d/11UGSBOSXy5Ov2WEP9nr4kSIxQJmH18zh-5onKtBsovU/?q=blablabla',
-            'https://docs.google.com/spreadsheets/d/11UGSBOSXy5Ov2WEP9nr4kSIxQJmH18zh-5onKtBsovU/edit#gid=0',
-        ];
-        const correctUrl =
-            'https://docs.google.com/spreadsheets/d/11UGSBOSXy5Ov2WEP9nr4kSIxQJmH18zh-5onKtBsovU/gviz/tq?tqx=out:csv';
-
-        mockHttpClient.sendRequest.mockImplementation(async () => new Response(list.join('\n')));
-
-        const requestList = await RequestList.open({
-            sources: wrongUrls.map((requestsFromUrl) => ({ requestsFromUrl })),
-            httpClient: mockHttpClient,
-        });
-
-        expect(await requestList.fetchNextRequest()).toMatchObject({ method: 'GET', url: list[0] });
-        expect(await requestList.fetchNextRequest()).toMatchObject({ method: 'GET', url: list[1] });
-        expect(await requestList.fetchNextRequest()).toMatchObject({ method: 'GET', url: list[2] });
-
-        expect(mockHttpClient.sendRequest.mock.calls[0][0]?.url).toBe(correctUrl);
-    });
-
     test('should handle requestsFromUrl with no URLs', async () => {
         mockHttpClient.sendRequest.mockResolvedValueOnce(new Response(''));
 
