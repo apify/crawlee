@@ -1,7 +1,0 @@
-{
-    "actorSpecification": 1,
-    "name": "test-migration",
-    "version": "0.0",
-    "buildTag": "latest",
-    "env": null
-}

@@ -1,0 +1,21 @@
+{
+    "name": "crawlee-e2e",
+    "version": "0.0.1",
+    "description": "Crawlee e2e test Actor - Node.js",
+    "dependencies": {
+        "apify": "^4.0.0-beta.46",
+        "@crawlee/basic": "*",
+        "@crawlee/browser-pool": "*",
+        "@crawlee/cheerio": "*",
+        "@crawlee/core": "*",
+        "@crawlee/http": "*",
+        "@crawlee/impit-client": "*",
+        "@crawlee/types": "*",
+        "@crawlee/utils": "*"
+    },
+    "scripts": {
+        "start": "node main.js"
+    },
+    "type": "module",
+    "license": "ISC"
+}

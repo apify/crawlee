@@ -1,0 +1,23 @@
+{
+    "name": "crawlee-e2e",
+    "version": "0.0.1",
+    "description": "Crawlee e2e test Actor - Camoufox",
+    "dependencies": {
+        "apify": "^4.0.0-beta.46",
+        "@crawlee/basic": "*",
+        "@crawlee/browser": "*",
+        "@crawlee/browser-pool": "*",
+        "@crawlee/core": "*",
+        "@crawlee/playwright": "*",
+        "@crawlee/types": "*",
+        "@crawlee/utils": "*",
+        "camoufox-js": "^0.11.0",
+        "playwright": "1.60.0"
+    },
+    "scripts": {
+        "start": "node main.js",
+        "postinstall": "camoufox-js fetch"
+    },
+    "type": "module",
+    "license": "ISC"
+}

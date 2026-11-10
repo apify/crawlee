@@ -11,7 +11,6 @@ export default defineConfig({
         '**/*.d.ts',
         'packages/templates/templates/**',
         'packages/templates/scripts/**',
-        'test/e2e/**',
     ],
     jsPlugins: ['./scripts/oxlint-plugin.ts'],
     globals: {

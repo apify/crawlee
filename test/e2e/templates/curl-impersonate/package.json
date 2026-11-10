@@ -1,0 +1,22 @@
+{
+    "name": "crawlee-e2e",
+    "version": "0.0.1",
+    "description": "Crawlee e2e test Actor - curl-impersonate",
+    "dependencies": {
+        "apify": "^4.0.0-beta.46",
+        "@crawlee/basic": "*",
+        "@crawlee/browser-pool": "*",
+        "@crawlee/cheerio": "*",
+        "@crawlee/core": "*",
+        "@crawlee/http": "*",
+        "@crawlee/http-client": "*",
+        "@crawlee/types": "*",
+        "@crawlee/utils": "*",
+        "apify-node-curl-impersonate": "^1.0.29"
+    },
+    "scripts": {
+        "start": "node main.js"
+    },
+    "type": "module",
+    "license": "ISC"
+}

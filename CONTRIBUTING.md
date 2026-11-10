@@ -84,6 +84,10 @@ There are a few small differences between how testing in jest and vitest works. 
 
 `pnpm test` runs the fast configuration: two vitest projects one after the other - `unit`, then `browser` for the files that drive real browsers - with capped workers and the Playwright plugin matrix limited to Chromium. `pnpm test:full` runs the lot, as CI does.
 
+### End-to-end tests
+
+`pnpm test:e2e` runs the `e2e` vitest project: each `test/e2e/<name>.test.ts` exports the Actor's code as `main` (self-contained: dependencies via `await import()`), which `scenario(import.meta.filename, main, { image })` combines with the Dockerfile and `package.json` of `test/e2e/templates/<image>/` (`node`, `playwright`, `puppeteer`, `camoufox`, `curl-impersonate`), pinned to tarballs of the local packages (`pnpm build` first). The test builds that Actor on the Apify platform, runs it and checks the results. It needs `APIFY_TEST_USER_API_TOKEN` (the Stagehand tests also `ANTHROPIC_API_KEY`). The Actors `crawlee-e2e-<name>` stay on the account between runs with their last build, so a failed run can be inspected in the Console.
+
 ### Configuration file for tests created in the package they are for
 
 You will need to use this tsconfig.json in the `test` folder in the package (say, if you were adding a test to `packages/core` and there wasn't a `tsconfig.json` file already there)

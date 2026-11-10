@@ -1,0 +1,24 @@
+{
+    "name": "crawlee-e2e",
+    "version": "0.0.1",
+    "description": "Crawlee e2e test Actor - Playwright",
+    "dependencies": {
+        "apify": "^4.0.0-beta.46",
+        "@browserbasehq/stagehand": "^3.0.7",
+        "@crawlee/basic": "*",
+        "@crawlee/browser": "*",
+        "@crawlee/browser-pool": "*",
+        "@crawlee/core": "*",
+        "@crawlee/playwright": "*",
+        "@crawlee/stagehand": "*",
+        "@crawlee/types": "*",
+        "@crawlee/utils": "*",
+        "playwright": "1.58.2",
+        "zod": "^4.3.5"
+    },
+    "scripts": {
+        "start": "node main.js"
+    },
+    "type": "module",
+    "license": "ISC"
+}
