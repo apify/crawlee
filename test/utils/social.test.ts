@@ -751,6 +751,12 @@ describe('utils.social', () => {
             expect(social.INSTAGRAM_REGEX.test('https://www.instagram.com/explore/')).toBe(false);
             expect(social.INSTAGRAM_REGEX.test('https://www.instagram.com/_n/')).toBe(false);
             expect(social.INSTAGRAM_REGEX.test('https://www.instagram.com/_u/')).toBe(false);
+            expect(social.INSTAGRAM_REGEX.test('https://www.instagram.com/explore')).toBe(false);
+            expect(social.INSTAGRAM_REGEX.test('https://www.instagram.com/_u')).toBe(false);
+            // usernames that only start with a reserved path are still usernames
+            expect('https://www.instagram.com/explorer_jane/'.match(INSTAGRAM_REGEX)![1]).toBe('explorer_jane');
+            expect('https://www.instagram.com/_naturephotos'.match(INSTAGRAM_REGEX)![1]).toBe('_naturephotos');
+            expect('instagram.com/_under.score'.match(INSTAGRAM_REGEX)![1]).toBe('_under.score');
             expect(INSTAGRAM_REGEX.test('https://www.instagram.com/old_prague/?param=bla')).toBe(false);
             expect(INSTAGRAM_REGEX.test('://www.instagram.com/old_prague')).toBe(false);
             expect(INSTAGRAM_REGEX.test('http://www.instagram.com/old_prague http://www.instagram.com/old_brno')).toBe(
@@ -1019,6 +1025,12 @@ describe('utils.social', () => {
                 'UCklie6BM0fhFvzWYqQVoCTA',
             );
             expect('https://www.youtube.com/user/pewdiepie'.match(social.YOUTUBE_REGEX)![1]).toBe('pewdiepie');
+            // handles can contain periods
+            expect('https://www.youtube.com/@john.doe'.match(social.YOUTUBE_REGEX)![1]).toBe('john.doe');
+            expect('https://www.youtube.com/@mr.smith_2-go'.match(social.YOUTUBE_REGEX)![1]).toBe('mr.smith_2-go');
+            expect('Visit youtube.com/@LinkinPark.'.match(social.YOUTUBE_REGEX_GLOBAL)).toEqual([
+                'youtube.com/@LinkinPark',
+            ]);
 
             expect(
                 `
