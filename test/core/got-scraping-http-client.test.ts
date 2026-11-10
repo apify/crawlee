@@ -31,4 +31,23 @@ describe('GotScrapingHttpClient', () => {
 
         expect(gotScraping).toHaveBeenCalledWith(expect.not.objectContaining({ https: expect.anything() }));
     });
+
+    test('lets the abort signal decide when a request times out, not the 60 s got-scraping default', async () => {
+        const httpClient = new GotScrapingHttpClient();
+        const { signal } = new AbortController();
+
+        await httpClient.sendRequest(new Request('http://example.com'), { signal });
+
+        expect(gotScraping).toHaveBeenCalledWith(
+            expect.objectContaining({ signal, timeout: expect.objectContaining({ request: undefined }) }),
+        );
+    });
+
+    test('keeps the got-scraping default timeout when there is no abort signal', async () => {
+        const httpClient = new GotScrapingHttpClient();
+
+        await httpClient.sendRequest(new Request('http://example.com'));
+
+        expect(gotScraping).toHaveBeenCalledWith(expect.not.objectContaining({ timeout: expect.anything() }));
+    });
 });
