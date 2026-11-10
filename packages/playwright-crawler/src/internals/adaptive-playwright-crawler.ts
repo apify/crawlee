@@ -705,16 +705,32 @@ export class AdaptivePlaywrightCrawler<
             Object.defineProperty(subCrawlerContext, key, { ...descriptor, configurable: false });
         }
 
+        // The timeout below does not stop the request handler, and the pipeline closes the page only after the handler
+        // settles. Racing the handler against this lets a timed-out attempt release its page right away.
+        const attemptFailed = new AbortController();
+
         try {
             // Any failure - middleware or handler - ends up in the `ok: false` branch below.
             const rethrow = (error: unknown) => {
                 throw error;
             };
+            const abandonableRequestHandler = async (crawlingContext: ExtendedContext) => {
+                // The attempt may have failed before the handler starts, and a late abort listener would never fire.
+                attemptFailed.signal.throwIfAborted();
+                return Promise.race([
+                    this.requestHandler(crawlingContext),
+                    new Promise<never>((_resolve, reject) => {
+                        attemptFailed.signal.addEventListener('abort', () => reject(attemptFailed.signal.reason), {
+                            once: true,
+                        });
+                    }),
+                ]);
+            };
             const callAdaptiveRequestHandler = async () => {
                 if (renderingType === 'static') {
                     await this.#staticContextPipeline.call(subCrawlerContext, this.requestHandler.bind(this), rethrow);
                 } else if (renderingType === 'clientOnly') {
-                    await this.#browserContextPipeline.call(subCrawlerContext, this.requestHandler.bind(this), rethrow);
+                    await this.#browserContextPipeline.call(subCrawlerContext, abandonableRequestHandler, rethrow);
                 }
             };
 
@@ -734,6 +750,7 @@ export class AdaptivePlaywrightCrawler<
 
             return { ok: true, transaction, contextModifications, logs };
         } catch (error) {
+            attemptFailed.abort(error);
             return { ok: false, error, transaction, contextModifications, logs };
         }
     }
