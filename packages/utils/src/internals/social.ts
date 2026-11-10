@@ -204,7 +204,7 @@ const TWITTER_REGEX_STRING = `(?<!\\w)(?:http(?:s)?:\\/\\/)?(?:www.)?(?<!(?:${X_
 const FACEBOOK_RESERVED_PATHS =
     'rsrc\\.php|apps|groups|events|l\\.php|friends|images|photo.php|chat|ajax|dyi|common|policies|login|recover|reg|help|security|messages|marketplace|pages\\/(?:create|merge|search)|live|bookmarks|games|fundraisers|saved|gaming|salesgroups|jobs|people|ads|ad_campaign|weather|offers|recommendations|crisisresponse|onthisday|developers|settings|connect|business|plugins|intern|sharer';
 
-const FACEBOOK_REGEX_STRING = `(?<!\\w)(?:http(?:s)?:\\/\\/)?(?:www.)?(?:facebook.com|fb.com)\\/(?!(?:${FACEBOOK_RESERVED_PATHS})(?:[\\'\\"\\?\\.\\/]|$))(profile\\.php\\?id\\=[0-9]{3,20}|pages\\/[a-z0-9-_][a-z0-9-_\\.\\/]{0,150}|(?!pages|profile\\.php)[a-z0-9-\\.]{5,51}(?![a-z0-9\\.]))(?:\\/)?`;
+const FACEBOOK_REGEX_STRING = `(?<!\\w)(?:http(?:s)?:\\/\\/)?(?:www.)?(?:facebook.com|fb.com)\\/(?!(?:${FACEBOOK_RESERVED_PATHS})(?:[\\'\\"\\?\\.\\/]|$))(profile\\.php\\?id\\=[0-9]{3,20}|pages\\/[a-z0-9-_][a-z0-9-_\\.\\/]{0,150}|(?!(?:pages|profile\\.php)(?![a-z0-9-\\.]))[a-z0-9-\\.]{5,51}(?![a-z0-9\\.]))(?:\\/)?`;
 
 const YOUTUBE_REGEX_STRING =
     '(?<!\\w)(?:https?:\\/\\/)?(?:youtu\\.be\\/|(?:www\\.|m\\.)?youtube\\.com(?:(?:(?:\\/(?:watch|v|embed|user|c(?:hannel)?)(?:\\.php)?)?(?:\\?[^ ]*v=|\\/))|(?:(?:\\/c)?\\/@)))([a-zA-Z0-9\\-_]{2,100}(?:\\.[a-zA-Z0-9\\-_]+)*)';

@@ -953,6 +953,9 @@ describe('utils.social', () => {
             expect(FACEBOOK_REGEX.test('https://www.facebook.com/pages/?category=liked&ref=bookmarks')).toBe(false);
             expect(FACEBOOK_REGEX.test('https://www.facebook.com/pages/merge')).toBe(false);
             expect(FACEBOOK_REGEX.test('https://www.facebook.com/pages/search')).toBe(false);
+            // usernames that only start with "pages" or "profile.php" are still usernames
+            expect('https://www.facebook.com/pagesofhistory'.match(FACEBOOK_REGEX)![1]).toBe('pagesofhistory');
+            expect('https://www.facebook.com/pages-of-history/'.match(FACEBOOK_REGEX)![1]).toBe('pages-of-history');
             expect(FACEBOOK_REGEX.test('https://www.facebook.com/pages/create')).toBe(false);
             expect(FACEBOOK_REGEX.test('https://www.facebook.com/pages/createCustomWebsiteName')).toBe(true);
 
