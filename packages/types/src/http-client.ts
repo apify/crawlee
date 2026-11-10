@@ -50,8 +50,8 @@ export interface SendRequestOptions {
     /** Timeout for the HTTP request in milliseconds. */
     timeoutMillis?: number;
     /**
-     * An AbortSignal to cancel the HTTP request. `ImpitHttpClient` and `GotScrapingHttpClient` drop their default
-     * timeout when a signal is set, so pair it with `timeoutMillis` to keep the request bounded.
+     * An AbortSignal to cancel the HTTP request. When set, it replaces the HTTP client's default timeout, so pair it
+     * with `timeoutMillis` to keep the request bounded.
      */
     signal?: AbortSignal;
     /**
