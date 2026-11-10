@@ -49,7 +49,10 @@ export interface SendRequestOptions {
     cookieJar?: CookieJar;
     /** Timeout for the HTTP request in milliseconds. */
     timeoutMillis?: number;
-    /** An AbortSignal to cancel the HTTP request. */
+    /**
+     * An AbortSignal to cancel the HTTP request. `ImpitHttpClient` and `GotScrapingHttpClient` drop their default
+     * timeout when a signal is set, so pair it with `timeoutMillis` to keep the request bounded.
+     */
     signal?: AbortSignal;
     /**
      * Overrides the proxy URL set in the `session` for this request.
