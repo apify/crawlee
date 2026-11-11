@@ -751,6 +751,9 @@ export class AdaptivePlaywrightCrawler<
             return { ok: true, transaction, contextModifications, logs };
         } catch (error) {
             attemptFailed.abort(error);
+            // The error handlers get the outer context, not this attempt's copy - hand them the downloads it collected.
+            const { listDownloads } = subCrawlerContext as Partial<PlaywrightCrawlingContext>;
+            if (listDownloads !== undefined) Object.assign(context, { listDownloads });
             return { ok: false, error, transaction, contextModifications, logs };
         }
     }

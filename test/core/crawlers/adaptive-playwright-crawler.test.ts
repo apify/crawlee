@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises';
 import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 
@@ -17,6 +18,7 @@ import type {
     AdaptivePlaywrightCrawlerContext,
     AdaptivePlaywrightCrawlerOptions,
     LoadedContext,
+    PlaywrightCrawlingContext,
     Request,
 } from '@crawlee/playwright';
 import {
@@ -149,6 +151,10 @@ describe('AdaptivePlaywrightCrawler', () => {
             res.cookie('b', '2');
             res.append('X-Repeated', ['first', 'second']);
             res.status(200).send('<html><body><h1>Heading</h1></body></html>');
+        });
+
+        app.get('/download', (_req, res) => {
+            res.attachment('file.pdf').send('%PDF-1.4');
         });
     });
     afterAll(async () => {
@@ -1312,6 +1318,34 @@ describe('AdaptivePlaywrightCrawler', () => {
         await crawler.run();
 
         expect(pageClosedOnTimeout).toBe(true);
+    });
+
+    test('exposes the downloads of a failed browser attempt to errorHandler', async () => {
+        const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+            detectionProbabilityRecommendation: 0,
+            renderingType: 'clientOnly',
+        });
+
+        let downloadedContents: string[] | undefined;
+
+        const crawler = await makeOneshotCrawler(
+            {
+                renderingTypePredictor,
+                maxRequestRetries: 1,
+                requestHandler: async () => {},
+                errorHandler: async (context) => {
+                    const downloads = (await (context as Partial<PlaywrightCrawlingContext>).listDownloads?.()) ?? [];
+                    downloadedContents = await Promise.all(
+                        downloads.map(async (download) => readFile(await download.path(), 'utf8')),
+                    );
+                },
+            },
+            [`http://${HOSTNAME}:${port}/download`],
+        );
+
+        await crawler.run();
+
+        expect(downloadedContents).toEqual(['%PDF-1.4']);
     });
 
     test('should persist RenderingTypePredictor state on PERSIST_STATE events', async () => {
