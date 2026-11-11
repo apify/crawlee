@@ -1,5 +1,5 @@
 import { type CrawleeLogger, SessionError, serviceLocator } from '@crawlee/core';
-import type { IBrowserPool, NewPageOptions, PageState } from '@crawlee/types';
+import type { IBrowserPool, ISession, NewPageOptions, PageState } from '@crawlee/types';
 import { parseArgument, schemas } from '@crawlee/utils/internal';
 import type { BrowserFingerprintWithHeaders } from 'fingerprint-generator';
 import { FingerprintGenerator } from 'fingerprint-generator';
@@ -481,14 +481,14 @@ export class BrowserPool<
      * or their page limits have been exceeded.
      *
      * **Session injection (best-effort):** When a {@apilink NewPageOptions.session|session} is
-     * provided, this implementation uses it as a cache key for browser fingerprints (when
-     * fingerprinting is enabled) and reads
+     * provided, this implementation uses it as a cache key for browser fingerprints and applies
+     * its `fingerprint` hints when launching a new browser (when fingerprinting is enabled) and reads
      * {@apilink ProxyInfo.url|session.proxyInfo.url} /
      * {@apilink ProxyInfo.ignoreTlsErrors|session.proxyInfo.ignoreTlsErrors} as defaults
      * for `proxyUrl` and `ignoreTlsErrors` respectively. Explicit `proxyUrl` /
      * `ignoreTlsErrors` values in the options take precedence.
      *
-     * Beyond fingerprint caching and proxy configuration, no other session
+     * Beyond fingerprinting and proxy configuration, no other session
      * properties are consumed — cookie and header injection remain the
      * crawler's responsibility.
      */
@@ -520,7 +520,7 @@ export class BrowserPool<
                 browserController = this.#pickBrowserWithFreeCapacity(browserPlugin, { proxyUrl });
             }
 
-            browserController ??= await this.#launchBrowser(id, { browserPlugin, proxyUrl, ignoreTlsErrors });
+            browserController ??= await this.#launchBrowser(id, { browserPlugin, proxyUrl, ignoreTlsErrors, session });
             tryCancel();
 
             return await this.#createPageForBrowser(id, browserController, pageOptions, proxyUrl, ignoreTlsErrors);
@@ -833,7 +833,7 @@ export class BrowserPool<
     }
 
     async #launchBrowser(pageId: string, options: InternalLaunchBrowserOptions<BrowserPlugins[number]>) {
-        const { browserPlugin, launchOptions, proxyUrl, ignoreTlsErrors } = options;
+        const { browserPlugin, launchOptions, proxyUrl, ignoreTlsErrors, session } = options;
 
         const browserController = browserPlugin.createController() as BrowserControllerReturn;
         this.#startingBrowserControllers.add(browserController);
@@ -843,6 +843,8 @@ export class BrowserPool<
             launchOptions,
             proxyUrl,
         });
+
+        if (session) launchContext.extend({ session });
 
         // Disable SSL verification for MITM proxies
         if (ignoreTlsErrors) {
@@ -1160,4 +1162,5 @@ interface InternalLaunchBrowserOptions<BP extends BrowserPlugin> {
     launchOptions?: BP['launchOptions'];
     proxyUrl?: string;
     ignoreTlsErrors?: boolean;
+    session?: ISession;
 }
