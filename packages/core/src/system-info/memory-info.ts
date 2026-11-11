@@ -12,6 +12,11 @@ import { psTree } from './ps-tree.js';
 const MEMORY_FILE_NAMES = {
     TOTAL: { V1: 'memory.limit_in_bytes', V2: 'memory.max' },
     USED: { V1: 'memory.usage_in_bytes', V2: 'memory.current' },
+    // `memory.stat` keys of the inactive file cache and of its pages waiting to be written to the disk
+    STAT: {
+        V1: { inactive: 'total_inactive_file', dirty: 'total_dirty', writeback: 'total_writeback' },
+        V2: { inactive: 'inactive_file', dirty: 'file_dirty', writeback: 'file_writeback' },
+    },
 };
 
 /**
@@ -99,7 +104,7 @@ export async function getMemoryInfo(
             const cgroupMemory = cgroup && (await getCgroupMemory(cgroup, totalBytes));
             if (cgroupMemory) {
                 totalBytes = cgroupMemory.totalBytes;
-                freeBytes = totalBytes - cgroupMemory.usedBytes;
+                freeBytes = cgroupMemory.freeBytes;
             }
         } catch (err) {
             logger?.warningOnce(
@@ -121,24 +126,42 @@ export async function getMemoryInfo(
 }
 
 /**
- * Reads the tightest memory limit on the cgroup chain and the usage charged against it. A limit covering the whole
+ * Reads the tightest memory limit on the cgroup chain, and the smallest room left under any of its limits. Memory is
+ * charged up the whole chain, so an ancestor also counts what its other children use. A limit covering the whole
  * machine restricts nothing, which is also how cgroup V1 spells "unlimited".
  */
 async function getCgroupMemory({ version, dirs }: CgroupController, machineBytes: number) {
-    let totalBytes = machineBytes;
-    let limitDir: string | undefined;
+    let totalBytes = Infinity;
+    let freeBytes = Infinity;
     for (const dir of dirs) {
         // A missing limit file or `max` (NaN) means there is no limit on this level.
         const limit = Number(
             await readFile(posix.join(dir, MEMORY_FILE_NAMES.TOTAL[version]), 'utf8').catch(() => NaN),
         );
-        if (limit < totalBytes) {
-            totalBytes = limit;
-            limitDir = dir;
-        }
+        if (Number.isNaN(limit)) continue;
+        totalBytes = Math.min(totalBytes, limit);
+        freeBytes = Math.min(freeBytes, Math.max(limit - (await getChargedBytes(version, dir)), 0));
     }
-    if (limitDir === undefined) return null;
+    if (totalBytes >= machineBytes) return null;
 
-    const usedBytes = Number(await readFile(posix.join(limitDir, MEMORY_FILE_NAMES.USED[version]), 'utf8'));
-    return { totalBytes, usedBytes };
+    return { totalBytes, freeBytes };
+}
+
+/**
+ * Reads the memory charged to a cgroup without the inactive file cache, which the kernel can drop. Pages waiting to be
+ * written to the disk can't be dropped until they are, so they stay counted.
+ */
+async function getChargedBytes(version: CgroupController['version'], dir: string) {
+    const current = Number(await readFile(posix.join(dir, MEMORY_FILE_NAMES.USED[version]), 'utf8'));
+    const statFile = await readFile(posix.join(dir, 'memory.stat'), 'utf8');
+    const stat = Object.fromEntries(statFile.split('\n').map((line) => line.split(' ')));
+    const keys = MEMORY_FILE_NAMES.STAT[version];
+    const inactive = Number(stat[keys.inactive]);
+    if (Number.isNaN(current) || Number.isNaN(inactive)) {
+        throw new Error(`Unable to read the memory usage of ${dir}`);
+    }
+
+    // Old kernels have neither of the keys, the whole inactive cache is credited there.
+    const unflushed = Math.max(Number(stat[keys.dirty] ?? 0), 0) + Math.max(Number(stat[keys.writeback] ?? 0), 0);
+    return Math.max(current - Math.max(inactive - unflushed, 0), 0);
 }

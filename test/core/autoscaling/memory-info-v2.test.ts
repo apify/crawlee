@@ -63,6 +63,10 @@ describe('getMemoryInfoV2()', () => {
                 return Promise.resolve('111');
             }
 
+            if (path === '/sys/fs/cgroup/memory/memory.stat') {
+                return Promise.resolve('total_inactive_file 0\n');
+            }
+
             throw new Error(`Unexpected path ${path}`);
         });
 
@@ -114,6 +118,10 @@ describe('getMemoryInfoV2()', () => {
 
             if (path === '/sys/fs/cgroup/memory/memory.usage_in_bytes') {
                 return Promise.resolve('111');
+            }
+
+            if (path === '/sys/fs/cgroup/memory/memory.stat') {
+                return Promise.resolve('total_inactive_file 0\n');
             }
 
             throw new Error(`Unexpected path ${path}`);
@@ -192,6 +200,10 @@ describe('getMemoryInfoV2()', () => {
                 return Promise.resolve('111');
             }
 
+            if (path === '/sys/fs/cgroup/memory/memory.stat') {
+                return Promise.resolve('total_inactive_file 0\n');
+            }
+
             throw new Error(`Unexpected path ${path}`);
         });
 
@@ -213,6 +225,10 @@ describe('getMemoryInfoV2()', () => {
 
             if (path === '/sys/fs/cgroup/memory/memory.usage_in_bytes') {
                 return Promise.resolve('111');
+            }
+
+            if (path === '/sys/fs/cgroup/memory/memory.stat') {
+                return Promise.resolve('total_inactive_file 0\n');
             }
 
             throw new Error(`Unexpected path ${path}`);
@@ -239,6 +255,10 @@ describe('getMemoryInfoV2()', () => {
 
             if (path === '/sys/fs/cgroup/memory.current') {
                 return Promise.resolve('111\n');
+            }
+
+            if (path === '/sys/fs/cgroup/memory.stat') {
+                return Promise.resolve('inactive_file 0\n');
             }
 
             throw new Error(`Unexpected path ${path}`);
@@ -293,6 +313,10 @@ describe('getMemoryInfoV2()', () => {
                 return Promise.resolve('111\n');
             }
 
+            if (path === '/sys/fs/cgroup/user.slice/run-u1.scope/memory.stat') {
+                return Promise.resolve('inactive_file 0\n');
+            }
+
             if (path === '/sys/fs/cgroup/user.slice/memory.max') {
                 return Promise.resolve('max\n');
             }
@@ -331,8 +355,20 @@ describe('getMemoryInfoV2()', () => {
                 return Promise.resolve('111\n');
             }
 
+            if (path === '/sys/fs/cgroup/kubepods/pod1/memory.stat') {
+                return Promise.resolve('inactive_file 0\n');
+            }
+
             if (path === '/sys/fs/cgroup/kubepods/memory.max') {
                 return Promise.resolve('999\n');
+            }
+
+            if (path === '/sys/fs/cgroup/kubepods/memory.current') {
+                return Promise.resolve('500\n');
+            }
+
+            if (path === '/sys/fs/cgroup/kubepods/memory.stat') {
+                return Promise.resolve('inactive_file 0\n');
             }
 
             throw new Error(`Unexpected path ${path}`);
@@ -344,5 +380,43 @@ describe('getMemoryInfoV2()', () => {
             freeBytes: 222,
             usedBytes: 111,
         });
+    });
+
+    test('does not count the file cache the kernel can drop as used', async () => {
+        getCgroupControllerSpy.mockResolvedValueOnce({ version: 'V2', dirs: ['/sys/fs/cgroup'] });
+        const files: Record<string, string> = {
+            '/sys/fs/cgroup/memory.max': '1000\n',
+            '/sys/fs/cgroup/memory.current': '600\n',
+            // Only the inactive cache that is not waiting to be written to the disk can be dropped (200 bytes).
+            '/sys/fs/cgroup/memory.stat': 'anon 300\ninactive_file 300\nfile_dirty 60\nfile_writeback 40\n',
+        };
+        readFileSpy.mockImplementation(async (path) => {
+            if (typeof path === 'string' && path in files) return files[path];
+            throw new Error(`Unexpected path ${path}`);
+        });
+
+        expect(await getMemoryInfo()).toMatchObject({ totalBytes: 1000, freeBytes: 600, usedBytes: 400 });
+    });
+
+    test('takes the memory used by other cgroups under a limited ancestor into account', async () => {
+        getCgroupControllerSpy.mockResolvedValueOnce({
+            version: 'V2',
+            dirs: ['/sys/fs/cgroup/pod/container', '/sys/fs/cgroup/pod'],
+        });
+        const files: Record<string, string> = {
+            '/sys/fs/cgroup/pod/container/memory.max': '1000\n',
+            '/sys/fs/cgroup/pod/container/memory.current': '100\n',
+            '/sys/fs/cgroup/pod/container/memory.stat': 'inactive_file 0\n',
+            // The other containers of the pod leave only 100 bytes under its limit.
+            '/sys/fs/cgroup/pod/memory.max': '1500\n',
+            '/sys/fs/cgroup/pod/memory.current': '1400\n',
+            '/sys/fs/cgroup/pod/memory.stat': 'inactive_file 0\n',
+        };
+        readFileSpy.mockImplementation(async (path) => {
+            if (typeof path === 'string' && path in files) return files[path];
+            throw new Error(`Unexpected path ${path}`);
+        });
+
+        expect(await getMemoryInfo()).toMatchObject({ totalBytes: 1000, freeBytes: 100, usedBytes: 900 });
     });
 });
