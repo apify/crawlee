@@ -245,14 +245,14 @@ export interface RequestSchema {
     url: string;
     uniqueKey: string;
     method?: AllowedHttpMethods;
-    payload?: string;
-    noRetry?: boolean;
+    payload?: string | null;
+    noRetry?: boolean | null;
     retryCount?: number;
-    errorMessages?: string[];
-    headers?: Dictionary<string>;
+    errorMessages?: string[] | null;
+    headers?: Dictionary<string> | null;
     userData?: Dictionary;
-    handledAt?: string;
-    loadedUrl?: string;
+    handledAt?: string | null;
+    loadedUrl?: string | null;
 }
 
 export interface UpdateRequestSchema extends RequestSchema {
@@ -392,7 +392,7 @@ export interface RequestQueueBackend {
      * this long, so that a long-running consumer does not have its request handed out again while it is
      * still being processed. Clients that do not lock may ignore it.
      */
-    setExpectedRequestProcessingTimeSecs?(secs: number): Promise<void>;
+    setExpectedRequestProcessingTime?(processingTimeSecs: number): Promise<void>;
 
     /**
      * Extends the lock on a request previously handed out by {@link fetchNextRequest}, for a consumer
@@ -402,7 +402,7 @@ export interface RequestQueueBackend {
      * does not lock at all). `false` is information, not an error: the request may be processed twice.
      * Non-locking backends leave this unimplemented.
      */
-    extendRequestProcessingTimeSecs?(requestId: string, secs: number): Promise<boolean>;
+    extendRequestProcessingTime?(requestId: string, extensionSecs: number): Promise<boolean>;
 }
 
 /**

@@ -107,6 +107,25 @@ describe('extractUrls()', () => {
         expect(extracted).toEqual([url]);
     });
 
+    test('extracts URLs with internationalized top-level domains', () => {
+        const urls = [
+            'https://пример.рф/путь',
+            'https://xn--e1afmkfd.xn--p1ai/path',
+            'https://例子.中国/',
+            'https://उदाहरण.भारत/page',
+            'https://test.みんな/',
+        ];
+        expect(extractUrls({ string: urls.join(' ') })).toEqual(urls);
+        expect(extractUrls({ string: urls.join(' '), urlRegExp: URL_WITH_COMMAS_REGEX })).toEqual(urls);
+    });
+
+    test('does not extend an ASCII top-level domain into adjacent non-Latin text', () => {
+        const string = '詳細はhttps://example.comをご覧ください 请访问https://www.google.com获取更多信息';
+        const expected = ['https://example.com', 'https://www.google.com'];
+        expect(extractUrls({ string })).toEqual(expected);
+        expect(extractUrls({ string, urlRegExp: URL_WITH_COMMAS_REGEX })).toEqual(expected);
+    });
+
     test('does not extract invalid URLs', () => {
         const { string } = getURLData(INVALID_URL_LIST);
         const extracted = extractUrls({ string });

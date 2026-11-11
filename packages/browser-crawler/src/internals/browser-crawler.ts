@@ -20,6 +20,7 @@ import {
     cookieStringToToughCookie,
     EnqueueStrategy,
     NavigationSkippedError,
+    skippedNavigationRequest,
     OwnedOrInjected,
     remainingNavigationWindowMillis,
     RequestState,
@@ -32,10 +33,11 @@ import {
     toughCookieToBrowserPoolCookie,
     validators,
 } from '@crawlee/basic';
-import type { CommonPage, CrawlerRemoteBrowserOptions } from '@crawlee/browser-pool';
+import type { CommonPage } from '@crawlee/browser-pool';
 import type { Awaitable, Cookie as CookieObject, Dictionary, IBrowserPool } from '@crawlee/types';
 import {
     assertBrowserPoolNotConfigured,
+    AWS_WAF_RETRY_CSS_SELECTORS,
     CLOUDFLARE_RETRY_CSS_SELECTORS,
     parseArgument,
     RETRY_CSS_SELECTORS,
@@ -46,6 +48,8 @@ import { sleep } from '@crawlee/utils';
 import { z } from 'zod';
 
 import { addTimeoutToPromise, TimeoutError, tryCancel } from '@apify/timeout';
+
+import type { CrawlerRemoteBrowserOptions } from './browser-launcher.js';
 
 interface BaseResponse {
     status(): number;
@@ -143,14 +147,13 @@ export interface BrowserCrawlerOptions<
     /**
      * Connect to a remote browser service (Browserbase, Browserless, Steel, …) instead of launching locally.
      *
-     * The crawler builds a {@apilink RemoteBrowserPool} around its own browser plugin, so the connection is
-     * always for the right browser — there is no plugin to construct and no way to mismatch the pool with the
-     * crawler. Supply the connection details only: a static `endpoint` URL, a function returning one per launch,
-     * or a {@apilink RemoteBrowserProvider}.
+     * The crawler builds its pool around a remote variant of its own browser plugin, so the connection is always
+     * for the right browser. Supply the connection details only: a static `endpoint` URL, a function returning one
+     * per launch, or a {@apilink RemoteBrowserProvider}.
      *
-     * Cannot be combined with `browserPool`. To tune the pool wrapping the remote connection, or to share it
-     * across crawlers, build it with the remote factory for your crawler ({@apilink remotePlaywrightBrowserPool},
-     * {@apilink remotePuppeteerBrowserPool}, {@apilink remoteStagehandBrowserPool}) and pass it as `browserPool`.
+     * Cannot be combined with `browserPool`. To tune the pool, or to share it across crawlers, pass the same
+     * `remoteBrowser` to the pool factory for your crawler ({@apilink playwrightBrowserPool},
+     * {@apilink puppeteerBrowserPool}) and pass the result as `browserPool`.
      */
     remoteBrowser?: CrawlerRemoteBrowserOptions;
 
@@ -513,7 +516,15 @@ export abstract class BrowserCrawler<
     }
 
     async #containsSelectors(page: CommonPage, selectors: string[]): Promise<string[] | null> {
-        const foundSelectors = (await Promise.all(selectors.map((selector) => (page as any).$(selector))))
+        const query = async () => Promise.all(selectors.map((selector) => (page as any).$(selector)));
+
+        // a challenge page navigates itself once it is solved, which destroys the context of an in-flight query
+        const elements = await query().catch(async () => {
+            await sleep(1000);
+            return query();
+        });
+
+        const foundSelectors = elements
             .map((x, i) => [x, selectors[i]] as [any, string])
             .filter(([x]) => x !== null)
             .map(([, selector]) => selector);
@@ -521,19 +532,25 @@ export abstract class BrowserCrawler<
         return foundSelectors.length > 0 ? foundSelectors : null;
     }
 
+    async #detectSelfResolvingChallenge({
+        page,
+        response,
+    }: BrowserCrawlingContext<Page, Response>): Promise<string | null> {
+        const statusCode = response?.status();
+
+        if (statusCode === 403 && (await this.#containsSelectors(page, CLOUDFLARE_RETRY_CSS_SELECTORS))) {
+            return 'Cloudflare';
+        }
+
+        if (statusCode === 202 && (await this.#containsSelectors(page, AWS_WAF_RETRY_CSS_SELECTORS))) {
+            return 'AWS WAF';
+        }
+
+        return null;
+    }
+
     async #isRequestBlocked(crawlingContext: BrowserCrawlingContext<Page, Response>): Promise<string | false> {
         const { page, response } = crawlingContext;
-
-        // Cloudflare specific heuristic - wait 5 seconds if we get a 403 for the JS challenge to load / resolve.
-        if ((await this.#containsSelectors(page, CLOUDFLARE_RETRY_CSS_SELECTORS)) && response?.status() === 403) {
-            await sleep(5000);
-
-            // here we cannot test for response code, because we only have the original response, not the possible Cloudflare redirect on passed challenge.
-            const foundSelectors = await this.#containsSelectors(page, RETRY_CSS_SELECTORS);
-
-            if (!foundSelectors) return false;
-            return `Cloudflare challenge failed, found selectors: ${foundSelectors.join(', ')}`;
-        }
 
         const foundSelectors = await this.#containsSelectors(page, RETRY_CSS_SELECTORS);
         const statusCode = response?.status() ?? 0;
@@ -624,19 +641,7 @@ export abstract class BrowserCrawler<
     async #prepareNavigation(crawlingContext: Context): Promise<Partial<Context>> {
         if (crawlingContext.request.skipNavigation) {
             return {
-                request: new Proxy(crawlingContext.request, {
-                    get(target, propertyName) {
-                        if (propertyName === 'loadedUrl') {
-                            throw new NavigationSkippedError(
-                                'The `request.loadedUrl` property is not available - `skipNavigation` was used',
-                            );
-                        }
-                        // `target` as receiver and bound methods, or `#` members throw on the proxy
-                        const value = Reflect.get(target, propertyName, target);
-                        return typeof value === 'function' ? value.bind(target) : value;
-                    },
-                    set: (target, propertyName, value) => Reflect.set(target, propertyName, value, target),
-                }) as LoadedRequest<CrawlingRequest>,
+                request: skippedNavigationRequest(crawlingContext.request) as LoadedRequest<CrawlingRequest>,
                 get response(): Response {
                     throw new NavigationSkippedError(
                         'The `response` property is not available - `skipNavigation` was used',
@@ -759,11 +764,47 @@ export abstract class BrowserCrawler<
         }
     }
 
-    async #handleBlockedRequestByContent(crawlingContext: BrowserCrawlingContext<Page, Response>) {
-        if (this.retryOnBlocked) {
-            const error = await this.#isRequestBlocked(crawlingContext);
-            if (error) throw new SessionError(error);
+    async #handleBlockedRequestByContent(
+        crawlingContext: BrowserCrawlingContext<Page, Response>,
+    ): Promise<{ response?: Response }> {
+        if (!this.retryOnBlocked) return {};
+
+        const page = crawlingContext.page as any;
+
+        // A passed challenge navigates to the actual page, whose response replaces the one of the challenge.
+        let navigationResponse: Response | undefined;
+        const onResponse = (response: any) => {
+            if (response.request().isNavigationRequest() && response.frame() === page.mainFrame()) {
+                navigationResponse = response;
+            }
+        };
+
+        page.on('response', onResponse);
+
+        try {
+            // Cloudflare and AWS WAF serve challenges a browser can pass on its own, with a 403 and a 202 status respectively.
+            // Wait 5 seconds for the JS challenge to load / resolve before judging the page.
+            const challenge = await this.#detectSelfResolvingChallenge(crawlingContext);
+
+            if (challenge) {
+                await sleep(5000);
+
+                const foundSelectors = await this.#containsSelectors(page, RETRY_CSS_SELECTORS);
+
+                if (foundSelectors) {
+                    throw new SessionError(
+                        `${challenge} challenge failed, found selectors: ${foundSelectors.join(', ')}`,
+                    );
+                }
+
+                return navigationResponse ? { response: navigationResponse } : {};
+            }
+        } finally {
+            page.off('response', onResponse);
         }
+
+        const error = await this.#isRequestBlocked(crawlingContext);
+        if (error) throw new SessionError(error);
 
         return {};
     }

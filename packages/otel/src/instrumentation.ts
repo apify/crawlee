@@ -17,7 +17,7 @@ import {
 import type { ClassMethodPatchDefinition, LoggerMethodDefinition, ModuleDefinition } from './internal-types.js';
 import type { CrawleeInstrumentationConfig } from './types.js';
 import { buildLogAttributes, buildModuleDefinitions, getPackageVersion } from './utilities.js';
-import { resolveSpanName, resolveSpanOptions, setSharedTracer, wrapWithSpan } from './wrapWithSpan.js';
+import { resolveSpanName, resolveSpanOptions, setSharedTracer, wrapWithSpan } from './wrap-with-span.js';
 
 /**
  * Builds a module definition for one of the instrumented Crawlee packages.

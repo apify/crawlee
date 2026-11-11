@@ -117,7 +117,7 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = CrawlingC
     contextPipelineBuilder?: () => ContextPipeline<CrawlingContext, Context>;
     errorHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
     eventManager?: EventManager;
-    extendContext?: (context: CrawlingContext) => Awaitable<ContextExtension>;
+    extendContext?: ContextMiddleware<CrawlingContext, ContextExtension>;
     failedRequestHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
     httpClient?: BaseHttpClient;
     id?: string;
@@ -150,7 +150,7 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = CrawlingC
     statusMessageCallback?: StatusMessageCallback;
     statusMessageLoggingInterval?: number;
     storageBackend?: StorageBackend;
-    taskLoopOptions?: TaskLoopOptions;
+    taskLoopOptions?: TaskLoopPredicates;
     transactionalStorage?: boolean | Partial<StorageWritePolicy>;
 }
 
@@ -474,6 +474,7 @@ export interface IStatistics<StateExtension extends object = {}> {
     recordRequestFailure(id: number | string, retryCount: number): void;
     recordRequestStart(id: number | string): void;
     recordRequestSuccess(id: number | string, retryCount: number): void;
+    registerRetry?(retryCount: number): void;
     registerStatusCode(code: number): void;
     readonly requestRetryHistogram: number[];
     startCapturing(): Promise<void>;
@@ -829,6 +830,7 @@ export class SitemapRequestLoader implements IRequestLoader {
 
 // @public (undocumented)
 export interface SitemapRequestLoaderOptions extends UrlConstraints {
+    concurrency?: number;
     enqueueStrategy?: EnqueueStrategy | `${EnqueueStrategy}`;
     httpClient?: BaseHttpClient;
     maxBufferSize?: number;
@@ -897,6 +899,7 @@ export class Statistics<StateExtension extends object = {}, PersistedStateExtens
     readonly errorTrackerRetry: ErrorTracker;
     readonly id: string;
     persistState(): Promise<void>;
+    registerRetry(retryCount: number): void;
     registerStatusCode(code: number): void;
     get requestRetryHistogram(): number[];
     reset(): void;
@@ -1001,11 +1004,6 @@ export interface StorageBackendLoadSignalOptions {
     snapshotIntervalSecs?: number;
 }
 
-// @public (undocumented)
-export interface TaskLoopOptions extends TaskLoopPredicates {
-    maybeRunIntervalSecs?: number;
-}
-
 // @public
 export interface TaskLoopPredicates {
     isFinishedFunction?: () => Promise<boolean>;
@@ -1016,12 +1014,12 @@ export interface TaskLoopPredicates {
 export class ThrottlingRequestManager<T extends IRequestManager = IRequestManager> implements IRequestManager {
     // (undocumented)
     [Symbol.asyncIterator](): AsyncGenerator<Request_2<Dictionary>, void, unknown>;
-    constructor(options: ThrottlingRequestManagerOptions<T>, config?: Configuration);
+    constructor(options: ThrottlingRequestManagerOptions<T>, configuration?: Configuration);
     // (undocumented)
     addRequest(requestLike: Source, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo>;
     addRequestsBatched(requests: RequestsLike, options?: AddRequestsBatchedOptions): Promise<AddRequestsBatchedResult>;
     checkReadiness(): Promise<RequestSourceStatus>;
-    extendRequestProcessingTimeSecs(request: Request_2, secs: number): Promise<boolean>;
+    extendRequestProcessingTime(request: Request_2, extensionSecs: number): Promise<boolean>;
     fetchNextRequest<R extends Dictionary = Dictionary>(): Promise<Request_2<R> | null>;
     // (undocumented)
     getHandledCount(): Promise<number>;
@@ -1036,7 +1034,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     reclaimRequest(request: Request_2, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo | null>;
     recordPacingSignal(signal: PacingSignal): boolean;
     // (undocumented)
-    setExpectedRequestProcessingTimeSecs(secs: number): Promise<void>;
+    setExpectedRequestProcessingTime(processingTimeSecs: number): Promise<void>;
 }
 
 // @public

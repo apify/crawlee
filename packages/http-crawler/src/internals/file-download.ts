@@ -8,6 +8,8 @@ import type {
 import { BasicCrawler, ContextPipeline } from '@crawlee/basic';
 import { ResponseWithUrl } from '@crawlee/http-client';
 import type { Dictionary } from '@crawlee/types';
+import { parseArgument } from '@crawlee/utils/internal';
+import { z } from 'zod';
 
 import type {
     ErrorHandler,
@@ -38,6 +40,24 @@ export type FileDownloadRequestHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
 > = RequestHandler<FileDownloadCrawlingContext<UserData>>;
 
+export interface FileDownloadOptions extends Omit<
+    BasicCrawlerOptions<FileDownloadCrawlingContext>,
+    'contextPipelineBuilder'
+> {
+    /**
+     * If set to `true`, TLS/SSL certificate errors are ignored. Forwarded to the HTTP client as
+     * {@apilink SendRequestOptions.ignoreTlsErrors|`ignoreTlsErrors`} on every download, so custom
+     * {@apilink BaseHttpClient} implementations should honor that flag (the built-in impit and got-scraping
+     * clients do; the native fetch fallback cannot disable TLS verification and warns instead).
+     *
+     * Certificates are verified by default. Sessions whose proxy is a MITM proxy
+     * (`session.proxyInfo.ignoreTlsErrors`) skip verification regardless of this option.
+     *
+     * @default false
+     */
+    ignoreTlsErrors?: boolean;
+}
+
 /**
  * Provides a framework for downloading files in parallel using plain HTTP requests. The URLs to download are fed either from a static list of URLs or they can be added on the fly from another crawler.
  *
@@ -45,7 +65,7 @@ export type FileDownloadRequestHandler<
  * However, it doesn't parse the content - if you need to e.g. extract data from the downloaded files,
  * you might need to use {@apilink CheerioCrawler}, {@apilink PuppeteerCrawler} or {@apilink PlaywrightCrawler} instead.
  *
- * `FileCrawler` downloads each URL using a plain HTTP request and then invokes the user-provided {@apilink BasicCrawlerOptions.requestHandler} where the user can specify what to do with the downloaded data.
+ * `FileDownload` downloads each URL using a plain HTTP request and then invokes the user-provided {@apilink BasicCrawlerOptions.requestHandler} where the user can specify what to do with the downloaded data.
  *
  * The source URLs are represented using {@apilink Request} objects that are fed from the {@apilink IRequestManager|request manager} provided via the {@apilink BasicCrawlerOptions.requestManager|`requestManager`} constructor option (a {@apilink RequestQueue} is itself a request manager). To read from a read-only source such as a {@apilink RequestList} while still being able to enqueue new requests, combine it with a queue into a {@apilink RequestManagerTandem} via {@apilink IRequestLoader.toTandem|`requestLoader.toTandem()`} and pass the result as `requestManager`.
  *
@@ -53,14 +73,14 @@ export type FileDownloadRequestHandler<
  *
  * The crawler finishes when there are no more {@apilink Request} objects to crawl.
  *
- * New requests are only dispatched when there is enough free CPU and memory available, as judged by the crawler's {@apilink ConcurrencySystem}. Concurrency is tuned via the `minConcurrency`, `maxConcurrency` and `maxRequestsPerMinute` options of the `FileCrawler` constructor, or, for finer control, by injecting a pre-configured {@apilink ConcurrencySystem|`concurrencySystem`}.
+ * New requests are only dispatched when there is enough free CPU and memory available, as judged by the crawler's {@apilink ConcurrencySystem}. Concurrency is tuned via the `minConcurrency`, `maxConcurrency` and `maxRequestsPerMinute` options of the `FileDownload` constructor, or, for finer control, by injecting a pre-configured {@apilink ConcurrencySystem|`concurrencySystem`}.
  *
  * ## Example usage
  *
  * ```ts
- * const crawler = new FileDownloader({
- *     requestHandler({ body, request }) {
- *         writeFileSync(request.url.replace(/[^a-z0-9\.]/gi, '_'), body);
+ * const crawler = new FileDownload({
+ *     async requestHandler({ response, request }) {
+ *         await writeFile(request.url.replace(/[^a-z0-9\.]/gi, '_'), Buffer.from(await response.arrayBuffer()));
  *     },
  * });
  *
@@ -72,12 +92,34 @@ export type FileDownloadRequestHandler<
  * ```
  */
 export class FileDownload extends BasicCrawler<FileDownloadCrawlingContext> {
+    #ignoreTlsErrors: boolean;
+
+    /**
+     * @internal
+     */
+    protected static override optionsShape = {
+        ...BasicCrawler.optionsShape,
+
+        ignoreTlsErrors: z.boolean().default(false),
+    };
+
+    /** @internal */
+    protected static optionsSchema = z.strictObject(FileDownload.optionsShape);
+
     // TODO hooks
-    constructor(options: Omit<BasicCrawlerOptions<FileDownloadCrawlingContext>, 'contextPipelineBuilder'> = {}) {
+    constructor(options: FileDownloadOptions = {}) {
+        const { ignoreTlsErrors, ...basicCrawlerOptions } = parseArgument(
+            options,
+            FileDownload.optionsSchema,
+            'FileDownloadOptions',
+        );
+
         super({
-            ...options,
+            ...basicCrawlerOptions,
             contextPipelineBuilder: () => this.#buildContextPipeline(),
         });
+
+        this.#ignoreTlsErrors = ignoreTlsErrors;
     }
 
     #buildContextPipeline(): ContextPipeline<CrawlingContext, FileDownloadCrawlingContext> {
@@ -87,6 +129,7 @@ export class FileDownload extends BasicCrawler<FileDownloadCrawlingContext> {
     async #initiateDownload(context: CrawlingContext, onCleanup: CleanupRegistrar) {
         const response = await this.httpClient.sendRequest(context.request.intoFetchAPIRequest(), {
             session: context.session,
+            ignoreTlsErrors: this.#ignoreTlsErrors,
         });
 
         const { type, charset: encoding } = parseContentTypeFromResponse(response);

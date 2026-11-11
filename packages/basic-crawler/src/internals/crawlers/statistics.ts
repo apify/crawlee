@@ -3,7 +3,7 @@ import { convertStateSync, KeyValueStore, RecoverableState, serviceLocator, vali
 import { parseArgument, schemas } from '@crawlee/utils/internal';
 import { z } from 'zod';
 
-import { ErrorTracker } from './error_tracker.js';
+import { ErrorTracker } from './error-tracker.js';
 
 /**
  * @ignore
@@ -46,7 +46,7 @@ const errorTrackerConfig = {
  * order here *is* the record's field order (guarded by a test).
  *
  * JSON has no infinity, so the three fields that are `Infinity` until the first request settles are written as
- * `null`. Both {@apilink Statistics.serializeState} and {@apilink Statistics.deserializeState} run through this,
+ * `null`. Both the private serialize and deserialize steps of `Statistics` run through this,
  * which is what keeps them describing the same record.
  *
  * Nothing is optional on purpose: the record has always carried every field, so one missing a field is not one of
@@ -227,6 +227,12 @@ export interface IStatistics<StateExtension extends object = {}> {
 
     /** Ends the capture window: stops logging, unsubscribes, and persists the final state. */
     stopCapturing(): Promise<void>;
+
+    /**
+     * Registers a retry attempt in real-time when a request temporarily fails.
+     * Optional - crawlers call this when a request is reclaimed back to the queue or list.
+     */
+    registerRetry?(retryCount: number): void;
 
     /**
      * Persists the current state to the key-value store. Optional - the crawler calls it on migration, but a backend
@@ -591,10 +597,48 @@ export class Statistics<
         await this.#recoverableState.teardown();
     }
 
-    #saveRetryCountForRequest(retryCount: number) {
-        if (retryCount > 0) this.state.requestsRetries++;
-        this.requestRetryHistogram[retryCount] ??= 0;
+    /**
+     * Registers a retry attempt in real-time when a request temporarily fails.
+     * Includes safeguards against NaN, negative values, sparse arrays, and migration state mismatch.
+     */
+    registerRetry(retryCount: number) {
+        if (!Number.isInteger(retryCount) || retryCount < 0) return;
+
+        if (retryCount === 1) {
+            this.state.requestsRetries++;
+        }
+
+        // Fill intermediate indices with 0 to prevent sparse arrays and JSON serialization null values
+        while (this.requestRetryHistogram.length <= retryCount) {
+            this.requestRetryHistogram.push(0);
+        }
         this.requestRetryHistogram[retryCount]++;
+
+        const previousRetryCount = retryCount - 1;
+        if (previousRetryCount > 0) {
+            while (this.requestRetryHistogram.length <= previousRetryCount) {
+                this.requestRetryHistogram.push(0);
+            }
+            // Decrement previous count only if it is strictly greater than 0
+            if (this.requestRetryHistogram[previousRetryCount] > 0) {
+                this.requestRetryHistogram[previousRetryCount]--;
+            }
+        }
+    }
+
+    #saveRetryCountForRequest(retryCount: number) {
+        if (!Number.isInteger(retryCount) || retryCount < 0) return;
+
+        while (this.requestRetryHistogram.length <= retryCount) {
+            this.requestRetryHistogram.push(0);
+        }
+
+        if (retryCount === 0) {
+            this.requestRetryHistogram[0]++;
+        } else if (this.requestRetryHistogram[retryCount] === 0) {
+            this.requestRetryHistogram[retryCount]++;
+            this.state.requestsRetries += retryCount;
+        }
     }
 
     /**
