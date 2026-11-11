@@ -108,6 +108,7 @@ export interface AdaptivePlaywrightCrawlerContext<
     request: LoadedRequest<CrawlingRequest<UserData>>;
     /**
      * The HTTP response, either from the HTTP client or from the initial request from playwright's navigation.
+     * Undefined when the browser navigation produced no response.
      */
     response: Response;
 
@@ -615,22 +616,34 @@ export class AdaptivePlaywrightCrawler<
     }
 
     async #adaptPlaywrightContext(playwrightContext: PlaywrightCrawlingContext) {
-        // Capture the original response to avoid infinite recursion when the getter is copied to the context
-        const originalResponse = playwrightContext.response;
+        // Capture the original response to avoid infinite recursion when the getter is copied to the context.
+        // It is undefined when the navigation produced no response: a same-document navigation, or in Firefox a page
+        // that redirects itself before `load`.
+        const originalResponse = playwrightContext.response as PlaywrightCrawlingContext['response'] | undefined;
 
-        // `headers()` can return repeated headers (e.g. `set-cookie`) joined with `\n`, which `Headers` rejects
-        const headers = new Headers();
-        for (const { name, value } of await originalResponse.headersArray()) {
-            headers.append(name, value);
-        }
+        let response: ResponseWithUrl | undefined;
+        if (originalResponse) {
+            // `headers()` can return repeated headers (e.g. `set-cookie`) joined with `\n`, which `Headers` rejects
+            const headers = new Headers();
+            for (const { name, value } of await originalResponse.headersArray()) {
+                headers.append(name, value);
+            }
 
-        return {
-            response: new ResponseWithUrl(Uint8Array.from(await originalResponse.body()), {
+            // `body()` throws for redirects, `304` cache hits included, and for responses the page navigated away from
+            const body = await originalResponse
+                .body()
+                .catch(async () => Buffer.from(await playwrightContext.page.content()));
+
+            response = new ResponseWithUrl(Uint8Array.from(body), {
                 headers,
                 status: originalResponse.status(),
                 statusText: originalResponse.statusText(),
                 url: originalResponse.url(),
-            }),
+            });
+        }
+
+        return {
+            response,
             enqueueLinks: async (options: EnqueueLinksOptions = {}, timeoutMs = 5000) => {
                 // TODO consider using `context.parseWithCheerio` to make this universal and avoid code duplication
                 const selector = options.selector ?? 'a';
