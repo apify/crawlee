@@ -367,6 +367,13 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
         // the loop (per-entry warnings could flood the log; individual drops are logged at debug level).
         let droppedUrlEntries = 0;
 
+        // The same for every entry of this source, so compute it once. Hashing the whole raw content for
+        // each URL entry made parsing a large raw sitemap quadratic in its size.
+        const originSitemapUrl =
+            source.type === 'url'
+                ? source.url
+                : `raw://${createHash('sha256').update(source.content).digest('base64')}`;
+
         for await (const item of items) {
             if (item.type === 'sitemapUrl' && !visitedSitemapUrls.has(item.url)) {
                 if (nestedSitemapFilter && !nestedSitemapFilter(item.url)) {
@@ -403,10 +410,7 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
 
                 yield {
                     ...item,
-                    originSitemapUrl:
-                        source.type === 'url'
-                            ? source.url
-                            : `raw://${createHash('sha256').update(source.content).digest('base64')}`,
+                    originSitemapUrl,
                 };
             }
         }
