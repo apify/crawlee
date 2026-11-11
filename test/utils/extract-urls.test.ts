@@ -107,6 +107,18 @@ describe('extractUrls()', () => {
         expect(extracted).toEqual([url]);
     });
 
+    test('extracts URLs with internationalized top-level domains', () => {
+        const urls = [
+            'https://пример.рф/путь',
+            'https://xn--e1afmkfd.xn--p1ai/path',
+            'https://例子.中国/',
+            'https://उदाहरण.भारत/page',
+            'https://test.みんな/',
+        ];
+        expect(extractUrls({ string: urls.join(' ') })).toEqual(urls);
+        expect(extractUrls({ string: urls.join(' '), urlRegExp: URL_WITH_COMMAS_REGEX })).toEqual(urls);
+    });
+
     test('does not extract invalid URLs', () => {
         const { string } = getURLData(INVALID_URL_LIST);
         const extracted = extractUrls({ string });
