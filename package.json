@@ -112,7 +112,7 @@
         "lerna": "^10.1.1",
         "lint-staged": "^17.6.0",
         "nock": "^14.0.17",
-        "oxfmt": "^0.77.0",
+        "oxfmt": "^0.78.0",
         "oxlint": "^1.93.0",
         "oxlint-tsgolint": "^7.0.2006",
         "playwright": "catalog:",
