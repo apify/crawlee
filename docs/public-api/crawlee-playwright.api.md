@@ -11,7 +11,6 @@ import { BasicCrawler } from '@crawlee/basic';
 import type { BasicCrawlerOptions } from '@crawlee/basic';
 import type { BatchAddRequestsResult } from '@crawlee/types';
 import type { Browser } from 'playwright';
-import type { BrowserContext } from 'playwright';
 import { BrowserCrawler } from '@crawlee/browser';
 import { BrowserCrawlerOptions } from '@crawlee/browser';
 import type { BrowserCrawlingContext } from '@crawlee/browser';
@@ -34,7 +33,9 @@ import type { Download } from 'playwright';
 import type { EnqueueLinksOptions } from '@crawlee/basic';
 import type { GetUserDataFromRequest } from '@crawlee/browser';
 import type { GetUserDataFromRequest as GetUserDataFromRequest_2 } from '@crawlee/basic';
+import type { IBrowserPool } from '@crawlee/types';
 import { IRequestManager } from '@crawlee/browser';
+import type { ISession } from '@crawlee/types';
 import type { LaunchOptions } from 'playwright';
 import type { LoadedRequest } from '@crawlee/browser';
 import type { Page } from 'playwright';
@@ -160,9 +161,10 @@ export class BrowserFetchHttpClient extends BaseHttpClient {
 
 // @public (undocumented)
 export interface BrowserFetchHttpClientOptions {
-    context: BrowserContext;
+    browserPool: IBrowserPool<Page>;
     // (undocumented)
     logger?: CrawleeLogger;
+    login?: (page: Page, session?: ISession) => Promise<void>;
     maxOpenPages?: number;
 }
 
