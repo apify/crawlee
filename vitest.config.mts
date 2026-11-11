@@ -50,17 +50,38 @@ const baseConfig = defineConfig({
             { find: '@crawlee/browser', replacement: resolve(import.meta.dirname, './packages/browser-crawler/src') },
             { find: '@crawlee/http', replacement: resolve(import.meta.dirname, './packages/http-crawler/src') },
             { find: '@crawlee/cheerio', replacement: resolve(import.meta.dirname, './packages/cheerio-crawler/src') },
-            { find: '@crawlee/playwright', replacement: resolve(import.meta.dirname, './packages/playwright-crawler/src') },
-            { find: '@crawlee/puppeteer', replacement: resolve(import.meta.dirname, './packages/puppeteer-crawler/src') },
-            { find: '@crawlee/stagehand', replacement: resolve(import.meta.dirname, './packages/stagehand-crawler/src') },
-            { find: '@crawlee/core/internal', replacement: resolve(import.meta.dirname, './packages/core/src/internal') },
-            { find: '@crawlee/utils/internal', replacement: resolve(import.meta.dirname, './packages/utils/src/internal') },
+            {
+                find: '@crawlee/playwright',
+                replacement: resolve(import.meta.dirname, './packages/playwright-crawler/src'),
+            },
+            {
+                find: '@crawlee/puppeteer',
+                replacement: resolve(import.meta.dirname, './packages/puppeteer-crawler/src'),
+            },
+            {
+                find: '@crawlee/stagehand',
+                replacement: resolve(import.meta.dirname, './packages/stagehand-crawler/src'),
+            },
+            {
+                find: '@crawlee/core/internal',
+                replacement: resolve(import.meta.dirname, './packages/core/src/internal'),
+            },
+            {
+                find: '@crawlee/utils/internal',
+                replacement: resolve(import.meta.dirname, './packages/utils/src/internal'),
+            },
             // The generic `@crawlee/*` aliases below map specifiers to workspace package sources. They
             // exclude `@crawlee/fs-storage-native` via a negative lookahead, since it is a real external
             // (npm) dependency with no `packages/fs-storage-native` source — letting it resolve normally
             // through node_modules.
-            { find: /^@crawlee\/(?!fs-storage-native)(.*)\/(.*)$/, replacement: resolve(import.meta.dirname, './packages/$1/$2') },
-            { find: /^@crawlee\/(?!fs-storage-native)(.*)$/, replacement: resolve(import.meta.dirname, './packages/$1/src') },
+            {
+                find: /^@crawlee\/(?!fs-storage-native)(.*)\/(.*)$/,
+                replacement: resolve(import.meta.dirname, './packages/$1/$2'),
+            },
+            {
+                find: /^@crawlee\/(?!fs-storage-native)(.*)$/,
+                replacement: resolve(import.meta.dirname, './packages/$1/src'),
+            },
             { find: /^test\/(.*)$/, replacement: resolve(import.meta.dirname, './test/$1') },
         ],
         retry: process.env.RETRY_TESTS ? 3 : 0,
@@ -69,7 +90,7 @@ const baseConfig = defineConfig({
                 extends: true,
                 test: {
                     name: 'unit',
-                    exclude: [...defaultExclude, ...browserTests],
+                    exclude: [...defaultExclude, ...browserTests, 'test/e2e/**'],
                     maxWorkers: workers(process.env.CRAWLEE_TEST_WORKERS, 8),
                 },
             },
@@ -83,6 +104,19 @@ const baseConfig = defineConfig({
                     // vitest's default of 5 concurrent tests per file, each with its own browser.
                     maxConcurrency: 2,
                     sequence: { groupOrder: 1 },
+                },
+            },
+            {
+                extends: true,
+                test: {
+                    name: 'e2e',
+                    include: ['test/e2e/**/*.test.ts'],
+                    globalSetup: ['./test/e2e/global-setup.ts'],
+                    // Platform builds plus runs; a file shares one Actor across its tests.
+                    testTimeout: 15 * 60_000,
+                    // Runs take 4-16 GB each; keep the sum under the account's memory limit.
+                    maxWorkers: 8,
+                    hookTimeout: 30 * 60_000,
                 },
             },
         ],

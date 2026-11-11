@@ -1,6 +1,6 @@
-import { getStats, harness, hasNestedKey, listUserKeys, scenario } from './harness.js';
+import { testActor } from 'apify-test-tools';
 
-const { test } = harness();
+import { getStats, hasNestedKey, listUserKeys, scenario } from './harness.js';
 
 export const main = async () => {
     const { Statistics } = await import('@crawlee/basic');
@@ -65,12 +65,10 @@ export const main = async () => {
     }, mainOptions);
 };
 
-test('puppeteer-error-snapshot', async ({ expect, createActor, runActor }) => {
-    const actor = await createActor('puppeteer-error-snapshot', {
-        source: scenario(import.meta.filename, main, { image: 'puppeteer' }),
-        memory: 4096,
-    });
-    const result = await runActor(actor);
+const actor = scenario('puppeteer-error-snapshot', import.meta.filename, main, { image: 'puppeteer', memory: 4096 });
+
+testActor(actor, 'stores error snapshots', async ({ expect, run }) => {
+    const result = await run();
     const stats = await getStats(result);
 
     expect(result.status).toBe('SUCCEEDED');

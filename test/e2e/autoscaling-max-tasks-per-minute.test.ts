@@ -1,6 +1,6 @@
-import { getStats, harness, scenario } from './harness.js';
+import { testActor } from 'apify-test-tools';
 
-const { test } = harness();
+import { getStats, scenario } from './harness.js';
 
 export const main = async () => {
     const { Actor } = await import('apify');
@@ -31,12 +31,10 @@ export const main = async () => {
     }, mainOptions);
 };
 
-test('autoscaling-max-tasks-per-minute', async ({ expect, createActor, runActor }) => {
-    const actor = await createActor('autoscaling-max-tasks-per-minute', {
-        source: scenario(import.meta.filename, main),
-        memory: 4096,
-    });
-    const result = await runActor(actor);
+const actor = scenario('autoscaling-max-tasks-per-minute', import.meta.filename, main, { memory: 4096 });
+
+testActor(actor, 'throttles to maxTasksPerMinute', async ({ expect, run }) => {
+    const result = await run();
     const stats = await getStats(result);
 
     expect(result.status).toBe('SUCCEEDED');

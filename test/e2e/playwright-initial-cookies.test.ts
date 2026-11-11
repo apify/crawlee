@@ -1,8 +1,7 @@
 import type { Session } from '@crawlee/playwright';
+import { testActor } from 'apify-test-tools';
 
-import { getStats, harness, scenario } from './harness.js';
-
-const { test } = harness();
+import { getStats, scenario } from './harness.js';
 
 export const main = async () => {
     const { Actor } = await import('apify');
@@ -66,12 +65,13 @@ export const main = async () => {
     }, mainOptions);
 };
 
-test('playwright-initial-cookies', async ({ expect, createActor, runActor }) => {
-    const actor = await createActor('playwright-initial-cookies', {
-        source: scenario(import.meta.filename, main, { image: 'playwright' }),
-        memory: 16384,
-    });
-    const result = await runActor(actor);
+const actor = scenario('playwright-initial-cookies', import.meta.filename, main, {
+    image: 'playwright',
+    memory: 16384,
+});
+
+testActor(actor, 'sends the initial cookies', async ({ expect, run }) => {
+    const result = await run();
     const stats = await getStats(result);
     const { items } = await result.getDataset<any>();
 

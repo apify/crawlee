@@ -2,24 +2,34 @@ import { join } from 'node:path';
 
 import type { StatisticPersistedState } from '@crawlee/basic';
 import { URL_NO_COMMAS_REGEX } from '@crawlee/utils/internal';
-import { type RunTestResult, useHarness, type VitestHarness } from 'apify-test-tools';
-import { ActorSource } from 'apify-test-tools/harness';
+import { defineActor, type RunTestResult } from 'apify-test-tools';
+import { ActorSource, inlineMain } from 'apify-test-tools/ad-hoc';
 import { inject } from 'vitest';
 
-export const token = process.env.APIFY_TEST_USER_API_TOKEN!;
-
-/** `test`/`createActor`/`runActor` bound to this test file; see apify-test-tools `useHarness`. */
-export const harness = (): VitestHarness => useHarness({ token, namePrefix: 'crawlee-e2e' });
+type ScenarioOptions = Pick<Parameters<typeof defineActor>[1], 'memory' | 'permissions' | 'env'> & { image?: string };
 
 /**
- * The Actor whose entry point is `main`, a top-level function of the test file at `filename`, built from the image's
- * template and pinned to the packed workspace packages. `main` is read from disk and transpiled on its own, so it must
- * be self-contained: dependencies via `await import()`, no references to the rest of the test file.
+ * The Actor `crawlee-e2e-<label>` whose entry point is `main`, a top-level function of the test file at `filename`,
+ * built from the image's template and pinned to the packed workspace packages. `main` is read from disk and transpiled
+ * on its own, so it must be self-contained: dependencies via `await import()`, no references to the rest of the test
+ * file.
  */
-export const scenario = (filename: string, main: () => unknown, { image = 'node' } = {}) =>
-    ActorSource.dirs(join(import.meta.dirname, 'templates', 'base'), join(import.meta.dirname, 'templates', image))
-        .main(filename, main)
-        .pin(inject('packs'));
+export const scenario = (
+    label: string,
+    filename: string,
+    main: () => unknown,
+    { image = 'node', ...options }: ScenarioOptions = {},
+) =>
+    defineActor(`crawlee-e2e-${label}`, {
+        source: ActorSource.dirs(
+            join(import.meta.dirname, 'templates', 'base'),
+            join(import.meta.dirname, 'templates', image),
+        )
+            .with(inlineMain(filename, main))
+            .pin(inject('packs')),
+        ...options,
+        syncDelayMs: 0,
+    });
 
 /** The crawler's persisted statistics; throws if the crawler never wrote them. */
 export const getStats = async (result: RunTestResult) => {

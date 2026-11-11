@@ -1,6 +1,6 @@
-import { getStats, harness, scenario, validateDataset } from './harness.js';
+import { testActor } from 'apify-test-tools';
 
-const { test } = harness();
+import { getStats, scenario, validateDataset } from './harness.js';
 
 export const main = async () => {
     const { default: http } = await import('node:http');
@@ -147,12 +147,10 @@ export const main = async () => {
     await Actor.exit({ exit: Actor.isAtHome() });
 };
 
-test('puppeteer-store-pagination', async ({ expect, createActor, runActor }) => {
-    const actor = await createActor('puppeteer-store-pagination', {
-        source: scenario(import.meta.filename, main, { image: 'puppeteer' }),
-        memory: 16384,
-    });
-    const result = await runActor(actor);
+const actor = scenario('puppeteer-store-pagination', import.meta.filename, main, { image: 'puppeteer', memory: 16384 });
+
+testActor(actor, 'paginates the store', async ({ expect, run }) => {
+    const result = await run();
     const stats = await getStats(result);
     const { items } = await result.getDataset<any>();
 

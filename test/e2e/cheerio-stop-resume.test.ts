@@ -1,6 +1,6 @@
-import { getStats, harness, scenario } from './harness.js';
+import { testActor } from 'apify-test-tools';
 
-const { test } = harness();
+import { getStats, scenario } from './harness.js';
 
 export const main = async () => {
     const { CheerioCrawler, Dataset } = await import('@crawlee/cheerio');
@@ -31,12 +31,10 @@ export const main = async () => {
     await Actor.exit({ exit: Actor.isAtHome() });
 };
 
-test('cheerio-stop-resume', async ({ expect, createActor, runActor }) => {
-    const actor = await createActor('cheerio-stop-resume', {
-        source: scenario(import.meta.filename, main),
-        memory: 4096,
-    });
-    const result = await runActor(actor);
+const actor = scenario('cheerio-stop-resume', import.meta.filename, main, { memory: 4096 });
+
+testActor(actor, 'a second crawler.run() resumes the same queue', async ({ expect, run }) => {
+    const result = await run();
     const stats = await getStats(result);
     const { items } = await result.getDataset<any>();
 

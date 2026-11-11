@@ -1,9 +1,8 @@
 import type { CustomFetchOptions } from '@crawlee/http-client';
 import type { Dictionary } from '@crawlee/types';
+import { testActor } from 'apify-test-tools';
 
-import { getStats, harness, scenario } from './harness.js';
-
-const { test } = harness();
+import { getStats, scenario } from './harness.js';
 
 export const main = async () => {
     const { CheerioCrawler } = await import('@crawlee/cheerio');
@@ -99,12 +98,13 @@ export const main = async () => {
     await Actor.exit({ exit: Actor.isAtHome() });
 };
 
-test('cheerio-curl-impersonate', async ({ expect, createActor, runActor }) => {
-    const actor = await createActor('cheerio-curl-impersonate', {
-        source: scenario(import.meta.filename, main, { image: 'curl-impersonate' }),
-        memory: 4096,
-    });
-    const result = await runActor(actor);
+const actor = scenario('cheerio-curl-impersonate', import.meta.filename, main, {
+    image: 'curl-impersonate',
+    memory: 4096,
+});
+
+testActor(actor, 'crawls with a curl-impersonate HTTP client', async ({ expect, run }) => {
+    const result = await run();
     const stats = await getStats(result);
     const { items } = await result.getDataset<any>();
 

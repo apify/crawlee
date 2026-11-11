@@ -1,6 +1,7 @@
-import { harness, scenario } from './harness.js';
+import { testActor } from 'apify-test-tools';
+import { describe } from 'vitest';
 
-const { test } = harness();
+import { scenario } from './harness.js';
 
 export const main = async () => {
     const { Dataset, handleCloudflareChallengeHook, PlaywrightCrawler, playwrightBrowserPool } =
@@ -71,20 +72,16 @@ export const main = async () => {
     }, mainOptions);
 };
 
-// TODO: re-enable once the platform run gets past the challenge; it never cleared there, earlier passes were false positives.
-test.skip('camoufox-cloudflare: Cloudflare does not clear the challenge on the platform (residential proxy)', async ({
-    expect,
-    createActor,
-    runActor,
-}) => {
-    const actor = await createActor('camoufox-cloudflare', {
-        source: scenario(import.meta.filename, main, { image: 'camoufox' }),
-        memory: 16384,
-    });
-    const result = await runActor(actor);
-    const { items } = await result.getDataset<any>();
+const actor = scenario('camoufox-cloudflare', import.meta.filename, main, { image: 'camoufox', memory: 16384 });
 
-    expect(result.status).toBe('SUCCEEDED');
-    expect(items).toHaveLength(1);
-    expect(items.every(({ isBlocked }) => !isBlocked)).toBe(true);
+// TODO: re-enable once the platform run gets past the challenge; it never cleared there, earlier passes were false positives.
+describe.skip('Cloudflare does not clear the challenge on the platform (residential proxy)', () => {
+    testActor(actor, 'passes the Cloudflare challenge', async ({ expect, run }) => {
+        const result = await run();
+        const { items } = await result.getDataset<any>();
+
+        expect(result.status).toBe('SUCCEEDED');
+        expect(items).toHaveLength(1);
+        expect(items.every(({ isBlocked }) => !isBlocked)).toBe(true);
+    });
 });

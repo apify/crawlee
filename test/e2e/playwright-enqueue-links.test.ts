@@ -1,6 +1,6 @@
-import { harness, scenario } from './harness.js';
+import { testActor } from 'apify-test-tools';
 
-const { test } = harness();
+import { scenario } from './harness.js';
 
 export const main = async () => {
     const { PlaywrightCrawler, Dataset, log } = await import('@crawlee/playwright');
@@ -32,12 +32,10 @@ export const main = async () => {
     }, mainOptions);
 };
 
-test('playwright-enqueue-links', async ({ expect, createActor, runActor }) => {
-    const actor = await createActor('playwright-enqueue-links', {
-        source: scenario(import.meta.filename, main, { image: 'playwright' }),
-        memory: 16384,
-    });
-    const result = await runActor(actor);
+const actor = scenario('playwright-enqueue-links', import.meta.filename, main, { image: 'playwright', memory: 16384 });
+
+testActor(actor, 'enqueues by the loaded URL', async ({ expect, run }) => {
+    const result = await run();
     const { items } = await result.getDataset<any>();
 
     expect(result.status).toBe('SUCCEEDED');

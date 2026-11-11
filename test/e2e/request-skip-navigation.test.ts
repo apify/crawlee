@@ -1,6 +1,6 @@
-import { harness, scenario } from './harness.js';
+import { testActor } from 'apify-test-tools';
 
-const { test } = harness();
+import { scenario } from './harness.js';
 
 export const main = async () => {
     const { Actor } = await import('apify');
@@ -53,12 +53,10 @@ export const main = async () => {
     }, mainOptions);
 };
 
-test('request-skip-navigation', async ({ expect, createActor, runActor }) => {
-    const actor = await createActor('request-skip-navigation', {
-        source: scenario(import.meta.filename, main),
-        memory: 4096,
-    });
-    const result = await runActor(actor);
+const actor = scenario('request-skip-navigation', import.meta.filename, main, { memory: 4096 });
+
+testActor(actor, 'skips navigation for marked requests', async ({ expect, run }) => {
+    const result = await run();
     const { items } = await result.getDataset<any>();
 
     expect(result.status).toBe('SUCCEEDED');

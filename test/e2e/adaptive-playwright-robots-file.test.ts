@@ -1,8 +1,7 @@
 import type { AdaptivePlaywrightCrawler } from '@crawlee/playwright';
+import { testActor } from 'apify-test-tools';
 
-import { getStats, harness, scenario } from './harness.js';
-
-const { test } = harness();
+import { getStats, scenario } from './harness.js';
 
 export const main = async () => {
     const { default: http } = await import('node:http');
@@ -80,12 +79,13 @@ export const main = async () => {
     await Actor.exit({ exit: Actor.isAtHome() });
 };
 
-test('adaptive-playwright-robots-file', async ({ expect, createActor, runActor }) => {
-    const actor = await createActor('adaptive-playwright-robots-file', {
-        source: scenario(import.meta.filename, main, { image: 'playwright' }),
-        memory: 16384,
-    });
-    const result = await runActor(actor);
+const actor = scenario('adaptive-playwright-robots-file', import.meta.filename, main, {
+    image: 'playwright',
+    memory: 16384,
+});
+
+testActor(actor, 'skips URLs disallowed by robots.txt', async ({ expect, run }) => {
+    const result = await run();
     const stats = await getStats(result);
     const { items } = await result.getDataset<any>();
 

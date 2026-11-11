@@ -1,6 +1,6 @@
-import { harness, scenario } from './harness.js';
+import { testActor } from 'apify-test-tools';
 
-const { test } = harness();
+import { scenario } from './harness.js';
 
 export const main = async () => {
     const { Actor } = await import('apify');
@@ -30,12 +30,10 @@ export const main = async () => {
     }, mainOptions);
 };
 
-test('puppeteer-enqueue-links', async ({ expect, createActor, runActor }) => {
-    const actor = await createActor('puppeteer-enqueue-links', {
-        source: scenario(import.meta.filename, main, { image: 'puppeteer' }),
-        memory: 16384,
-    });
-    const result = await runActor(actor);
+const actor = scenario('puppeteer-enqueue-links', import.meta.filename, main, { image: 'puppeteer', memory: 16384 });
+
+testActor(actor, 'enqueues by the loaded URL', async ({ expect, run }) => {
+    const result = await run();
     const { items } = await result.getDataset<any>();
 
     expect(result.status).toBe('SUCCEEDED');

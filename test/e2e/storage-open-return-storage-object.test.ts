@@ -1,6 +1,6 @@
-import { harness, scenario } from './harness.js';
+import { testActor } from 'apify-test-tools';
 
-const { test } = harness();
+import { scenario } from './harness.js';
 
 export const main = async () => {
     const { Actor, Dataset, KeyValueStore } = await import('apify');
@@ -17,12 +17,10 @@ export const main = async () => {
     }, mainOptions);
 };
 
-test('storage-open-return-storage-object', async ({ expect, createActor, runActor }) => {
-    const actor = await createActor('storage-open-return-storage-object', {
-        source: scenario(import.meta.filename, main),
-        memory: 4096,
-    });
-    const result = await runActor(actor);
+const actor = scenario('storage-open-return-storage-object', import.meta.filename, main, { memory: 4096 });
+
+testActor(actor, 'opened storages expose their storage object', async ({ expect, run }) => {
+    const result = await run();
 
     expect(result.status).toBe('SUCCEEDED');
     const record = await result.getKeyValueStoreClient().getRecord('storageObject');

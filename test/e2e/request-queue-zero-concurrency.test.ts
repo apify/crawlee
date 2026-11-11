@@ -1,6 +1,7 @@
-import { getStats, harness, scenario } from './harness.js';
+import { testActor } from 'apify-test-tools';
+import { describe } from 'vitest';
 
-const { test } = harness();
+import { getStats, scenario } from './harness.js';
 
 export const main = async () => {
     const { CheerioCrawler, log, RequestQueue } = await import('@crawlee/cheerio');
@@ -34,22 +35,18 @@ export const main = async () => {
 };
 
 // TODO(v4): redesign for the v4 RequestQueue. The test stages a stuck queue via the v3
-// client-side `requestQueue.inProgress` set, which no longer exists in the rewritten queue.
-test.skip('request-queue-zero-concurrency: the v4 RequestQueue has no client-side `inProgress` set to stage a stuck queue with', async ({
-    expect,
-    createActor,
-    runActor,
-}) => {
-    const actor = await createActor('request-queue-zero-concurrency', {
-        source: scenario(import.meta.filename, main),
-        memory: 4096,
-    });
-    const result = await runActor(actor);
-    const stats = await getStats(result);
+const actor = scenario('request-queue-zero-concurrency', import.meta.filename, main, { memory: 4096 });
 
-    expect(result.status).toBe('SUCCEEDED');
-    expect(stats.requestsSucceeded).toBe(3);
-    // RequestQueue triggers auto-reset after being stuck with requests in progress.
-    expect(stats.crawlerRuntimeMillis).toBeGreaterThan(30_000);
-    expect(stats.crawlerRuntimeMillis).toBeLessThan(35_000);
+// client-side `requestQueue.inProgress` set, which no longer exists in the rewritten queue.
+describe.skip('the v4 RequestQueue has no client-side `inProgress` set to stage a stuck queue with', () => {
+    testActor(actor, 'recovers a stuck queue', async ({ expect, run }) => {
+        const result = await run();
+        const stats = await getStats(result);
+
+        expect(result.status).toBe('SUCCEEDED');
+        expect(stats.requestsSucceeded).toBe(3);
+        // RequestQueue triggers auto-reset after being stuck with requests in progress.
+        expect(stats.crawlerRuntimeMillis).toBeGreaterThan(30_000);
+        expect(stats.crawlerRuntimeMillis).toBeLessThan(35_000);
+    });
 });

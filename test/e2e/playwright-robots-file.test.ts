@@ -1,6 +1,6 @@
-import { getStats, harness, scenario } from './harness.js';
+import { testActor } from 'apify-test-tools';
 
-const { test } = harness();
+import { getStats, scenario } from './harness.js';
 
 export const main = async () => {
     const { default: http } = await import('node:http');
@@ -76,12 +76,10 @@ export const main = async () => {
     await Actor.exit({ exit: Actor.isAtHome() });
 };
 
-test('playwright-robots-file', async ({ expect, createActor, runActor }) => {
-    const actor = await createActor('playwright-robots-file', {
-        source: scenario(import.meta.filename, main, { image: 'playwright' }),
-        memory: 16384,
-    });
-    const result = await runActor(actor);
+const actor = scenario('playwright-robots-file', import.meta.filename, main, { image: 'playwright', memory: 16384 });
+
+testActor(actor, 'skips URLs disallowed by robots.txt', async ({ expect, run }) => {
+    const result = await run();
     const stats = await getStats(result);
     const { items } = await result.getDataset<any>();
 

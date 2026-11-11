@@ -1,6 +1,7 @@
-import { getStats, harness, scenario, validateDataset } from './harness.js';
+import { testActor } from 'apify-test-tools';
+import { describe } from 'vitest';
 
-const { test } = harness();
+import { getStats, scenario, validateDataset } from './harness.js';
 
 export const main = async () => {
     const { StagehandCrawler, stagehandBrowserPool } = await import('@crawlee/stagehand');
@@ -61,31 +62,34 @@ export const main = async () => {
     }, mainOptions);
 };
 
-test.skipIf(!process.env.ANTHROPIC_API_KEY)('stagehand-concurrent', async ({ expect, createActor, runActor }) => {
-    const actor = await createActor('stagehand-concurrent', {
-        source: scenario(import.meta.filename, main, { image: 'playwright' }),
-        memory: 16384,
-        env: { ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY! },
+const actor = scenario('stagehand-concurrent', import.meta.filename, main, {
+    image: 'playwright',
+    memory: 16384,
+    env: { ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY! },
+});
+
+describe.skipIf(!process.env.ANTHROPIC_API_KEY)('needs ANTHROPIC_API_KEY', () => {
+    testActor(actor, 'handles pages concurrently', async ({ expect, run }) => {
+        const result = await run();
+        const stats = await getStats(result);
+        const { items } = await result.getDataset<any>();
+
+        expect(result.status).toBe('SUCCEEDED');
+        expect(stats.requestsSucceeded).toBe(3);
+        expect(stats.requestsFailed).toBe(0);
+        expect(items).toHaveLength(3);
+        expect(validateDataset(items, ['url', 'title', 'browserId'])).toBe(true);
+
+        const browserIds = new Set(items.map((item) => item.browserId));
+        expect(browserIds.size, 'multiple browser instances used').toBeGreaterThanOrEqual(2);
+
+        const urls = items.map((item) => item.url);
+        expect(urls.some((url) => url.includes('crawlee.dev'))).toBe(true);
+        expect(urls.some((url) => url.includes('apify.com'))).toBe(true);
+        expect(urls.some((url) => url.includes('blog.apify.com'))).toBe(true);
+
+        for (const item of items) {
+            expect(item.title.length, `title extracted for ${item.url}`).toBeGreaterThan(0);
+        }
     });
-    const result = await runActor(actor);
-    const stats = await getStats(result);
-    const { items } = await result.getDataset<any>();
-
-    expect(result.status).toBe('SUCCEEDED');
-    expect(stats.requestsSucceeded).toBe(3);
-    expect(stats.requestsFailed).toBe(0);
-    expect(items).toHaveLength(3);
-    expect(validateDataset(items, ['url', 'title', 'browserId'])).toBe(true);
-
-    const browserIds = new Set(items.map((item) => item.browserId));
-    expect(browserIds.size, 'multiple browser instances used').toBeGreaterThanOrEqual(2);
-
-    const urls = items.map((item) => item.url);
-    expect(urls.some((url) => url.includes('crawlee.dev'))).toBe(true);
-    expect(urls.some((url) => url.includes('apify.com'))).toBe(true);
-    expect(urls.some((url) => url.includes('blog.apify.com'))).toBe(true);
-
-    for (const item of items) {
-        expect(item.title.length, `title extracted for ${item.url}`).toBeGreaterThan(0);
-    }
 });

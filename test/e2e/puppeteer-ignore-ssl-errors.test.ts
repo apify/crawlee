@@ -1,6 +1,6 @@
-import { getStats, harness, scenario, validateDataset } from './harness.js';
+import { testActor } from 'apify-test-tools';
 
-const { test } = harness();
+import { getStats, scenario, validateDataset } from './harness.js';
 
 export const main = async () => {
     const { Actor } = await import('apify');
@@ -65,12 +65,13 @@ export const main = async () => {
     }, mainOptions);
 };
 
-test('puppeteer-ignore-ssl-errors', async ({ expect, createActor, runActor }) => {
-    const actor = await createActor('puppeteer-ignore-ssl-errors', {
-        source: scenario(import.meta.filename, main, { image: 'puppeteer' }),
-        memory: 16384,
-    });
-    const result = await runActor(actor);
+const actor = scenario('puppeteer-ignore-ssl-errors', import.meta.filename, main, {
+    image: 'puppeteer',
+    memory: 16384,
+});
+
+testActor(actor, 'crawls sites with bad certificates', async ({ expect, run }) => {
+    const result = await run();
     const stats = await getStats(result);
     const { items } = await result.getDataset<any>();
 

@@ -1,6 +1,6 @@
-import { harness, scenario, validateDataset } from './harness.js';
+import { testActor } from 'apify-test-tools';
 
-const { test } = harness();
+import { scenario, validateDataset } from './harness.js';
 
 export const main = async () => {
     const { Actor } = await import('apify');
@@ -53,12 +53,13 @@ export const main = async () => {
     await Actor.exit({ exit: Actor.isAtHome() });
 };
 
-test('adaptive-playwright-default', async ({ expect, createActor, runActor }) => {
-    const actor = await createActor('adaptive-playwright-default', {
-        source: scenario(import.meta.filename, main, { image: 'playwright' }),
-        memory: 16384,
-    });
-    const result = await runActor(actor);
+const actor = scenario('adaptive-playwright-default', import.meta.filename, main, {
+    image: 'playwright',
+    memory: 16384,
+});
+
+testActor(actor, 'mixes browser and HTTP-only request handling', async ({ expect, run }) => {
+    const result = await run();
     const { items } = await result.getDataset<any>();
 
     expect(result.status).toBe('SUCCEEDED');

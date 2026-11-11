@@ -1,6 +1,6 @@
-import { harness, scenario, validateDataset } from './harness.js';
+import { testActor } from 'apify-test-tools';
 
-const { test } = harness();
+import { scenario, validateDataset } from './harness.js';
 
 export const main = async () => {
     const { once } = (await import('node:events')).default;
@@ -54,9 +54,10 @@ export const main = async () => {
     }
 };
 
-test('migration', async ({ expect, createActor, runActor }) => {
-    const actor = await createActor('migration', { source: scenario(import.meta.filename, main), memory: 4096 });
-    const result = await runActor(actor);
+const actor = scenario('migration', import.meta.filename, main, { memory: 4096 });
+
+testActor(actor, 'resumes the crawl after a migration', async ({ expect, run }) => {
+    const result = await run();
     const { items } = await result.getDataset<any>();
 
     expect(result.status).toBe('SUCCEEDED');

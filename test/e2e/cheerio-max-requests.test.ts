@@ -1,6 +1,6 @@
-import { getStats, harness, scenario, validateDataset } from './harness.js';
+import { testActor } from 'apify-test-tools';
 
-const { test } = harness();
+import { getStats, scenario, validateDataset } from './harness.js';
 
 export const main = async () => {
     const { Actor } = await import('apify');
@@ -60,12 +60,10 @@ export const main = async () => {
     }, mainOptions);
 };
 
-test('cheerio-max-requests', async ({ expect, createActor, runActor }) => {
-    const actor = await createActor('cheerio-max-requests', {
-        source: scenario(import.meta.filename, main),
-        memory: 4096,
-    });
-    const result = await runActor(actor);
+const actor = scenario('cheerio-max-requests', import.meta.filename, main, { memory: 4096 });
+
+testActor(actor, 'stops at maxRequestsPerCrawl', async ({ expect, run }) => {
+    const result = await run();
     const stats = await getStats(result);
     const { items } = await result.getDataset<any>();
 

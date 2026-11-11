@@ -1,7 +1,7 @@
 {
     "extends": "../tsconfig.json",
     "include": ["**/*", "../packages/*/src/**/*"],
-    "exclude": ["e2e", "**/fixtures/*"],
+    "exclude": ["**/fixtures/*"],
     "compilerOptions": {
         "module": "NodeNext",
         "moduleResolution": "NodeNext",

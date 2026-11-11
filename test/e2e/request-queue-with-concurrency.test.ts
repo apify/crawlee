@@ -1,9 +1,7 @@
 import { ApifyClient } from 'apify-client';
-import { pollUntil } from 'apify-test-tools';
+import { pollUntil, testActor } from 'apify-test-tools';
 
-import { harness, scenario, token } from './harness.js';
-
-const { test } = harness();
+import { scenario } from './harness.js';
 
 export const main = async () => {
     const { BasicCrawler } = await import('@crawlee/basic');
@@ -54,18 +52,18 @@ export const main = async () => {
     }, mainOptions);
 };
 
-test('request-queue-with-concurrency', async ({ expect, createActor, runActor }) => {
-    const client = new ApifyClient({ token });
-    const actor = await createActor('request-queue-with-concurrency', {
-        source: scenario(import.meta.filename, main),
-        memory: 4096,
-        // The runs share a queue the test owns, which a limited run token can't reach.
-        permissions: 'FULL_PERMISSIONS',
-    });
+const actor = scenario('request-queue-with-concurrency', import.meta.filename, main, {
+    memory: 4096,
+    // The runs share a queue the test owns, which a limited run token can't reach.
+    permissions: 'FULL_PERMISSIONS',
+});
+
+testActor(actor, 'parallel runs share one request queue', async ({ expect, run }) => {
+    const client = new ApifyClient({ token: process.env.TESTER_APIFY_TOKEN });
     const { id: queueId } = await client.requestQueues().getOrCreate();
     const input = { limit: 1000, queueId };
 
-    const results = await Promise.all(Array.from({ length: 4 }, async () => runActor(actor, input)));
+    const results = await Promise.all(Array.from({ length: 4 }, async () => run({ input })));
     for (const result of results) expect(result.status).toBe('SUCCEEDED');
 
     const requestQueue = await pollUntil(

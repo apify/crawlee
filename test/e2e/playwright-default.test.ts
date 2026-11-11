@@ -1,6 +1,6 @@
-import { getStats, harness, scenario, validateDataset } from './harness.js';
+import { testActor } from 'apify-test-tools';
 
-const { test } = harness();
+import { getStats, scenario, validateDataset } from './harness.js';
 
 export const main = async () => {
     const { Actor } = await import('apify');
@@ -29,12 +29,10 @@ export const main = async () => {
     }, mainOptions);
 };
 
-test('playwright-default', async ({ expect, createActor, runActor }) => {
-    const actor = await createActor('playwright-default', {
-        source: scenario(import.meta.filename, main, { image: 'playwright' }),
-        memory: 16384,
-    });
-    const result = await runActor(actor);
+const actor = scenario('playwright-default', import.meta.filename, main, { image: 'playwright', memory: 16384 });
+
+testActor(actor, 'crawls the docs and stores page titles', async ({ expect, run }) => {
+    const result = await run();
     const stats = await getStats(result);
     const { items } = await result.getDataset<any>();
 

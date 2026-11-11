@@ -1,8 +1,7 @@
 import type { Session } from '@crawlee/cheerio';
+import { testActor } from 'apify-test-tools';
 
-import { getStats, harness, scenario } from './harness.js';
-
-const { test } = harness();
+import { getStats, scenario } from './harness.js';
 
 export const main = async () => {
     const { Actor } = await import('apify');
@@ -69,12 +68,10 @@ export const main = async () => {
     }, mainOptions);
 };
 
-test('cheerio-initial-cookies', async ({ expect, createActor, runActor }) => {
-    const actor = await createActor('cheerio-initial-cookies', {
-        source: scenario(import.meta.filename, main),
-        memory: 4096,
-    });
-    const result = await runActor(actor);
+const actor = scenario('cheerio-initial-cookies', import.meta.filename, main, { memory: 4096 });
+
+testActor(actor, 'sends the initial cookies', async ({ expect, run }) => {
+    const result = await run();
     const stats = await getStats(result);
     const { items } = await result.getDataset<any>();
 

@@ -1,6 +1,6 @@
-import { getStats, harness, hasNestedKey, listUserKeys, scenario } from './harness.js';
+import { testActor } from 'apify-test-tools';
 
-const { test } = harness();
+import { getStats, hasNestedKey, listUserKeys, scenario } from './harness.js';
 
 export const main = async () => {
     const { CheerioCrawler } = await import('@crawlee/cheerio');
@@ -66,12 +66,10 @@ export const main = async () => {
     }, mainOptions);
 };
 
-test('cheerio-error-snapshot', async ({ expect, createActor, runActor }) => {
-    const actor = await createActor('cheerio-error-snapshot', {
-        source: scenario(import.meta.filename, main),
-        memory: 4096,
-    });
-    const result = await runActor(actor);
+const actor = scenario('cheerio-error-snapshot', import.meta.filename, main, { memory: 4096 });
+
+testActor(actor, 'stores HTML error snapshots', async ({ expect, run }) => {
+    const result = await run();
     const stats = await getStats(result);
 
     expect(result.status).toBe('SUCCEEDED');

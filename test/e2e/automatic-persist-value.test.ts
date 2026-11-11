@@ -1,6 +1,6 @@
-import { harness, listUserKeys, scenario } from './harness.js';
+import { testActor } from 'apify-test-tools';
 
-const { test } = harness();
+import { listUserKeys, scenario } from './harness.js';
 
 export const main = async () => {
     const { Actor, KeyValueStore } = await import('apify');
@@ -23,12 +23,10 @@ export const main = async () => {
     }, mainOptions);
 };
 
-test('automatic-persist-value', async ({ expect, createActor, runActor }) => {
-    const actor = await createActor('automatic-persist-value', {
-        source: scenario(import.meta.filename, main),
-        memory: 4096,
-    });
-    const result = await runActor(actor);
+const actor = scenario('automatic-persist-value', import.meta.filename, main, { memory: 4096 });
+
+testActor(actor, 'persists an auto-saved value to the store', async ({ expect, run }) => {
+    const result = await run();
     const keys = await listUserKeys(result);
 
     expect(result.status).toBe('SUCCEEDED');

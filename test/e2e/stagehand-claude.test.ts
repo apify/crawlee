@@ -1,6 +1,7 @@
-import { getStats, harness, scenario, validateDataset } from './harness.js';
+import { testActor } from 'apify-test-tools';
+import { describe } from 'vitest';
 
-const { test } = harness();
+import { getStats, scenario, validateDataset } from './harness.js';
 
 export const main = async () => {
     const { StagehandCrawler } = await import('@crawlee/stagehand');
@@ -33,20 +34,23 @@ export const main = async () => {
     }, mainOptions);
 };
 
-test.skipIf(!process.env.ANTHROPIC_API_KEY)('stagehand-claude', async ({ expect, createActor, runActor }) => {
-    const actor = await createActor('stagehand-claude', {
-        source: scenario(import.meta.filename, main, { image: 'playwright' }),
-        memory: 16384,
-        env: { ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY! },
-    });
-    const result = await runActor(actor);
-    const stats = await getStats(result);
-    const { items } = await result.getDataset<any>();
+const actor = scenario('stagehand-claude', import.meta.filename, main, {
+    image: 'playwright',
+    memory: 16384,
+    env: { ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY! },
+});
 
-    expect(result.status).toBe('SUCCEEDED');
-    expect(stats.requestsSucceeded).toBe(1);
-    expect(items).toHaveLength(1);
-    expect(validateDataset(items, ['url', 'codeJs', 'codePython'])).toBe(true);
-    expect(items[0].codeJs.length).toBeGreaterThan(0);
-    expect(items[0].codePython.length).toBeGreaterThan(0);
+describe.skipIf(!process.env.ANTHROPIC_API_KEY)('needs ANTHROPIC_API_KEY', () => {
+    testActor(actor, 'drives the page with Claude', async ({ expect, run }) => {
+        const result = await run();
+        const stats = await getStats(result);
+        const { items } = await result.getDataset<any>();
+
+        expect(result.status).toBe('SUCCEEDED');
+        expect(stats.requestsSucceeded).toBe(1);
+        expect(items).toHaveLength(1);
+        expect(validateDataset(items, ['url', 'codeJs', 'codePython'])).toBe(true);
+        expect(items[0].codeJs.length).toBeGreaterThan(0);
+        expect(items[0].codePython.length).toBeGreaterThan(0);
+    });
 });

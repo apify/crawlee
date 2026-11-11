@@ -86,7 +86,7 @@ There are a few small differences between how testing in jest and vitest works. 
 
 ### End-to-end tests
 
-`pnpm test:e2e` runs the `e2e` vitest project: each `test/e2e/<name>.test.ts` exports the Actor's code as `main` (self-contained: dependencies via `await import()`), which `scenario(import.meta.filename, main, { image })` combines with the Dockerfile and `package.json` of `test/e2e/templates/<image>/` (`node`, `playwright`, `puppeteer`, `camoufox`, `curl-impersonate`), pinned to tarballs of the local packages (`pnpm build` first). The test builds that Actor on the Apify platform, runs it and checks the results. It needs `APIFY_TEST_USER_API_TOKEN` (the Stagehand tests also `ANTHROPIC_API_KEY`). The Actors `crawlee-e2e-<name>` stay on the account between runs with their last build, so a failed run can be inspected in the Console.
+`pnpm test:e2e` runs the `e2e` vitest project: each `test/e2e/<name>.test.ts` exports the Actor's code as `main` (self-contained: dependencies via `await import()`), which `scenario(label, import.meta.filename, main, { image, memory })` combines with the Dockerfile and `package.json` of `test/e2e/templates/<image>/` (`node`, `playwright`, `puppeteer`, `camoufox`, `curl-impersonate`), pinned to tarballs of the local packages (`pnpm build` first). The test builds that Actor on the Apify platform, runs it and checks the results. It needs `TESTER_APIFY_TOKEN` (the Stagehand tests also `ANTHROPIC_API_KEY`). The Actors `crawlee-e2e-<name>` stay on the account between runs with their last build, so a failed run can be inspected in the Console.
 
 ### Configuration file for tests created in the package they are for
 
