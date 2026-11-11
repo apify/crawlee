@@ -2,6 +2,7 @@ import type {
     BaseHttpClient as BaseHttpClientInterface,
     CookieJar,
     CrawleeLogger,
+    ISession,
     SendRequestOptions,
     SessionFingerprint,
 } from '@crawlee/types';
@@ -42,6 +43,12 @@ export interface CustomFetchOptions {
      * cannot disable TLS verification ignore it.
      */
     ignoreTlsErrors?: boolean;
+
+    /**
+     * The session the request is sent for, from `SendRequestOptions.session`. Clients that keep state per session,
+     * such as browser pages, can use it to tell the sessions apart.
+     */
+    session?: ISession;
 }
 
 /**
@@ -208,6 +215,7 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
                 cookieJar,
                 fingerprint,
                 ignoreTlsErrors,
+                session: options?.session,
                 redirect: 'manual',
             });
 
