@@ -63,6 +63,19 @@ describe('getCgroupController()', () => {
         expect(await getCgroupController('memory', true)).toEqual({ version: 'V1', dirs: ['/sys/fs/cgroup/memory'] });
     });
 
+    test('decodes the escaped characters of mountinfo', async () => {
+        mockProcess(
+            '12:memory:/my app\n',
+            '700 699 0:40 /my\\040app /sys/fs/cgroup/my\\040memory ro,nosuid - cgroup cgroup rw,memory\n',
+            ['/sys/fs/cgroup/my memory/memory.usage_in_bytes'],
+        );
+
+        expect(await getCgroupController('memory', true)).toEqual({
+            version: 'V1',
+            dirs: ['/sys/fs/cgroup/my memory'],
+        });
+    });
+
     test('falls back to cgroup V1 when the unified hierarchy does not carry the controller', async () => {
         mockProcess(
             '0::/user.slice/a.scope\n6:memory:/user.slice/a.scope\n4:cpu,cpuacct:/user.slice/a.scope\n',

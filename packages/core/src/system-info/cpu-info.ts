@@ -178,6 +178,7 @@ export async function sampleCpuUsage(cGroupsVersion: string, dir: string): Promi
 }
 
 let previousSample: CpuSample = { containerUsage: 0, systemUsage: 0 };
+let previousSampleDir: string | undefined;
 
 /**
  * Gets the cpu usage of the system.
@@ -203,21 +204,24 @@ export async function getCurrentCpuTicksV2(
             }
             return getCurrentCpuTicks();
         }
-        // The tightest quota on the cgroup chain applies. If no limits are set, default to returning getCurrentCpuTicks.
-        let cpuAllowance = Infinity;
-        let quotaDir: string | undefined;
-        for (const dir of cgroup.dirs) {
+        // The tightest quota on the cgroup chain applies. The cpus available to the process (e.g. a cpuset) can narrow
+        // it further, these are measured on the process cgroup.
+        let cpuAllowance = os.availableParallelism();
+        let limitLevel = 0;
+        for (const [level, dir] of cgroup.dirs.entries()) {
             const quota = await getCpuQuota(cgroup.version, dir).catch(() => null);
             if (quota === null) continue;
             // eg. having a 200000us quota per 100000us means the cGroup can fully use 2 cores
             const allowance = quota / (await getCpuPeriod(cgroup.version, dir));
             if (allowance < cpuAllowance) {
                 cpuAllowance = allowance;
-                quotaDir = dir;
+                limitLevel = level;
             }
         }
-        if (quotaDir === undefined) {
-            // no cgroup limit, return host cpu load
+
+        const numCpus = os.cpus().length;
+        if (cpuAllowance >= numCpus) {
+            // no cgroup limit narrower than the machine, return host cpu load
             return getCurrentCpuTicks();
         }
         if (!CLOCK_TICKS_CHECKED) {
@@ -231,21 +235,31 @@ export async function getCurrentCpuTicksV2(
             CLOCK_TICKS_CHECKED = true;
         }
 
-        // The usage is measured where the quota applies. cgroup V1 mounts cpuacct together with cpu.
-        const sample = await sampleCpuUsage(cgroup.version, quotaDir);
+        // The usage is measured where the limit applies. cgroup V1 can mount cpuacct apart from cpu.
+        const usageDirs = cgroup.version === 'V1' ? (await getCgroupController('cpuacct'))?.dirs : cgroup.dirs;
+        const usageDir = usageDirs?.[limitLevel];
+        if (usageDir === undefined) {
+            throw new Error('cgroup cpu usage not available');
+        }
+        const sample = await sampleCpuUsage(cgroup.version, usageDir);
 
+        // Counters of different cgroups are not comparable, e.g. after the tightest quota moved to another level.
+        if (usageDir !== previousSampleDir) {
+            previousSample = { containerUsage: 0, systemUsage: 0 };
+            previousSampleDir = usageDir;
+        }
         const containerDelta = sample.containerUsage - previousSample.containerUsage;
         const systemDelta = sample.systemUsage - previousSample.systemUsage;
 
         previousSample = sample;
 
-        const numCpus = os.cpus().length;
-
         // Calculate the CPU usage percentage.
         return ((containerDelta / systemDelta) * numCpus) / cpuAllowance;
     } catch (err) {
         // if anything fails, default to bare metal metrics
-        logger?.warning('Cpu snapshot failed, falling back to bare-metal metrics.', { error: err as Error });
+        logger?.warningOnce(
+            `Cpu snapshot failed, falling back to bare-metal metrics. Cause: ${(err as Error).message}`,
+        );
         return getCurrentCpuTicks();
     }
 }
