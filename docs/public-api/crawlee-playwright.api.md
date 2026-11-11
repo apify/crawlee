@@ -27,7 +27,6 @@ import type { CrawleeLogger } from '@crawlee/types';
 import type { CrawlerRemoteBrowserOptions } from '@crawlee/browser';
 import type { CrawlingContext } from '@crawlee/basic';
 import { CrawlingRequest } from '@crawlee/browser';
-import { CustomFetchOptions } from '@crawlee/http-client';
 import type { Dictionary } from '@crawlee/types';
 import type { Download } from 'playwright';
 import type { EnqueueLinksOptions } from '@crawlee/basic';
@@ -50,6 +49,7 @@ import type { RouterRoutes } from '@crawlee/browser';
 import type { RouterRoutes as RouterRoutes_2 } from '@crawlee/basic';
 import type { RouteSchemas } from '@crawlee/browser';
 import type { RoutesFromSchemas } from '@crawlee/browser';
+import type { SendRequestOptions } from '@crawlee/types';
 import type { SkippedRequestCallback } from '@crawlee/browser';
 import type { StorageTransactionView } from '@crawlee/core';
 import type { UrlPatternInput } from '@crawlee/browser';
@@ -156,7 +156,9 @@ interface BlockRequestsOptions {
 export class BrowserFetchHttpClient extends BaseHttpClient {
     constructor(options: BrowserFetchHttpClientOptions);
     // (undocumented)
-    protected fetch(request: Request, options?: RequestInit & CustomFetchOptions): Promise<Response>;
+    protected fetch(): Promise<Response>;
+    // (undocumented)
+    sendRequest(request: Request, options?: SendRequestOptions): Promise<Response>;
 }
 
 // @public (undocumented)

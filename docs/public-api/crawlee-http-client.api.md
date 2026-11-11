@@ -7,7 +7,6 @@
 import type { BaseHttpClient as BaseHttpClient_2 } from '@crawlee/types';
 import type { CookieJar } from '@crawlee/types';
 import type { CrawleeLogger } from '@crawlee/types';
-import type { ISession } from '@crawlee/types';
 import type { SendRequestOptions } from '@crawlee/types';
 import type { SessionFingerprint } from '@crawlee/types';
 
@@ -26,7 +25,6 @@ export interface CustomFetchOptions {
     fingerprint?: SessionFingerprint;
     ignoreTlsErrors?: boolean;
     proxyUrl?: string;
-    session?: ISession;
 }
 
 // @public

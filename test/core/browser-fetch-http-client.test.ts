@@ -365,6 +365,21 @@ describe('BrowserFetchHttpClient', () => {
             expect(await failure).toBe('net::ERR_ABORTED');
         });
 
+        test('cancels the request in the page when it times out', async () => {
+            const httpClient = new BrowserFetchHttpClient({ browserPool });
+            // Opens the page first, so the request has one to fail in
+            await get(httpClient, `${baseUrl}/final`);
+            const [page] = openPages();
+            const failure = new Promise((resolve) => {
+                page.once('requestfailed', (request) => resolve(request.failure()?.errorText));
+            });
+
+            await expect(
+                httpClient.sendRequest(new Request(`${baseUrl}/hang`), { timeoutMillis: 300 }),
+            ).rejects.toThrow();
+            expect(await failure).toBe('net::ERR_ABORTED');
+        });
+
         test('warns that ignoreTlsErrors is ignored', async () => {
             const logger = { warningOnce: vi.fn() } as unknown as CrawleeLogger;
             const httpClient = new BrowserFetchHttpClient({ browserPool, logger });

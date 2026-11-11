@@ -6,8 +6,8 @@ import {
     SessionRetiredError,
     toughCookieToBrowserPoolCookie,
 } from '@crawlee/basic';
-import { BaseHttpClient, type CustomFetchOptions, ResponseWithUrl } from '@crawlee/http-client';
-import type { CookieJar, CrawleeLogger, IBrowserPool, ISession } from '@crawlee/types';
+import { BaseHttpClient, ResponseWithUrl } from '@crawlee/http-client';
+import type { CookieJar, CrawleeLogger, IBrowserPool, ISession, SendRequestOptions } from '@crawlee/types';
 import type { Page } from 'playwright';
 
 export interface BrowserFetchHttpClientOptions {
@@ -41,7 +41,6 @@ interface OpenPage {
     requests: number;
 }
 
-const CONTROLLERS_KEY = 'crawlee.browserFetchHttpClient';
 const EMPTY_DOCUMENT_PATH = '/__crawlee_browser_fetch__';
 
 /**
@@ -52,8 +51,8 @@ const EMPTY_DOCUMENT_PATH = '/__crawlee_browser_fetch__';
  * each request, and the cookies of the page are saved to the session after it. Pages of sessions that are no longer
  * usable are closed, so the pool retires the browser of a blocked session.
  *
- * Redirects to another origin fail, as the browser treats them as cross-origin requests. The `proxyUrl`, `fingerprint`
- * and `ignoreTlsErrors` options are ignored, the pool decides them for the session.
+ * Redirects to another origin fail, as the browser treats them as cross-origin requests. The `proxyUrl` and
+ * `ignoreTlsErrors` options are ignored, the pool decides them for the session.
  */
 export class BrowserFetchHttpClient extends BaseHttpClient {
     #browserPool: IBrowserPool<Page>;
@@ -73,10 +72,19 @@ export class BrowserFetchHttpClient extends BaseHttpClient {
         this.#logger = options.logger;
     }
 
-    protected override async fetch(request: Request, options?: RequestInit & CustomFetchOptions): Promise<Response> {
-        const { session, cookieJar } = options ?? {};
+    protected override fetch(): Promise<Response> {
+        throw new Error('BrowserFetchHttpClient implements `sendRequest` itself; `fetch` is never called.');
+    }
 
-        if (options?.ignoreTlsErrors && !session?.proxyInfo?.ignoreTlsErrors) {
+    // The browser handles cookies and redirects itself, so none of the `BaseHttpClient` logic applies
+    override async sendRequest(request: Request, options?: SendRequestOptions): Promise<Response> {
+        const session = options?.session;
+        const cookieJar = options?.cookieJar ?? session?.cookieJar;
+        const timeout = options?.timeoutMillis ? AbortSignal.timeout(options.timeoutMillis) : undefined;
+        const signal =
+            options?.signal && timeout ? AbortSignal.any([options.signal, timeout]) : (options?.signal ?? timeout);
+
+        if (options?.ignoreTlsErrors) {
             this.#logger?.warningOnce(
                 'BrowserFetchHttpClient cannot disable TLS certificate verification, the `ignoreTlsErrors` option is ignored. ' +
                     'The browser pool decides it.',
@@ -91,8 +99,7 @@ export class BrowserFetchHttpClient extends BaseHttpClient {
         try {
             const page = await openPage.page;
             await this.#injectCookies(page, request.url, cookieJar);
-            // `options.redirect` is ignored, the browser follows redirects itself
-            const response = await this.#fetchInPage(page, request, options?.signal);
+            const response = await this.#fetchInPage(page, request, signal);
             await this.#saveCookies(page, response.url, cookieJar);
 
             return response;
@@ -109,6 +116,10 @@ export class BrowserFetchHttpClient extends BaseHttpClient {
         let login = this.#logins.get(id);
 
         if (!login) {
+            for (const [loginId, { session: loginSession }] of this.#logins) {
+                if (loginSession && !loginSession.isUsable()) this.#logins.delete(loginId);
+            }
+
             const started = { session, done: this.#runLogin(session, cookieJar) };
             // A failed login is tried again on the next request of the session
             started.done.catch(() => {
@@ -168,21 +179,16 @@ export class BrowserFetchHttpClient extends BaseHttpClient {
         for (const [key, { page, session, requests }] of this.#pages) {
             if (requests > 0) continue;
 
-            const sessionFinished = session !== undefined && !session.isUsable();
-            if (!sessionFinished && this.#pages.size <= this.#maxOpenPages) continue;
+            let error: Error | undefined;
+            // Like browser crawlers, report a blocked session as a `SessionError`, so the pool retires its browser
+            if (session && !session.isUsable()) {
+                error = session.isBlocked() ? new SessionError() : new SessionRetiredError();
+            } else if (this.#pages.size <= this.#maxOpenPages) {
+                continue;
+            }
 
             this.#pages.delete(key);
-            // Like browser crawlers, report a blocked session as a `SessionError`, so the pool retires its browser
-            const error = !sessionFinished
-                ? undefined
-                : session.isBlocked()
-                  ? new SessionError()
-                  : new SessionRetiredError();
             page.then(async (p) => this.#browserPool.closePage(p, { error })).catch(() => {});
-        }
-
-        for (const [id, { session }] of this.#logins) {
-            if (session && !session.isUsable()) this.#logins.delete(id);
         }
     }
 
@@ -225,14 +231,11 @@ export class BrowserFetchHttpClient extends BaseHttpClient {
     async #fetchInPage(page: Page, request: Request, signal?: AbortSignal | null): Promise<Response> {
         signal?.throwIfAborted();
 
-        const body = request.body ? new Uint8Array(await request.arrayBuffer()) : undefined;
+        const body = request.body ? new Uint8Array(await request.clone().arrayBuffer()) : undefined;
         const id = randomUUID();
         const aborted = Promise.withResolvers<never>();
         const onAbort = () => {
-            page.evaluate(([key, requestId]) => (globalThis as any)[Symbol.for(key)]?.get(requestId)?.abort(), [
-                CONTROLLERS_KEY,
-                id,
-            ] as const).catch(() => {});
+            page.evaluate((requestId) => (globalThis as any)[requestId]?.abort(), id).catch(() => {});
             aborted.reject(signal!.reason);
         };
         signal?.addEventListener('abort', onAbort, { once: true });
@@ -240,22 +243,18 @@ export class BrowserFetchHttpClient extends BaseHttpClient {
         try {
             const { body: responseBody, ...responseInit } = await Promise.race([
                 page.evaluate(
-                    async ({ key, requestId, url, method, headers, body }) => {
-                        const controllers: Map<string, AbortController> = ((globalThis as any)[Symbol.for(key)] ??=
-                            new Map());
+                    async ({ requestId, url, method, headers, body }) => {
                         const controller = new AbortController();
-                        controllers.set(requestId, controller);
+                        (globalThis as any)[requestId] = controller;
 
                         try {
-                            const init: RequestInit = {
+                            const response = await fetch(url, {
                                 method,
                                 headers,
                                 body,
                                 credentials: 'include',
                                 signal: controller.signal,
-                            };
-
-                            const response = await fetch(url, init);
+                            });
 
                             return {
                                 status: response.status,
@@ -265,11 +264,10 @@ export class BrowserFetchHttpClient extends BaseHttpClient {
                                 body: new Uint8Array(await response.arrayBuffer()),
                             };
                         } finally {
-                            controllers.delete(requestId);
+                            delete (globalThis as any)[requestId];
                         }
                     },
                     {
-                        key: CONTROLLERS_KEY,
                         requestId: id,
                         url: request.url,
                         method: request.method,

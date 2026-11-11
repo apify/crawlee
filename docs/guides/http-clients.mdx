@@ -84,12 +84,12 @@ Some sites only serve content to a browser that has logged in or passed an anti-
 
 <CodeBlock language="ts">{CheerioBrowserFetchExample}</CodeBlock>
 
-Every session gets its own page for each origin (the scheme, host and port of the URL), opened by the pool for that session, so it uses the session's proxy and fingerprint. The page shows an empty document of the origin, without loading the site, and the cookies of the session are added to it before each request and saved back to the session after it. Before the first request of a session, `login` gets a new page of the session to log in with. With the default `blockedStatusCodes`, a `401` response retires the session, its pages are closed and the pool retires their browser, and the request is retried with a new session that logs in again. The `use-until-failure` session reuse strategy keeps using one session until then, instead of logging in a new session for each of the first requests. Keep in mind that:
+Every session gets its own page for each origin (the scheme, host and port of the URL), opened by the pool for that session, so it uses the session's proxy and fingerprint. The page shows an empty document of the origin, without loading the site, and the cookies of the session are added to it before each request and saved back to the session after it. Before the first request of a session, `login` gets a new page of the session to log in with. With the default `blockedStatusCodes`, a `401` response retires the session, its pages are closed and the pool retires their browser, and the request is retried with a new session that logs in again. The `use-until-failure` session reuse strategy keeps using one session until then. With the default strategy, the session pool starts a new session for each of the first requests, so each of them gets a new page and logs in. Keep in mind that:
 
 - pages of different sessions share cookies, unless the pool opens every page in its own browser context with `launchContext.useIncognitoPages`,
 - up to `maxOpenPages` pages are kept open (20 by default), and the least recently used idle ones are closed,
 - redirects to another origin fail, as the browser treats them as cross-origin requests,
-- the `proxyUrl`, `fingerprint` and `ignoreTlsErrors` options are ignored, as the pool decides them for the session,
+- the `proxyUrl` and `ignoreTlsErrors` options are ignored, as the pool decides them for the session,
 - the browser sends only a few HTTP/1.1 requests to one host at a time (6 in Chromium), and the others wait in the browser, counting towards the navigation timeout, so keep `maxConcurrency` around that for sites without HTTP/2.
 
 ## Creating custom HTTP clients
