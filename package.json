@@ -120,7 +120,7 @@
         "proxy": "^2.2.0",
         "puppeteer": "25.16.0",
         "rimraf": "^6.1.4",
-        "tsx": "4.23.15",
+        "tsx": "4.21.0",
         "turbo": "^2.11.10",
         "typescript": "^7.0.2",
         "typescript-v6": "npm:typescript@^6.0.3",
