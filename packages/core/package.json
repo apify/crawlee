@@ -64,7 +64,7 @@
         "csv-stringify": "^6.9.0",
         "json5": "^2.2.3",
         "mime-types": "^3.0.2",
-        "stream-json": "^3.8.0",
+        "stream-json": "^3.9.0",
         "tslib": "^2.9.1",
         "type-fest": "^4.41.0",
         "zod": "catalog:"
