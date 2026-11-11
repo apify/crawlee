@@ -1,8 +1,14 @@
+import { createHash } from 'node:crypto';
 import { gzipSync } from 'node:zlib';
 
 import { FetchHttpClient } from '@crawlee/http-client';
 import nock from 'nock';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vitest } from 'vitest';
+
+vitest.mock('node:crypto', async (importActual) => {
+    const actual = await importActual<typeof import('node:crypto')>();
+    return { ...actual, createHash: vitest.fn(actual.createHash) };
+});
 
 import type { SitemapUrl } from '../../packages/utils/src/internals/sitemap.js';
 import { discoverValidSitemaps, parseSitemap, Sitemap } from '../../packages/utils/src/internals/sitemap.js';
@@ -638,6 +644,31 @@ describe('Sitemap', () => {
         expect(items[0].lastmod).toBeUndefined();
         expect(items[1].lastmod).toBeUndefined();
         expect(items[1].priority).toBeUndefined();
+    });
+
+    it('hashes raw sitemap content once, not once per url', async () => {
+        vitest.mocked(createHash).mockClear();
+        const locs = Array.from({ length: 50 }, (_, i) => `http://not-exists.com/page-${i}`);
+
+        const items: SitemapUrl[] = [];
+        for await (const item of parseSitemap([
+            {
+                type: 'raw',
+                content: [
+                    '<?xml version="1.0" encoding="UTF-8"?>',
+                    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+                    ...locs.map((loc) => `<url><loc>${loc}</loc></url>`),
+                    '</urlset>',
+                ].join('\n'),
+            },
+        ])) {
+            items.push(item);
+        }
+
+        expect(items.map((item) => item.loc)).toEqual(locs);
+        expect(new Set(items.map((item) => item.originSitemapUrl)).size).toBe(1);
+        expect(items[0].originSitemapUrl).toMatch(/^raw:\/\//);
+        expect(createHash).toHaveBeenCalledTimes(1);
     });
 
     it('loads sitemaps that reference other sitemaps from string', async () => {
