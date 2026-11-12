@@ -15,6 +15,9 @@ concurrency:
     group: ${{ github.workflow }}-${{ github.ref }}
     cancel-in-progress: true
 
+permissions:
+    contents: read
+
 jobs:
     build_and_test:
         name: Build & Test
@@ -273,6 +276,10 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/master' && (!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, 'docs:'))
         needs: build_and_test
         runs-on: ubuntu-26.04
+        permissions:
+            contents: read
+            # Starts publish-to-npm.yml and waits for it with the job token.
+            actions: write
 
         steps:
             -   name: Checkout repository
