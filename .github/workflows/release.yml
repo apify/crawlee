@@ -28,6 +28,9 @@ concurrency:
     group: ${{ github.workflow }}-${{ github.ref }}
     cancel-in-progress: true
 
+permissions:
+    contents: read
+
 jobs:
     # Test before releasing to ensure we don't release a broken version
     build_and_test:
@@ -44,17 +47,19 @@ jobs:
 
         steps:
             -   name: Checkout repository
-                uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+                uses: actions/checkout@v7.0.1
+                with:
+                    persist-credentials: false
 
             -   name: Use Node.js ${{ matrix.node-version }}
-                uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+                uses: actions/setup-node@v7.1.0
                 with:
                     node-version: ${{ matrix.node-version }}
                     package-manager-cache: false
 
             -   name: Turbo cache
                 id: turbo-cache
-                uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+                uses: actions/cache@v6.1.0
                 with:
                     path: .turbo
                     key: turbo-${{ github.job }}-${{ github.ref_name }}-${{ github.sha }}
@@ -77,23 +82,27 @@ jobs:
         if: (!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, 'docs:'))
         needs: build_and_test
         runs-on: ubuntu-26.04
+        permissions:
+            contents: read
+            # Starts publish-to-npm.yml and waits for it with the job token.
+            actions: write
 
         steps:
             -   name: Checkout repository
-                uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+                uses: actions/checkout@v7.0.1
                 with:
                     token: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
                     fetch-depth: 0
 
             -   name: Use Node.js 24
-                uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+                uses: actions/setup-node@v7.1.0
                 with:
                     node-version: 24
                     package-manager-cache: false
 
             -   name: Turbo cache
                 id: turbo-cache
-                uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+                uses: actions/cache@v6.1.0
                 with:
                     path: .turbo
                     key: turbo-${{ github.job }}-${{ github.ref_name }}-${{ github.sha }}
@@ -132,7 +141,7 @@ jobs:
 
             -   name: Commit changes
                 id: commit
-                uses: EndBug/add-and-commit@cc9c08ba6c8df3b93a8f2db63e89b98368ae2ae8 # v11.1.1
+                uses: EndBug/add-and-commit@v11.1.1
                 with:
                   author_name: Apify Release Bot
                   author_email: noreply@apify.com
@@ -150,7 +159,7 @@ jobs:
                       }
 
             -   name: Trigger Docker image builds
-                uses: peter-evans/repository-dispatch@28959ce8df70de7be546dd1250a005dd32156697 # v4.0.1
+                uses: peter-evans/repository-dispatch@v4.0.1
                 with:
                     token: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
                     repository: apify/apify-actor-docker
@@ -164,14 +173,14 @@ jobs:
 
         steps:
             -   name: Checkout repository
-                uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+                uses: actions/checkout@v7.0.1
                 with:
                     ref: ${{ github.event.repository.default_branch }}
                     token: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
                     fetch-depth: 0
 
             -   name: Use Node.js 24
-                uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+                uses: actions/setup-node@v7.1.0
                 with:
                     node-version: 24
                     package-manager-cache: false
@@ -195,7 +204,7 @@ jobs:
                     pnpm docusaurus api:version $MAJOR_MINOR
 
             -   name: Commit and push the version snapshot
-                uses: EndBug/add-and-commit@cc9c08ba6c8df3b93a8f2db63e89b98368ae2ae8 # v11.1.1
+                uses: EndBug/add-and-commit@v11.1.1
                 with:
                     author_name: Apify Release Bot
                     author_email: noreply@apify.com
