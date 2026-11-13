@@ -1,7 +1,7 @@
 import http from 'node:http';
 import { promisify } from 'node:util';
 
-import { sleep } from 'crawlee';
+import { Session, sleep } from 'crawlee';
 import type { BrowserFingerprintWithHeaders } from 'fingerprint-generator';
 import playwright from 'playwright';
 import type { Server as ProxyChainServer } from 'proxy-chain';
@@ -1086,6 +1086,20 @@ describe('BrowserPool - fingerprints', () => {
             const [options] = mock.mock.calls[0];
             expect(options.operatingSystems.includes('windows')).toBe(true);
             expect(options.browsers.includes('chrome')).toBe(true);
+        });
+
+        test('should use session fingerprint hints', async () => {
+            browserPoolConfig = new BrowserPool({
+                ...commonOptions,
+                useFingerprints: true,
+            });
+            const session = new Session({ fingerprint: { browser: 'chrome' } });
+            const page: Page = await browserPoolConfig.newPage({ session });
+            await page.goto(`file://${import.meta.dirname}/test.html`);
+            const userAgent = await page.evaluate(() => navigator.userAgent);
+            await page.close();
+
+            expect(userAgent).toContain('Chrome/');
         });
     });
 });
