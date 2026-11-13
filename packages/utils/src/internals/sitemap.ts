@@ -67,6 +67,14 @@ class SitemapTxtParser extends Transform {
     }
 }
 
+/** Namespaces of the sitemap protocol (https://www.sitemaps.org/protocol.html), including Google's legacy ones. */
+const SITEMAP_NAMESPACES = new Set([
+    'http://www.sitemaps.org/schemas/sitemap/0.9',
+    'https://www.sitemaps.org/schemas/sitemap/0.9',
+    'http://www.google.com/schemas/sitemap/0.9',
+    'http://www.google.com/schemas/sitemap/0.84',
+]);
+
 class SitemapXmlParser extends Transform {
     #decoder: StringDecoder = new StringDecoder('utf8');
     #parser: sax.SAXParser;
@@ -74,6 +82,8 @@ class SitemapXmlParser extends Transform {
     #rootTagName?: 'sitemapindex' | 'urlset';
     #currentTag?: 'loc' | 'lastmod' | 'changefreq' | 'priority' = undefined;
     #url: Partial<SitemapUrl> = {};
+    /** Prefixes bound to the sitemap namespace, e.g. `ns0` for `<ns0:urlset xmlns:ns0="...">`. */
+    #sitemapPrefixes = new Set<string>();
 
     static async create(): Promise<SitemapXmlParser> {
         const { SAXParser } = (await import('sax')).default;
@@ -108,26 +118,41 @@ class SitemapXmlParser extends Transform {
         this.#parser.onerror = this.destroy.bind(this);
     }
 
+    /**
+     * Returns the local name of a sitemap protocol element, or `undefined` for an element of another
+     * namespace (such as `image:loc`). Unprefixed elements are sitemap elements, as before.
+     */
+    #sitemapTagName(qualifiedName: string): string | undefined {
+        const colon = qualifiedName.indexOf(':');
+        if (colon === -1) return qualifiedName;
+        return this.#sitemapPrefixes.has(qualifiedName.slice(0, colon)) ? qualifiedName.slice(colon + 1) : undefined;
+    }
+
     #onOpenTag(node: sax.Tag | sax.QualifiedTag) {
-        if (this.#rootTagName !== undefined) {
-            if (
-                node.name === 'loc' ||
-                node.name === 'lastmod' ||
-                node.name === 'priority' ||
-                node.name === 'changefreq'
-            ) {
-                this.#currentTag = node.name;
+        for (const [attribute, value] of Object.entries(node.attributes)) {
+            if (attribute.startsWith('xmlns:') && SITEMAP_NAMESPACES.has(String(value).trim())) {
+                this.#sitemapPrefixes.add(attribute.slice('xmlns:'.length));
             }
         }
-        if (node.name === 'urlset') {
+
+        const name = this.#sitemapTagName(node.name);
+
+        if (this.#rootTagName !== undefined) {
+            if (name === 'loc' || name === 'lastmod' || name === 'priority' || name === 'changefreq') {
+                this.#currentTag = name;
+            }
+        }
+        if (name === 'urlset') {
             this.#rootTagName = 'urlset';
         }
-        if (node.name === 'sitemapindex') {
+        if (name === 'sitemapindex') {
             this.#rootTagName = 'sitemapindex';
         }
     }
 
-    #onCloseTag(name: string) {
+    #onCloseTag(qualifiedName: string) {
+        const name = this.#sitemapTagName(qualifiedName);
+
         if (name === 'loc' || name === 'lastmod' || name === 'priority' || name === 'changefreq') {
             this.#currentTag = undefined;
         }
