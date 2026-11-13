@@ -71,6 +71,11 @@ describe('htmlToText()', () => {
         await checkHtmlToText('<SCRIPT>Skip_scripts();</SCRIPT><div>Div1</div>', 'Div1');
         await checkHtmlToText('<svg>Skip svg</svg><div>Div1</div>', 'Div1');
         await checkHtmlToText('<canvas>Skip canvas</canvas><div>Div1</div>', 'Div1');
+        await checkHtmlToText('<template><div>Skip {{ template }}</div></template><div>Div1</div>', 'Div1');
+        await checkHtmlToText(
+            '<ul><template x-for="item in items"><li x-text="item.name">Placeholder</li></template><li>Item 1</li></ul>',
+            'Item 1',
+        );
 
         await checkHtmlToText('<b>A  B  C  D  E\n\nF  G</b>', 'A B C D E F G');
         await checkHtmlToText('<pre>A  B  C  D  E\n\nF  G</pre>', 'A  B  C  D  E\n\nF  G');
