@@ -64,30 +64,3 @@ export async function isContainerized() {
 export function isLambda() {
     return !!process.env.AWS_LAMBDA_FUNCTION_MEMORY_SIZE;
 }
-
-let cgroupsVersion: null | 'V1' | 'V2';
-/**
- * gets the cgroup version by checking for a file at /sys/fs/cgroup/memory
- * @returns "V1" or "V2" for the version of cgroup or null if cgroup is not found.
- */
-export async function getCgroupsVersion(forceReset?: boolean) {
-    // Parameter forceReset is just internal for unit tests.
-    if (cgroupsVersion !== undefined && !forceReset) {
-        return cgroupsVersion;
-    }
-    try {
-        // If this directory does not exists, cgroups are not available
-        await fs.access('/sys/fs/cgroup/');
-    } catch (e) {
-        cgroupsVersion = null;
-        return null;
-    }
-    cgroupsVersion = 'V1';
-    try {
-        // If this directory does not exists, assume the container is using cgroups V2
-        await fs.access('/sys/fs/cgroup/memory/');
-    } catch (e) {
-        cgroupsVersion = 'V2';
-    }
-    return cgroupsVersion;
-}
