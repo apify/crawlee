@@ -10,6 +10,7 @@ import { defaultExclude, defineConfig, mergeConfig } from 'vitest/config';
 const browserTests = [
     'test/browser-pool/**/*.test.ts',
     'test/core/autoscaling/memory-info-v2.test.ts',
+    'test/core/browser-fetch-http-client.test.ts',
     'test/core/browser-launchers/*.test.ts',
     'test/core/crawlers/adaptive-playwright-crawler.test.ts',
     'test/core/crawlers/browser-crawler.test.ts',

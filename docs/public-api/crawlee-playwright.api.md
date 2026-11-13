@@ -6,6 +6,7 @@
 
 import type { AnyNode } from 'domhandler';
 import type { Awaitable } from '@crawlee/types';
+import { BaseHttpClient } from '@crawlee/http-client';
 import { BasicCrawler } from '@crawlee/basic';
 import type { BasicCrawlerOptions } from '@crawlee/basic';
 import type { BatchAddRequestsResult } from '@crawlee/types';
@@ -22,6 +23,7 @@ import type { BrowserType } from 'playwright';
 import { Cheerio } from 'cheerio';
 import { CheerioAPI } from 'cheerio';
 import { Configuration } from '@crawlee/browser';
+import type { CrawleeLogger } from '@crawlee/types';
 import type { CrawlerRemoteBrowserOptions } from '@crawlee/browser';
 import type { CrawlingContext } from '@crawlee/basic';
 import { CrawlingRequest } from '@crawlee/browser';
@@ -30,7 +32,9 @@ import type { Download } from 'playwright';
 import type { EnqueueLinksOptions } from '@crawlee/basic';
 import type { GetUserDataFromRequest } from '@crawlee/browser';
 import type { GetUserDataFromRequest as GetUserDataFromRequest_2 } from '@crawlee/basic';
+import type { IBrowserPool } from '@crawlee/types';
 import { IRequestManager } from '@crawlee/browser';
+import type { ISession } from '@crawlee/types';
 import type { LaunchOptions } from 'playwright';
 import type { LoadedRequest } from '@crawlee/browser';
 import type { Page } from 'playwright';
@@ -45,6 +49,7 @@ import type { RouterRoutes } from '@crawlee/browser';
 import type { RouterRoutes as RouterRoutes_2 } from '@crawlee/basic';
 import type { RouteSchemas } from '@crawlee/browser';
 import type { RoutesFromSchemas } from '@crawlee/browser';
+import type { SendRequestOptions } from '@crawlee/types';
 import type { SkippedRequestCallback } from '@crawlee/browser';
 import type { StorageTransactionView } from '@crawlee/core';
 import type { UrlPatternInput } from '@crawlee/browser';
@@ -145,6 +150,24 @@ function blockRequests(page: Page, options?: BlockRequestsOptions): Promise<void
 interface BlockRequestsOptions {
     extraUrlPatterns?: string[];
     urlPatterns?: string[];
+}
+
+// @public
+export class BrowserFetchHttpClient extends BaseHttpClient {
+    constructor(options: BrowserFetchHttpClientOptions);
+    // (undocumented)
+    protected fetch(): Promise<Response>;
+    // (undocumented)
+    sendRequest(request: Request, options?: SendRequestOptions): Promise<Response>;
+}
+
+// @public (undocumented)
+export interface BrowserFetchHttpClientOptions {
+    browserPool: IBrowserPool<Page>;
+    // (undocumented)
+    logger?: CrawleeLogger;
+    login?: (page: Page, session?: ISession) => Promise<void>;
+    maxOpenPages?: number;
 }
 
 // Not exported by the entry point; reachable only as a referenced type.
