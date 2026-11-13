@@ -15,6 +15,7 @@ import PuppeteerSource from '!!raw-loader!./avoid-blocking-puppeteer';
 import PlaywrightFingerprintsOffSource from '!!raw-loader!./avoid-blocking-playwright-fingerprints-off.ts';
 import PuppeteerFingerprintsOffSource from '!!raw-loader!./avoid-blocking-puppeteer-fingerprints-off.ts';
 import PlaywrightCamoufox from '!!raw-loader!./avoid-blocking-camoufox.ts';
+import PlaywrightBrowserFetch from '!!raw-loader!./avoid-blocking-browser-fetch.ts';
 
 A scraper might get blocked for numerous reasons. Let's narrow it down to the two main ones. The first is a bad or blocked IP address. You can learn about this topic in the [proxy management guide](./proxy-management). The second reason is [browser fingerprints](https://pixelprivacy.com/resources/browser-fingerprinting/) (or signatures), which we will explore more in this guide. Check the [Apify Academy anti-scraping course](https://docs.apify.com/academy/anti-scraping) to gain a deeper theoretical understanding of blocking and learn a few tips and tricks.
 
@@ -88,6 +89,16 @@ const crawler = new CheerioCrawler({
     },
 });
 ```
+
+## Sending requests from a browser page
+
+Some sites block HTTP clients no matter how well they impersonate a browser, or serve their API only to logged-in users. In that case, send the requests with `fetch()` from a browser page, so that they carry the browser's TLS fingerprint and cookies.
+
+<CodeBlock language="ts">
+    {PlaywrightBrowserFetch}
+</CodeBlock>
+
+The pre-navigation hook replaces the page with an empty document, so the site is not loaded, but `fetch()` runs on the site's origin and sends its cookies. The crawler saves the cookies to the session, so with the `use-until-failure` strategy, a single login serves all requests until a `401` retires the session.
 
 ## Camoufox
 
