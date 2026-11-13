@@ -98,7 +98,7 @@ export class DatasetBackend<Data extends Dictionary = Dictionary>
 
         for (let idx = start; idx < end; idx++) {
             const entryNumber = this.#generateLocalEntryName(idx);
-            items.push(this.#datasetEntries.get(entryNumber)!);
+            items.push(JSON.parse(JSON.stringify(this.#datasetEntries.get(entryNumber)!)) as Data);
         }
 
         this.#updateTimestamps(false);
