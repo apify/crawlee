@@ -122,7 +122,7 @@ export interface ThrottlingRequestManagerOptions<T extends IRequestManager = IRe
      * written under `domains: 'all'`.
      *
      * Give each manager its own key when running several of them against the same storage.
-     * @default 'CRAWLEE_THROTTLED_DOMAINS'
+     * @default CRAWLEE_THROTTLED_DOMAINS_{n}, where `n` is the manager's creation order in the process
      */
     persistStateKey?: string;
 
@@ -224,7 +224,7 @@ function newDomainState(domain: string): DomainState {
     };
 }
 
-const DEFAULT_PERSIST_STATE_KEY = 'CRAWLEE_THROTTLED_DOMAINS';
+const PERSIST_STATE_KEY_PREFIX = 'CRAWLEE_THROTTLED_DOMAINS';
 
 /**
  * How many requests one fetch may move out of the wrapped manager before giving up on finding a dispatchable
@@ -279,6 +279,8 @@ const MAX_INNER_MIGRATIONS = 1000;
  * @category Sources
  */
 export class ThrottlingRequestManager<T extends IRequestManager = IRequestManager> implements IRequestManager {
+    static #nextId = 0;
+
     readonly #innerFactory: () => T | Promise<T>;
     #innerPromise?: Promise<T>;
     #resolvedInner?: T;
@@ -370,7 +372,8 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         this.#throttlesEveryDomain = options.domains === 'all';
         this.#throttleBy = options.throttleBy ?? 'hostname';
         this.#maxThrottledDomains = options.maxThrottledDomains ?? 100;
-        this.#persistStateKey = options.persistStateKey ?? DEFAULT_PERSIST_STATE_KEY;
+        this.#persistStateKey =
+            options.persistStateKey ?? `${PERSIST_STATE_KEY_PREFIX}_${ThrottlingRequestManager.#nextId++}`;
         this.#log = serviceLocator.getLogger().child({ prefix: 'ThrottlingRequestManager' });
 
         for (const domain of Array.isArray(options.domains) ? options.domains : []) {
