@@ -41,7 +41,7 @@ export async function extractMicrodata(htmlOrCheerioElement: string | CheerioAPI
 
     return $('[itemscope]')
         .toArray()
-        .filter((element) => !('itemprop' in element.attribs))
+        .filter((element) => !('itemprop' in element.attribs) && !isInsideTemplate(element))
         .map((element) => parseItem(context, element, new Set()));
 }
 
@@ -105,7 +105,8 @@ function collectFromNodes(nodes: AnyNode[], elements: Element[], visited: Set<El
         }
 
         // A nested item owns everything below it, so its subtree is not part of the enclosing item.
-        if (!('itemscope' in node.attribs)) {
+        // A `<template>`'s content is an inert fragment, not part of the document.
+        if (!('itemscope' in node.attribs) && node.tagName.toLowerCase() !== 'template') {
             collectFromNodes(node.children, elements, visited);
         }
     }
@@ -116,12 +117,27 @@ function indexIds($: CheerioAPI): Map<string, Element> {
 
     for (const element of $('[id]').toArray()) {
         // Duplicate ids are invalid HTML; `getElementById` resolves them to the first element.
-        if (!index.has(element.attribs.id)) {
+        if (!index.has(element.attribs.id) && !isInsideTemplate(element)) {
             index.set(element.attribs.id, element);
         }
     }
 
     return index;
+}
+
+/**
+ * Cheerio keeps a `<template>`'s content as its children, but in the DOM that content is a separate
+ * inert fragment, so its items and ids are not part of the document (framework placeholders like
+ * `<template x-for>` would otherwise show up as items with empty or `{{ mustache }}` values).
+ */
+function isInsideTemplate(element: Element): boolean {
+    for (let parent = element.parent; parent; parent = parent.parent) {
+        if (isTag(parent) && parent.tagName.toLowerCase() === 'template') {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 function getPropertyValue(context: ExtractionContext, element: Element, ancestors: Set<Element>): MicrodataValue {

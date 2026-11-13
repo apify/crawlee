@@ -168,4 +168,33 @@ describe('extractMicrodata', () => {
             },
         ]);
     });
+
+    it('ignores the inert content of <template> elements', async () => {
+        // Framework placeholders (Alpine's `x-for`, Vue, Lit) are not part of the document in a browser.
+        const items = await extractMicrodata(`
+            <div itemscope itemtype="https://schema.org/ItemList" itemref="offer-price">
+                <template x-for="product in products">
+                    <div itemprop="itemListElement" itemscope itemtype="https://schema.org/Product">
+                        <span itemprop="name" x-text="product.name"></span>
+                    </div>
+                </template>
+                <div itemprop="itemListElement" itemscope itemtype="https://schema.org/Product">
+                    <span itemprop="name">Rendered</span>
+                </div>
+            </div>
+            <template>
+                <div itemscope itemtype="https://schema.org/Offer">
+                    <span id="offer-price" itemprop="price">{{ price }}</span>
+                </div>
+            </template>`);
+
+        expect(items).toEqual([
+            {
+                type: ['https://schema.org/ItemList'],
+                properties: {
+                    itemListElement: { type: ['https://schema.org/Product'], properties: { name: 'Rendered' } },
+                },
+            },
+        ]);
+    });
 });
