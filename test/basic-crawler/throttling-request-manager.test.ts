@@ -422,12 +422,48 @@ describe('ThrottlingRequestManager', () => {
             const factory = vitest.fn(async () => createQueue());
             const manager = new ThrottlingRequestManager({ ...throttling, inner: factory });
 
-            await manager.purge();
             await manager.setExpectedRequestProcessingTime(600);
-            await manager.drop();
 
             expect(factory).not.toHaveBeenCalled();
             expect(manager.innerManager).toBeUndefined();
+        });
+
+        test('is opened and emptied by purge(), so requests left in it by a previous run are not crawled', async () => {
+            const leftover = await createQueue('leftover-inner');
+            await leftover.addRequest({ url: 'https://other.com/left-behind' });
+
+            const manager = new ThrottlingRequestManager({
+                ...throttling,
+                inner: () => createQueue('leftover-inner'),
+            });
+
+            await manager.purge();
+
+            expect(manager.innerManager).toBeDefined();
+            expect(await manager.getTotalCount()).toBe(0);
+            expect(await manager.fetchNextRequest()).toBeNull();
+        });
+
+        test('is opened and emptied by purge() when omitted entirely', async () => {
+            const leftover = await RequestQueue.open();
+            await leftover.addRequest({ url: 'https://other.com/left-behind' });
+
+            const manager = new ThrottlingRequestManager({ ...throttling });
+            await manager.purge();
+
+            expect(await manager.getTotalCount()).toBe(0);
+            expect(await manager.fetchNextRequest()).toBeNull();
+        });
+
+        test('is opened and dropped by drop()', async () => {
+            const leftover = await createQueue('leftover-inner');
+            await leftover.addRequest({ url: 'https://other.com/left-behind' });
+            const dropSpy = vitest.spyOn(leftover, 'drop');
+
+            const manager = new ThrottlingRequestManager({ ...throttling, inner: () => leftover });
+            await manager.drop();
+
+            expect(dropSpy).toHaveBeenCalledTimes(1);
         });
 
         test('receives an expected-processing-time hint given before it was resolved', async () => {
