@@ -24,7 +24,7 @@
     "@opentelemetry/semantic-conventions": "^1.45.0",
     "apify": "*",
     "crawlee": "workspace:*",
-    "impit": "^0.14.8",
+    "impit": "^0.14.9",
     "pino": "^10.4.0",
     "playwright-extra": "^4.3.6",
     "puppeteer-extra": "^3.3.6",

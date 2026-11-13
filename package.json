@@ -58,7 +58,7 @@
         "prepare": "husky"
     },
     "devDependencies": {
-        "@apify/log": "^3.0.1",
+        "@apify/log": "^3.0.2",
         "@apify/oxlint-config": "^0.3.0",
         "@apify/tsconfig": "^0.2.0",
         "@crawlee/basic": "workspace:*",
@@ -121,7 +121,7 @@
         "puppeteer": "25.17.0",
         "rimraf": "^6.1.4",
         "tsx": "4.21.0",
-        "turbo": "^2.11.10",
+        "turbo": "^2.11.11",
         "typescript": "^7.0.2",
         "typescript-v6": "npm:typescript@^6.0.3",
         "vitest": "^5.1.0",
