@@ -134,7 +134,7 @@ export class RenderingTypePredictor implements IRenderingTypePredictor {
             // The codec validates in the decode direction, so it is a Standard Schema as-is; encoding needs a call.
             deserialize: stateCodec,
             serialize: (state) => stateCodec.encode(state),
-            persistStateKey: 'rendering-type-predictor-state',
+            persistStateKey: 'CRAWLEE_RENDERING_TYPE_PREDICTOR_STATE',
             persistenceEnabled: true,
             ...persistenceOptions,
         });
