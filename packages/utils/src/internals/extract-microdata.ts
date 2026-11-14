@@ -19,6 +19,8 @@ interface ExtractionContext {
     $: CheerioAPI;
     /** Built on first `itemref` lookup, which most documents never trigger. */
     idIndex?: Map<string, Element>;
+    /** Position of every element in tree order, built alongside `idIndex` for sorting referenced properties. */
+    treeOrder?: Map<Element, number>;
 }
 
 /**
@@ -81,12 +83,21 @@ function collectPropertyElements(context: ExtractionContext, scope: Element): El
 
     collectFromNodes(scope.children, elements, visited);
 
+    const ownCount = elements.length;
+
     for (const id of uniqueTokens(scope.attribs.itemref)) {
         const referenced = (context.idIndex ??= indexIds(context.$)).get(id);
 
         if (referenced) {
             collectFromNodes([referenced], elements, visited);
         }
+    }
+
+    // The spec sorts the crawled properties in tree order, so a referenced element that comes before the
+    // item in the document (or a reference listed out of document order) must not end up last.
+    if (elements.length > ownCount) {
+        const treeOrder = (context.treeOrder ??= indexTreeOrder(context.$));
+        elements.sort((a, b) => treeOrder.get(a)! - treeOrder.get(b)!);
     }
 
     return elements;
@@ -110,6 +121,19 @@ function collectFromNodes(nodes: AnyNode[], elements: Element[], visited: Set<El
             collectFromNodes(node.children, elements, visited);
         }
     }
+}
+
+function indexTreeOrder($: CheerioAPI): Map<Element, number> {
+    const order = new Map<Element, number>();
+
+    // Selector results come back in document order.
+    for (const element of $('*').toArray()) {
+        if (isTag(element)) {
+            order.set(element, order.size);
+        }
+    }
+
+    return order;
 }
 
 function indexIds($: CheerioAPI): Map<string, Element> {
