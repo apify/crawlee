@@ -596,8 +596,8 @@ importers:
         specifier: '*'
         version: 25.17.0(bufferutil@4.2.0)(proxy-agent@8.0.2(supports-color@8.1.1))
       quick-lru:
-        specifier: ^7.3.0
-        version: 7.3.0
+        specifier: ^8.0.0
+        version: 8.0.0
       tiny-typed-emitter:
         specifier: ^2.1.0
         version: 2.1.0
@@ -10689,6 +10689,10 @@ packages:
   quick-lru@7.3.0:
     resolution: {integrity: sha512-k9lSsjl36EJdK7I06v7APZCbyGT2vMTsYSRX1Q2nbYmnkBqgUhRkAuzH08Ciotteu/PLJmIF2+tti7o3C/ts2g==}
     engines: {node: '>=18'}
+
+  quick-lru@8.0.0:
+    resolution: {integrity: sha512-wuV1TowawrTfnwGvYbjYE1vwKAO0yO0rcEgHz0y9/Lz+v79WqQtRLLpLYYCZJY/tacCb9zVDMDJCJ04DKVZgfg==}
+    engines: {node: '>=22'}
 
   quickjs-wasi@2.2.0:
     resolution: {integrity: sha512-zQxXmQMrEoD3S+jQdYsloq4qAuaxKFHZj6hHqOYGwB2iQZH+q9e/lf5zQPXCKOk0WJuAjzRFbO4KwHIp2D05Iw==}
@@ -24320,6 +24324,8 @@ snapshots:
   quick-lru@5.1.1: {}
 
   quick-lru@7.3.0: {}
+
+  quick-lru@8.0.0: {}
 
   quickjs-wasi@2.2.0: {}
 
