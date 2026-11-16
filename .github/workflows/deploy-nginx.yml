@@ -9,6 +9,9 @@ on:
     paths:
       - 'website/nginx.conf'
 
+# The dispatch goes through the service account token, the job token is not used.
+permissions: {}
+
 jobs:
   trigger-deployment:
     name: Trigger Nginx deployment

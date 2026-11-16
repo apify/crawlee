@@ -21,7 +21,11 @@ permissions:
 jobs:
   factory-review:
     uses: apify/workflows/.github/workflows/factory_review.yaml@main
-    secrets: inherit
+    # The three secrets the pipeline declares, instead of every secret this repository can read.
+    secrets:
+      APIFY_FACTORY_GITHUB_TOKEN: ${{ secrets.APIFY_FACTORY_GITHUB_TOKEN }}
+      ANTHROPIC_API_KEY_APIFY_FACTORY_REVIEW: ${{ secrets.ANTHROPIC_API_KEY_APIFY_FACTORY_REVIEW }}
+      APIFY_FACTORY_CALLBACK_TOKEN: ${{ secrets.APIFY_FACTORY_CALLBACK_TOKEN }}
     # Paths never auto-approved here, on top of the pipeline's defaults. Proposed from the
     # repository's layout when this workflow was added; edit them like any other code.
     with:
