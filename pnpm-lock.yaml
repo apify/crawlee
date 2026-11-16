@@ -496,8 +496,8 @@ importers:
         specifier: workspace:*
         version: link:../utils
       '@sapphire/async-queue':
-        specifier: ^1.5.5
-        version: 1.5.5
+        specifier: ^2.0.0
+        version: 2.0.0
       '@standard-schema/spec':
         specifier: ^1.1.0
         version: 1.1.0
@@ -680,8 +680,8 @@ importers:
         specifier: workspace:*
         version: link:../utils
       '@sapphire/async-queue':
-        specifier: ^1.5.5
-        version: 1.5.5
+        specifier: ^2.0.0
+        version: 2.0.0
       '@standard-schema/spec':
         specifier: ^1.1.0
         version: 1.1.0
@@ -4337,9 +4337,9 @@ packages:
     resolution: {integrity: sha512-acP68tGx/DJEIQgTqj/xStBRaghN7axV+uAjNasDjVXgHgHaLQ1f16/bbXtw6mNLjURhTORD4fdfbOZM7kyWcw==}
     engines: {node: '>=20.9.0'}
 
-  '@sapphire/async-queue@1.5.5':
-    resolution: {integrity: sha512-cvGzxbba6sav2zZkH8GPf2oGk9yYoD5qrNWdu9fRehifgnFZJMV+nuy2nON2roRO4yQQ+v7MK/Pktl/HgfsUXg==}
-    engines: {node: '>=v14.0.0', npm: '>=7.0.0'}
+  '@sapphire/async-queue@2.0.0':
+    resolution: {integrity: sha512-BqlrJvCXVW3rrWYq6+2o3dYTBh2Qku1oLpIE2aO5GJaSOwp29XrlLe6pUTCWIKUmCN6WtvY1UOakMqefMuMSfA==}
+    engines: {node: '>=v24.0.0', npm: '>=11.0.0'}
 
   '@sec-ant/readable-stream@0.4.1':
     resolution: {integrity: sha512-831qok9r2t8AlxLko40y2ebgSDhenenCatLVeW/uBtnHPyhHOvG0C7TvfgecV+wHzIm5KUICgzmVpWS+IMEAeg==}
@@ -16802,7 +16802,7 @@ snapshots:
     transitivePeerDependencies:
       - '@types/node'
 
-  '@sapphire/async-queue@1.5.5': {}
+  '@sapphire/async-queue@2.0.0': {}
 
   '@sec-ant/readable-stream@0.4.1': {}
 

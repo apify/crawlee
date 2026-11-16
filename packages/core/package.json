@@ -57,7 +57,7 @@
         "@crawlee/http-client": "workspace:*",
         "@crawlee/types": "workspace:*",
         "@crawlee/utils": "workspace:*",
-        "@sapphire/async-queue": "^1.5.5",
+        "@sapphire/async-queue": "^2.0.0",
         "@standard-schema/spec": "^1.1.0",
         "@vladfrangu/async_event_emitter": "^2.4.7",
         "content-type": "^3.1.1",
