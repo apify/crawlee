@@ -223,32 +223,46 @@ export async function parseWithCheerio(
 ): Promise<CheerioAPI> {
     parseArgument(page, validators.browserPage);
 
+    const html = ignoreShadowRoots
+        ? null
+        : ((await page.evaluate(`(${expandShadowRoots.toString()})(document)`)) as string);
+    const pageContent = html || (await page.content());
+
+    // Full cheerio (parse5) import for browser compliant parser
+    const { load } = await import('cheerio');
+    const $ = load(pageContent);
+
     if (page.frames().length > 1 && !ignoreIframes) {
         const frames = await page.$$('iframe');
+        // `page.$$()` does not see into inert `<template>` content, cheerio does (as a detached tree)
+        const cheerioIframes = $('iframe')
+            .filter((_, el) => $(el).closest('html').length > 0)
+            .toArray();
+
+        if (frames.length !== cheerioIframes.length) {
+            getLog().warning(
+                `parseWithCheerio: iframe count mismatch between live DOM (${frames.length}) and page snapshot (${cheerioIframes.length}). Some iframes may not be expanded.`,
+            );
+        }
 
         await Promise.all(
-            frames.map(async (frame) => {
+            frames.map(async (frame, index) => {
                 try {
                     const iframe = await frame.contentFrame();
 
-                    if (iframe) {
+                    if (iframe && cheerioIframes[index]) {
                         const getIframeHTML = async (): Promise<string> => {
                             try {
-                                return iframe.$eval('body', (el) => el.innerHTML);
+                                return await iframe.$eval('body', (el) => el.innerHTML);
                             } catch {
                                 return iframe.content();
                             }
                         };
 
                         const contents = await getIframeHTML();
-
-                        await frame.evaluate((f, c) => {
-                            const replacementNode = document.createElement('div');
-                            replacementNode.innerHTML = c;
-                            replacementNode.className = 'crawlee-iframe-replacement';
-
-                            f.replaceWith(replacementNode);
-                        }, contents);
+                        $(cheerioIframes[index]).replaceWith(
+                            `<div class="crawlee-iframe-replacement">${contents}</div>`,
+                        );
                     }
                 } catch (error) {
                     getLog().warning(`Failed to extract iframe content: ${error}`);
@@ -257,14 +271,7 @@ export async function parseWithCheerio(
         );
     }
 
-    const html = ignoreShadowRoots
-        ? null
-        : ((await page.evaluate(`(${expandShadowRoots.toString()})(document)`)) as string);
-    const pageContent = html || (await page.content());
-
-    // Full cheerio (parse5) import for browser compliant parser
-    const { load } = await import('cheerio');
-    return load(pageContent);
+    return $;
 }
 
 /**
