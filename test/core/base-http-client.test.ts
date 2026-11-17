@@ -315,6 +315,7 @@ describe('BaseHttpClient redirects that keep the request body', () => {
             for await (const chunk of req) body += chunk;
 
             res.setHeader('content-type', 'application/json');
+            res.setHeader('x-method', req.method!);
             res.end(JSON.stringify({ method: req.method, body }));
         });
 
@@ -337,6 +338,15 @@ describe('BaseHttpClient redirects that keep the request body', () => {
 
         expect(response.status).toBe(200);
         expect(await response.json()).toEqual({ method, body: 'hello' });
+    });
+
+    test('keeps the HEAD method after a 303 redirect', async () => {
+        const response = await httpClient.sendRequest(
+            new Request(`${redirectUrl}/redirect?status=303`, { method: 'HEAD' }),
+        );
+
+        expect(response.status).toBe(200);
+        expect(response.headers.get('x-method')).toBe('HEAD');
     });
 
     test('resends a streamed body after a 307 redirect', async () => {
