@@ -308,6 +308,9 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
 
         if (source.type === 'url') {
             sitemapUrl = new URL(source.url);
+            if (visitedSitemapUrls.has(sitemapUrl.toString())) {
+                continue;
+            }
             visitedSitemapUrls.add(sitemapUrl.toString());
             let retriesLeft = sitemapRetries + 1;
 

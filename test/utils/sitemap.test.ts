@@ -396,6 +396,15 @@ describe('Sitemap', () => {
         );
     });
 
+    it('fetches a sitemap listed both directly and in a sitemap index only once', async () => {
+        const sitemap = await Sitemap.load([
+            'http://not-exists.com/sitemap_parent.xml',
+            'http://not-exists.com/sitemap_child.xml',
+        ]);
+
+        expect(sitemap.urls).toHaveLength(10);
+    });
+
     it('respects nestedSitemapFilter when following sitemap indexes', async () => {
         const items: SitemapUrl[] = [];
 
