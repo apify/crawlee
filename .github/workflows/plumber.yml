@@ -1,0 +1,41 @@
+name: Plumber
+
+on:
+    push:
+        branches: [ master ]
+    pull_request:
+        branches: [ master ]
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
+permissions:
+    contents: read
+
+jobs:
+    plumber:
+        name: Check the workflows
+        runs-on: ubuntu-26.04
+        timeout-minutes: 10
+        permissions:
+            contents: read
+            # Plumber reads the workflow runs and one run log to prove the
+            # token scope of each job.
+            actions: read
+            # Lists the findings under code scanning.
+            security-events: write
+
+        steps:
+            -   uses: actions/checkout@v7.0.1
+                with:
+                    persist-credentials: false
+
+            -   uses: getplumber/plumber@v0.7.23
+                with:
+                    # Pull requests from forks get no security-events write, so the
+                    # upload is skipped there. The report stays a workflow artifact.
+                    upload-sarif: ${{ github.event.pull_request.head.repo.fork != true }}
+                    # Fail under 85 points instead of on any finding, so one small
+                    # finding does not block a pull request.
+                    min-points: 85

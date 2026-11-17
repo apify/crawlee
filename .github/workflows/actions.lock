@@ -14,6 +14,9 @@ workflows:
         - 'actions/upload-pages-artifact@v5.0.0'
         - 'apify/actions@v1.6.2'
     '.github/workflows/factory_review.yaml': []
+    '.github/workflows/plumber.yml':
+        - 'actions/checkout@v7.0.1'
+        - 'getplumber/plumber@v0.7.23'
     '.github/workflows/publish-to-npm.yml':
         - 'actions/cache@v6.1.0'
         - 'actions/checkout@v7.0.1'
@@ -93,6 +96,11 @@ dependencies:
         commit: 'sha1-bbbca2ddaa5d8feaa63e36b76fdaad77386f024f'
         owner_id: 44036562
         repo_id: 192625955
+    'actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9':
+        ref: 'v7.0.2'
+        commit: 'sha1-cf430e030ddbb5b0abf93d22962f4752f3646cd9'
+        owner_id: 44036562
+        repo_id: 192625955
     'actions/upload-pages-artifact@v5.0.0':
         ref: 'v5.0.0'
         commit: 'sha1-fc324d3547104276b827a68afc52ff2a11cc49c9'
@@ -135,6 +143,19 @@ dependencies:
         commit: 'sha1-cc9c08ba6c8df3b93a8f2db63e89b98368ae2ae8'
         owner_id: 26386270
         repo_id: 209101661
+    'getplumber/plumber@v0.7.23':
+        ref: 'v0.7.23'
+        commit: 'sha1-ec8cb3a7edd6a324b33e85109b627b2df6023d94'
+        owner_id: 255179076
+        repo_id: 1137327132
+        uses:
+            - 'actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9'
+            - 'github/codeql-action@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee'
+    'github/codeql-action@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee':
+        ref: 'v4.39.0'
+        commit: 'sha1-6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee'
+        owner_id: 9919
+        repo_id: 259445878
     'jdx/mise-action@v4':
         ref: 'v4'
         commit: 'sha1-c2a87611a18de5b3828c5652fe268e992400cb5c'

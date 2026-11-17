@@ -1,0 +1,28 @@
+# Plumber overlay: inherits every control from the CLI's built-in
+# baseline, only the differences for this repository are written here.
+# Run 'plumber config resolve' to see the full effective config.
+extends: plumber:default
+version: '2.0'
+
+github:
+    controls:
+        githubActionMustComeFromAuthorizedSources:
+            # Keep the curated default list and trust the release and
+            # tooling actions these workflows and apify/actions use.
+            includePlumberDefaults: true
+            trustedGithubActions:
+                - EndBug/add-and-commit
+                - nick-fields/retry
+                - pierotofy/set-swap-space
+                - amannn/action-semantic-pull-request
+                - crate-ci/typos
+                - jdx/mise-action
+
+        actionsMustBePinnedByCommitSha:
+            # The default owners, plus the organization's own repositories:
+            # the shared review workflow is followed on main on purpose.
+            trustedOwners:
+                - actions
+                - github
+                - dependabot
+                - apify
