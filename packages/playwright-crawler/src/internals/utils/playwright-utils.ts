@@ -727,8 +727,11 @@ export async function handleCloudflareChallenge(
     };
 
     // The challenge markup can finish rendering only after the `load` event, so when the response signals
-    // a likely challenge (403 status or the `cf-mitigated` header), poll for it instead of checking once.
-    const likelyChallenge = response?.status() === 403 || response?.headers()['cf-mitigated'] === 'challenge';
+    // a likely challenge, poll for it instead of checking once. A 403 alone is not enough - it must come
+    // from Cloudflare (the `cf-ray` header), so 403s served by other stacks keep failing fast.
+    const headers = response?.headers() ?? {};
+    const likelyChallenge =
+        headers['cf-mitigated'] === 'challenge' || (response?.status() === 403 && 'cf-ray' in headers);
 
     let detected = await isChallenge();
 

@@ -565,7 +565,10 @@ describe('playwrightUtils', () => {
                 }, 1500);
             }, currentChallengeBody);
 
-            const response = { status: () => 403, headers: () => ({}) } as unknown as Response;
+            const response = {
+                status: () => 403,
+                headers: () => ({ 'cf-ray': 'a29d9a9cff4fb9e4-PRG' }),
+            } as unknown as Response;
             await expect(
                 handleCloudflareChallenge(page, 'https://example.com', fastOptions(), response),
             ).rejects.toThrow(/Blocked by Cloudflare/);
@@ -590,7 +593,10 @@ describe('playwrightUtils', () => {
 
         test('fails fast on a hard-blocked 403 page instead of polling for challenge markup', async () => {
             await page.setContent('<html><body><h1>Sorry, you have been blocked</h1></body></html>');
-            const response = { status: () => 403, headers: () => ({}) } as unknown as Response;
+            const response = {
+                status: () => 403,
+                headers: () => ({ 'cf-ray': 'a29d9a9cff4fb9e4-PRG' }),
+            } as unknown as Response;
             const start = Date.now();
             await expect(
                 handleCloudflareChallenge(page, 'https://example.com', fastOptions(), response),
@@ -598,13 +604,26 @@ describe('playwrightUtils', () => {
             expect(Date.now() - start).toBeLessThan(4000);
         }, 10_000);
 
-        test('resolves without detection on a plain 403 page without challenge markup', async () => {
+        test('resolves without detection on a Cloudflare 403 without challenge markup', async () => {
             await page.setContent('<html><body><h1>Forbidden</h1></body></html>');
-            const response = { status: () => 403, headers: () => ({}) } as unknown as Response;
+            const response = {
+                status: () => 403,
+                headers: () => ({ 'cf-ray': 'a29d9a9cff4fb9e4-PRG' }),
+            } as unknown as Response;
             await expect(
                 handleCloudflareChallenge(page, 'https://example.com', fastOptions(), response),
             ).resolves.toBeUndefined();
         }, 10_000);
+
+        test('does not poll on a 403 that did not come from Cloudflare', async () => {
+            await page.setContent('<html><body><h1>Forbidden</h1></body></html>');
+            const response = { status: () => 403, headers: () => ({}) } as unknown as Response;
+            const start = Date.now();
+            await expect(
+                handleCloudflareChallenge(page, 'https://example.com', fastOptions(), response),
+            ).resolves.toBeUndefined();
+            expect(Date.now() - start).toBeLessThan(2000);
+        });
 
         test('returns the reloaded response once the challenge is solved', async () => {
             let served = 0;
