@@ -5,14 +5,18 @@ name: apify-factory review (AI review, and auto-approval)
 # property set to true.
 on:
   # Taken from the default branch, never from the pull request, so a pull request cannot rewrite
-  # its own review pipeline. Pull request code is never checked out or executed.
+  # its own review pipeline. Pull request code is never checked out or executed. `edited` delivers
+  # base changes, without which pull requests on another base are not approved.
   pull_request_target:
     types:
+      - opened
+      - reopened
       - review_requested
       - review_request_removed
       - converted_to_draft
       - ready_for_review
       - synchronize
+      - edited
 
 permissions:
   contents: read
