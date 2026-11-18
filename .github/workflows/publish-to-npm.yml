@@ -49,7 +49,8 @@ jobs:
                   GH_TOKEN: ${{ github.token }}
               run: |
                   sha=$(git rev-parse HEAD)
-                  for branch in master 3.x; do
+                  branches=$(gh api --paginate "repos/$GITHUB_REPOSITORY/branches" --jq '.[].name' | grep -E '^(master|[0-9]+\.x)$')
+                  for branch in $branches; do
                       status=$(gh api "repos/$GITHUB_REPOSITORY/compare/$branch...$sha" --jq .status || true)
                       if [[ "$status" == "identical" || "$status" == "behind" ]]; then exit 0; fi
                   done
