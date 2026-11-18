@@ -58,7 +58,11 @@ export async function downloadListOfUrls(options: DownloadListOfUrlsOptions): Pr
         proxyUrl,
     });
 
-    const string = new TextDecoder(encoding).decode(new Uint8Array(await response.arrayBuffer()));
+    // `encoding` is a Node.js `BufferEncoding`, and `TextDecoder` rejects several of those (`utf16le`, `ucs2`, `binary`,
+    // `base64`, ...). Unlike `TextDecoder`, `Buffer` keeps a byte order mark, so drop it here.
+    const string = Buffer.from(await response.arrayBuffer())
+        .toString(encoding)
+        .replace(/^\uFEFF/, '');
 
     return extractUrls({ string, urlRegExp });
 }
