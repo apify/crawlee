@@ -1,8 +1,10 @@
 name: apify-factory review (AI review, and auto-approval)
 
 # Calls the apify-factory review and auto-approval pipeline (apify/ai-developer, wired up in
-# apify/workflows). Approvals additionally need the repository's `factory_auto_approve` custom
-# property set to true.
+# apify/workflows). A pull request is reviewed when apify-factory is requested; with the
+# repository's `factory_auto_review` custom property set to true, also every ready pull request when
+# it opens and after every push that changes its content. Approvals additionally need the
+# repository's `factory_auto_approve` custom property set to true.
 on:
   # Taken from the default branch, never from the pull request, so a pull request cannot rewrite
   # its own review pipeline. Pull request code is never checked out or executed. `edited` delivers
@@ -21,6 +23,20 @@ on:
 permissions:
   contents: read
   pull-requests: write
+  # Proves to the core Actor that this run hands a review to a sandbox.
+  id-token: write
+
+# A push cancels the run in progress, and only the newest waiting run is kept, so an event that
+# starts no job (a request or removal naming another reviewer) gets its own group, as does
+# removing the bot's request. Never name a group `factory-review-<number>` alone: it deadlocks.
+concurrency:
+  group: >-
+    factory-review-${{ github.event.pull_request.number }}-${{
+      startsWith(github.event.action, 'review_request')
+        && github.event.requested_reviewer.login != 'apify-factory' && github.run_id
+      || github.event.action == 'review_request_removed' && 'withdraw'
+      || 'events' }}
+  cancel-in-progress: ${{ github.event.action == 'synchronize' }}
 
 jobs:
   factory-review:
