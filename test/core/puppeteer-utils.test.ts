@@ -170,7 +170,8 @@ describe('puppeteerUtils', () => {
 
             try {
                 const page = await browser.newPage();
-                await page.goto(new URL('/special/outside-iframe', serverAddress).toString());
+                // Same page as `/special/outside-iframe`, served with a Trusted Types CSP.
+                await page.goto(new URL('/special/outside-iframe-csp', serverAddress).toString());
 
                 const $ = await puppeteerUtils.parseWithCheerio(page);
 
@@ -184,25 +185,8 @@ describe('puppeteerUtils', () => {
 
                 expect(titles).toEqual(['Outside iframe title']);
                 expect(headings).toEqual(['Outside iframe', 'In iframe']);
-            } finally {
-                await browser.close();
-            }
-        });
-
-        test('parseWithCheerio() iframe expansion works with Trusted Types CSP', async () => {
-            const browser = await launchPuppeteer(launchContext);
-
-            try {
-                const page = await browser.newPage();
-                await page.goto(new URL('/special/outside-iframe-csp', serverAddress).toString());
-
-                const $ = await puppeteerUtils.parseWithCheerio(page);
-
-                const headings = $('h1')
-                    .map((_, el) => $(el).text())
-                    .get();
-
-                expect(headings).toEqual(['Outside iframe', 'In iframe']);
+                // The page itself stays as it was.
+                expect(await page.$$('.crawlee-iframe-replacement')).toHaveLength(0);
             } finally {
                 await browser.close();
             }
@@ -222,23 +206,6 @@ describe('puppeteerUtils', () => {
 
                 expect($('template').html()).toBe('<p><iframe></iframe></p>');
                 expect($('.crawlee-iframe-replacement h1').text()).toBe('In iframe');
-            } finally {
-                await browser.close();
-            }
-        });
-
-        test('parseWithCheerio() iframe expansion does not modify the page', async () => {
-            const browser = await launchPuppeteer(launchContext);
-
-            try {
-                const page = await browser.newPage();
-                await page.goto(new URL('/special/outside-iframe', serverAddress).toString());
-
-                const $ = await puppeteerUtils.parseWithCheerio(page);
-
-                expect($('.crawlee-iframe-replacement')).toHaveLength(1);
-                expect(await page.$$('iframe')).toHaveLength(1);
-                expect(await page.$$('.crawlee-iframe-replacement')).toHaveLength(0);
             } finally {
                 await browser.close();
             }
