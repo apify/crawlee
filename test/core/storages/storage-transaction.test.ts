@@ -705,8 +705,6 @@ describe('KeyValueStore in a transaction', () => {
         const state = await store.getAutoSavedValue<{ counter?: number }>('PERSISTED_STATE', {});
         state.counter = 1;
 
-        // A request handler that triggers a persist - by rebooting, say - runs inside the request's transaction,
-        // which never commits when the process is stopped right after.
         const transaction = createStorageTransaction();
         await transaction.run(async () => {
             serviceLocator.getEventManager().emit('persistState', { isMigrating: true });

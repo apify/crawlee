@@ -566,8 +566,6 @@ describe('RecoverableState', () => {
             await recoverableState.initialize();
             recoverableState.currentValue.counter = 42;
 
-            // A request handler that persists the state - by rebooting, say - runs inside the request's
-            // transaction, which never commits when the process is stopped right after.
             const transaction = createStorageTransaction();
             await transaction.run(async () => recoverableState.persistState());
             transaction.rollback();
