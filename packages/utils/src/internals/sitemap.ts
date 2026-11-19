@@ -267,7 +267,8 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
     } = options ?? {};
 
     const sources = [...initialSources];
-    const visitedSitemapUrls = new Set<string>();
+    // Marked when queued, not when fetched, so a sitemap that is both a source and a nested entry is queued once.
+    const visitedSitemapUrls = new Set(initialSources.flatMap((source) => (source.type === 'url' ? [source.url] : [])));
 
     const createParser = async (contentType = '', url?: URL): Promise<Duplex> => {
         let mimeType: MIMEType | null;
@@ -308,10 +309,6 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
 
         if (source.type === 'url') {
             sitemapUrl = new URL(source.url);
-            if (visitedSitemapUrls.has(sitemapUrl.toString())) {
-                continue;
-            }
-            visitedSitemapUrls.add(sitemapUrl.toString());
             let retriesLeft = sitemapRetries + 1;
 
             while (retriesLeft-- > 0) {
@@ -451,6 +448,7 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
                         }
                     }
 
+                    visitedSitemapUrls.add(item.url);
                     sources.push({ type: 'url', url: item.url, depth: (source.depth ?? 0) + 1 });
                     if (emitNestedSitemaps) {
                         yield { loc: item.url, originSitemapUrl: null } as any;
