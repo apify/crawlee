@@ -157,7 +157,7 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
         let nextBody: BodyInit | null = null;
 
         if (
-            response.status === 303 ||
+            (response.status === 303 && prevMethod !== 'HEAD') ||
             ((response.status === 301 || response.status === 302) && prevMethod === 'POST')
         ) {
             nextMethod = 'GET';
