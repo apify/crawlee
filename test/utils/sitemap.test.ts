@@ -396,6 +396,23 @@ describe('Sitemap', () => {
         );
     });
 
+    it('fetches a sitemap listed both directly and in a sitemap index only once', async () => {
+        const httpClient = new FetchHttpClient();
+        const sendRequest = vitest.spyOn(httpClient, 'sendRequest');
+
+        await Sitemap.load(
+            ['http://not-exists.com/sitemap_parent.xml', 'http://not-exists.com/sitemap_child.xml'],
+            undefined,
+            { httpClient },
+        );
+
+        expect(sendRequest.mock.calls.map(([request]) => request.url)).toEqual([
+            'http://not-exists.com/sitemap_parent.xml',
+            'http://not-exists.com/sitemap_child.xml',
+            'http://not-exists.com/sitemap_child_2.xml?from=94937939985&to=1318570721404',
+        ]);
+    });
+
     it('respects nestedSitemapFilter when following sitemap indexes', async () => {
         const items: SitemapUrl[] = [];
 
