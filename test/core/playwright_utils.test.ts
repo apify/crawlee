@@ -204,6 +204,25 @@ describe('playwrightUtils', () => {
         }
     });
 
+    test('parseWithCheerio() iframe expansion skips iframes inside <template>', async () => {
+        const browser = await launchPlaywright(launchContext);
+
+        try {
+            const page = await browser.newPage();
+            await page.goto(new URL('/special/outside-iframe', serverAddress).toString());
+            await page.evaluate(() => {
+                document.body.insertAdjacentHTML('afterbegin', '<template><p><iframe></iframe></p></template>');
+            });
+
+            const $ = await playwrightUtils.parseWithCheerio(page);
+
+            expect($('template').html()).toBe('<p><iframe></iframe></p>');
+            expect($('.crawlee-iframe-replacement h1').text()).toBe('In iframe');
+        } finally {
+            await browser.close();
+        }
+    });
+
     describe('blockRequests()', () => {
         let browser: Browser = null as any;
         beforeAll(async () => {
