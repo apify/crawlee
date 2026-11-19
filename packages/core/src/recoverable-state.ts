@@ -7,6 +7,7 @@ import { EventType } from './events/event-manager.js';
 import type { CrawleeLogger } from './log.js';
 import { serviceLocator } from './service-locator.js';
 import { KeyValueStore } from './storages/key-value-store.js';
+import { withDirectStorageAccess } from './storages/transaction.js';
 import type { Awaitable } from '@crawlee/types';
 import type { StandardSchemaV1 } from '@standard-schema/spec';
 
@@ -454,11 +455,18 @@ export class RecoverableState<TStateModel = Record<string, unknown>, TPersistedS
         // `@apify/timeout` shares one `AbortController` across nested frames and `KeyValueStore` checks it on
         // every operation, so a teardown-time persist running inside an already-expired request handler timeout
         // would be aborted before it started. Hence a fresh timeout context.
+        //
+        // The state is a snapshot of what is already true in memory, not an effect of the request being handled,
+        // so its reads and writes bypass any active storage transaction as well. A persist dispatched from a
+        // request handler - an `Actor.reboot()` call, say - would otherwise be buffered into a transaction that
+        // never commits, and the next initialize() would read a write the same transaction has only buffered.
         return timeoutStorage.exit(async () =>
-            addTimeoutToPromise(
-                operation,
-                this.#persistenceTimeoutMillis,
-                `${description} under key '${this.#persistStateKey}' timed out after ${this.#persistenceTimeoutMillis / 1000} seconds.`,
+            withDirectStorageAccess(async () =>
+                addTimeoutToPromise(
+                    operation,
+                    this.#persistenceTimeoutMillis,
+                    `${description} under key '${this.#persistStateKey}' timed out after ${this.#persistenceTimeoutMillis / 1000} seconds.`,
+                ),
             ),
         );
     }

@@ -390,9 +390,12 @@ export class KeyValueStore {
         serviceLocator.getEventManager().on('persistState', async () => {
             const promises: Promise<void>[] = [];
 
+            // The write bypasses any active transaction for the same reason the read in `getAutoSavedValue()`
+            // does: a persist dispatched from inside a request handler must reach the store even when the
+            // handler's transaction never commits.
             for (const [key, value] of this.#cache) {
                 promises.push(
-                    this.setValue(key, value).catch((error) =>
+                    withDirectStorageAccess(async () => this.setValue(key, value)).catch((error) =>
                         serviceLocator.getLogger().warning(`Failed to persist the state value to ${key}`, { error }),
                     ),
                 );

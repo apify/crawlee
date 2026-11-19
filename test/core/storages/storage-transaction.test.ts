@@ -700,6 +700,24 @@ describe('KeyValueStore in a transaction', () => {
         expect(state.counter).toBe(1);
     });
 
+    test('the auto-saved values are persisted outside an active transaction', async () => {
+        const store = await KeyValueStore.open();
+        const state = await store.getAutoSavedValue<{ counter?: number }>('PERSISTED_STATE', {});
+        state.counter = 1;
+
+        // A request handler that triggers a persist - by rebooting, say - runs inside the request's transaction,
+        // which never commits when the process is stopped right after.
+        const transaction = createStorageTransaction();
+        await transaction.run(async () => {
+            serviceLocator.getEventManager().emit('persistState', { isMigrating: true });
+            await serviceLocator.getEventManager().waitForAllListenersToComplete();
+        });
+        transaction.rollback();
+        transaction.dispose();
+
+        await expect(store.getValue('PERSISTED_STATE')).resolves.toEqual({ counter: 1 });
+    });
+
     test('a rolled-back setValue does not leak into a warm auto-saved state cache', async () => {
         const store = await KeyValueStore.open();
 
