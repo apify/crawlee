@@ -398,6 +398,18 @@ describe('dataset', () => {
         });
     });
 
+    test('getData returns rows independent of storage', async () => {
+        const dataset = await Dataset.open<{ price: { amount: number }; tags: string[] }>();
+        const product = { price: { amount: 25 }, tags: ['books'] };
+        await dataset.pushData(product);
+
+        const [item] = (await dataset.getData()).items;
+        item.price.amount = 15;
+        item.tags.push('sale');
+
+        expect((await dataset.getData()).items).toEqual([product]);
+    });
+
     describe('utils', () => {
         test('assertJsonSerializable() works', () => {
             // Valid objects
@@ -445,6 +457,15 @@ describe('dataset', () => {
                 await Dataset.exportToJSON('TEST-123-123');
 
                 const kvData = await KeyValueStore.getValue('TEST-123-123');
+                expect(kvData).toEqual(dataToPush);
+            });
+
+            it('is the default of exportTo', async () => {
+                const dataset = await Dataset.open({ name: Math.random().toString(36) });
+                await dataset.pushData(dataToPush);
+                await dataset.exportTo('HELLO-default');
+
+                const kvData = await KeyValueStore.getValue('HELLO-default');
                 expect(kvData).toEqual(dataToPush);
             });
         });

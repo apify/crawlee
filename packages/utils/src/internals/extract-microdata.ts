@@ -19,6 +19,8 @@ interface ExtractionContext {
     $: CheerioAPI;
     /** Built on first `itemref` lookup, which most documents never trigger. */
     idIndex?: Map<string, Element>;
+    /** Position of every element in tree order, built alongside `idIndex` for sorting referenced properties. */
+    treeOrder?: Map<Element, number>;
 }
 
 /**
@@ -41,7 +43,7 @@ export async function extractMicrodata(htmlOrCheerioElement: string | CheerioAPI
 
     return $('[itemscope]')
         .toArray()
-        .filter((element) => !('itemprop' in element.attribs))
+        .filter((element) => !('itemprop' in element.attribs) && !isInsideTemplate(element))
         .map((element) => parseItem(context, element, new Set()));
 }
 
@@ -81,12 +83,21 @@ function collectPropertyElements(context: ExtractionContext, scope: Element): El
 
     collectFromNodes(scope.children, elements, visited);
 
+    const ownCount = elements.length;
+
     for (const id of uniqueTokens(scope.attribs.itemref)) {
         const referenced = (context.idIndex ??= indexIds(context.$)).get(id);
 
         if (referenced) {
             collectFromNodes([referenced], elements, visited);
         }
+    }
+
+    // The spec sorts the crawled properties in tree order, so a referenced element that comes before the
+    // item in the document (or a reference listed out of document order) must not end up last.
+    if (elements.length > ownCount) {
+        const treeOrder = (context.treeOrder ??= indexTreeOrder(context.$));
+        elements.sort((a, b) => treeOrder.get(a)! - treeOrder.get(b)!);
     }
 
     return elements;
@@ -105,10 +116,24 @@ function collectFromNodes(nodes: AnyNode[], elements: Element[], visited: Set<El
         }
 
         // A nested item owns everything below it, so its subtree is not part of the enclosing item.
-        if (!('itemscope' in node.attribs)) {
+        // A `<template>`'s content is an inert fragment, not part of the document.
+        if (!('itemscope' in node.attribs) && node.tagName.toLowerCase() !== 'template') {
             collectFromNodes(node.children, elements, visited);
         }
     }
+}
+
+function indexTreeOrder($: CheerioAPI): Map<Element, number> {
+    const order = new Map<Element, number>();
+
+    // Selector results come back in document order.
+    for (const element of $('*').toArray()) {
+        if (isTag(element)) {
+            order.set(element, order.size);
+        }
+    }
+
+    return order;
 }
 
 function indexIds($: CheerioAPI): Map<string, Element> {
@@ -116,12 +141,27 @@ function indexIds($: CheerioAPI): Map<string, Element> {
 
     for (const element of $('[id]').toArray()) {
         // Duplicate ids are invalid HTML; `getElementById` resolves them to the first element.
-        if (!index.has(element.attribs.id)) {
+        if (!index.has(element.attribs.id) && !isInsideTemplate(element)) {
             index.set(element.attribs.id, element);
         }
     }
 
     return index;
+}
+
+/**
+ * Cheerio keeps a `<template>`'s content as its children, but in the DOM that content is a separate
+ * inert fragment, so its items and ids are not part of the document (framework placeholders like
+ * `<template x-for>` would otherwise show up as items with empty or `{{ mustache }}` values).
+ */
+function isInsideTemplate(element: Element): boolean {
+    for (let parent = element.parent; parent; parent = parent.parent) {
+        if (isTag(parent) && parent.tagName.toLowerCase() === 'template') {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 function getPropertyValue(context: ExtractionContext, element: Element, ancestors: Set<Element>): MicrodataValue {

@@ -40,7 +40,7 @@
         "nanoid": "^5.1.16",
         "p-limit": "^6.2.0",
         "proxy-chain": "^2.7.1",
-        "quick-lru": "^7.3.0",
+        "quick-lru": "^8.0.0",
         "tiny-typed-emitter": "^2.1.0",
         "tslib": "^2.9.1",
         "zod": "catalog:"

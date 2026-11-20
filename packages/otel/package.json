@@ -41,7 +41,7 @@
         "access": "public"
     },
     "dependencies": {
-        "@opentelemetry/instrumentation": "^0.223.1",
+        "@opentelemetry/instrumentation": "^0.301.0",
         "@opentelemetry/semantic-conventions": "^1.45.0"
     },
     "peerDependencies": {

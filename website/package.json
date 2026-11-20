@@ -26,7 +26,7 @@
         "eslint": "8.57.1",
         "eslint-plugin-react": "7.37.5",
         "eslint-plugin-react-hooks": "7.0.1",
-        "prettier": "^3.9.10",
+        "prettier": "^3.10.1",
         "rimraf": "^6.1.4",
         "typescript": "^6.0.3"
     },
@@ -53,10 +53,10 @@
         "react-github-btn": "^1.4.0",
         "unist-util-visit": "^5.2.0"
     },
-    "packageManager": "pnpm@12.18.0",
+    "packageManager": "pnpm@12.21.0",
     "volta": {
         "node": "24.22.0",
-        "pnpm": "12.18.0"
+        "pnpm": "12.21.0"
     },
     "browserslist": {
         "production": [

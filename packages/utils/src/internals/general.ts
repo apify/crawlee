@@ -39,33 +39,71 @@ export async function sleep(millis?: number): Promise<void> {
  * @ignore
  */
 export function expandShadowRoots(document: Document): string {
-    // Returns HTML of given shadow DOM.
-    function getShadowDomHtml(shadowRoot: any) {
-        let shadowHTML = '';
+    // The copy lives in an inert document, so the page is left as it is and nothing in the copy runs or loads.
+    const copy = document.implementation.createHTMLDocument('');
+    const root = copy.importNode(document.documentElement, true);
 
-        for (const el of shadowRoot.childNodes) {
-            shadowHTML += el.nodeValue ?? el.outerHTML ?? '';
+    // Appends the content of every open shadow root to the copy of its host.
+    function expand(original: Element, clone: Element) {
+        const children = Array.from(original.children, (child, index) => [child, clone.children[index]]);
+
+        for (const node of Array.from(original.shadowRoot?.childNodes ?? [])) {
+            const imported = clone.appendChild(copy.importNode(node, true));
+
+            if (node.nodeType === Node.ELEMENT_NODE) {
+                children.push([node as Element, imported as Element]);
+            }
         }
 
-        return shadowHTML;
+        for (const [child, childClone] of children) {
+            expand(child, childClone);
+        }
     }
 
-    // Recursively replaces shadow DOMs with their HTML.
-    function replaceShadowDomsWithHtml(rootElement: any) {
-        for (const el of rootElement.querySelectorAll('*')) {
-            if (el.shadowRoot) {
-                replaceShadowDomsWithHtml(el.shadowRoot);
-                let content = el.getHTML?.({ serializableShadowRoots: true }).trim();
+    expand(document.documentElement, root);
 
-                if (!(content?.length > 0)) {
-                    content = getShadowDomHtml(el.shadowRoot) ?? '';
-                }
-                el.innerHTML += content;
+    return root.outerHTML;
+}
+
+/**
+ * Serializes the page and collects its `iframe` elements. Runs in the browser, in a single call, so the HTML
+ * and the elements describe the same state of the page. In the HTML, every collected iframe carries its index
+ * in the `data-crawlee-iframe-id` attribute.
+ * @ignore
+ */
+export function snapshotPageWithIframes(
+    document: Document,
+    serialize: ((document: Document) => string) | null,
+): { html: string; iframes: Element[] } {
+    const attribute = 'data-crawlee-iframe-id';
+    const iframes: Element[] = [];
+
+    // Shadow roots are only searched when their content gets into the snapshot.
+    function collect(root: Document | ShadowRoot) {
+        for (const element of root.querySelectorAll(serialize ? '*' : 'iframe')) {
+            if (element.localName === 'iframe') {
+                iframes.push(element);
+            }
+
+            if (element.shadowRoot) {
+                collect(element.shadowRoot);
             }
         }
     }
 
-    replaceShadowDomsWithHtml(document.body);
+    collect(document);
+    iframes.forEach((iframe, index) => iframe.setAttribute(attribute, String(index)));
 
-    return document.documentElement.outerHTML;
+    let html: string;
+    if (serialize) {
+        html = serialize(document);
+    } else {
+        // Same output as `page.content()`.
+        const doctype = document.doctype ? new XMLSerializer().serializeToString(document.doctype) : '';
+        html = doctype + document.documentElement.outerHTML;
+    }
+
+    iframes.forEach((iframe) => iframe.removeAttribute(attribute));
+
+    return { html, iframes };
 }

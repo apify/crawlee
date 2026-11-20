@@ -7,7 +7,8 @@ export type { CheerioAPI, Cheerio } from 'cheerio';
 export type { Element } from 'domhandler';
 
 // NOTE: We are skipping 'noscript' since it's content is evaluated as text, instead of HTML elements. That damages the results.
-const SKIP_TAGS_REGEX = /^(script|style|canvas|svg|noscript)$/i;
+// The fallback content of 'iframe', 'noembed' and 'noframes' is raw text as well, and browsers don't show it.
+const SKIP_TAGS_REGEX = /^(script|style|canvas|svg|noscript|template|iframe|noembed|noframes)$/i;
 const BLOCK_TAGS_REGEX =
     /^(p|h1|h2|h3|h4|h5|h6|ol|ul|li|pre|address|blockquote|dl|dt|dd|div|fieldset|legend|form|table|caption|tr|select|option|hr|article|aside|section|nav|header|footer|main|hgroup|figure|figcaption|details|summary|dialog|menu)$/i;
 

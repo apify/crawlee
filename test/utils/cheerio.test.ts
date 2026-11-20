@@ -71,6 +71,19 @@ describe('htmlToText()', () => {
         await checkHtmlToText('<SCRIPT>Skip_scripts();</SCRIPT><div>Div1</div>', 'Div1');
         await checkHtmlToText('<svg>Skip svg</svg><div>Div1</div>', 'Div1');
         await checkHtmlToText('<canvas>Skip canvas</canvas><div>Div1</div>', 'Div1');
+        await checkHtmlToText('<template><div>Skip {{ template }}</div></template><div>Div1</div>', 'Div1');
+        await checkHtmlToText(
+            '<ul><template x-for="item in items"><li x-text="item.name">Placeholder</li></template><li>Item 1</li></ul>',
+            'Item 1',
+        );
+        // fallback content that browsers never show: an iframe draws the framed page, noembed and noframes are for
+        // browsers without embed and frame support
+        await checkHtmlToText(
+            '<div>Div1</div><iframe src="/map">Your browser does not support iframes.</iframe><div>Div2</div>',
+            'Div1\nDiv2',
+        );
+        await checkHtmlToText('<div>Div1</div><noembed>Install the plugin</noembed>', 'Div1');
+        await checkHtmlToText('<noframes><p>This page uses frames.</p></noframes><div>Div1</div>', 'Div1');
 
         await checkHtmlToText('<b>A  B  C  D  E\n\nF  G</b>', 'A B C D E F G');
         await checkHtmlToText('<pre>A  B  C  D  E\n\nF  G</pre>', 'A  B  C  D  E\n\nF  G');

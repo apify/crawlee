@@ -4,9 +4,14 @@ on:
     pull_request_target:
         types: [ opened, edited, synchronize ]
 
+permissions:
+    contents: read
+    # The conventional commit check reads the pull request through the API.
+    pull-requests: read
+
 jobs:
     check_pr_title:
         name: 'Check PR title'
         runs-on: ubuntu-26.04
         steps:
-            -   uses: apify/actions/pr-title-check@v1.6.2
+            -   uses: apify/actions/pr-title-check@v1.9.0

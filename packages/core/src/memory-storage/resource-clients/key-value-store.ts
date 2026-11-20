@@ -165,7 +165,7 @@ export class KeyValueStoreBackend extends BaseClient implements storage.KeyValue
         // KeyValueStore codec). The mime fallback reconstructs the content type for on-disk records.
         const record: storage.KeyValueStoreRecord = {
             key: entry.key,
-            value: entry.value,
+            value: Buffer.from(entry.value),
             // mime.contentType returns `false` for unknown extensions; fall back to undefined so the
             // frontend treats it as "no content type" rather than a bogus value.
             contentType: entry.contentType ?? (mime.contentType(entry.extension) || undefined),
@@ -197,12 +197,12 @@ export class KeyValueStoreBackend extends BaseClient implements storage.KeyValue
         }
 
         // This backend is a byte transport: it stores and returns raw bytes regardless of the input
-        // shape. Streams were drained above; encode strings to UTF-8 bytes and normalize
-        // ArrayBuffer / typed-array views to a Buffer over the same memory.
+        // shape. Streams were drained above; encode strings to UTF-8 bytes and copy everything else
+        // so the caller can't mutate stored bytes.
         const normalizedValue: Buffer =
             typeof value === 'string'
                 ? Buffer.from(value, 'utf-8')
-                : toBuffer(value as Buffer | ArrayBuffer | ArrayBufferView);
+                : Buffer.from(toBuffer(value as Buffer | ArrayBuffer | ArrayBufferView));
 
         const normalizedRecord = {
             extension,
