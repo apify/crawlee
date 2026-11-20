@@ -152,7 +152,7 @@ export interface BasicCrawlingContext<UserData extends Dictionary = Dictionary> 
  * results after migration.
  * @ignore
  */
-const SAFE_MIGRATION_WAIT_MILLIS = 20000;
+const SAFE_MIGRATION_WAIT_SECS = 20;
 
 // The request timeout plumbing (the window helper, the context symbols, and the race) lives in its own module.
 export { navigationDeadlineKey, remainingNavigationWindowMillis } from './request-timeout.js';
@@ -2590,7 +2590,7 @@ export class BasicCrawler<
         const run = this.#dispatchingRun;
 
         if (run) {
-            await run.pause(SAFE_MIGRATION_WAIT_MILLIS).catch((err) => {
+            await run.pause(SAFE_MIGRATION_WAIT_SECS).catch((err) => {
                 if (err.message.includes('running tasks did not finish')) {
                     this.log.error(
                         'The crawler was paused due to migration to another host, ' +
