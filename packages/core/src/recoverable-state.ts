@@ -7,6 +7,7 @@ import { EventType } from './events/event-manager.js';
 import type { CrawleeLogger } from './log.js';
 import { serviceLocator } from './service-locator.js';
 import { KeyValueStore } from './storages/key-value-store.js';
+import { withDirectStorageAccess } from './storages/transaction.js';
 import type { Awaitable } from '@crawlee/types';
 import type { StandardSchemaV1 } from '@standard-schema/spec';
 
@@ -455,10 +456,12 @@ export class RecoverableState<TStateModel = Record<string, unknown>, TPersistedS
         // every operation, so a teardown-time persist running inside an already-expired request handler timeout
         // would be aborted before it started. Hence a fresh timeout context.
         return timeoutStorage.exit(async () =>
-            addTimeoutToPromise(
-                operation,
-                this.#persistenceTimeoutMillis,
-                `${description} under key '${this.#persistStateKey}' timed out after ${this.#persistenceTimeoutMillis / 1000} seconds.`,
+            withDirectStorageAccess(async () =>
+                addTimeoutToPromise(
+                    operation,
+                    this.#persistenceTimeoutMillis,
+                    `${description} under key '${this.#persistStateKey}' timed out after ${this.#persistenceTimeoutMillis / 1000} seconds.`,
+                ),
             ),
         );
     }
