@@ -33,6 +33,18 @@ The `StorageBackend` interface changed from synchronous sub-client getters to **
 | `client.requestQueue(id, opts)` | `backend.createRequestQueueBackend({ id?, name? })` |
 | `client.requestQueues().getOrCreate(name)` | _(absorbed into `createRequestQueueBackend`)_ |
 
+The optional `StorageClient.setStatusMessage()` method has been removed, as reporting a status message is not a storage concern. `crawler.setStatusMessage()` now logs the message and emits an `EventType.STATUS_MESSAGE` event (`{ crawlerId, message, isStatusMessageTerminal?, level? }`) on the event manager. A backend that forwarded status messages should subscribe to that event instead:
+
+```typescript
+import { EventType, serviceLocator } from 'crawlee';
+
+serviceLocator.getEventManager().on(EventType.STATUS_MESSAGE, ({ message, isStatusMessageTerminal }) => {
+    // forward the message to your platform
+});
+```
+
+Two option types in `@crawlee/types` were renamed along with the interfaces: `DatasetClientListOptions` is now `DatasetBackendListOptions`, and the request queue's `RequestOptions` is now `RequestQueueOperationOptions`.
+
 The sub-backend interfaces (`DatasetBackend`, `KeyValueStoreBackend`, `RequestQueueBackend`, formerly `DatasetClient` / `KeyValueStoreClient` / `RequestQueueClient`) have been simplified:
 
 | Before (v3) | After (v4) |
