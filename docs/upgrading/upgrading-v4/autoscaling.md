@@ -223,6 +223,16 @@ The signal that watches storage rate-limit errors follows the [`StorageClient` �
 
 In detail: the four `max*OverloadedRatio` options of `SystemStatusOptions` were **removed** (each signal now owns its overload ratio, set in its own bag), custom signals moved from `systemStatusOptions.loadSignals` to `loadSignals.custom`, and the two evaluation windows — `snapshotHistorySecs` (autoscaling) and `currentHistorySecs` (task gating) — are plain options on `ConcurrencySystemOptions`, since they apply to every signal alike rather than to any one of them.
 
+If you built the signals yourself, the factory functions `createCpuLoadSignal()`, `createEventLoopLoadSignal()` and `createClientLoadSignal()` are **removed**, together with the `ClientLoadSignal`, `ClientLoadSignalOptions` and `ClientSnapshot` types. Construct the classes instead — `new CpuLoadSignal(options)`, `new EventLoopLoadSignal(options)`, `new StorageBackendLoadSignal(options)` — alongside `MemoryLoadSignal`, which already was one. Their option names lost the per-resource prefixes, as in the example above:
+
+| v3 | v4 |
+| --- | --- |
+| `MemoryLoadSignalOptions.maxUsedMemoryRatio` | `maxUsedRatio` |
+| `EventLoopLoadSignalOptions.eventLoopSnapshotIntervalSecs` | `snapshotIntervalSecs` |
+| `ClientLoadSignalOptions.clientSnapshotIntervalSecs` | `StorageBackendLoadSignalOptions.snapshotIntervalSecs` |
+| `ClientLoadSignalOptions.maxClientErrors` | `StorageBackendLoadSignalOptions.maxErrors` |
+| `ClientLoadSignalOptions.client`, `CpuLoadSignalOptions.config`, `MemoryLoadSignalOptions.config` / `log` | *(removed — the signals read the storage backend and event manager from the `serviceLocator`)* |
+
 Two related capabilities are new, and covered in the [scaling guide](../../guides/scaling-crawlers.mdx#load-signals): a built-in signal can be switched **off** with `false`, and each built-in is also a public class (`MemoryLoadSignal`, `EventLoopLoadSignal`, `CpuLoadSignal`, `StorageBackendLoadSignal`) you can construct to wrap or adapt.
 
 A duplicate signal name now **throws**, where naming a custom signal after a built-in (`memInfo`, `eventLoopInfo`, `cpuInfo`, or `clientInfo`, now `storageBackendInfo`) used to look like an override but never was one: the built-in kept running and kept holding concurrency down, while your signal only overwrote its field in the reported `SystemInfo`. To take a built-in's place, switch it off:
