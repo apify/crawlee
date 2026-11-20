@@ -13,7 +13,7 @@ Applies when you passed `statisticsOptions` to a crawler, subclassed `Statistics
 The `statisticsOptions` option has been removed from the crawler constructor. Instead of passing options for the crawler to build its `Statistics` from, construct a `Statistics` instance yourself and pass it via the new `statistics` option — the same inject-or-default idiom as `sessionPool` and `browserPool`.
 
 ```typescript
-import { Statistics } from '@crawlee/basic';
+import { BasicCrawler, Statistics } from '@crawlee/basic';
 
 const crawler = new BasicCrawler({
     // The old parameter won't work anymore
@@ -28,12 +28,13 @@ The option accepts the built-in `Statistics` or any object implementing the new 
 
 ## The request-recording methods are renamed
 
-A crawler processes requests, not jobs, so the four methods `IStatistics` exposes for recording them dropped the borrowed vocabulary. Signatures are unchanged, so a custom implementation only needs renaming:
+A crawler processes requests, not jobs, so the three methods for recording them dropped the borrowed vocabulary. Signatures are unchanged, so a custom implementation only needs renaming:
 
 - `startJob()` -> `recordRequestStart()`
 - `finishJob()` -> `recordRequestSuccess()`
 - `failJob()` -> `recordRequestFailure()`
-- `discardJob()` -> `discardRequestRecord()`
+
+`IStatistics` also requires a fourth method that v3 did not have, `discardRequestRecord(id)`.
 
 ## The `Statistics` persistence lifecycle is stricter
 
@@ -43,13 +44,13 @@ A persisted record is also validated on load now. One that does not match the ex
 
 ## Subclassing `Statistics` to track extra fields is replaced by the `stateExtension` option
 
-`persistStateKey`, `toJSON()` and `_maybeLoadStatistics()` were `protected` and are now private. Declare extra fields via the new `stateExtension` option instead — `{ defaultState, deserialize, serialize }`, the same trio `RecoverableState` takes, scoped to the custom fields. See the [Custom statistics fields](../../guides/custom-statistics.mdx) guide.
+`persistStateKey` and `_maybeLoadStatistics()` were `protected` and are now private (`toJSON()` stays public). Declare extra fields via the new `stateExtension` option instead — `{ defaultState, deserialize, serialize }`, the same trio `RecoverableState` takes, scoped to the custom fields. See the [Custom statistics fields](../../guides/custom-statistics.mdx) guide.
 
 The persisted record is now validated strictly, and keys that are neither built-in nor declared in `stateExtension` are dropped rather than written back. `calculate()` is still public and still an override point.
 
-The custom field types reach `crawler.statistics.state` through a new trailing `StatisticStateExtension` type parameter on the crawler classes and their options. It defaults to `{}`, so existing type arguments keep working — except on `BrowserCrawler` and `BrowserCrawlerOptions`, where it was inserted after `Routes` and shifts the trailing internal parameters (`GoToOptions`, `__BrowserPlugins`, …). Adjust any explicit type arguments you passed to those two.
+The custom field types reach `crawler.statistics.state` through a new trailing `StatisticStateExtension` type parameter on the crawler classes and their options. It defaults to `{}`, so existing type arguments keep working — except on `BrowserCrawler`, where it was inserted after `Routes`, ahead of the trailing `GoToOptions` parameter. Adjust any explicit type arguments you passed there.
 
 `AdaptivePlaywrightCrawler` now uses this mechanism for its own extra fields, with two consequences:
 
 - `httpOnlyRequestHandlerRuns`, `browserRequestHandlerRuns` and `renderingTypeMispredictions` were typed as optional and are now always present. Reading them no longer needs a `?? 0`.
-- The `statistics` option used to throw for this crawler; it now accepts any `IStatistics<AdaptivePlaywrightCrawlerStatisticState>`. Build one by extending the exported `adaptivePlaywrightCrawlerStatisticState`.
+- The `statistics` option accepts any `IStatistics<AdaptivePlaywrightCrawlerStatisticState>`. Build one by extending the exported `adaptivePlaywrightCrawlerStatisticState`.

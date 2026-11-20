@@ -59,7 +59,7 @@ If you previously used `browserController` in your request handlers, here is how
 
 **Cookies** — Cookie injection and persistence are now handled automatically by the crawler and the pool. You no longer need to call `browserController.getCookies()` or `browserController.setCookies()` manually.
 
-**Proxy info** — Access proxy information via `session.proxyInfo` instead of `browserController.launchContext.proxyUrl`. TLS-error handling moved along with it: the pool reads `session.proxyInfo.ignoreTlsErrors`, so there is no standalone `ignoreTlsErrors` page option anymore. If you need to disable TLS verification for some other reason, set `ignoreHTTPSErrors` (Playwright) / `acceptInsecureCerts` (Puppeteer) through the browser's `launchOptions`.
+**Proxy info** — Access proxy information via `session.proxyInfo` instead of `browserController.launchContext.proxyUrl`. TLS-error handling moved along with it: the pool reads `session.proxyInfo.ignoreTlsErrors`, so the `IBrowserPool` `newPage()` options have no `ignoreTlsErrors` field (the built-in `BrowserPool.newPage()` still accepts one as an explicit override). If you need to disable TLS verification for some other reason, set `ignoreHTTPSErrors` (Playwright) / `acceptInsecureCerts` (Puppeteer) through the browser's `launchOptions`.
 
 **Direct browser access** — If you need the raw browser or controller instance (e.g. for Puppeteer/Playwright-specific APIs), construct a `BrowserPool` yourself, pass it to the crawler, and reference it directly in your handler — no cast needed:
 
@@ -136,12 +136,12 @@ This experimental option relied on an outdated manifest version for browser exte
 
 ## `BrowserCrawler.launchContext` was removed
 
-The `launchContext` property on crawler instances is gone. It was assigned once in the constructor and never read, so nothing in Crawlee consumed it. The `launchContext` **option** is unchanged on `PlaywrightCrawler`, `PuppeteerCrawler` and `StagehandCrawler` — only the echo of it on the instance is gone. If you were reading `crawler.launchContext`, keep your own reference to the object you passed in.
+The `launchContext` property on crawler instances is gone. The `launchContext` **option** is unchanged on `PlaywrightCrawler`, `PuppeteerCrawler` and `StagehandCrawler` — only the echo of it on the instance is gone. If you were reading `crawler.launchContext`, keep your own reference to the object you passed in.
 
-The abstract `BrowserCrawler` base class also lost its third type parameter, `LaunchOptions`, which existed only to type that field. Custom crawlers extending `BrowserCrawler` must drop that type argument:
+The abstract `BrowserCrawler` base class also lost its `LaunchOptions` type parameter, which existed only to type that field, along with `InternalBrowserPoolOptions`; its type parameters now start with the page and response types. Custom crawlers extending `BrowserCrawler` must update their type arguments:
 
 ```diff
--class MyCrawler extends BrowserCrawler<Page, Response, LaunchOptions, MyCrawlingContext> {
+-class MyCrawler extends BrowserCrawler<BrowserPoolOptions, LaunchOptions, MyCrawlingContext> {
 +class MyCrawler extends BrowserCrawler<Page, Response, MyCrawlingContext> {
 ```
 
