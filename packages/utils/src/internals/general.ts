@@ -201,7 +201,8 @@ export function snapshotPageWithIframes(
 ): { html: string; iframes: Element[] } {
     const attribute = 'data-crawlee-iframe-id';
 
-    document.querySelectorAll('iframe').forEach((iframe, index) => iframe.setAttribute(attribute, String(index)));
+    const iframes = Array.from(document.querySelectorAll('iframe'));
+    iframes.forEach((iframe, index) => iframe.setAttribute(attribute, String(index)));
 
     let html: string;
     if (serialize) {
@@ -212,12 +213,7 @@ export function snapshotPageWithIframes(
         html = doctype + document.documentElement.outerHTML;
     }
 
-    // Looked up only now, as `expandShadowRoots` re-creates the light DOM of shadow hosts.
-    const iframes: Element[] = [];
-    for (const iframe of document.querySelectorAll(`iframe[${attribute}]`)) {
-        iframes[Number(iframe.getAttribute(attribute))] ??= iframe;
-        iframe.removeAttribute(attribute);
-    }
+    iframes.forEach((iframe) => iframe.removeAttribute(attribute));
 
     return { html, iframes };
 }
