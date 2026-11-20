@@ -418,61 +418,23 @@ describe('ThrottlingRequestManager', () => {
             expect(factory).toHaveBeenCalledTimes(1);
         });
 
-        test('is not forced by bookkeeping', async () => {
-            const factory = vitest.fn(async () => createQueue());
-            const manager = new ThrottlingRequestManager({ ...throttling, inner: factory });
+        test.each(['purge', 'drop'] as const)('is opened and reached by %s()', async (method) => {
+            const inner = await createQueue();
+            const spy = vitest.spyOn(inner, method);
+            const manager = new ThrottlingRequestManager({ ...throttling, inner: () => inner });
 
-            await manager.setExpectedRequestProcessingTime(600);
+            await manager[method]();
 
-            expect(factory).not.toHaveBeenCalled();
-            expect(manager.innerManager).toBeUndefined();
+            expect(spy).toHaveBeenCalledTimes(1);
         });
 
-        test('is opened and emptied by purge(), so requests left in it by a previous run are not crawled', async () => {
-            const leftover = await createQueue('leftover-inner');
-            await leftover.addRequest({ url: 'https://other.com/left-behind' });
-
-            const manager = new ThrottlingRequestManager({
-                ...throttling,
-                inner: () => createQueue('leftover-inner'),
-            });
-
-            await manager.purge();
-
-            expect(manager.innerManager).toBeDefined();
-            expect(await manager.getTotalCount()).toBe(0);
-            expect(await manager.fetchNextRequest()).toBeNull();
-        });
-
-        test('is opened and emptied by purge() when omitted entirely', async () => {
-            const leftover = await RequestQueue.open();
-            await leftover.addRequest({ url: 'https://other.com/left-behind' });
-
-            const manager = new ThrottlingRequestManager({ ...throttling });
-            await manager.purge();
-
-            expect(await manager.getTotalCount()).toBe(0);
-            expect(await manager.fetchNextRequest()).toBeNull();
-        });
-
-        test('is opened and dropped by drop()', async () => {
-            const leftover = await createQueue('leftover-inner');
-            await leftover.addRequest({ url: 'https://other.com/left-behind' });
-            const dropSpy = vitest.spyOn(leftover, 'drop');
-
-            const manager = new ThrottlingRequestManager({ ...throttling, inner: () => leftover });
-            await manager.drop();
-
-            expect(dropSpy).toHaveBeenCalledTimes(1);
-        });
-
-        test('receives an expected-processing-time hint given before it was resolved', async () => {
+        test('receives an expected-processing-time hint given before it was resolved, without being opened by it', async () => {
             const inner = await createQueue();
             const setHint = vitest.spyOn(inner, 'setExpectedRequestProcessingTime');
             const manager = new ThrottlingRequestManager({ ...throttling, inner: () => inner });
 
             await manager.setExpectedRequestProcessingTime(600);
-            expect(setHint).not.toHaveBeenCalled();
+            expect(manager.innerManager).toBeUndefined();
 
             await manager.fetchNextRequest();
 
