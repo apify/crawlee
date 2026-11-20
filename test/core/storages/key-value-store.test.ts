@@ -335,6 +335,18 @@ describe('KeyValueStore', () => {
             expect(record!.contentType).toBe('application/octet-stream');
             expect(toBuffer(record!.value).equals(original)).toBe(true);
         });
+
+        test('Buffer values are not shared with the caller', async () => {
+            const store = await KeyValueStore.open();
+            const original = Buffer.from([1, 2, 3]);
+            await store.setValue('buf', original);
+            original[0] = 9;
+
+            const value = (await store.getValue('buf')) as Buffer;
+            value[1] = 9;
+
+            expect(await store.getValue('buf')).toEqual(Buffer.from([1, 2, 3]));
+        });
     });
 
     describe('pre-serialized JSON via setValue (caller owns the bytes)', () => {
