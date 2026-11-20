@@ -14,4 +14,4 @@ jobs:
         name: 'Check PR title'
         runs-on: ubuntu-26.04
         steps:
-            -   uses: apify/actions/pr-title-check@v1.6.2
+            -   uses: apify/actions/pr-title-check@v1.7.0

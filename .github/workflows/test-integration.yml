@@ -58,7 +58,7 @@ jobs:
                     restore-keys: |
                         turbo-${{ github.job }}-${{ github.ref_name }}-
 
-            -   uses: apify/actions/pnpm-install@v1.6.2
+            -   uses: apify/actions/pnpm-install@v1.7.0
 
             # No `playwright install` — these tests connect to remote Browserless
             # over CDP and never launch a local browser binary.
