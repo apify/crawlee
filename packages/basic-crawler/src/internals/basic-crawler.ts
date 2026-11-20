@@ -2171,11 +2171,6 @@ export class BasicCrawler<
                     continue;
                 }
 
-                if (!(await isAllowedBasedOnRobotsTxtFile(requestOptions.url))) {
-                    allSkipped.push({ source: keepSkippedSource(requestOptions), reason: 'robotsTxt' });
-                    continue;
-                }
-
                 const onSkippedByFilter = (opts: RequestOptions) =>
                     allSkipped.push({ source: keepSkippedSource(opts), reason: 'filters' });
 
@@ -2201,6 +2196,12 @@ export class BasicCrawler<
                 }
 
                 let [finalOptions] = filtered;
+
+                // After the filters, because the check may fetch the robots.txt of the request's origin.
+                if (!(await isAllowedBasedOnRobotsTxtFile(finalOptions.url))) {
+                    allSkipped.push({ source: keepSkippedSource(finalOptions), reason: 'robotsTxt' });
+                    continue;
+                }
 
                 if (options.transformRequestFunction) {
                     const transformed = applyRequestTransform([finalOptions], options.transformRequestFunction, (r) =>
