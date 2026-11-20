@@ -98,7 +98,7 @@
         "@vitest/coverage-v8": "^5.1.0",
         "apify": "*",
         "apify-node-curl-impersonate": "^1.0.33",
-        "apify-test-tools": "github:apify/apify-test-tools#22ad4e50cba6f7f81de45ed9291df54247b9c089",
+        "apify-test-tools": "github:apify/apify-test-tools#d85d2292ca2bf1693dbb0a543d077bb04b9ad282",
         "basic-auth-parser": "^0.0.2",
         "body-parser": "^2.4.0",
         "camoufox-js": "^0.13.0",

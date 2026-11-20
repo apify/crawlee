@@ -48,7 +48,7 @@ overrides:
 # proceed when new build-requesting deps appear without a manual entry).
 allowBuilds:
   # Installed from GitHub until the local-runs work is released; the key pins the commit, so it changes with it.
-  "apify-test-tools@https://codeload.github.com/apify/apify-test-tools/tar.gz/22ad4e50cba6f7f81de45ed9291df54247b9c089": true
+  "apify-test-tools@https://codeload.github.com/apify/apify-test-tools/tar.gz/d85d2292ca2bf1693dbb0a543d077bb04b9ad282": true
   "@apify/ui-icons": true
   '@google/genai': set this to true or false
   "@playwright/browser-chromium": true
