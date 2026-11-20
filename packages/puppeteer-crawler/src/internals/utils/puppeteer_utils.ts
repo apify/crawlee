@@ -24,7 +24,7 @@ import vm from 'node:vm';
 import type { Request } from '@crawlee/browser';
 import { Configuration, KeyValueStore, RequestState, validators } from '@crawlee/browser';
 import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
-import { type CheerioRoot, expandShadowRoots, sleep } from '@crawlee/utils';
+import { type CheerioRoot, expandShadowRoots, sleep, snapshotPageWithIframes } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
 import type { ProtocolMapping } from 'devtools-protocol/types/protocol-mapping.js';
 import ow from 'ow';
@@ -196,31 +196,33 @@ export async function parseWithCheerio(
 ): Promise<CheerioRoot> {
     ow(page, ow.object.validate(validators.browserPage));
 
+    const snapshot = await page.evaluateHandle(
+        `(${snapshotPageWithIframes.toString()})(document, ${ignoreShadowRoots ? 'null' : expandShadowRoots.toString()})`,
+    );
+    const pageContent = (await (await snapshot.getProperty('html')).jsonValue()) as string;
+    const $ = cheerio.load(pageContent);
+
     if (page.frames().length > 1 && !ignoreIframes) {
-        const frames = await page.$$('iframe');
+        const iframes = await (await snapshot.getProperty('iframes')).getProperties();
 
         await Promise.all(
-            frames.map(async (frame) => {
+            [...iframes].map(async ([id, handle]) => {
                 try {
-                    const iframe = await frame.contentFrame();
+                    const iframe = await handle.asElement()?.contentFrame();
+
                     if (iframe) {
                         const getIframeHTML = async (): Promise<string> => {
                             try {
-                                return iframe.$eval('body', (el) => el.innerHTML);
+                                return await iframe.$eval('body', (el) => el.innerHTML);
                             } catch {
                                 return iframe.content();
                             }
                         };
 
                         const contents = await getIframeHTML();
-
-                        await frame.evaluate((f, c) => {
-                            const replacementNode = document.createElement('div');
-                            replacementNode.innerHTML = c;
-                            replacementNode.className = 'crawlee-iframe-replacement';
-
-                            f.replaceWith(replacementNode);
-                        }, contents);
+                        $(`iframe[data-crawlee-iframe-id="${id}"]`).replaceWith(
+                            `<div class="crawlee-iframe-replacement">${contents}</div>`,
+                        );
                     }
                 } catch (error) {
                     log.warning(`Failed to extract iframe content: ${error}`);
@@ -229,12 +231,10 @@ export async function parseWithCheerio(
         );
     }
 
-    const html = ignoreShadowRoots
-        ? null
-        : ((await page.evaluate(`(${expandShadowRoots.toString()})(document)`)) as string);
-    const pageContent = html || (await page.content());
+    await snapshot.dispose();
+    $('[data-crawlee-iframe-id]').removeAttr('data-crawlee-iframe-id');
 
-    return cheerio.load(pageContent);
+    return $;
 }
 
 /**
