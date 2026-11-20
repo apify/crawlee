@@ -1071,7 +1071,7 @@ describe('BasicCrawler', () => {
         expect((await requestList.checkReadiness()).status).toBe('finished');
     });
 
-    test('print a warning on sharing state between two crawlers', async () => {
+    test('crawlers without an explicit id have isolated state', async () => {
         function createCrawler() {
             return new BasicCrawler({
                 requestHandler: async ({ request, useState }) => {
@@ -1083,58 +1083,31 @@ describe('BasicCrawler', () => {
 
         const [crawler1, crawler2] = [createCrawler(), createCrawler()];
 
-        const loggerSpy = vitest.spyOn(serviceLocator.getLogger(), 'warningOnce');
-
         await crawler1.run([`http://${HOSTNAME}:${port}/`]);
         await crawler2.run([`http://${HOSTNAME}:${port}/?page=2`]);
 
-        // Both crawlers should share the same state (backward compatibility)
         const state1 = await crawler1.useState<{ urls: string[] }>();
         const state2 = await crawler2.useState<{ urls: string[] }>();
 
-        expect(state1).toBe(state2);
-        expect(state1.urls).toHaveLength(2);
-        expect(state1.urls).toContain(`http://${HOSTNAME}:${port}/`);
-        expect(state1.urls).toContain(`http://${HOSTNAME}:${port}/?page=2`);
-        expect(loggerSpy).toBeCalledWith(expect.stringContaining('Multiple crawler instances are calling useState()'));
+        expect(state1).not.toBe(state2);
+        expect(state1.urls).toEqual([`http://${HOSTNAME}:${port}/`]);
+        expect(state2.urls).toEqual([`http://${HOSTNAME}:${port}/?page=2`]);
     });
 
-    test('shared-state warning is emitted only once regardless of crawler count', async () => {
-        // This test guards against a regression where per-instance loggers were used
-        // for a class-level (static) concern: each crawler would emit the warning
-        // independently, producing N warnings for N crawlers instead of just one.
+    test('persists useState() under a key that includes the crawler id', async () => {
+        const crawler = new BasicCrawler({
+            id: 'my-crawler',
+            requestHandler: async ({ useState }) => {
+                await useState({ count: 1 });
+            },
+        });
 
-        // Clear the global logger's dedup state so this test is isolated from others.
-        (log as any).warningsOnceLogged.clear();
+        await crawler.run([`http://${HOSTNAME}:${port}/`]);
+        serviceLocator.getEventManager().emit(EventType.PERSIST_STATE);
+        await sleep(10);
 
-        // Spy on the underlying warning dispatch to count actual emissions.
-        const warningSpy = vitest.spyOn(serviceLocator.getLogger(), 'warning');
-        const crawlers = [
-            new BasicCrawler({
-                requestHandler: async ({ useState }) => {
-                    await useState({ count: 0 });
-                },
-            }),
-            new BasicCrawler({
-                requestHandler: async ({ useState }) => {
-                    await useState({ count: 0 });
-                },
-            }),
-            new BasicCrawler({
-                requestHandler: async ({ useState }) => {
-                    await useState({ count: 0 });
-                },
-            }),
-        ];
-
-        await crawlers[0].run([`http://${HOSTNAME}:${port}/`]);
-        await crawlers[1].run([`http://${HOSTNAME}:${port}/?page=2`]);
-        await crawlers[2].run([`http://${HOSTNAME}:${port}/?page=3`]);
-
-        const sharedStateWarnings = warningSpy.mock.calls.filter(
-            ([msg]) => typeof msg === 'string' && msg.includes('Multiple crawler instances are calling useState()'),
-        );
-        expect(sharedStateWarnings).toHaveLength(1);
+        const store = await KeyValueStore.open();
+        await expect(store.getValue('CRAWLEE_STATE_my-crawler')).resolves.toEqual({ count: 1 });
     });
 
     test('crawlers with explicit id have isolated state', async () => {
@@ -1200,7 +1173,7 @@ describe('BasicCrawler', () => {
             // Resolve on the RequestList's state write triggered by the event - the periodic persistence also
             // writes it once at run start, before anything was processed.
             setValueSpy.mockImplementation(async (key) => {
-                if (key.endsWith(STATE_PERSISTENCE_KEY) && processed.length > 0) persistResolve();
+                if (key.includes(STATE_PERSISTENCE_KEY) && processed.length > 0) persistResolve();
             });
             // The crawler will pause after 200 requests
             const runPromise = basicCrawler.run();

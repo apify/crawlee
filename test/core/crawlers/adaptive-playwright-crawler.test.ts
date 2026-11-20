@@ -164,6 +164,9 @@ describe('AdaptivePlaywrightCrawler', () => {
     });
 
     // Test setup helpers
+    const CRAWLER_ID = 'adaptive';
+    const STATE_KEY = `CRAWLEE_STATE_${CRAWLER_ID}`;
+
     const makeOneshotCrawler = async (
         options: Required<Pick<AdaptivePlaywrightCrawlerOptions, 'requestHandler' | 'renderingTypePredictor'>> &
             Partial<AdaptivePlaywrightCrawlerOptions>,
@@ -175,6 +178,7 @@ describe('AdaptivePlaywrightCrawler', () => {
             maxRequestRetries: 0,
             maxRequestsPerCrawl: 1,
             requestList: await RequestList.open({ sources }),
+            id: CRAWLER_ID,
             ...options,
         });
 
@@ -838,7 +842,7 @@ describe('AdaptivePlaywrightCrawler', () => {
 
         await crawler.run();
         // Reading through the KeyValueStore frontend parses the JSON value for us.
-        expect(await (await KeyValueStore.open()).getValue('CRAWLEE_STATE')).toEqual({ count: 3 });
+        expect(await (await KeyValueStore.open()).getValue(STATE_KEY)).toEqual({ count: 3 });
     });
 
     describe('writes of a discarded attempt', () => {
@@ -889,7 +893,7 @@ describe('AdaptivePlaywrightCrawler', () => {
             await crawler.run();
 
             expect(seenUserData).toEqual([{}, {}]);
-            expect(await (await KeyValueStore.open()).getValue('CRAWLEE_STATE')).toEqual({
+            expect(await (await KeyValueStore.open()).getValue(STATE_KEY)).toEqual({
                 count: 1,
                 visited: [`http://${HOSTNAME}:${port}/static`],
             });
@@ -921,7 +925,7 @@ describe('AdaptivePlaywrightCrawler', () => {
                 detectionProbabilityRecommendation: 1,
                 renderingType: 'clientOnly',
             });
-            await (await KeyValueStore.open()).setValue('CRAWLEE_STATE', { seeded: true });
+            await (await KeyValueStore.open()).setValue(STATE_KEY, { seeded: true });
 
             const seen: Dictionary[] = [];
             const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = async (context) => {
@@ -943,7 +947,7 @@ describe('AdaptivePlaywrightCrawler', () => {
             await crawler.run();
 
             expect(seen).toEqual([{ seeded: true }, { seeded: true, rerun: true }]);
-            expect(await (await KeyValueStore.open()).getValue('CRAWLEE_STATE')).toEqual({ seeded: true });
+            expect(await (await KeyValueStore.open()).getValue(STATE_KEY)).toEqual({ seeded: true });
         });
 
         test('the detection rerun (HTTP) sees the request as it was before the browser attempt', async () => {
@@ -1007,7 +1011,7 @@ describe('AdaptivePlaywrightCrawler', () => {
                 { state: {}, userData: {} },
                 { state: {}, userData: {} },
             ]);
-            expect(await (await KeyValueStore.open()).getValue('CRAWLEE_STATE')).toEqual({ stored: true });
+            expect(await (await KeyValueStore.open()).getValue(STATE_KEY)).toEqual({ stored: true });
         });
     });
 
@@ -1344,14 +1348,14 @@ describe('AdaptivePlaywrightCrawler', () => {
 
         // Verify that the regression model was actually saved to the key-value store
         const store = await KeyValueStore.open();
-        const storedState = await store.getValue('rendering-type-predictor-state');
+        const storedState = await store.getValue('CRAWLEE_RENDERING_TYPE_PREDICTOR_STATE');
         expect(storedState).toHaveProperty('logreg');
 
         // Test that the persisted state can be successfully restored
         // by creating a new RenderingTypePredictor and seeing if it initializes without error
         const newPredictor = new RenderingTypePredictor({
             detectionRatio: 0.1,
-            persistenceOptions: { persistStateKey: 'rendering-type-predictor-state' },
+            persistenceOptions: { persistStateKey: 'CRAWLEE_RENDERING_TYPE_PREDICTOR_STATE' },
         });
 
         // This should not throw since we've persisted valid state
@@ -1382,7 +1386,7 @@ describe('AdaptivePlaywrightCrawler', () => {
             await sleep(100);
 
             const store = await KeyValueStore.open();
-            await expect(store.getValue<string>('rendering-type-predictor-state')).resolves.not.toBeNull();
+            await expect(store.getValue<string>('CRAWLEE_RENDERING_TYPE_PREDICTOR_STATE')).resolves.not.toBeNull();
         });
 
         test('tears down the predictor it built itself', async () => {

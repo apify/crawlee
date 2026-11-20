@@ -712,8 +712,6 @@ interface CrawlerIdentity {
     readonly instanceIndex: number;
     /** The user-supplied `id` option, or a fallback derived from `instanceIndex`. */
     readonly id: string;
-    /** Whether `id` came from the user (as opposed to being derived from `instanceIndex`). */
-    readonly hasExplicitId: boolean;
 }
 
 export class BasicCrawler<
@@ -731,12 +729,6 @@ export class BasicCrawler<
      * collide.
      */
     static #instanceCount = 0;
-
-    /**
-     * Tracks crawler instances that accessed shared state without having an explicit id.
-     * Used to detect and warn about multiple crawlers sharing the same state.
-     */
-    static #useStateAnonymousIndices = new Set<number>();
 
     /** Backs the {@apilink BasicCrawler.statistics|`statistics`} getter. */
     #statisticsDep: OwnedOrInjected<IStatistics<StatisticStateExtension>, Statistics<StatisticStateExtension>>;
@@ -1092,7 +1084,7 @@ export class BasicCrawler<
             serviceLocator.getConfiguration();
 
             const instanceIndex = BasicCrawler.#instanceCount++;
-            this.#identity = { instanceIndex, hasExplicitId: id !== undefined, id: id ?? String(instanceIndex) };
+            this.#identity = { instanceIndex, id: id ?? String(instanceIndex) };
 
             if (requestManager !== undefined && (requestList !== undefined || requestQueue !== undefined)) {
                 throw new Error(
@@ -1996,25 +1988,7 @@ export class BasicCrawler<
     async useState<State extends Dictionary = Dictionary>(defaultValue = {} as State): Promise<State> {
         const kvs = await KeyValueStore.open(null, { configuration: serviceLocator.getConfiguration() });
 
-        if (this.#identity.hasExplicitId) {
-            const stateKey = `${BasicCrawler.#CRAWLEE_STATE_KEY}_${this.#identity.id}`;
-            return kvs.getAutoSavedValue<State>(stateKey, defaultValue);
-        }
-
-        BasicCrawler.#useStateAnonymousIndices.add(this.#identity.instanceIndex);
-
-        if (BasicCrawler.#useStateAnonymousIndices.size > 1) {
-            serviceLocator
-                .getLogger()
-                .warningOnce(
-                    'Multiple crawler instances are calling useState() without an explicit `id` option. \n' +
-                        'This means they will share the same state object, which is likely unintended. \n' +
-                        'To fix this, provide a unique `id` option to each crawler instance. \n' +
-                        'Example: new BasicCrawler({ id: "my-crawler-1", ... })',
-                );
-        }
-
-        return kvs.getAutoSavedValue<State>(BasicCrawler.#CRAWLEE_STATE_KEY, defaultValue);
+        return kvs.getAutoSavedValue<State>(`${BasicCrawler.#CRAWLEE_STATE_KEY}_${this.#identity.id}`, defaultValue);
     }
 
     async #getPendingRequestCountApproximation(): Promise<number> {

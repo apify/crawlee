@@ -1128,6 +1128,17 @@ With `respectRobotsTxtFile` enabled, a site that answers `/robots.txt` with a `5
 
 Several internal Crawlee keys were prefixed with the `SDK_` prefix for legacy reasons — these keys now start with `CRAWLEE_` instead. These are, e.g., `CRAWLEE_SESSION_POOL_STATE` or `CRAWLEE_CRAWLER_STATISTICS_{n}`.
 
+The other internal records in the default key-value store now follow the same `CRAWLEE_UPPER_SNAKE_CASE` convention:
+
+| Record | v3 key | v4 key |
+|---|---|---|
+| `crawler.useState()` | `CRAWLEE_STATE` / `CRAWLEE_STATE_{id}` | `CRAWLEE_STATE_{id}` |
+| `RequestList` progress | `CRAWLEE_{name}-REQUEST_LIST_STATE` | `CRAWLEE_REQUEST_LIST_STATE_{name}` |
+| `RequestList` requests | `CRAWLEE_{name}-REQUEST_LIST_REQUESTS` | `CRAWLEE_REQUEST_LIST_REQUESTS_{name}` |
+| Rendering type predictor | `rendering-type-predictor-state` | `CRAWLEE_RENDERING_TYPE_PREDICTOR_STATE` |
+
+Records persisted under the old keys are not picked up after upgrading. `useState()` now always includes the crawler's `id`, which defaults to the crawler's creation order in the process, so crawlers without an explicit `id` no longer share one state object. Give crawlers the same `id` if they should share it.
+
 ## Only if you subclassed crawlers or touched internals
 
 Skip this section unless you subclass Crawlee classes, override `protected` members, or read fields that were never documented. Many protected methods lost their underscore prefix, private members became native `#` fields, and a long list of accidentally exposed members is now `private` or `@internal`. Crawler generics, handler types and navigation hook types were reshaped, `Request` was split into `Request` and `CrawlingRequest`, and `RecoverableState` changed its serialization contract.

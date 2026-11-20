@@ -1197,12 +1197,21 @@ describe('ThrottlingRequestManager', () => {
         });
 
         test('a restart reopens the queues of domains the previous run discovered', async () => {
-            const firstRun = new ThrottlingRequestManager({ inner: await createQueue(), domains: 'all' });
+            const persistStateKey = 'THROTTLED_DOMAINS_RESTART';
+            const firstRun = new ThrottlingRequestManager({
+                inner: await createQueue(),
+                domains: 'all',
+                persistStateKey,
+            });
             await firstRun.addRequest({ url: 'https://example.com/left-behind' });
 
             // A restart builds a brand new manager over the same storage backend, with nothing but the
             // persisted domain list to tell it that queue exists.
-            const secondRun = new ThrottlingRequestManager({ inner: await createQueue(), domains: 'all' });
+            const secondRun = new ThrottlingRequestManager({
+                inner: await createQueue(),
+                domains: 'all',
+                persistStateKey,
+            });
 
             expect(await secondRun.getPendingCount()).toBe(1);
             expect((await pollForNextRequest(secondRun)).url).toBe('https://example.com/left-behind');

@@ -877,8 +877,8 @@ export class RequestList implements IRequestLoader {
      *   is only stored in memory, a restart or migration wipes it clean. Setting a name will enable the `RequestList`'s
      *   state to survive those situations and continue where it left off.
      *
-     *   The name will be used as a prefix in key-value store, producing keys such as `NAME-REQUEST_LIST_STATE`
-     *   and `NAME-REQUEST_LIST_SOURCES`.
+     *   The name will be used as a suffix in key-value store, producing keys such as
+     *   `CRAWLEE_REQUEST_LIST_STATE_NAME` and `CRAWLEE_REQUEST_LIST_REQUESTS_NAME`.
      *
      *   If `null`, the list will not be persisted and will only be stored in memory. Process restart
      *   will then cause the list to be crawled again from the beginning. We suggest always using a name.
@@ -922,8 +922,8 @@ export class RequestList implements IRequestLoader {
 
         const rl = new RequestList({
             ...options,
-            persistStateKey: listName ? `${listName}-${STATE_PERSISTENCE_KEY}` : options.persistStateKey,
-            persistRequestsKey: listName ? `${listName}-${REQUESTS_PERSISTENCE_KEY}` : options.persistRequestsKey,
+            persistStateKey: listName ? `${STATE_PERSISTENCE_KEY}_${listName}` : options.persistStateKey,
+            persistRequestsKey: listName ? `${REQUESTS_PERSISTENCE_KEY}_${listName}` : options.persistRequestsKey,
             sources: sources ?? options.sources,
         });
         await rl.#initialize();
