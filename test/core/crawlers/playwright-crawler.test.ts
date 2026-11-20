@@ -388,6 +388,23 @@ describe('PlaywrightCrawler', () => {
         expect(suggestedFilename).toBe('hello.txt');
     });
 
+    test('lists a download that started on navigation in errorHandler', async () => {
+        let suggestedFilenames: string[] | undefined;
+
+        const playwrightCrawler = new PlaywrightCrawler({
+            maxRequestRetries: 1,
+            maxConcurrency: 1,
+            requestHandler: async () => {},
+            errorHandler: async ({ listDownloads }) => {
+                suggestedFilenames = (await listDownloads!()).map((download) => download.suggestedFilename());
+            },
+        });
+
+        await playwrightCrawler.run([`http://${HOSTNAME}:${port}/download-file`]);
+
+        expect(suggestedFilenames).toEqual(['hello.txt']);
+    });
+
     test('should have correct types in crawling context', async () => {
         const requestHandler = async (crawlingContext: PlaywrightCrawlingContext) => {
             // Checking that types are correct
