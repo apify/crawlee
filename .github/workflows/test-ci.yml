@@ -284,6 +284,7 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/master' && (!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, 'docs:'))
         needs: build_and_test
         runs-on: ubuntu-26.04
+        environment: npm
         permissions:
             contents: read
             # Starts publish-to-npm.yml and waits for it with the job token.
