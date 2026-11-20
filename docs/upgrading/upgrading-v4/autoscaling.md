@@ -52,7 +52,6 @@ The crawler's `autoscaledPool` property is **removed** as a result. Everything i
 | `await crawler.autoscaledPool.pause(secs)` | `await crawler.pause(secs)` |
 | `crawler.autoscaledPool.resume()` | `crawler.resume()` |
 | `await crawler.autoscaledPool.abort()` | `await crawler.teardown()` — or `crawler.stop()`, to let in-flight requests finish |
-| `crawler.autoscaledPool.system` | `crawler.concurrencySystem` |
 | `crawler.autoscaledPool.desiredConcurrency` | `crawler.concurrencySystem?.desiredConcurrency` |
 | `crawler.autoscaledPool.currentConcurrency` | `crawler.concurrencySystem?.currentConcurrency` |
 
@@ -84,7 +83,7 @@ const crawler = new CheerioCrawler({
 
 #### If you were driving an `AutoscaledPool` directly
 
-All scaling and load-monitoring options were **removed** from `AutoscaledPoolOptions` and now live on `ConcurrencySystemOptions`: `minConcurrency`, `maxConcurrency`, `desiredConcurrency`, `desiredConcurrencyRatio`, `scaleUpStepRatio`, `scaleDownStepRatio`, `loggingIntervalSecs`, `autoscaleIntervalSecs`, and `maxTasksPerMinute`, plus the load-signal configuration described [below](#load-signal-options-restructured). The `snapshotterOptions` and `systemStatusOptions` bags are both gone, as are the `minConcurrency`/`maxConcurrency` accessors and every setter (`desiredConcurrency`, `currentConcurrency` and `system` remain as read-only getters). In their place, `AutoscaledPoolOptions` gained a **required** `concurrencySystem`, plus a **required** `consumer` — the pool's identity (`{ id }`), which it presents to the governor on every capacity query and booking so that a shared one can tell several pools' tasks apart.
+All scaling and load-monitoring options were **removed** from `AutoscaledPoolOptions` and now live on `ConcurrencySystemOptions`: `minConcurrency`, `maxConcurrency`, `desiredConcurrency`, `desiredConcurrencyRatio`, `scaleUpStepRatio`, `scaleDownStepRatio`, `loggingIntervalSecs`, `autoscaleIntervalSecs`, and `maxTasksPerMinute`, plus the load-signal configuration described [below](#load-signal-options-restructured). The `snapshotterOptions` and `systemStatusOptions` bags are both gone, as are the `minConcurrency`/`maxConcurrency` accessors and every setter (`desiredConcurrency` and `currentConcurrency` remain as read-only getters, joined by a new read-only `system` getter). In their place, `AutoscaledPoolOptions` gained a **required** `concurrencySystem`, plus a **required** `consumer` — the pool's identity (`{ id }`), which it presents to the governor on every capacity query and booking so that a shared one can tell several pools' tasks apart.
 
 **Before:**
 ```typescript
@@ -127,9 +126,9 @@ try {
 
 ### `autoscaledPoolOptions` is now `taskLoopOptions`, and no longer carries concurrency config
 
-The crawler option was renamed — it was named after a class that is now internal — and narrowed to **only** the task-loop predicates `isFinishedFunction` and `isTaskReadyFunction`. Its type changed from `AutoscaledPoolOptions` to `TaskLoopPredicates`. Concurrency configuration goes through either the `minConcurrency` / `maxConcurrency` / `initialConcurrency` / `maxRequestsPerMinute` shortcuts (which configure the crawler's default `ConcurrencySystem`), or — for anything finer — a supplied `concurrencySystem`. The new `initialConcurrency` shortcut replaces `autoscaledPoolOptions.desiredConcurrency` and defaults to `minConcurrency`.
+The crawler option was renamed — it was named after a class that is now internal — and narrowed to **only** the task-loop predicates `isFinishedFunction` and `isTaskReadyFunction`. Its type changed from `AutoscaledPoolOptions` to `TaskLoopPredicates`. Concurrency configuration goes through either the `minConcurrency` / `maxConcurrency` / `initialConcurrency` / `maxRequestsPerMinute` shortcuts (which configure the crawler's default `ConcurrencySystem`), or — for anything finer — a supplied `concurrencySystem`. The new `initialConcurrency` shortcut replaces `autoscaledPoolOptions.desiredConcurrency` and defaults to `minConcurrency` (`HttpCrawler` and its subclasses default to 10 instead, see the preset below).
 
-Three options that used to live here — `maybeRunIntervalSecs`, `taskTimeoutSecs` and `log` — did *not* move to the `ConcurrencySystem` and have no replacement: the crawler's task-loop cadence is no longer configurable.
+Two options that used to live here — `maybeRunIntervalSecs` and `taskTimeoutSecs` — did *not* move to the `ConcurrencySystem` and have no replacement: the crawler's task-loop cadence is no longer configurable. The third, `log`, is gone from the crawler option too: the crawler passes its own logger to the default system, and a `ConcurrencySystem` you build takes a `log` option.
 
 **Before:**
 ```typescript
@@ -226,7 +225,7 @@ In detail: the four `max*OverloadedRatio` options of `SystemStatusOptions` were 
 
 Two related capabilities are new, and covered in the [scaling guide](../../guides/scaling-crawlers.mdx#load-signals): a built-in signal can be switched **off** with `false`, and each built-in is also a public class (`MemoryLoadSignal`, `EventLoopLoadSignal`, `CpuLoadSignal`, `StorageBackendLoadSignal`) you can construct to wrap or adapt.
 
-A duplicate signal name now **throws**, where naming a custom signal after a built-in (`memInfo`, `eventLoopInfo`, `cpuInfo`, `storageBackendInfo`) used to look like an override but never was one: the built-in kept running and kept holding concurrency down, while your signal only overwrote its field in the reported `SystemInfo`. To take a built-in's place, switch it off:
+A duplicate signal name now **throws**, where naming a custom signal after a built-in (`memInfo`, `eventLoopInfo`, `cpuInfo`, or `clientInfo`, now `storageBackendInfo`) used to look like an override but never was one: the built-in kept running and kept holding concurrency down, while your signal only overwrote its field in the reported `SystemInfo`. To take a built-in's place, switch it off:
 
 ```typescript
 new ConcurrencySystem({

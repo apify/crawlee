@@ -1,4 +1,5 @@
 import { execFileSync, spawnSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { cp, mkdir, mkdtemp, readFile, readdir, realpath, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { createRequire } from 'node:module';
@@ -18,9 +19,10 @@ const require = createRequire(import.meta.url);
 beforeAll(async () => {
     temporaryRoot = await realpath(await mkdtemp(join(tmpdir(), 'crawlee upgrade $& ')));
     await symlink(join(projectRoot, 'node_modules'), join(temporaryRoot, 'node_modules'), 'junction');
-    const packageRoot = join(temporaryRoot, 'package');
+    const packageRoot = join(temporaryRoot, 'packages/cli');
     await cp(join(cliRoot, 'scripts'), join(packageRoot, 'scripts'), { recursive: true });
     await cp(join(cliRoot, 'src/skills'), join(packageRoot, 'src/skills'), { recursive: true });
+    await cp(join(projectRoot, 'docs/upgrading'), join(temporaryRoot, 'docs/upgrading'), { recursive: true });
     execFileSync(process.execPath, [join(packageRoot, 'scripts/copy-skills.mjs')], { cwd: temporaryRoot });
     await rm(join(packageRoot, 'src'), { recursive: true });
     bundledSkills = join(packageRoot, 'dist/skills');
@@ -39,8 +41,8 @@ afterAll(async () => {
     if (temporaryRoot) await rm(temporaryRoot, { recursive: true, force: true });
 });
 
-async function checkPrompt(output: string, skillRoot: string) {
-    const template = await readFile(join(sourceSkill, 'SKILL.md'), 'utf8');
+function checkPrompt(output: string, skillRoot: string) {
+    const template = readFileSync(join(sourceSkill, 'SKILL.md'), 'utf8');
     const renderedRoot = skillRoot.replace(/\\/g, '/');
     expect(output).toContain(
         template
@@ -51,12 +53,21 @@ async function checkPrompt(output: string, skillRoot: string) {
     expect(output).toContain('# Crawlee upgrade plan: v3 to v4');
     expect(output).toContain('1. Upgrade v3 to v4, then verify before continuing.');
     expect(output).not.toMatch(/\{(?:SKILL_ROOT|FROM_MAJOR|TO_MAJOR|MIGRATION_PLAN|MIGRATION_GUIDES)\}/);
+}
 
-    const paths = [...output.matchAll(/\]\(<([^>]+\/references\/[^>]+)>\)/g)].map((match) => match[1]);
-    const references = await readdir(join(skillRoot, 'references'));
-    expect(new Set(paths).size).toBe(references.length);
+async function checkBundledGuide(output: string, skillRoot: string) {
+    checkPrompt(output, skillRoot);
+
+    const paths = [...output.matchAll(/\]\(<([^>]+\/guide\/[^>]+)>\)/g)].map((match) => match[1]);
+    const pages = await readdir(join(projectRoot, 'docs/upgrading/upgrading-v4'));
+    expect(new Set(paths).size).toBe(pages.filter((page) => page.endsWith('.md')).length);
     for (const path of paths) {
-        expect((await readFile(path, 'utf8')).length).toBeGreaterThan(0);
+        const page = await readFile(path, 'utf8');
+        expect(page).toContain('Upgrading to v4');
+        expect(page).not.toMatch(/@site\/|<ApiLink|\]\(\.\.\//);
+        for (const [, link] of page.matchAll(/\]\(\.\/([^)#]+)/g)) {
+            expect(paths).toContain(join(skillRoot, 'guide', link).replace(/\\/g, '/'));
+        }
     }
 }
 
@@ -90,6 +101,7 @@ describe('upgrade', () => {
         await cp(join(cliRoot, 'package.json'), join(packageRoot, 'package.json'));
         await cp(join(cliRoot, 'scripts'), join(packageRoot, 'scripts'), { recursive: true });
         await cp(join(cliRoot, 'src/skills'), join(packageRoot, 'src/skills'), { recursive: true });
+        await cp(join(projectRoot, 'docs/upgrading'), join(workspaceRoot, 'docs/upgrading'), { recursive: true });
         await symlink(join(projectRoot, 'node_modules'), join(workspaceRoot, 'node_modules'), 'junction');
         await writeFile(join(workspaceRoot, 'package.json'), JSON.stringify({ type: 'module' }));
         await writeFile(join(workspaceRoot, 'lerna.json'), JSON.stringify({ version: '4.0.0' }));
@@ -107,9 +119,10 @@ describe('upgrade', () => {
         expect(await readFile(join(packageRoot, 'dist/skills/crawlee-upgrade-v4/SKILL.md'), 'utf8')).toBe(
             await readFile(join(sourceSkill, 'SKILL.md'), 'utf8'),
         );
+        expect(await readdir(join(packageRoot, 'dist/skills/crawlee-upgrade-v4/guide'))).toContain('upgrading-v4.md');
     });
 
-    it('prints the source skill with readable absolute references from another working directory', async () => {
+    it('prints the source skill with absolute guide links from another working directory', async () => {
         const cwd = await project({ dependencies: { crawlee: '^3.15.0' } });
         const output = execFileSync(
             process.execPath,
@@ -117,13 +130,13 @@ describe('upgrade', () => {
             { cwd, encoding: 'utf8' },
         );
         expect(output).not.toContain('{SKILL_ROOT}');
-        await checkPrompt(output, sourceSkill);
+        checkPrompt(output, sourceSkill);
     });
 
     it('copies all skill assets and resolves them in the published layout, including special path characters', async () => {
         const result = runUpgrade({ from: 3 });
         expect(result.status, result.stderr).toBe(0);
-        await checkPrompt(result.stdout, join(bundledSkills, 'crawlee-upgrade-v4'));
+        await checkBundledGuide(result.stdout, join(bundledSkills, 'crawlee-upgrade-v4'));
     });
 
     it.each([
@@ -144,7 +157,7 @@ describe('upgrade', () => {
         const exportDirectory = join(await mkdtemp(join(temporaryRoot, 'export-')), 'guides');
         const result = runUpgrade({ from: 3, export: exportDirectory });
         expect(result.status, result.stderr).toBe(0);
-        await checkPrompt(result.stdout, join(exportDirectory, 'crawlee-upgrade-v4'));
+        await checkBundledGuide(result.stdout, join(exportDirectory, 'crawlee-upgrade-v4'));
         expect(result.stdout).not.toContain(bundledSkills.replace(/\\/g, '/'));
     });
 
