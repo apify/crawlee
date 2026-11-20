@@ -27,7 +27,7 @@ jobs:
                     node-version: 24
                     package-manager-cache: false
 
-            -   uses: apify/actions/pnpm-install@v1.7.0
+            -   uses: apify/actions/pnpm-install@v1.9.0
 
             -   name: Build & deploy docs
                 run: |
