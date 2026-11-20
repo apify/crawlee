@@ -127,9 +127,14 @@ export class FileDownload extends BasicCrawler<FileDownloadCrawlingContext> {
     }
 
     async #initiateDownload(context: CrawlingContext, onCleanup: CleanupRegistrar) {
+        // Ends the download when the request fails. It also keeps `ImpitHttpClient` from applying impit's own 30 s
+        // timeout, which cut longer downloads short.
+        const downloadAbortController = new AbortController();
+
         const response = await this.httpClient.sendRequest(context.request.intoFetchAPIRequest(), {
             session: context.session,
             ignoreTlsErrors: this.#ignoreTlsErrors,
+            signal: downloadAbortController.signal,
         });
 
         const { type, charset: encoding } = parseContentTypeFromResponse(response);
@@ -138,8 +143,12 @@ export class FileDownload extends BasicCrawler<FileDownloadCrawlingContext> {
 
         const { response: trackedResponse, bodyDrained } = trackBodyConsumption(response);
 
-        onCleanup(async () => {
-            if (!trackedResponse.bodyUsed) {
+        onCleanup(async (error) => {
+            if (error !== undefined) {
+                // A failed request may have left the body half-read, and waiting for it to drain would wait for
+                // the whole download.
+                downloadAbortController.abort();
+            } else if (!trackedResponse.bodyUsed) {
                 // Nobody consumed the body — cancel it so the
                 // underlying connection can be released.
                 await trackedResponse.body?.cancel();
