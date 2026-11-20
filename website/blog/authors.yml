@@ -106,3 +106,9 @@ FederCr:
     socials:
         x: FederCr
         github: feder-cr
+
+Lexmount:
+    name: Lexmount
+    title: Moli team
+    url: https://github.com/lexmount/moli
+    image_url: https://avatars.githubusercontent.com/u/231927209?v=4
