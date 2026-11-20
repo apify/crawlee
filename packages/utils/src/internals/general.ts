@@ -204,12 +204,12 @@ export function snapshotPageWithIframes(
 
     // Shadow roots are only searched when their content gets into the snapshot.
     function collect(root: Document | ShadowRoot) {
-        for (const element of root.querySelectorAll('*')) {
+        for (const element of root.querySelectorAll(serialize ? '*' : 'iframe')) {
             if (element.localName === 'iframe') {
                 iframes.push(element);
             }
 
-            if (serialize && element.shadowRoot) {
+            if (element.shadowRoot) {
                 collect(element.shadowRoot);
             }
         }
