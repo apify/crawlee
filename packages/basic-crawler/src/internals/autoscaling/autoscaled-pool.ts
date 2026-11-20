@@ -316,11 +316,11 @@ export class AutoscaledPool {
                     // Clean up the polling interval to prevent it from leaking on timeout.
                     clearInterval(interval);
                     const err = new Error(
-                        "The pool's running tasks did not finish" +
+                        "The pool's running tasks did not finish " +
                             `in ${timeoutSecs} secs after pool.pause() invocation.`,
                     );
                     reject(err);
-                }, timeoutSecs);
+                }, timeoutSecs * 1000);
             }
 
             interval = setInterval(() => {
