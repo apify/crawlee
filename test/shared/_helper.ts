@@ -333,6 +333,11 @@ export async function runExampleComServer(): Promise<[Server, number]> {
             res.type('html').send(responseSamples.shadowRoots);
         });
 
+        special.get('/shadow-root-csp', (_req, res) => {
+            res.setHeader('Content-Security-Policy', "require-trusted-types-for 'script'");
+            res.type('html').send(responseSamples.shadowRoots);
+        });
+
         special.get('/html-entities', (_req, res) => {
             res.type('html').send('&quot;&lt;&gt;"<>');
         });
