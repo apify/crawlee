@@ -4,7 +4,7 @@
 version: 'v0.0.3'
 workflows:
     '.github/workflows/check-pr-title.yml':
-        - 'apify/actions@v1.7.0'
+        - 'apify/actions@v1.9.0'
     '.github/workflows/deploy-nginx.yml': []
     '.github/workflows/docs.yml':
         - 'actions/checkout@v7.0.1'
@@ -12,40 +12,40 @@ workflows:
         - 'actions/deploy-pages@v5.0.1'
         - 'actions/setup-node@v7.1.0'
         - 'actions/upload-pages-artifact@v5.0.0'
-        - 'apify/actions@v1.7.0'
+        - 'apify/actions@v1.9.0'
     '.github/workflows/factory_review.yaml':
         - 'apify/actions@v1.9.0'
     '.github/workflows/publish-to-npm.yml':
         - 'actions/cache@v6.1.0'
         - 'actions/checkout@v7.0.1'
         - 'actions/setup-node@v7.1.0'
-        - 'apify/actions@v1.7.0'
+        - 'apify/actions@v1.9.0'
         - 'endbug/add-and-commit@v11.1.1'
         - 'nick-fields/retry@v4.0.0'
     '.github/workflows/release.yml':
         - 'actions/cache@v6.1.0'
         - 'actions/checkout@v7.0.1'
         - 'actions/setup-node@v7.1.0'
-        - 'apify/actions@v1.7.0'
+        - 'apify/actions@v1.9.0'
         - 'endbug/add-and-commit@v11.1.1'
         - 'peter-evans/repository-dispatch@v4.0.1'
     '.github/workflows/test-ci.yml':
         - 'actions/cache@v6.1.0'
         - 'actions/checkout@v7.0.1'
         - 'actions/setup-node@v7.1.0'
-        - 'apify/actions@v1.7.0'
+        - 'apify/actions@v1.9.0'
         - 'peter-evans/repository-dispatch@v4.0.1'
     '.github/workflows/test-e2e.yml':
         - 'actions/cache@v6.1.0'
         - 'actions/checkout@v7.0.1'
         - 'actions/setup-node@v7.1.0'
-        - 'apify/actions@v1.7.0'
+        - 'apify/actions@v1.9.0'
         - 'apify/setup-apify-cli-action@main'
     '.github/workflows/test-integration.yml':
         - 'actions/cache@v6.1.0'
         - 'actions/checkout@v7.0.1'
         - 'actions/setup-node@v7.1.0'
-        - 'apify/actions@v1.7.0'
+        - 'apify/actions@v1.9.0'
     '.github/workflows/update_new_issue.yml':
         - 'actions/github-script@v9.0.0'
 dependencies:
@@ -116,26 +116,20 @@ dependencies:
         commit: 'sha1-48f256284bd46cdaab1048c3721360e808335d50'
         owner_id: 4038316
         repo_id: 220418983
-    'apify/actions@v1.7.0':
-        ref: 'v1.7.0'
-        commit: 'sha1-48ab27d3d0de7744c20dd783b83245dfae2cddfd'
-        owner_id: 24586296
-        repo_id: 1238646352
-        uses:
-            - 'actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9'
-            - 'actions/checkout@11d5960a326750d5838078e36cf38b85af677262'
-            - 'actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd'
-            - 'amannn/action-semantic-pull-request@48f256284bd46cdaab1048c3721360e808335d50'
-            - 'crate-ci/typos@512fc24f32f44ab01972217aaaf3dc86ec234d53'
-            - 'pierotofy/set-swap-space@49819abfb41bd9b44fb781159c033dba90353a7c'
-            - 'pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413'
     'apify/actions@v1.9.0':
         ref: 'v1.9.0'
         commit: 'sha1-994a3e5ec79a5575ac4d81365bab7549c9687c32'
         owner_id: 24586296
         repo_id: 1238646352
         uses:
+            - 'actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9'
+            - 'actions/checkout@11d5960a326750d5838078e36cf38b85af677262'
             - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
+            - 'actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd'
+            - 'amannn/action-semantic-pull-request@48f256284bd46cdaab1048c3721360e808335d50'
+            - 'crate-ci/typos@512fc24f32f44ab01972217aaaf3dc86ec234d53'
+            - 'pierotofy/set-swap-space@49819abfb41bd9b44fb781159c033dba90353a7c'
+            - 'pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413'
     'apify/setup-apify-cli-action@main':
         ref: 'main'
         commit: 'sha1-8b19e6a52312e8948b3b10cdb06bd3fa39e8db4a'
