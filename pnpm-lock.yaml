@@ -478,8 +478,8 @@ importers:
         specifier: ^3.0.1
         version: 3.0.1
       '@apify/timeout':
-        specifier: ^1.0.1
-        version: 1.0.1
+        specifier: ^1.0.2
+        version: 1.0.2
       '@apify/utilities':
         specifier: ^3.1.1
         version: 3.1.1
@@ -530,8 +530,8 @@ importers:
   packages/browser-crawler:
     dependencies:
       '@apify/timeout':
-        specifier: ^1.0.1
-        version: 1.0.1
+        specifier: ^1.0.2
+        version: 1.0.2
       '@crawlee/basic':
         specifier: workspace:*
         version: link:../basic-crawler
@@ -560,8 +560,8 @@ importers:
   packages/browser-pool:
     dependencies:
       '@apify/timeout':
-        specifier: ^1.0.1
-        version: 1.0.1
+        specifier: ^1.0.2
+        version: 1.0.2
       '@crawlee/core':
         specifier: workspace:*
         version: link:../core
@@ -662,8 +662,8 @@ importers:
         specifier: ^3.0.2
         version: 3.0.2
       '@apify/timeout':
-        specifier: ^1.0.1
-        version: 1.0.1
+        specifier: ^1.0.2
+        version: 1.0.2
       '@apify/utilities':
         specifier: ^3.1.1
         version: 3.1.1
@@ -797,8 +797,8 @@ importers:
   packages/http-crawler:
     dependencies:
       '@apify/timeout':
-        specifier: ^1.0.1
-        version: 1.0.1
+        specifier: ^1.0.2
+        version: 1.0.2
       '@crawlee/basic':
         specifier: workspace:*
         version: link:../basic-crawler
@@ -882,8 +882,8 @@ importers:
         specifier: ^3.0.1
         version: 3.0.1
       '@apify/timeout':
-        specifier: ^1.0.1
-        version: 1.0.1
+        specifier: ^1.0.2
+        version: 1.0.2
       '@crawlee/basic':
         specifier: workspace:*
         version: link:../basic-crawler
@@ -1413,8 +1413,8 @@ packages:
     resolution: {integrity: sha512-SvckYr9apuppwk3UPL0pY7ZwNZ4Rr/Qwm4OORol1d4dQmyPtX4KBwfy7iA+j70lfu25FmvBuP8AECB4EakVc5Q==}
     engines: {node: '>=22'}
 
-  '@apify/timeout@1.0.1':
-    resolution: {integrity: sha512-sYAFPS26o4nOJ62J/VKczQOqEIbAxWkYC6qEcIr7zWoYPNkWCeD4tA2+6dwr8RSfDF3HVkhgW+95Vuk+B6lQYQ==}
+  '@apify/timeout@1.0.2':
+    resolution: {integrity: sha512-fk0kJv5ZFkZ2ZGPq0FKjWj6uCVoQ9xU5ra9G7FNHu/k4FxaameHboy0bXrVjduMh0DXklm/xD6Ivi8/MolAhPQ==}
     engines: {node: '>=22'}
 
   '@apify/tsconfig@0.2.0':
@@ -12822,7 +12822,7 @@ snapshots:
     dependencies:
       '@apify/log': 3.0.2
 
-  '@apify/timeout@1.0.1': {}
+  '@apify/timeout@1.0.2': {}
 
   '@apify/tsconfig@0.2.0': {}
 
@@ -18091,7 +18091,7 @@ snapshots:
       '@apify/input_secrets': 2.0.9
       '@apify/log': 3.0.2
       '@apify/pseudo_url': 3.0.2
-      '@apify/timeout': 1.0.1
+      '@apify/timeout': 1.0.2
       '@apify/utilities': 3.1.1
       '@apify/validations': 1.1.4
       '@crawlee/core': link:packages/core

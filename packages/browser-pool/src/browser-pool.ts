@@ -958,8 +958,8 @@ export class BrowserPool<
             // 536385539). Bound the whole sequence so nothing here can hang the caller, then
             // reconcile the pool regardless of the outcome, so a page that refuses to close cannot
             // leave the pool believing it is still open. `Promise.race` rather than
-            // `addTimeoutToPromise`: the latter inherits its AbortController from the calling frame,
-            // so a timeout here would cancel the task of whoever awaited `page.close()`.
+            // `addTimeoutToPromise`: that rejects into the caller, and a frame nested in a caller whose
+            // timeout already fired starts out cancelled, cutting short the hooks of a page that must close.
             let pageClosed = false;
 
             const closing = (async () => {
