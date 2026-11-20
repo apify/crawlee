@@ -35,17 +35,16 @@ export type IsAny<T> = 0 extends 1 & T ? true : false;
  */
 export type LabeledSource<Routes extends Record<keyof Routes, Dictionary>> = string extends keyof Routes
     ? string | Source
-    :
-          | string
-          | Request
-          | ({ requestsFromUrl?: string; regex?: RegExp } & (
-                | {
-                      [Label in keyof Routes & string]: Omit<Partial<RequestOptions<Routes[Label]>>, 'label'> & {
-                          label: Label;
-                      };
-                  }[keyof Routes & string]
-                | (Omit<Partial<RequestOptions>, 'label'> & { label?: undefined })
-            ));
+    : | string
+      | Request
+      | ({ requestsFromUrl?: string; regex?: RegExp } & (
+            | {
+                  [Label in keyof Routes & string]: Omit<Partial<RequestOptions<Routes[Label]>>, 'label'> & {
+                      label: Label;
+                  };
+              }[keyof Routes & string]
+            | (Omit<Partial<RequestOptions>, 'label'> & { label?: undefined })
+        ));
 
 /**
  * The iterable/array of {@apilink LabeledSource} inputs accepted by the label-aware `addRequests`/`run`
