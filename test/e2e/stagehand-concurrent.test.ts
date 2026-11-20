@@ -8,8 +8,6 @@ export const main = async () => {
     const { Actor } = await import('apify');
     const { z } = await import('zod');
 
-    const mainOptions = { exit: Actor.isAtHome() };
-
     await Actor.main(async () => {
         // Playwright's Browser has no `process()`, so number the instances by object identity.
         const browserIds = new Map();
@@ -59,7 +57,7 @@ export const main = async () => {
 
         // Log how many browser instances were used
         console.log(`[Test] Used ${browserIds.size} browser instances for 3 requests`);
-    }, mainOptions);
+    });
 };
 
 const actor = scenario('stagehand-concurrent', import.meta.filename, main, {

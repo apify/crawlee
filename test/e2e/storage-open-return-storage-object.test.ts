@@ -5,8 +5,6 @@ import { scenario } from './harness.js';
 export const main = async () => {
     const { Actor, Dataset, KeyValueStore } = await import('apify');
 
-    const mainOptions = { exit: Actor.isAtHome() };
-
     await Actor.main(async () => {
         const kv = await KeyValueStore.open();
         const dataset = await Dataset.open();
@@ -14,7 +12,7 @@ export const main = async () => {
             keyValueStorageObject: { id: kv.id, name: kv.name ?? null },
             datasetStorageObject: { id: dataset.id, name: dataset.name ?? null },
         });
-    }, mainOptions);
+    });
 };
 
 const actor = scenario('storage-open-return-storage-object', import.meta.filename, main, { memory: 4096 });

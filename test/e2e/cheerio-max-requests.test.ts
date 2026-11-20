@@ -1,12 +1,10 @@
 import { testActor } from 'apify-test-tools';
 
-import { getStats, scenario, validateDataset } from './harness.js';
+import { eachRuntime, getStats, scenario, validateDataset } from './harness.js';
 
 export const main = async () => {
     const { Actor } = await import('apify');
     const { CheerioCrawler, ConcurrencySystem, Dataset } = await import('@crawlee/cheerio');
-
-    const mainOptions = { exit: Actor.isAtHome() };
 
     await Actor.main(async () => {
         // The caller owns an injected system's lifecycle - start it before the crawler runs and stop it afterwards.
@@ -57,19 +55,23 @@ export const main = async () => {
         } finally {
             await concurrencySystem.stop();
         }
-    }, mainOptions);
+    });
 };
 
 const actor = scenario('cheerio-max-requests', import.meta.filename, main, { memory: 4096 });
 
-testActor(actor, 'stops at maxRequestsPerCrawl', async ({ expect, run }) => {
-    const result = await run();
-    const stats = await getStats(result);
-    const { items } = await result.getDataset<any>();
+eachRuntime((runtime) => {
+    testActor(actor, 'stops at maxRequestsPerCrawl', async ({ expect, run }) => {
+        const result = await run({ runtime });
+        const stats = await getStats(result);
+        const { items } = await result.getDataset<any>();
 
-    expect(result.status).toBe('SUCCEEDED');
-    expect(stats.requestsSucceeded).toBeGreaterThanOrEqual(10);
-    expect(items.length).toBeGreaterThan(5);
-    expect(items.length).toBeLessThan(15);
-    expect(validateDataset(items, ['url', 'title', 'uniqueIdentifier', 'firstParagraph', 'modifiedDate'])).toBe(true);
+        expect(result.status).toBe('SUCCEEDED');
+        expect(stats.requestsSucceeded).toBeGreaterThanOrEqual(10);
+        expect(items.length).toBeGreaterThan(5);
+        expect(items.length).toBeLessThan(15);
+        expect(validateDataset(items, ['url', 'title', 'uniqueIdentifier', 'firstParagraph', 'modifiedDate'])).toBe(
+            true,
+        );
+    });
 });

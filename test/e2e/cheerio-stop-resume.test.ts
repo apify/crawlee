@@ -1,6 +1,6 @@
 import { testActor } from 'apify-test-tools';
 
-import { getStats, scenario } from './harness.js';
+import { eachRuntime, getStats, scenario } from './harness.js';
 
 export const main = async () => {
     const { CheerioCrawler, Dataset } = await import('@crawlee/cheerio');
@@ -28,19 +28,21 @@ export const main = async () => {
 
     requestCount = 0;
     await crawler.run(['https://crawlee.dev/js/docs/quick-start']);
-    await Actor.exit({ exit: Actor.isAtHome() });
+    await Actor.exit();
 };
 
 const actor = scenario('cheerio-stop-resume', import.meta.filename, main, { memory: 4096 });
 
-testActor(actor, 'a second crawler.run() resumes the same queue', async ({ expect, run }) => {
-    const result = await run();
-    const stats = await getStats(result);
-    const { items } = await result.getDataset<any>();
+eachRuntime((runtime) => {
+    testActor(actor, 'a second crawler.run() resumes the same queue', async ({ expect, run }) => {
+        const result = await run({ runtime });
+        const stats = await getStats(result);
+        const { items } = await result.getDataset<any>();
 
-    expect(result.status).toBe('SUCCEEDED');
-    // Some extra requests are expected (at most 10 extra for each run).
-    expect(stats.requestsSucceeded, 'crawler.stop() works').toBeLessThan(40);
-    const visitedUrls = new Set(items.map((item) => item.url));
-    expect(visitedUrls.size, 'a second crawler.run() resumes the same queue').toBe(items.length);
+        expect(result.status).toBe('SUCCEEDED');
+        // Some extra requests are expected (at most 10 extra for each run).
+        expect(stats.requestsSucceeded, 'crawler.stop() works').toBeLessThan(40);
+        const visitedUrls = new Set(items.map((item) => item.url));
+        expect(visitedUrls.size, 'a second crawler.run() resumes the same queue').toBe(items.length);
+    });
 });

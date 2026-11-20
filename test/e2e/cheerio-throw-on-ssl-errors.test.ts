@@ -1,12 +1,10 @@
 import { testActor } from 'apify-test-tools';
 
-import { getStats, scenario, validateDataset } from './harness.js';
+import { eachRuntime, getStats, scenario, validateDataset } from './harness.js';
 
 export const main = async () => {
     const { Actor } = await import('apify');
     const { CheerioCrawler, Dataset } = await import('@crawlee/cheerio');
-
-    const mainOptions = { exit: Actor.isAtHome() };
 
     // The "bad" links from the badssl.com index page, listed here because that page itself is flaky.
     const badSslUrls = [
@@ -54,22 +52,24 @@ export const main = async () => {
         });
 
         await crawler.run(badSslUrls);
-    }, mainOptions);
+    });
 };
 
 const actor = scenario('cheerio-throw-on-ssl-errors', import.meta.filename, main, { memory: 4096 });
 
-testActor(actor, 'fails requests to sites with bad certificates', async ({ expect, run }) => {
-    const result = await run();
-    const stats = await getStats(result);
-    const { items } = await result.getDataset<any>();
+eachRuntime((runtime) => {
+    testActor(actor, 'fails requests to sites with bad certificates', async ({ expect, run }) => {
+        const result = await run({ runtime });
+        const stats = await getStats(result);
+        const { items } = await result.getDataset<any>();
 
-    expect(result.status).toBe('SUCCEEDED');
-    expect(stats.requestsSucceeded).toBeGreaterThanOrEqual(5);
-    expect(stats.requestsSucceeded).toBeLessThan(10);
-    expect(stats.requestsFailed).toBeGreaterThan(20);
-    expect(stats.requestsFailed).toBeLessThan(30);
-    expect(items.length).toBeGreaterThanOrEqual(5);
-    expect(items.length).toBeLessThan(10);
-    expect(validateDataset(items, ['url', 'title'])).toBe(true);
+        expect(result.status).toBe('SUCCEEDED');
+        expect(stats.requestsSucceeded).toBeGreaterThanOrEqual(5);
+        expect(stats.requestsSucceeded).toBeLessThan(10);
+        expect(stats.requestsFailed).toBeGreaterThan(20);
+        expect(stats.requestsFailed).toBeLessThan(30);
+        expect(items.length).toBeGreaterThanOrEqual(5);
+        expect(items.length).toBeLessThan(10);
+        expect(validateDataset(items, ['url', 'title'])).toBe(true);
+    });
 });

@@ -6,8 +6,6 @@ export const main = async () => {
     const { Actor, log: Logger } = await import('apify');
     const { ApifyLogAdapter, CheerioCrawler, Dataset } = await import('@crawlee/cheerio');
 
-    const mainOptions = { exit: Actor.isAtHome() };
-
     await Actor.main(async () => {
         const crawler = new CheerioCrawler({
             async requestHandler({ $, enqueueLinks, request, log }) {
@@ -33,7 +31,7 @@ export const main = async () => {
         } catch (e) {
             console.error(e);
         }
-    }, mainOptions);
+    });
 };
 
 const actor = scenario('cheerio-request-queue-v2', import.meta.filename, main, { memory: 4096 });

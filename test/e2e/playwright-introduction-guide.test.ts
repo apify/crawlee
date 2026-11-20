@@ -103,7 +103,7 @@ export const main = async () => {
 
     await crawler.run(['https://warehouse-theme-metal.myshopify.com/collections']);
 
-    await Actor.exit({ exit: Actor.isAtHome() });
+    await Actor.exit();
 };
 
 const actor = scenario('playwright-introduction-guide', import.meta.filename, main, {

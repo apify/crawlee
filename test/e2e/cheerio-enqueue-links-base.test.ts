@@ -1,6 +1,6 @@
 import { testActor } from 'apify-test-tools';
 
-import { scenario } from './harness.js';
+import { eachRuntime, scenario } from './harness.js';
 
 export const main = async () => {
     const { default: http } = await import('node:http');
@@ -40,8 +40,6 @@ export const main = async () => {
     const { port } = server.address() as { port: number };
     const baseUrl = `http://127.0.0.1:${port}`;
 
-    const mainOptions = { exit: Actor.isAtHome() };
-
     await Actor.main(async () => {
         const crawler = new CheerioCrawler({
             maxRequestsPerCrawl: 30,
@@ -62,17 +60,19 @@ export const main = async () => {
         });
 
         await crawler.run([`${baseUrl}/start`]);
-    }, mainOptions);
+    });
 
     server.close();
 };
 
 const actor = scenario('cheerio-enqueue-links-base', import.meta.filename, main, { memory: 4096 });
 
-testActor(actor, 'enqueueing respects <base href>', async ({ expect, run }) => {
-    const result = await run();
-    const { items } = await result.getDataset<any>();
+eachRuntime((runtime) => {
+    testActor(actor, 'enqueueing respects <base href>', async ({ expect, run }) => {
+        const result = await run({ runtime });
+        const { items } = await result.getDataset<any>();
 
-    expect(result.status).toBe('SUCCEEDED');
-    expect(items, 'enqueueing respects <base href>').toHaveLength(4);
+        expect(result.status).toBe('SUCCEEDED');
+        expect(items, 'enqueueing respects <base href>').toHaveLength(4);
+    });
 });

@@ -2,9 +2,9 @@ import { join } from 'node:path';
 
 import type { StatisticPersistedState } from '@crawlee/basic';
 import { URL_NO_COMMAS_REGEX } from '@crawlee/utils/internal';
-import { defineActor, type RunTestResult } from 'apify-test-tools';
+import { defineActor, type RunOutcome, type RunTestResult } from 'apify-test-tools';
 import { ActorSource, inlineMain } from 'apify-test-tools/ad-hoc';
-import { inject } from 'vitest';
+import { describe, inject } from 'vitest';
 
 type ScenarioOptions = Pick<Parameters<typeof defineActor>[1], 'memory' | 'permissions' | 'env'> & { image?: string };
 
@@ -31,8 +31,15 @@ export const scenario = (
         syncDelayMs: 0,
     });
 
+/**
+ * For scenarios that don't depend on the platform: runs them there and off it, with the SDK's local storage.
+ * `APIFY_LOCAL_RUNS_ON` decides where the local run executes.
+ */
+export const eachRuntime = (fn: (runtime: 'platform' | 'local') => void): void =>
+    describe.each(['platform', 'local'] as const)('on %s', fn);
+
 /** The crawler's persisted statistics; throws if the crawler never wrote them. */
-export const getStats = async (result: RunTestResult) => {
+export const getStats = async (result: RunOutcome) => {
     const stats = (await result.getStatistics()) as StatisticPersistedState | undefined;
     if (!stats) throw new Error('crawler statistics record is missing');
     return stats;

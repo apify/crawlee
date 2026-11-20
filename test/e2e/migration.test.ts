@@ -11,8 +11,6 @@ export const main = async () => {
 
     process.env.CRAWLEE_PURGE_ON_START = '0';
 
-    const mainOptions = { exit: Actor.isAtHome() };
-
     const thisFile = new URL(import.meta.url);
 
     if (workerData !== '#actor') {
@@ -50,7 +48,7 @@ export const main = async () => {
             serviceLocator.getStorageBackend().__purged = false;
 
             await crawler.run(['https://crawlee.dev']);
-        }, mainOptions);
+        });
     }
 };
 

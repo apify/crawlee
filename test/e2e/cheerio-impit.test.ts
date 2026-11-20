@@ -1,7 +1,7 @@
 import type { Dictionary } from '@crawlee/types';
 import { testActor } from 'apify-test-tools';
 
-import { getStats, scenario } from './harness.js';
+import { eachRuntime, getStats, scenario } from './harness.js';
 
 export const main = async () => {
     const { CheerioCrawler, Session, SessionPool } = await import('@crawlee/cheerio');
@@ -46,23 +46,25 @@ export const main = async () => {
 
     await crawler.run(['https://crawlee.dev']);
 
-    await Actor.exit({ exit: Actor.isAtHome() });
+    await Actor.exit();
 };
 
 const actor = scenario('cheerio-impit', import.meta.filename, main, { memory: 4096 });
 
-testActor(actor, 'crawls with the impit HTTP client', async ({ expect, run }) => {
-    const result = await run();
-    const stats = await getStats(result);
-    const { items } = await result.getDataset<any>();
+eachRuntime((runtime) => {
+    testActor(actor, 'crawls with the impit HTTP client', async ({ expect, run }) => {
+        const result = await run({ runtime });
+        const stats = await getStats(result);
+        const { items } = await result.getDataset<any>();
 
-    expect(result.status).toBe('SUCCEEDED');
-    expect(stats.requestsSucceeded).toBeGreaterThan(0);
-    expect(items).toHaveLength(1);
-    const [item] = items;
-    expect(item.body.length).toBeGreaterThan(1000);
-    expect(item.title.toLowerCase()).toContain('crawlee');
-    expect(item.userAgent, 'Impit spoofs Firefox').toMatch(/Gecko\/\d{8} Firefox\/\d{2}/);
-    expect(item.clientIpJsonResponse.clientIp).toBeDefined();
-    expect(JSON.parse(item.clientIpTextResponse).clientIp).toBeDefined();
+        expect(result.status).toBe('SUCCEEDED');
+        expect(stats.requestsSucceeded).toBeGreaterThan(0);
+        expect(items).toHaveLength(1);
+        const [item] = items;
+        expect(item.body.length).toBeGreaterThan(1000);
+        expect(item.title.toLowerCase()).toContain('crawlee');
+        expect(item.userAgent, 'Impit spoofs Firefox').toMatch(/Gecko\/\d{8} Firefox\/\d{2}/);
+        expect(item.clientIpJsonResponse.clientIp).toBeDefined();
+        expect(JSON.parse(item.clientIpTextResponse).clientIp).toBeDefined();
+    });
 });

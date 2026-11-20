@@ -14,8 +14,6 @@ export const main = async () => {
 
     process.env.CRAWLEE_INTERNAL_TIMEOUT = '30000';
 
-    const mainOptions = { exit: Actor.isAtHome() };
-
     await Actor.main(async () => {
         const input = await Actor.getInput<{ queueId: string; limit: number }>();
 
@@ -49,7 +47,7 @@ export const main = async () => {
         });
 
         await crawler.run(['https://example.tld/1']);
-    }, mainOptions);
+    });
 };
 
 const actor = scenario('request-queue-with-concurrency', import.meta.filename, main, {

@@ -8,8 +8,6 @@ export const main = async () => {
     const { sleep } = await import('@crawlee/utils');
     const { Actor } = await import('apify');
 
-    const mainOptions = { exit: Actor.isAtHome() };
-
     const LABELS = {
         TIMEOUT: 'TIMEOUT',
         TYPE_ERROR: 'TYPE_ERROR',
@@ -62,7 +60,7 @@ export const main = async () => {
                 uniqueKey: label,
             })),
         );
-    }, mainOptions);
+    });
 };
 
 const actor = scenario('puppeteer-error-snapshot', import.meta.filename, main, { image: 'puppeteer', memory: 4096 });

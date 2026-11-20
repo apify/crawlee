@@ -1,6 +1,6 @@
 import { testActor } from 'apify-test-tools';
 
-import { getStats, scenario, validateDataset } from './harness.js';
+import { eachRuntime, getStats, scenario, validateDataset } from './harness.js';
 
 export const main = async () => {
     const { default: http } = await import('node:http');
@@ -144,23 +144,25 @@ export const main = async () => {
 
     server.close();
 
-    await Actor.exit({ exit: Actor.isAtHome() });
+    await Actor.exit();
 };
 
 const actor = scenario('puppeteer-store-pagination', import.meta.filename, main, { image: 'puppeteer', memory: 16384 });
 
-testActor(actor, 'paginates the store', async ({ expect, run }) => {
-    const result = await run();
-    const stats = await getStats(result);
-    const { items } = await result.getDataset<any>();
+eachRuntime((runtime) => {
+    testActor(actor, 'paginates the store', async ({ expect, run }) => {
+        const result = await run({ runtime });
+        const stats = await getStats(result);
+        const { items } = await result.getDataset<any>();
 
-    expect(result.status).toBe('SUCCEEDED');
-    expect(stats.requestsSucceeded).toBeGreaterThanOrEqual(10);
-    expect(items.length).toBeGreaterThan(5);
-    expect(items.length).toBeLessThan(15);
-    expect(validateDataset(items, ['manufacturer', 'title', 'sku', 'currentPrice', 'availableInStock'])).toBe(true);
-    // `url` is checked separately: validateDataset matches it against a regex that rejects the fixture's 127.0.0.1 origin.
-    expect(items.every((item) => URL.canParse(item.url) && new URL(item.url).pathname.startsWith('/products/'))).toBe(
-        true,
-    );
+        expect(result.status).toBe('SUCCEEDED');
+        expect(stats.requestsSucceeded).toBeGreaterThanOrEqual(10);
+        expect(items.length).toBeGreaterThan(5);
+        expect(items.length).toBeLessThan(15);
+        expect(validateDataset(items, ['manufacturer', 'title', 'sku', 'currentPrice', 'availableInStock'])).toBe(true);
+        // `url` is checked separately: validateDataset matches it against a regex that rejects the fixture's 127.0.0.1 origin.
+        expect(
+            items.every((item) => URL.canParse(item.url) && new URL(item.url).pathname.startsWith('/products/')),
+        ).toBe(true);
+    });
 });

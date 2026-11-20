@@ -8,8 +8,6 @@ export const main = async () => {
     const { Actor } = await import('apify');
     const { z } = await import('zod');
 
-    const mainOptions = { exit: Actor.isAtHome() };
-
     await Actor.main(async () => {
         const crawler = new StagehandCrawler({
             stagehandOptions: {
@@ -31,7 +29,7 @@ export const main = async () => {
         });
 
         await crawler.run(['https://crawlee.dev']);
-    }, mainOptions);
+    });
 };
 
 const actor = scenario('stagehand-claude', import.meta.filename, main, {

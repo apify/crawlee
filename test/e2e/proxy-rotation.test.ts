@@ -6,8 +6,6 @@ export const main = async () => {
     const { Actor } = await import('apify');
     const { Dataset, KeyValueStore, PuppeteerCrawler, Session, SessionPool } = await import('@crawlee/puppeteer');
 
-    const mainOptions = { exit: Actor.isAtHome() };
-
     await Actor.main(async () => {
         const proxyConfiguration = await Actor.createProxyConfiguration();
         const sessionPool = new SessionPool({
@@ -40,7 +38,7 @@ export const main = async () => {
         await crawler.run(
             Array.from({ length: 5 }, (_, i) => ({ url: 'https://api.apify.com/v2/browser-info', uniqueKey: `${i}` })),
         );
-    }, mainOptions);
+    });
 };
 
 const actor = scenario('proxy-rotation', import.meta.filename, main, { image: 'puppeteer', memory: 16384 });

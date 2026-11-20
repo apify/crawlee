@@ -1,6 +1,6 @@
 import { testActor } from 'apify-test-tools';
 
-import { scenario } from './harness.js';
+import { eachRuntime, scenario } from './harness.js';
 
 export const main = async () => {
     const { Actor } = await import('apify');
@@ -23,8 +23,6 @@ export const main = async () => {
     const r3 = new Request({
         url: 'https://crawlee.dev/?q=3',
     });
-
-    const mainOptions = { exit: Actor.isAtHome() };
 
     // Persisting internal settings of `Request`.
     await Actor.main(async () => {
@@ -50,16 +48,18 @@ export const main = async () => {
         await crawler.run([r1, r2, r3]);
 
         await Dataset.pushData({ requestCounter, navigationCounter });
-    }, mainOptions);
+    });
 };
 
 const actor = scenario('request-skip-navigation', import.meta.filename, main, { memory: 4096 });
 
-testActor(actor, 'skips navigation for marked requests', async ({ expect, run }) => {
-    const result = await run();
-    const { items } = await result.getDataset<any>();
+eachRuntime((runtime) => {
+    testActor(actor, 'skips navigation for marked requests', async ({ expect, run }) => {
+        const result = await run({ runtime });
+        const { items } = await result.getDataset<any>();
 
-    expect(result.status).toBe('SUCCEEDED');
-    expect(items[0].requestCounter, 'processed 3 requests').toBe(3);
-    expect(items[0].navigationCounter, 'navigated on 1 request only').toBe(1);
+        expect(result.status).toBe('SUCCEEDED');
+        expect(items[0].requestCounter, 'processed 3 requests').toBe(3);
+        expect(items[0].navigationCounter, 'navigated on 1 request only').toBe(1);
+    });
 });

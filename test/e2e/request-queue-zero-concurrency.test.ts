@@ -11,8 +11,6 @@ export const main = async () => {
 
     process.env.CRAWLEE_INTERNAL_TIMEOUT = '30000';
 
-    const mainOptions = { exit: Actor.isAtHome() };
-
     // RequestQueue auto-reset when stuck with requests in progress
     await Actor.main(async () => {
         const requestQueue = await RequestQueue.open();
@@ -31,7 +29,7 @@ export const main = async () => {
         });
 
         await crawler.run();
-    }, mainOptions);
+    });
 };
 
 // TODO(v4): redesign for the v4 RequestQueue. The test stages a stuck queue via the v3

@@ -309,8 +309,8 @@ importers:
         specifier: ^1.0.33
         version: 1.0.33
       apify-test-tools:
-        specifier: file:../../apify-test-tools/apify-test-tools-0.10.2.tgz
-        version: file:../../apify-test-tools/apify-test-tools-0.10.2.tgz(debug@4.4.3(supports-color@8.1.1))(supports-color@8.1.1)(typescript@7.0.2)(vitest@5.1.0)
+        specifier: github:apify/apify-test-tools#22ad4e50cba6f7f81de45ed9291df54247b9c089
+        version: https://codeload.github.com/apify/apify-test-tools/tar.gz/22ad4e50cba6f7f81de45ed9291df54247b9c089(debug@4.4.3(supports-color@8.1.1))(supports-color@8.1.1)(typescript@7.0.2)(vitest@5.1.0)
       basic-auth-parser:
         specifier: ^0.0.2
         version: 0.0.2
@@ -5859,8 +5859,8 @@ packages:
   apify-node-curl-impersonate@1.0.33:
     resolution: {integrity: sha512-OgNsaYu/MBYyQHQAJtyOtGFKEdAToCyfJTZ5ZMXdl/IOSG3q2DT28aTj4gA9A/HEUjlTSQ3EBx6dO0Ll3h7lbA==}
 
-  apify-test-tools@file:../../apify-test-tools/apify-test-tools-0.10.2.tgz:
-    resolution: {integrity: sha512-//EcYiCLPNyosMI/tgkrjYr5NMuTp7q7oJsgMtsbLyFhwUW7yS34xYwC4Q7d4OucysT7ZRdpqGjd/TSgDtpiYA==, tarball: file:../../apify-test-tools/apify-test-tools-0.10.2.tgz}
+  apify-test-tools@https://codeload.github.com/apify/apify-test-tools/tar.gz/22ad4e50cba6f7f81de45ed9291df54247b9c089:
+    resolution: {gitHosted: true, integrity: sha512-J9tcQdgdpGWdZCmllgS8zh4IkwSljXTZX1K4Di6AiBE/DzkL63bEI1sniVWw6DbBk1vhQOhQeUjskdWrY3EYEg==, tarball: https://codeload.github.com/apify/apify-test-tools/tar.gz/22ad4e50cba6f7f81de45ed9291df54247b9c089}
     version: 0.10.2
     engines: {node: '>=22.0.0'}
     hasBin: true
@@ -18485,9 +18485,10 @@ snapshots:
 
   apify-node-curl-impersonate@1.0.33: {}
 
-  apify-test-tools@file:../../apify-test-tools/apify-test-tools-0.10.2.tgz(debug@4.4.3(supports-color@8.1.1))(supports-color@8.1.1)(typescript@7.0.2)(vitest@5.1.0):
+  apify-test-tools@https://codeload.github.com/apify/apify-test-tools/tar.gz/22ad4e50cba6f7f81de45ed9291df54247b9c089(debug@4.4.3(supports-color@8.1.1))(supports-color@8.1.1)(typescript@7.0.2)(vitest@5.1.0):
     dependencies:
       '@apify/consts': 3.0.1
+      '@crawlee/fs-storage-native': 0.2.2
       '@slack/web-api': 8.3.0
       adm-zip: 0.6.1
       apify-client: 2.26.0(debug@4.4.3(supports-color@8.1.1))(supports-color@8.1.1)

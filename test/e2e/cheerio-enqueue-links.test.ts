@@ -1,12 +1,10 @@
 import { testActor } from 'apify-test-tools';
 
-import { scenario } from './harness.js';
+import { eachRuntime, scenario } from './harness.js';
 
 export const main = async () => {
     const { Actor } = await import('apify');
     const { CheerioCrawler, Dataset } = await import('@crawlee/cheerio');
-
-    const mainOptions = { exit: Actor.isAtHome() };
 
     await Actor.main(async () => {
         const crawler = new CheerioCrawler({
@@ -27,15 +25,19 @@ export const main = async () => {
         });
 
         await crawler.run(['https://apify.com/press-kit', 'https://apify.com/about']);
-    }, mainOptions);
+    });
 };
 
 const actor = scenario('cheerio-enqueue-links', import.meta.filename, main, { memory: 4096 });
 
-testActor(actor, 'enqueues by the loaded URL', async ({ expect, run }) => {
-    const result = await run();
-    const { items } = await result.getDataset<any>();
+eachRuntime((runtime) => {
+    testActor(actor, 'enqueues by the loaded URL', async ({ expect, run }) => {
+        const result = await run({ runtime });
+        const { items } = await result.getDataset<any>();
 
-    expect(result.status).toBe('SUCCEEDED');
-    expect(items[0].isEqual, "enqueueing on the same subdomain but a different loaded url doesn't enqueue").toBe(true);
+        expect(result.status).toBe('SUCCEEDED');
+        expect(items[0].isEqual, "enqueueing on the same subdomain but a different loaded url doesn't enqueue").toBe(
+            true,
+        );
+    });
 });

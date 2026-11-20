@@ -95,7 +95,7 @@ export const main = async () => {
 
     await crawler.run(['https://crawlee.dev']);
 
-    await Actor.exit({ exit: Actor.isAtHome() });
+    await Actor.exit();
 };
 
 const actor = scenario('cheerio-curl-impersonate', import.meta.filename, main, {

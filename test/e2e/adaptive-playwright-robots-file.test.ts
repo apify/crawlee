@@ -1,7 +1,7 @@
 import type { AdaptivePlaywrightCrawler } from '@crawlee/playwright';
 import { testActor } from 'apify-test-tools';
 
-import { getStats, scenario } from './harness.js';
+import { eachRuntime, getStats, scenario } from './harness.js';
 
 export const main = async () => {
     const { default: http } = await import('node:http');
@@ -76,7 +76,7 @@ export const main = async () => {
 
     server.close();
 
-    await Actor.exit({ exit: Actor.isAtHome() });
+    await Actor.exit();
 };
 
 const actor = scenario('adaptive-playwright-robots-file', import.meta.filename, main, {
@@ -84,15 +84,17 @@ const actor = scenario('adaptive-playwright-robots-file', import.meta.filename, 
     memory: 16384,
 });
 
-testActor(actor, 'skips URLs disallowed by robots.txt', async ({ expect, run }) => {
-    const result = await run();
-    const stats = await getStats(result);
-    const { items } = await result.getDataset<any>();
+eachRuntime((runtime) => {
+    testActor(actor, 'skips URLs disallowed by robots.txt', async ({ expect, run }) => {
+        const result = await run({ runtime });
+        const stats = await getStats(result);
+        const { items } = await result.getDataset<any>();
 
-    expect(result.status).toBe('SUCCEEDED');
-    // Without this the two assertions below hold vacuously when the crawl never starts.
-    expect(stats.requestsSucceeded).toBeGreaterThanOrEqual(1);
-    const paths = items.map((item) => new URL(item.url).pathname);
-    expect(paths).not.toContain('/cart');
-    expect(paths).not.toContain('/checkout');
+        expect(result.status).toBe('SUCCEEDED');
+        // Without this the two assertions below hold vacuously when the crawl never starts.
+        expect(stats.requestsSucceeded).toBeGreaterThanOrEqual(1);
+        const paths = items.map((item) => new URL(item.url).pathname);
+        expect(paths).not.toContain('/cart');
+        expect(paths).not.toContain('/checkout');
+    });
 });

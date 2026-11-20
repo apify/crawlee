@@ -1,7 +1,7 @@
 import type { Session } from '@crawlee/puppeteer';
 import { testActor } from 'apify-test-tools';
 
-import { getStats, scenario } from './harness.js';
+import { eachRuntime, getStats, scenario } from './harness.js';
 
 export const main = async () => {
     const { Actor } = await import('apify');
@@ -21,8 +21,6 @@ export const main = async () => {
             value: 'true',
         },
     ];
-
-    const mainOptions = { exit: Actor.isAtHome() };
 
     await Actor.main(async () => {
         const crawler = new PuppeteerCrawler({
@@ -62,20 +60,22 @@ export const main = async () => {
                 },
             },
         ]);
-    }, mainOptions);
+    });
 };
 
 const actor = scenario('puppeteer-initial-cookies', import.meta.filename, main, { image: 'puppeteer', memory: 16384 });
 
-testActor(actor, 'sends the initial cookies', async ({ expect, run }) => {
-    const result = await run();
-    const stats = await getStats(result);
-    const { items } = await result.getDataset<any>();
+eachRuntime((runtime) => {
+    testActor(actor, 'sends the initial cookies', async ({ expect, run }) => {
+        const result = await run({ runtime });
+        const stats = await getStats(result);
+        const { items } = await result.getDataset<any>();
 
-    expect(result.status).toBe('SUCCEEDED');
-    expect(stats.requestsSucceeded).toBe(1);
-    expect(items[0].numberOfMatchingCookies).toBe(3);
-    expect(items[0].numberOfMatchingCookies, 'page cookies match the initial cookies').toBe(
-        items[0].initialCookiesLength,
-    );
+        expect(result.status).toBe('SUCCEEDED');
+        expect(stats.requestsSucceeded).toBe(1);
+        expect(items[0].numberOfMatchingCookies).toBe(3);
+        expect(items[0].numberOfMatchingCookies, 'page cookies match the initial cookies').toBe(
+            items[0].initialCookiesLength,
+        );
+    });
 });

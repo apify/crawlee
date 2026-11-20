@@ -10,8 +10,6 @@ export const main = async () => {
     const { launchOptions } = await import('camoufox-js');
     const { firefox } = await import('playwright');
 
-    const mainOptions = { exit: Actor.isAtHome() };
-
     await Actor.main(async () => {
         const crawler = new PlaywrightCrawler({
             // The target hard-blocks datacenter IP ranges outright (block page, not a solvable
@@ -69,7 +67,7 @@ export const main = async () => {
         });
 
         await crawler.run(['https://grabjobs.co']);
-    }, mainOptions);
+    });
 };
 
 const actor = scenario('camoufox-cloudflare', import.meta.filename, main, { image: 'camoufox', memory: 16384 });

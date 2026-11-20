@@ -1,12 +1,10 @@
 import { testActor } from 'apify-test-tools';
 
-import { getStats, scenario, validateDataset } from './harness.js';
+import { eachRuntime, getStats, scenario, validateDataset } from './harness.js';
 
 export const main = async () => {
     const { Actor } = await import('apify');
     const { Dataset, PuppeteerCrawler } = await import('@crawlee/puppeteer');
-
-    const mainOptions = { exit: Actor.isAtHome() };
 
     // The "bad" links from the badssl.com index page, listed here because that page itself is flaky.
     const badSslUrls = [
@@ -62,7 +60,7 @@ export const main = async () => {
         });
 
         await crawler.run(badSslUrls);
-    }, mainOptions);
+    });
 };
 
 const actor = scenario('puppeteer-ignore-ssl-errors', import.meta.filename, main, {
@@ -70,16 +68,18 @@ const actor = scenario('puppeteer-ignore-ssl-errors', import.meta.filename, main
     memory: 16384,
 });
 
-testActor(actor, 'crawls sites with bad certificates', async ({ expect, run }) => {
-    const result = await run();
-    const stats = await getStats(result);
-    const { items } = await result.getDataset<any>();
+eachRuntime((runtime) => {
+    testActor(actor, 'crawls sites with bad certificates', async ({ expect, run }) => {
+        const result = await run({ runtime });
+        const stats = await getStats(result);
+        const { items } = await result.getDataset<any>();
 
-    expect(result.status).toBe('SUCCEEDED');
-    // Of badssl.com's ~31 "bad" links, ~10 use ciphers/protocols modern Chrome removed
-    // (3des, rc4, dh*, null, …) and can never load regardless of acceptInsecureCerts, so the
-    // ceiling is ~20. Assert a comfortable floor that still proves cert errors are bypassed.
-    expect(stats.requestsSucceeded).toBeGreaterThan(10);
-    expect(items.length).toBeGreaterThan(10);
-    expect(validateDataset(items, ['url', 'title'])).toBe(true);
+        expect(result.status).toBe('SUCCEEDED');
+        // Of badssl.com's ~31 "bad" links, ~10 use ciphers/protocols modern Chrome removed
+        // (3des, rc4, dh*, null, …) and can never load regardless of acceptInsecureCerts, so the
+        // ceiling is ~20. Assert a comfortable floor that still proves cert errors are bypassed.
+        expect(stats.requestsSucceeded).toBeGreaterThan(10);
+        expect(items.length).toBeGreaterThan(10);
+        expect(validateDataset(items, ['url', 'title'])).toBe(true);
+    });
 });

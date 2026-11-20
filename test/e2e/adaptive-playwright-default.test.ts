@@ -1,6 +1,6 @@
 import { testActor } from 'apify-test-tools';
 
-import { scenario, validateDataset } from './harness.js';
+import { eachRuntime, scenario, validateDataset } from './harness.js';
 
 export const main = async () => {
     const { Actor } = await import('apify');
@@ -50,7 +50,7 @@ export const main = async () => {
 
     await crawler.run(['https://crawlee.dev/js/docs/next/examples/add-data-to-dataset']);
 
-    await Actor.exit({ exit: Actor.isAtHome() });
+    await Actor.exit();
 };
 
 const actor = scenario('adaptive-playwright-default', import.meta.filename, main, {
@@ -58,13 +58,15 @@ const actor = scenario('adaptive-playwright-default', import.meta.filename, main
     memory: 16384,
 });
 
-testActor(actor, 'mixes browser and HTTP-only request handling', async ({ expect, run }) => {
-    const result = await run();
-    const { items } = await result.getDataset<any>();
+eachRuntime((runtime) => {
+    testActor(actor, 'mixes browser and HTTP-only request handling', async ({ expect, run }) => {
+        const result = await run({ runtime });
+        const { items } = await result.getDataset<any>();
 
-    expect(result.status).toBe('SUCCEEDED');
-    expect(items.length).toBeGreaterThan(15);
-    expect(validateDataset(items, ['url', 'heading', 'requestHandlerMode'])).toBe(true);
-    expect(items.filter((it) => it.requestHandlerMode === 'browser').length).toBeGreaterThanOrEqual(1);
-    expect(items.filter((it) => it.requestHandlerMode === 'httpOnly').length).toBeGreaterThanOrEqual(5);
+        expect(result.status).toBe('SUCCEEDED');
+        expect(items.length).toBeGreaterThan(15);
+        expect(validateDataset(items, ['url', 'heading', 'requestHandlerMode'])).toBe(true);
+        expect(items.filter((it) => it.requestHandlerMode === 'browser').length).toBeGreaterThanOrEqual(1);
+        expect(items.filter((it) => it.requestHandlerMode === 'httpOnly').length).toBeGreaterThanOrEqual(5);
+    });
 });

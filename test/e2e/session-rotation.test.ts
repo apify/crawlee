@@ -1,13 +1,11 @@
 import type { Session } from '@crawlee/playwright';
 import { testActor } from 'apify-test-tools';
 
-import { scenario } from './harness.js';
+import { eachRuntime, scenario } from './harness.js';
 
 export const main = async () => {
     const { Actor } = await import('apify');
     const { PlaywrightCrawler, Session, SessionPool } = await import('@crawlee/playwright');
-
-    const mainOptions = { exit: Actor.isAtHome() };
 
     await Actor.main(async () => {
         const crawler = new PlaywrightCrawler({
@@ -31,20 +29,22 @@ export const main = async () => {
         });
 
         await crawler.run(['https://crawlee.dev/']);
-    }, mainOptions);
+    });
 };
 
 const actor = scenario('session-rotation', import.meta.filename, main, { image: 'playwright', memory: 4096 });
 
-testActor(actor, 'rotates sessions', async ({ expect, run }) => {
-    const result = await run();
-    const { items } = await result.getDataset<any>();
+eachRuntime((runtime) => {
+    testActor(actor, 'rotates sessions', async ({ expect, run }) => {
+        const result = await run({ runtime });
+        const { items } = await result.getDataset<any>();
 
-    expect(result.status).toBe('SUCCEEDED');
-    expect(items, 'retried the correct number of times').toHaveLength(11);
-    const usesPerSession = items.map((session) => items.filter((s) => s.id === session.id).length);
-    expect(
-        usesPerSession.every((uses) => uses <= 2),
-        'no session used more than twice',
-    ).toBe(true);
+        expect(result.status).toBe('SUCCEEDED');
+        expect(items, 'retried the correct number of times').toHaveLength(11);
+        const usesPerSession = items.map((session) => items.filter((s) => s.id === session.id).length);
+        expect(
+            usesPerSession.every((uses) => uses <= 2),
+            'no session used more than twice',
+        ).toBe(true);
+    });
 });

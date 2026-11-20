@@ -6,8 +6,6 @@ export const main = async () => {
     const { Actor, KeyValueStore } = await import('apify');
     const { BasicCrawler } = await import('@crawlee/basic');
 
-    const mainOptions = { exit: Actor.isAtHome() };
-
     await Actor.main(async () => {
         const kv = await KeyValueStore.open();
 
@@ -20,7 +18,7 @@ export const main = async () => {
         });
 
         await crawler.run(['https://example.com']);
-    }, mainOptions);
+    });
 };
 
 const actor = scenario('automatic-persist-value', import.meta.filename, main, { memory: 4096 });

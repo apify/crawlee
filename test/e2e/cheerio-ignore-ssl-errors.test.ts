@@ -1,12 +1,10 @@
 import { testActor } from 'apify-test-tools';
 
-import { getStats, scenario, validateDataset } from './harness.js';
+import { eachRuntime, getStats, scenario, validateDataset } from './harness.js';
 
 export const main = async () => {
     const { Actor } = await import('apify');
     const { CheerioCrawler, Dataset } = await import('@crawlee/cheerio');
-
-    const mainOptions = { exit: Actor.isAtHome() };
 
     // The "bad" links from the badssl.com index page, listed here because that page itself is flaky.
     const badSslUrls = [
@@ -54,19 +52,21 @@ export const main = async () => {
         });
 
         await crawler.run(badSslUrls);
-    }, mainOptions);
+    });
 };
 
 const actor = scenario('cheerio-ignore-ssl-errors', import.meta.filename, main, { memory: 4096 });
 
-testActor(actor, 'crawls sites with bad certificates', async ({ expect, run }) => {
-    const result = await run();
-    const stats = await getStats(result);
-    const { items } = await result.getDataset<any>();
+eachRuntime((runtime) => {
+    testActor(actor, 'crawls sites with bad certificates', async ({ expect, run }) => {
+        const result = await run({ runtime });
+        const stats = await getStats(result);
+        const { items } = await result.getDataset<any>();
 
-    expect(result.status).toBe('SUCCEEDED');
-    // ~21 of the 31 URLs load (the rest use ciphers impit can't negotiate); the throw-on-ssl-errors twin gets ~5.
-    expect(stats.requestsSucceeded).toBeGreaterThan(15);
-    expect(items.length).toBeGreaterThan(15);
-    expect(validateDataset(items, ['url', 'title'])).toBe(true);
+        expect(result.status).toBe('SUCCEEDED');
+        // ~21 of the 31 URLs load (the rest use ciphers impit can't negotiate); the throw-on-ssl-errors twin gets ~5.
+        expect(stats.requestsSucceeded).toBeGreaterThan(15);
+        expect(items.length).toBeGreaterThan(15);
+        expect(validateDataset(items, ['url', 'title'])).toBe(true);
+    });
 });
