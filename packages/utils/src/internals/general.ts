@@ -163,35 +163,30 @@ export function snakeCaseToCamelCase(snakeCaseStr: string): string {
  * @ignore
  */
 export function expandShadowRoots(document: Document): string {
-    // Returns HTML of given shadow DOM.
-    function getShadowDomHtml(shadowRoot: any) {
-        let shadowHTML = '';
+    // The copy lives in an inert document, so the page is left as it is and nothing in the copy runs or loads.
+    const copy = document.implementation.createHTMLDocument('');
+    const root = copy.importNode(document.documentElement, true);
 
-        for (const el of shadowRoot.childNodes) {
-            shadowHTML += el.nodeValue ?? el.outerHTML ?? '';
-        }
+    // Appends the content of every open shadow root to the copy of its host.
+    function expand(original: Element, clone: Element) {
+        const children = Array.from(original.children, (child, index) => [child, clone.children[index]]);
 
-        return shadowHTML;
-    }
+        for (const node of Array.from(original.shadowRoot?.childNodes ?? [])) {
+            const imported = clone.appendChild(copy.importNode(node, true));
 
-    // Recursively replaces shadow DOMs with their HTML.
-    function replaceShadowDomsWithHtml(rootElement: any) {
-        for (const el of rootElement.querySelectorAll('*')) {
-            if (el.shadowRoot) {
-                replaceShadowDomsWithHtml(el.shadowRoot);
-                let content = el.getHTML?.({ serializableShadowRoots: true }).trim();
-
-                if (!(content?.length > 0)) {
-                    content = getShadowDomHtml(el.shadowRoot) ?? '';
-                }
-                el.innerHTML += content;
+            if (node.nodeType === Node.ELEMENT_NODE) {
+                children.push([node as Element, imported as Element]);
             }
         }
+
+        for (const [child, childClone] of children) {
+            expand(child, childClone);
+        }
     }
 
-    replaceShadowDomsWithHtml(document.body);
+    expand(document.documentElement, root);
 
-    return document.documentElement.outerHTML;
+    return root.outerHTML;
 }
 
 /**

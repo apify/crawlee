@@ -223,6 +223,22 @@ describe('playwrightUtils', () => {
         }
     });
 
+    test('parseWithCheerio() shadow root expansion works with Trusted Types CSP', async () => {
+        const browser = await launchPlaywright(launchContext);
+
+        try {
+            const page = await browser.newPage();
+            await page.goto(new URL('/special/shadow-root-csp', serverAddress).toString());
+
+            const $ = await playwrightUtils.parseWithCheerio(page);
+
+            expect($('#open-container').text()).toContain('[GOOD] This is inside the OPEN shadow DOM.');
+            expect(await page.evaluate(() => document.querySelector('#open-container')!.children.length)).toBe(0);
+        } finally {
+            await browser.close();
+        }
+    });
+
     describe('blockRequests()', () => {
         let browser: Browser = null as any;
         beforeAll(async () => {
