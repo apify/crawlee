@@ -396,6 +396,23 @@ describe('Sitemap', () => {
         );
     });
 
+    it('fetches a sitemap listed both directly and in a sitemap index only once', async () => {
+        const httpClient = new FetchHttpClient();
+        const sendRequest = vitest.spyOn(httpClient, 'sendRequest');
+
+        await Sitemap.load(
+            ['http://not-exists.com/sitemap_parent.xml', 'http://not-exists.com/sitemap_child.xml'],
+            undefined,
+            { httpClient },
+        );
+
+        expect(sendRequest.mock.calls.map(([request]) => request.url)).toEqual([
+            'http://not-exists.com/sitemap_parent.xml',
+            'http://not-exists.com/sitemap_child.xml',
+            'http://not-exists.com/sitemap_child_2.xml?from=94937939985&to=1318570721404',
+        ]);
+    });
+
     it('respects nestedSitemapFilter when following sitemap indexes', async () => {
         const items: SitemapUrl[] = [];
 
@@ -699,6 +716,67 @@ describe('Sitemap', () => {
                 'http://not-exists.com/catalog?item=83&desc=vacation_usa',
             ]),
         );
+    });
+
+    it('reads the whole value of an element split by CDATA sections or comments', async () => {
+        const sitemap = await Sitemap.fromXmlString(
+            [
+                '<?xml version="1.0" encoding="UTF-8"?>',
+                '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+                '<url>',
+                '<loc><![CDATA[http://not-exists.com/catalog?item=80]]>&amp;desc=vacation_turkey</loc>',
+                '<lastmod>2004-<!-- month -->11-23</lastmod>',
+                '</url>',
+                '<url>',
+                '<loc>http://not-exists.com/<!-- generated -->catalog?item=81</loc>',
+                '<priority>0.<![CDATA[5]]></priority>',
+                '</url>',
+                '</urlset>',
+            ].join('\n'),
+        );
+
+        expect(new Set(sitemap.urls)).toEqual(
+            new Set([
+                'http://not-exists.com/catalog?item=80&desc=vacation_turkey',
+                'http://not-exists.com/catalog?item=81',
+            ]),
+        );
+
+        const items: SitemapUrl[] = [];
+        for await (const item of parseSitemap([
+            {
+                type: 'raw',
+                content:
+                    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>http://not-exists.com/<![CDATA[a]]></loc><lastmod>2004-<!-- month -->11-23</lastmod><priority>0.<![CDATA[5]]></priority></url></urlset>',
+            },
+        ])) {
+            items.push(item);
+        }
+
+        expect(items).toHaveLength(1);
+        expect(items[0].loc).toBe('http://not-exists.com/a');
+        expect(items[0].lastmod).toEqual(new Date('2004-11-23'));
+        expect(items[0].priority).toBe(0.5);
+    });
+
+    it('emits one nested sitemap for a sitemap index loc split by a CDATA section', async () => {
+        const items: any[] = [];
+        for await (const item of parseSitemap(
+            [
+                {
+                    type: 'raw',
+                    content:
+                        '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><sitemap><loc><![CDATA[http://not-exists.com/]]>sitemap_child.xml</loc></sitemap></sitemapindex>',
+                },
+            ],
+            undefined,
+            { emitNestedSitemaps: true },
+        )) {
+            items.push(item);
+        }
+
+        const nested = items.filter((item) => item.originSitemapUrl === null);
+        expect(nested.map((item) => item.loc)).toEqual(['http://not-exists.com/sitemap_child.xml']);
     });
 
     it('loads sitemaps whose elements use a namespace prefix', async () => {

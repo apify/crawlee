@@ -447,6 +447,15 @@ describe('dataset', () => {
                 const kvData = await KeyValueStore.getValue('TEST-123-123');
                 expect(kvData).toEqual(dataToPush);
             });
+
+            it('is the default of exportTo', async () => {
+                const dataset = await Dataset.open({ name: Math.random().toString(36) });
+                await dataset.pushData(dataToPush);
+                await dataset.exportTo('HELLO-default');
+
+                const kvData = await KeyValueStore.getValue('HELLO-default');
+                expect(kvData).toEqual(dataToPush);
+            });
         });
 
         describe('exportToCSV', () => {

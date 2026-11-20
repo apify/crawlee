@@ -54,9 +54,9 @@
         "@crawlee/types": "workspace:*",
         "@crawlee/utils": "workspace:*",
         "cheerio": "^1.2.0",
-        "devtools-protocol": "^0.0.1734725",
+        "devtools-protocol": "^0.0.1748923",
         "domhandler": "^6.0.1",
-        "jquery": "^3.7.1",
+        "jquery": "^3.8.0",
         "tslib": "^2.9.1",
         "zod": "catalog:"
     },

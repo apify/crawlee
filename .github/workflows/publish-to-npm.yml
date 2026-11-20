@@ -36,12 +36,26 @@ jobs:
     publish_to_npm:
         name: Publish to NPM (${{ inputs.dist-tag }})
         runs-on: ubuntu-26.04
+        environment: npm
         steps:
             - uses: actions/checkout@v7.0.1
               with:
                   ref: ${{ inputs.ref }}
                   token: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
                   fetch-depth: 0
+
+            - name: Check that the ref is on a release branch
+              env:
+                  GH_TOKEN: ${{ github.token }}
+              run: |
+                  sha=$(git rev-parse HEAD)
+                  branches=$(gh api --paginate "repos/$GITHUB_REPOSITORY/branches" --jq '.[].name' | grep -E '^(master|[0-9]+\.x)$')
+                  for branch in $branches; do
+                      status=$(gh api "repos/$GITHUB_REPOSITORY/compare/$branch...$sha" --jq .status || true)
+                      if [[ "$status" == "identical" || "$status" == "behind" ]]; then exit 0; fi
+                  done
+                  echo "::error::$sha is not on a release branch"
+                  exit 1
 
             - name: Use Node.js 24
               uses: actions/setup-node@v7.1.0
@@ -58,7 +72,7 @@ jobs:
                   restore-keys: |
                       turbo-${{ github.job }}-${{ github.ref_name }}-
 
-            - uses: apify/actions/pnpm-install@v1.6.2
+            - uses: apify/actions/pnpm-install@v1.7.0
 
             - name: Build packages
               run: pnpm ci:build

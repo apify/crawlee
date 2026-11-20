@@ -141,6 +141,29 @@ describe('extractMicrodata', () => {
         expect(items).toEqual([{ properties: { name: 'Lamp', color: 'Red', price: '25' } }]);
     });
 
+    it('orders properties reached through itemref in tree order', async () => {
+        // The spec sorts an item's properties in tree order, wherever they were reached from.
+        const items = await extractMicrodata(`
+            <img id="hero" itemprop="image" src="hero.jpg">
+            <div itemscope itemtype="https://schema.org/Product" itemref="specs hero">
+                <img itemprop="image" src="side.jpg">
+            </div>
+            <ul id="specs">
+                <li itemprop="color">Red</li>
+                <li itemprop="color">Blue</li>
+            </ul>
+            <p id="late" itemprop="color">Green</p>
+            <div itemscope itemref="late specs"></div>`);
+
+        expect(items).toEqual([
+            {
+                type: ['https://schema.org/Product'],
+                properties: { image: ['hero.jpg', 'side.jpg'], color: ['Red', 'Blue'] },
+            },
+            { properties: { color: ['Red', 'Blue', 'Green'] } },
+        ]);
+    });
+
     it('stops at an itemref cycle instead of recursing forever', async () => {
         // `loop-a` and `loop-b` reference each other, so the second visit of `loop-a` must be cut short.
         const items = await extractMicrodata(`

@@ -400,7 +400,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
      * @param [options] An optional options object where you can provide the dataset and target KVS name.
      * @param [contentType] Only JSON and CSV are supported currently, defaults to JSON.
      */
-    async exportTo(key: string, options?: DatasetExportToOptions, contentType?: string): Promise<Data[]> {
+    async exportTo(key: string, options?: DatasetExportToOptions, contentType = 'application/json'): Promise<Data[]> {
         const kvStore = await KeyValueStore.open(options?.toKVS ?? null, { configuration: this.configuration });
         const items = await this.export(options);
 

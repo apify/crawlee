@@ -16,6 +16,10 @@ jobs:
   trigger-deployment:
     name: Trigger Nginx deployment
     runs-on: ubuntu-latest
+    # Only for the service account token, this job is not a Pages deployment.
+    environment:
+      name: github-pages
+      deployment: false
     steps:
       - name: Trigger deployment workflow in apify-docs-private
         run: |

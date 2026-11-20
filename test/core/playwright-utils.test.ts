@@ -4,7 +4,7 @@ import path from 'node:path';
 import { MemoryStorageBackend, serviceLocator } from '@crawlee/core';
 import { KeyValueStore, launchPlaywright, playwrightUtils, Request } from '@crawlee/playwright';
 import { sleep } from '@crawlee/utils';
-import type { Browser, Page } from 'playwright';
+import type { Browser, Page, Response } from 'playwright';
 import { chromium } from 'playwright';
 import { runExampleComServer } from '../shared/_helper.js';
 
@@ -223,6 +223,22 @@ describe('playwrightUtils', () => {
 
             expect($('template').html()).toBe('<p><iframe></iframe></p>');
             expect($('.crawlee-iframe-replacement h1').text()).toBe('In iframe');
+        } finally {
+            await browser.close();
+        }
+    });
+
+    test('parseWithCheerio() shadow root expansion works with Trusted Types CSP', async () => {
+        const browser = await launchPlaywright(launchContext);
+
+        try {
+            const page = await browser.newPage();
+            await page.goto(new URL('/special/shadow-root-csp', serverAddress).toString());
+
+            const $ = await playwrightUtils.parseWithCheerio(page);
+
+            expect($('#open-container').text()).toContain('[GOOD] This is inside the OPEN shadow DOM.');
+            expect(await page.evaluate(() => document.querySelector('#open-container')!.children.length)).toBe(0);
         } finally {
             await browser.close();
         }
@@ -555,6 +571,123 @@ describe('playwrightUtils', () => {
             await expect(
                 handleCloudflareChallenge(page, 'https://example.com', fastOptions()),
             ).resolves.toBeUndefined();
+        });
+
+        test('detects the challenge on a new page when the same options object is reused across calls', async () => {
+            // the pre-wrapped hook from `handleCloudflareChallengeHook()` passes one options object to
+            // every call, spanning retries (and their new pages) - the detection must not stick to the
+            // page of the first call
+            const options = fastOptions();
+
+            const firstPage = await browser.newPage();
+            await firstPage.setContent(`<html><body>${currentChallengeBody}</body></html>`);
+            await expect(handleCloudflareChallenge(firstPage, 'https://example.com', options)).rejects.toThrow(
+                /Blocked by Cloudflare/,
+            );
+            await firstPage.close();
+
+            await page.setContent(`<html><body>${currentChallengeBody}</body></html>`);
+            await expect(handleCloudflareChallenge(page, 'https://example.com', options)).rejects.toThrow(
+                /Blocked by Cloudflare/,
+            );
+        });
+
+        test('detects challenge markup that renders only after the load event on a 403 response', async () => {
+            await page.setContent('<html><body><h1>Loading</h1></body></html>');
+            await page.evaluate((body) => {
+                setTimeout(() => {
+                    document.body.innerHTML = body;
+                }, 1500);
+            }, currentChallengeBody);
+
+            const response = {
+                status: () => 403,
+                headers: () => ({ 'cf-ray': 'a29d9a9cff4fb9e4-PRG' }),
+            } as unknown as Response;
+            await expect(
+                handleCloudflareChallenge(page, 'https://example.com', fastOptions(), response),
+            ).rejects.toThrow(/Blocked by Cloudflare/);
+        });
+
+        test('detects a late-rendered challenge via the cf-mitigated response header', async () => {
+            await page.setContent('<html><body><h1>Loading</h1></body></html>');
+            await page.evaluate((body) => {
+                setTimeout(() => {
+                    document.body.innerHTML = body;
+                }, 1500);
+            }, currentChallengeBody);
+
+            const response = {
+                status: () => 200,
+                headers: () => ({ 'cf-mitigated': 'challenge' }),
+            } as unknown as Response;
+            await expect(
+                handleCloudflareChallenge(page, 'https://example.com', fastOptions(), response),
+            ).rejects.toThrow(/Blocked by Cloudflare/);
+        });
+
+        test('fails fast on a hard-blocked 403 page instead of polling for challenge markup', async () => {
+            await page.setContent('<html><body><h1>Sorry, you have been blocked</h1></body></html>');
+            const response = {
+                status: () => 403,
+                headers: () => ({ 'cf-ray': 'a29d9a9cff4fb9e4-PRG' }),
+            } as unknown as Response;
+            const start = Date.now();
+            await expect(
+                handleCloudflareChallenge(page, 'https://example.com', fastOptions(), response),
+            ).rejects.toThrow(/Blocked by Cloudflare/);
+            expect(Date.now() - start).toBeLessThan(4000);
+        }, 10_000);
+
+        test('resolves without detection on a Cloudflare 403 without challenge markup', async () => {
+            await page.setContent('<html><body><h1>Forbidden</h1></body></html>');
+            const response = {
+                status: () => 403,
+                headers: () => ({ 'cf-ray': 'a29d9a9cff4fb9e4-PRG' }),
+            } as unknown as Response;
+            await expect(
+                handleCloudflareChallenge(page, 'https://example.com', fastOptions(), response),
+            ).resolves.toBeUndefined();
+        }, 10_000);
+
+        test('does not poll on a 403 that did not come from Cloudflare', async () => {
+            await page.setContent('<html><body><h1>Forbidden</h1></body></html>');
+            const response = { status: () => 403, headers: () => ({}) } as unknown as Response;
+            const start = Date.now();
+            await expect(
+                handleCloudflareChallenge(page, 'https://example.com', fastOptions(), response),
+            ).resolves.toBeUndefined();
+            expect(Date.now() - start).toBeLessThan(2000);
+        });
+
+        test('returns the reloaded response once the challenge is solved', async () => {
+            let served = 0;
+            await page.route('**/cf-test', async (route) => {
+                served += 1;
+                await route.fulfill({
+                    status: served === 1 ? 403 : 200,
+                    contentType: 'text/html',
+                    body:
+                        served === 1
+                            ? `<html><body>${currentChallengeBody}</body></html>`
+                            : '<html><body><h1>Welcome</h1></body></html>',
+                });
+            });
+
+            try {
+                await page.goto('https://example.com/cf-test');
+                const response = await handleCloudflareChallenge(page, 'https://example.com/cf-test', {
+                    ...fastOptions(),
+                    // simulate a solved challenge by removing the challenge markup
+                    clickCallback: async () => {
+                        await page.evaluate(() => document.querySelector('.footer')?.remove());
+                    },
+                });
+
+                expect(response?.status()).toBe(200);
+            } finally {
+                await page.unroute('**/cf-test');
+            }
         });
     });
 });
