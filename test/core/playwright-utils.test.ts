@@ -209,6 +209,52 @@ describe('playwrightUtils', () => {
         }
     });
 
+    test('parseWithCheerio() iframe expansion skips iframes inside <template>', async () => {
+        const browser = await launchPlaywright(launchContext);
+
+        try {
+            const page = await browser.newPage();
+            await page.goto(new URL('/special/outside-iframe', serverAddress).toString());
+            await page.evaluate(() => {
+                document.body.insertAdjacentHTML('afterbegin', '<template><p><iframe></iframe></p></template>');
+            });
+
+            const $ = await playwrightUtils.parseWithCheerio(page);
+
+            expect($('template').html()).toBe('<p><iframe></iframe></p>');
+            expect($('.crawlee-iframe-replacement h1').text()).toBe('In iframe');
+        } finally {
+            await browser.close();
+        }
+    });
+
+    test('parseWithCheerio() expands iframes inside open shadow roots', async () => {
+        const browser = await launchPlaywright(launchContext);
+
+        try {
+            const page = await browser.newPage();
+            await page.goto(new URL('/special/outside-iframe', serverAddress).toString());
+            await page.evaluate(async () => {
+                const host = document.body.appendChild(document.createElement('div'));
+                const iframe = document.createElement('iframe');
+                iframe.srcdoc = '<h1>In shadow root</h1>';
+                const loaded = new Promise((resolve) => iframe.addEventListener('load', resolve));
+                host.attachShadow({ mode: 'open' }).append(iframe);
+                await loaded;
+            });
+
+            const $ = await playwrightUtils.parseWithCheerio(page);
+
+            const headings = $('.crawlee-iframe-replacement h1')
+                .map((_, el) => $(el).text())
+                .get();
+            expect(headings).toEqual(['In iframe', 'In shadow root']);
+            expect($('iframe')).toHaveLength(0);
+        } finally {
+            await browser.close();
+        }
+    });
+
     test('parseWithCheerio() shadow root expansion works with Trusted Types CSP', async () => {
         const browser = await launchPlaywright(launchContext);
 
