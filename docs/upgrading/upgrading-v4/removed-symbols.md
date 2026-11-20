@@ -12,7 +12,7 @@ The full list of removed exports and members, for ctrl-F purposes. Where a repla
 
 - `BasicCrawler._cleanupContext` (protected) - this is now handled by the `ContextPipeline`
 - `BasicCrawler.isRequestBlocked` (protected)
-- `BasicCrawler.events` (protected) - this should be accessed via `BasicCrawler.serviceLocator`
+- `BasicCrawler.events` (protected) - use the `serviceLocator` export of `@crawlee/core` instead (`serviceLocator.getEventManager()`); the crawler scopes it to its own services while its methods run
 - `BrowserRequestHandler` and `BrowserErrorHandler` types in `@crawlee/browser`
 - `BrowserCrawler.userProvidedRequestHandler` (protected)
 - `BrowserCrawler.requestHandlerTimeoutInnerMillis` (protected)
@@ -36,12 +36,13 @@ The full list of removed exports and members, for ctrl-F purposes. Where a repla
 - `Configuration.defaultDatasetId` / `defaultKeyValueStoreId` / `defaultRequestQueueId` and their `CRAWLEE_DEFAULT_*_ID` environment variables — the default storage is addressed by a reserved alias, not by a configurable ID. Open a storage by name if you need a specific one.
 - `checkAndSerialize` and `chunkBySize` functions (from `@crawlee/core`) — value (de)serialization now lives in the `KeyValueStore` frontend; use `serializeValue` / `parseValue` (see [`maybeStringify` is removed](./storage-backends.md#maybestringify-is-removed))
 - `BASIC_CRAWLER_TIMEOUT_BUFFER_SECS` constant (from `@crawlee/basic`) — was an internal timeout buffer, no longer exported
-- `HttpResponse`, `HttpResponseWithoutBody`, `StreamingHttpResponse`, `ResponseTypes`, `BaseHttpResponseData`, `SimpleHeaders`, `processHttpRequestOptions`, and `GotScrapingHttpClient` (from `@crawlee/core`) — the HTTP client surface moved to `@crawlee/http-client` / `@crawlee/got-scraping-client` (see [HTTP client packages and `BaseHttpClient` reshaped](./http-clients.md#http-client-packages-and-basehttpclient-reshaped))
+- `HttpResponse`, `HttpResponseWithoutBody`, `StreamingHttpResponse`, `ResponseTypes`, `BaseHttpResponseData`, `SimpleHeaders`, and `GotScrapingHttpClient` (from `@crawlee/core`) — the HTTP client surface moved to `@crawlee/http-client` / `@crawlee/got-scraping-client` (see [HTTP client packages and `BaseHttpClient` reshaped](./http-clients.md#http-client-packages-and-basehttpclient-reshaped))
 - `StreamHandlerContext` type (from `@crawlee/http`); `FileDownloadOptions` stays but only adds `ignoreTlsErrors` on top of `BasicCrawlerOptions` — see [`FileDownload` now extends `BasicCrawler`](./upgrading-v4.md#filedownload-now-extends-basiccrawler-and-takes-a-slimmer-filedownloadoptions)
 - `PlainResponse` type (from `@crawlee/http`) — it wrapped the `got-scraping` response and is gone along with the rest of the old HTTP response surface (see [`CrawlingContext.response` is now of type `Response`](./upgrading-v4.md#crawlingcontextresponse-is-now-of-type-response))
 - `checkStorageAccess`, `withCheckedStorageAccess` and the `RequestHandlerResult` type — superseded by the storage transaction mechanism; use `withDirectStorageAccess()` and `StorageTransactionView` (see [Storage writes in request handlers are transactional](./upgrading-v4.md#storage-writes-in-request-handlers-are-transactional))
 - `CreateContextOptions` type (from `@crawlee/basic`) — a leftover of the pre-`ContextPipeline` context-creation design, unused by the library itself; context construction is now driven by `ContextPipeline`
 - `ResponseLike` interface (from `@crawlee/core`) — a vestige of the pre-`fetch` HTTP implementation with no consumers; `getCookiesFromResponse()` has always taken a native `Response`
+- The standalone `enqueueLinks()` function (from `@crawlee/core`) — use `context.enqueueLinks()` inside a request handler, or `context.addRequests()` / `requestManager.addRequests()` for URLs you already have
 - `UrlPatternObject` (from `@crawlee/core`) — the *compiled* form of a URL pattern, produced internally by the `enqueueLinks()` machinery. Keep using `UrlPatternInput` / `GlobInput` / `RegExpInput`, which are unchanged, and let the return type of the pattern helpers be inferred
 - `PERSIST_STATE_KEY` (from `@crawlee/core`) — to change where a session pool persists its state, pass `persistStateKey` to `SessionPool`
 - `MAX_POOL_SIZE` constant (from `@crawlee/core`) — was the internal default for `SessionPoolOptions.maxPoolSize` (1000); inline the literal if you were reading it
