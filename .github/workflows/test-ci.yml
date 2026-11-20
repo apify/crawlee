@@ -94,7 +94,7 @@ jobs:
             -   name: Use Node.js 24
                 uses: actions/setup-node@v7.1.0
                 with:
-                    node-version: 24
+                    node-version: 26
                     package-manager-cache: false
 
             -   name: Turbo cache
@@ -127,7 +127,7 @@ jobs:
             -   name: Use Node.js 24
                 uses: actions/setup-node@v7.1.0
                 with:
-                    node-version: 24
+                    node-version: 26
                     package-manager-cache: false
 
             -   name: Turbo cache
@@ -259,7 +259,7 @@ jobs:
             -   name: Use Node.js 24
                 uses: actions/setup-node@v7.1.0
                 with:
-                    node-version: 24
+                    node-version: 26
                     package-manager-cache: false
 
             -   name: Turbo cache
@@ -300,7 +300,7 @@ jobs:
             -   name: Use Node.js 24
                 uses: actions/setup-node@v7.1.0
                 with:
-                    node-version: 24
+                    node-version: 26
                     package-manager-cache: false
 
             -   name: Turbo cache
