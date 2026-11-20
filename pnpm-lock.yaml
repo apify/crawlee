@@ -201,8 +201,8 @@ importers:
         specifier: ^3.0.2
         version: 3.0.2
       '@apify/oxlint-config':
-        specifier: ^0.3.0
-        version: 0.3.0(oxlint@1.94.0(oxlint-tsgolint@7.0.2007))
+        specifier: ^0.4.0
+        version: 0.4.1(oxlint@1.94.0(oxlint-tsgolint@7.0.2007))
       '@apify/tsconfig':
         specifier: ^0.2.0
         version: 0.2.0
@@ -1404,8 +1404,8 @@ packages:
     resolution: {integrity: sha512-V7uBClFbym2YZ1ZXoOnIPtR0tpYfIkjkK1hprdNpA/UihI8DGuu1izWfp8/v6kUOvoUnVxzyhM2Zcu+POhbNEA==}
     engines: {node: '>=22'}
 
-  '@apify/oxlint-config@0.3.0':
-    resolution: {integrity: sha512-njNpYIfowurrM3+TDhhb/LLADAPzozs9+hTTMB/OiRAKrUHOqF6KIsUCYI8IGZAB1hl9vXQnFmKQzTysbAJ7mA==}
+  '@apify/oxlint-config@0.4.1':
+    resolution: {integrity: sha512-csmyWhgqAH4p3OYWA9AQbS5Nb5dEdJAb+dAxyTaWEXBeWE/avzUYa2y+eX2QtEYNdaaiSOZbaOxAbukiSZMq1Q==}
     peerDependencies:
       oxlint: ^1.61.0
 
@@ -12800,7 +12800,7 @@ snapshots:
       '@apify/consts': 3.1.0
       ansi-colors: 4.1.3
 
-  '@apify/oxlint-config@0.3.0(oxlint@1.94.0(oxlint-tsgolint@7.0.2007))':
+  '@apify/oxlint-config@0.4.1(oxlint@1.94.0(oxlint-tsgolint@7.0.2007))':
     dependencies:
       oxlint: 1.94.0(oxlint-tsgolint@7.0.2007)
 
