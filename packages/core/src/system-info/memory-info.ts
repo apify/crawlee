@@ -1,20 +1,21 @@
 import { execSync } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
 import { freemem, totalmem } from 'node:os';
+import { posix } from 'node:path';
 
 import type { CrawleeLogger } from '@crawlee/types';
 
-import { getCgroupsVersion, isLambda } from './runtime.js';
+import { type CgroupController, getCgroupController } from './cgroup.js';
+import { isLambda } from './runtime.js';
 import { psTree } from './ps-tree.js';
 
-const MEMORY_FILE_PATHS = {
-    TOTAL: {
-        V1: '/sys/fs/cgroup/memory/memory.limit_in_bytes',
-        V2: '/sys/fs/cgroup/memory.max',
-    },
-    USED: {
-        V1: '/sys/fs/cgroup/memory/memory.usage_in_bytes',
-        V2: '/sys/fs/cgroup/memory.current',
+const MEMORY_FILE_NAMES = {
+    TOTAL: { V1: 'memory.limit_in_bytes', V2: 'memory.max' },
+    USED: { V1: 'memory.usage_in_bytes', V2: 'memory.current' },
+    // `memory.stat` keys of the inactive file cache and of its pages waiting to be written to the disk
+    STAT: {
+        V1: { inactive: 'total_inactive_file', dirty: 'total_dirty', writeback: 'total_writeback' },
+        V2: { inactive: 'inactive_file', dirty: 'file_dirty', writeback: 'file_writeback' },
     },
 };
 
@@ -41,7 +42,7 @@ export interface MemoryInfo {
 /**
  * Returns memory statistics of the process and the system, see {@apilink MemoryInfo}.
  *
- * If the process runs inside of a container, the `getMemoryInfo` gets container memory limits,
+ * If the process is limited by a cgroup (e.g. inside of a container), the `getMemoryInfo` gets the cgroup memory limits,
  * otherwise it gets system memory limits.
  *
  * Beware that the function is quite inefficient because it spawns a new process.
@@ -91,50 +92,27 @@ export async function getMemoryInfo(
         totalBytes = parseInt(process.env.AWS_LAMBDA_FUNCTION_MEMORY_SIZE!, 10) * 1000000;
         usedBytes = mainProcessBytes + childProcessesBytes;
         freeBytes = totalBytes - usedBytes;
-    } else if (containerized) {
-        // When running inside a container, use container memory limits
-
-        const cgroupsVersion = await getCgroupsVersion();
+    } else {
+        totalBytes = totalmem();
+        freeBytes = freemem();
 
         try {
-            if (cgroupsVersion === null) {
+            const cgroup = await getCgroupController('memory');
+            if (cgroup === null && containerized) {
                 throw new Error('cgroup not available');
             }
-            let [totalBytesStr, usedBytesStr] = await Promise.all([
-                readFile(MEMORY_FILE_PATHS.TOTAL[cgroupsVersion], 'utf8'),
-                readFile(MEMORY_FILE_PATHS.USED[cgroupsVersion], 'utf8'),
-            ]);
-
-            // Cgroups V2 files contains newline character. Getting rid of it for better handling in later part of the code.
-            totalBytesStr = totalBytesStr.replace(/[^a-zA-Z0-9 ]/g, '');
-            usedBytesStr = usedBytesStr.replace(/[^a-zA-Z0-9 ]/g, '');
-
-            // Cgroups V2 contains 'max' string if memory is not limited
-            // See https://git.kernel.org/pub/scm/linux/kernel/git/tj/cgroup.git/tree/Documentation/admin-guide/cgroup-v2.rst (see "memory.max")
-            if (totalBytesStr === 'max') {
-                totalBytes = totalmem();
-                // Cgroups V1 is set to number related to platform and page size if memory is not limited
-                // See https://unix.stackexchange.com/q/420906
-            } else {
-                totalBytes = parseInt(totalBytesStr, 10);
-                const containerRunsWithUnlimitedMemory = totalBytes > Number.MAX_SAFE_INTEGER;
-                if (containerRunsWithUnlimitedMemory) totalBytes = totalmem();
+            const cgroupMemory = cgroup && (await getCgroupMemory(cgroup, totalBytes));
+            if (cgroupMemory) {
+                totalBytes = cgroupMemory.totalBytes;
+                freeBytes = cgroupMemory.freeBytes;
             }
-            usedBytes = parseInt(usedBytesStr, 10);
-            freeBytes = totalBytes - usedBytes;
         } catch (err) {
             logger?.warningOnce(
                 'Your environment is containerized, but your system does not support memory cgroups. ' +
                     "If you're running containers with limited memory, memory auto-scaling will not work properly.\n\n" +
                     `Cause: ${(err as Error).message}`,
             );
-            totalBytes = totalmem();
-            freeBytes = freemem();
-            usedBytes = totalBytes - freeBytes;
         }
-    } else {
-        totalBytes = totalmem();
-        freeBytes = freemem();
         usedBytes = totalBytes - freeBytes;
     }
 
@@ -145,4 +123,45 @@ export async function getMemoryInfo(
         mainProcessBytes,
         childProcessesBytes,
     };
+}
+
+/**
+ * Reads the tightest memory limit on the cgroup chain, and the smallest room left under any of its limits. Memory is
+ * charged up the whole chain, so an ancestor also counts what its other children use. A limit covering the whole
+ * machine restricts nothing, which is also how cgroup V1 spells "unlimited".
+ */
+async function getCgroupMemory({ version, dirs }: CgroupController, machineBytes: number) {
+    let totalBytes = Infinity;
+    let freeBytes = Infinity;
+    for (const dir of dirs) {
+        // A missing limit file or `max` (NaN) means there is no limit on this level.
+        const limit = Number(
+            await readFile(posix.join(dir, MEMORY_FILE_NAMES.TOTAL[version]), 'utf8').catch(() => NaN),
+        );
+        if (Number.isNaN(limit)) continue;
+        totalBytes = Math.min(totalBytes, limit);
+        freeBytes = Math.min(freeBytes, Math.max(limit - (await getChargedBytes(version, dir)), 0));
+    }
+    if (totalBytes >= machineBytes) return null;
+
+    return { totalBytes, freeBytes };
+}
+
+/**
+ * Reads the memory charged to a cgroup without the inactive file cache, which the kernel can drop. Pages waiting to be
+ * written to the disk can't be dropped until they are, so they stay counted.
+ */
+async function getChargedBytes(version: CgroupController['version'], dir: string) {
+    const current = Number(await readFile(posix.join(dir, MEMORY_FILE_NAMES.USED[version]), 'utf8'));
+    const statFile = await readFile(posix.join(dir, 'memory.stat'), 'utf8');
+    const stat = Object.fromEntries(statFile.split('\n').map((line) => line.split(' ')));
+    const keys = MEMORY_FILE_NAMES.STAT[version];
+    const inactive = Number(stat[keys.inactive]);
+    if (Number.isNaN(current) || Number.isNaN(inactive)) {
+        throw new Error(`Unable to read the memory usage of ${dir}`);
+    }
+
+    // Old kernels have neither of the keys, the whole inactive cache is credited there.
+    const unflushed = Math.max(Number(stat[keys.dirty] ?? 0), 0) + Math.max(Number(stat[keys.writeback] ?? 0), 0);
+    return Math.max(current - Math.max(inactive - unflushed, 0), 0);
 }
