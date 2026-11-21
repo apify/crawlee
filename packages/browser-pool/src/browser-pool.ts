@@ -10,7 +10,7 @@ import QuickLRU from 'quick-lru';
 import { TypedEmitter } from 'tiny-typed-emitter';
 import { z } from 'zod';
 
-import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
+import { addTimeoutToPromise, storage as timeoutStorage, tryCancel } from '@apify/timeout';
 
 import type { BrowserController } from './abstract-classes/browser-controller.js';
 import type { BrowserPlugin } from './abstract-classes/browser-plugin.js';
@@ -725,8 +725,9 @@ export class BrowserPool<
 
         // The bound on this lives in `overridePageClose`, where it covers the pool's own
         // bookkeeping as well. Wrapping it here instead would time out the override and abandon
-        // that bookkeeping, leaving the browser holding a slot it can never get back.
-        await page.close();
+        // that bookkeeping, leaving the browser holding a slot it can never get back. A fresh timeout
+        // context, as the close hooks would start out cancelled under a caller whose timeout already fired.
+        await timeoutStorage.exit(async () => page.close());
     }
 
     /**

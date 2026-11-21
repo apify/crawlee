@@ -413,6 +413,30 @@ describe.each([
             ).resolves.toEqual('caller survived');
         }, 45_000);
 
+        test('should run the close hooks of closePage() called after the caller timed out', async () => {
+            const hook = vitest.fn(async () => tryCancel());
+            await browserPool.destroy();
+            browserPool = new BrowserPool({ browserPlugins: [plugin], prePageCloseHooks: [hook] });
+
+            const page = await browserPool.newPage();
+            const controller = browserPool.getBrowserControllerByPage(page)!;
+
+            let closing: Promise<void> | undefined;
+            await addTimeoutToPromise(
+                async () => {
+                    await sleep(100);
+                    closing = browserPool.closePage(page);
+                },
+                10,
+                'the caller timed out',
+            ).catch(() => {});
+            await sleep(200);
+            await closing;
+
+            expect(hook).toHaveBeenCalledOnce();
+            expect(browserPool['retiredBrowserControllers'].has(controller)).toBe(false);
+        }, 30_000);
+
         test('should retire browser after page count', async () => {
             await browserPool.destroy();
             browserPool = new BrowserPool({
