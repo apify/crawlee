@@ -50,9 +50,8 @@ export function remainingNavigationWindowMillis(ctx: object, windowMillis: numbe
  * (anything that is not the navigation, a navigation hook or the request handler) still fails instead of stalling
  * the crawler.
  *
- * This is a bare timer, not an `addTimeoutToPromise` frame: nested `addTimeoutToPromise` calls share one
- * `AbortController`, so wrapping the request in one would let the request handler timing out abort this outer
- * context too, cancelling the error handling that follows it.
+ * This is a bare timer, not an `addTimeoutToPromise` frame: it has to pause while error handling runs
+ * ({@apilink suspendTimeoutKey}) and report whether it fired ({@apilink timeoutExpiredKey}), which a frame cannot.
  *
  * `Promise.race` attaches a handler to both sides, so a late rejection from `work` cannot go unhandled. The losing
  * side is not cancelled - by definition it is stuck somewhere we do not control - but the phases we do run check

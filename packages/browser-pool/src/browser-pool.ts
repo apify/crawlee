@@ -957,50 +957,31 @@ export class BrowserPool<
             // this never settles and the page's own `close` event never fires either (Chromium
             // 536385539). Bound the whole sequence so nothing here can hang the caller, then
             // reconcile the pool regardless of the outcome, so a page that refuses to close cannot
-            // leave the pool believing it is still open. `Promise.race` rather than
-            // `addTimeoutToPromise`: the latter inherits its AbortController from the calling frame,
-            // so a timeout here would cancel the task of whoever awaited `page.close()`.
+            // leave the pool believing it is still open.
             let pageClosed = false;
 
-            const closing = (async () => {
-                await this.#executeHooks(this.#prePageCloseHooks, page, browserController);
+            await addTimeoutToPromise(
+                async () => {
+                    await this.#executeHooks(this.#prePageCloseHooks, page, browserController);
 
-                await originalPageClose.apply(page, args).catch((err: Error) => {
-                    this.#log.debug(`Could not close page.\nCause:${err.message}`, { id: browserController.id });
+                    await originalPageClose.apply(page, args).catch((err: Error) => {
+                        this.#log.debug(`Could not close page.\nCause:${err.message}`, { id: browserController.id });
+                    });
+
+                    // Whether the page itself is gone. Tracked separately from the sequence finishing,
+                    // so that a slow hook does not get the browser retired.
+                    pageClosed = true;
+
+                    await this.#executeHooks(this.#postPageCloseHooks, pageId, browserController);
+                },
+                PAGE_CLOSE_TIMEOUT_MILLIS,
+                `Closing a page did not finish within ${PAGE_CLOSE_TIMEOUT_MILLIS / 1000} seconds.`,
+            ).catch((err: Error) => {
+                this.#log.warning(`Closing a page failed, releasing it from the pool anyway.\nCause:${err.message}`, {
+                    id: browserController.id,
+                    pageId,
                 });
-
-                // Whether the page itself is gone. Tracked separately from the sequence finishing,
-                // so that a slow hook does not get the browser retired.
-                pageClosed = true;
-
-                await this.#executeHooks(this.#postPageCloseHooks, pageId, browserController);
-            })();
-
-            let timeout: NodeJS.Timeout | undefined;
-            const finished = await Promise.race([
-                closing.then(
-                    () => true,
-                    (err: Error) => {
-                        this.#log.warning(
-                            `Closing a page failed, releasing it from the pool anyway.\nCause:${err.message}`,
-                            { id: browserController.id, pageId },
-                        );
-                        return true;
-                    },
-                ),
-                new Promise<boolean>((resolve) => {
-                    timeout = setTimeout(() => resolve(false), PAGE_CLOSE_TIMEOUT_MILLIS);
-                }),
-            ]);
-            clearTimeout(timeout);
-
-            if (!finished) {
-                this.#log.warning(
-                    `Closing a page did not finish within ${PAGE_CLOSE_TIMEOUT_MILLIS / 1000} seconds, ` +
-                        'releasing it from the pool anyway.',
-                    { id: browserController.id, pageId },
-                );
-            }
+            });
 
             if (!pageClosed) {
                 // The page is still attached, so this browser cannot be trusted with more work.

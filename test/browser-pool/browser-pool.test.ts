@@ -395,9 +395,7 @@ describe.each([
         }, 30_000);
 
         test("should not cancel the caller's task when it gives up on a close", async () => {
-            // The bound on the close is a `Promise.race`, not `addTimeoutToPromise`: the latter
-            // takes its AbortController from the calling frame, so firing it here would cancel
-            // the request handler that closed the page.
+            // Giving up on a close must neither reject into nor cancel the request handler that closed the page.
             hangEveryPageClose();
 
             const page = await browserPool.newPage();
