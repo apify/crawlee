@@ -200,8 +200,22 @@ export function snapshotPageWithIframes(
     serialize: ((document: Document) => string) | null,
 ): { html: string; iframes: Element[] } {
     const attribute = 'data-crawlee-iframe-id';
+    const iframes: Element[] = [];
 
-    const iframes = Array.from(document.querySelectorAll('iframe'));
+    // Shadow roots are only searched when their content gets into the snapshot.
+    function collect(root: Document | ShadowRoot) {
+        for (const element of root.querySelectorAll(serialize ? '*' : 'iframe')) {
+            if (element.localName === 'iframe') {
+                iframes.push(element);
+            }
+
+            if (element.shadowRoot) {
+                collect(element.shadowRoot);
+            }
+        }
+    }
+
+    collect(document);
     iframes.forEach((iframe, index) => iframe.setAttribute(attribute, String(index)));
 
     let html: string;
