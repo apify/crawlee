@@ -6,6 +6,7 @@ import type {
     BasicCrawlerOptions,
     CrawlingContext,
     EnqueueLinksOptions,
+    ExtractLinksOptions,
     GetUserDataFromRequest,
     RestrictedCrawlingContext,
     RouterRoutes,
@@ -247,7 +248,19 @@ export interface AdaptivePlaywrightCrawlerContext<
      */
     parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioAPI>;
 
-    enqueueLinks(options?: EnqueueLinksOptions): Promise<unknown>;
+    /**
+     * Extracts URLs from the current page, without adding them to the request queue.
+     * In a browser, it first waits for an element matching the selector, with a 5s timeout.
+     */
+    extractLinks(options?: ExtractLinksOptions): Promise<string[]>;
+
+    /**
+     * Extracts URLs from the current page and adds them to the request queue.
+     *
+     * The requests are buffered until the crawler settles on this attempt's result, so the returned
+     * `requestId` of a newly added request is provisional, and nothing is added when the attempt is discarded.
+     */
+    enqueueLinks(options?: EnqueueLinksOptions): Promise<AddRequestsBatchedResult>;
 }
 
 interface AdaptiveHookContext extends Pick<
@@ -678,6 +691,9 @@ export class AdaptivePlaywrightCrawler<
             get parseWithCheerio(): AdaptivePlaywrightCrawlerContext['parseWithCheerio'] {
                 throw new Error(errorMessage('parseWithCheerio'));
             },
+            get extractLinks(): AdaptivePlaywrightCrawlerContext['extractLinks'] {
+                throw new Error(errorMessage('extractLinks'));
+            },
             get enqueueLinks(): AdaptivePlaywrightCrawlerContext['enqueueLinks'] {
                 throw new Error(errorMessage('enqueueLinks'));
             },
@@ -685,18 +701,20 @@ export class AdaptivePlaywrightCrawler<
     }
 
     async #adaptCheerioContext(cheerioContext: CheerioCrawlingContext) {
+        const extractLinks = async (options: ExtractLinksOptions = {}) =>
+            extractUrlsFromCheerio(
+                cheerioContext.$,
+                options.selector,
+                options.baseUrl ?? cheerioContext.request.loadedUrl,
+            );
+
         return {
             get page(): Page {
                 throw new Error('Page object was used in HTTP-only request handler');
             },
-            enqueueLinks: async (options: EnqueueLinksOptions = {}) => {
-                const urls = extractUrlsFromCheerio(
-                    cheerioContext.$,
-                    options.selector,
-                    options.baseUrl ?? cheerioContext.request.loadedUrl,
-                );
-                return (await this.#enqueueLinks(urls, options, cheerioContext.request)) as unknown as void;
-            },
+            extractLinks,
+            enqueueLinks: async (options: EnqueueLinksOptions = {}) =>
+                this.#enqueueLinks(await extractLinks(options), options, cheerioContext.request),
             // `skipNavigation` keeps the inner throwing getter. The body is already consumed (and decoded to UTF-8).
             ...(cheerioContext.request.skipNavigation
                 ? {}
@@ -733,24 +751,27 @@ export class AdaptivePlaywrightCrawler<
             });
         }
 
+        const extractLinks = async (options: ExtractLinksOptions = {}, timeoutMs = 5000) => {
+            // TODO consider using `context.parseWithCheerio` to make this universal and avoid code duplication
+            const selector = options.selector ?? 'a';
+            const locator = playwrightContext.page.locator(selector).first();
+            // Wait for client-rendered links, but like the HTTP side, return nothing when there are none.
+            await locator.waitFor({ timeout: timeoutMs, state: 'attached' }).catch((error: Error) => {
+                if (error.name !== 'TimeoutError') throw error;
+            });
+
+            return extractUrlsFromPage(
+                playwrightContext.page,
+                selector,
+                options.baseUrl ?? playwrightContext.request.loadedUrl,
+            );
+        };
+
         return {
             ...(response && { response }),
-            enqueueLinks: async (options: EnqueueLinksOptions = {}, timeoutMs = 5000) => {
-                // TODO consider using `context.parseWithCheerio` to make this universal and avoid code duplication
-                const selector = options.selector ?? 'a';
-                const locator = playwrightContext.page.locator(selector).first();
-                // Wait for client-rendered links, but like the HTTP side, enqueue nothing when there are none.
-                await locator.waitFor({ timeout: timeoutMs, state: 'attached' }).catch((error: Error) => {
-                    if (error.name !== 'TimeoutError') throw error;
-                });
-                const urls = await extractUrlsFromPage(
-                    playwrightContext.page,
-                    selector,
-                    options.baseUrl ?? playwrightContext.request.loadedUrl,
-                );
-
-                return (await this.#enqueueLinks(urls, options, playwrightContext.request)) as unknown as void;
-            },
+            extractLinks,
+            enqueueLinks: async (options: EnqueueLinksOptions = {}, timeoutMs = 5000) =>
+                this.#enqueueLinks(await extractLinks(options, timeoutMs), options, playwrightContext.request),
         };
     }
 
