@@ -55,6 +55,9 @@ The following properties have been removed from `HttpRequest`, as v4's HTTP clie
 - `insecureHTTPParser` — no longer supported; there is no equivalent in the `fetch`-based clients.
 - `throwHttpErrors` — use the crawler's `additionalHttpErrorStatusCodes` / `ignoreHttpErrorStatusCodes` options, or inspect `response.status` yourself.
 - `maxRedirects` — redirect following is handled inside `BaseHttpClient.sendRequest` and capped at 10 redirects; it is no longer configurable per request.
+- `encoding` — a `Response` has no decoding option. Decode the bytes yourself, e.g. `new TextDecoder('latin1').decode(await response.arrayBuffer())`.
+
+`followRedirect` now only accepts a boolean. With `followRedirect: false`, `sendRequest` returns the redirect response instead of following it; the predicate form is gone.
 
 ### `gotScraping` is no longer exported from `@crawlee/utils`
 

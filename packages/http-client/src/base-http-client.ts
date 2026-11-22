@@ -190,6 +190,9 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
 
     /**
      * Public fetch-like method that handles redirects and uses provided proxy and cookie jar.
+     *
+     * Like `fetch`, it honors the `redirect` mode of the request: `follow` (the default) follows redirects,
+     * `manual` returns the redirect response as is and `error` rejects.
      */
     async sendRequest(initialRequest: Request, options?: SendRequestOptions): Promise<Response> {
         const maxRedirects = 10;
@@ -214,6 +217,12 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
             await this.#setCookies(response, cookieJar);
 
             if (this.#isRedirect(response)) {
+                if (initialRequest.redirect === 'manual') {
+                    return response;
+                }
+                if (initialRequest.redirect === 'error') {
+                    throw new Error(`Unexpected redirect while requesting ${currentRequest.url}`);
+                }
                 if (redirectCount++ >= maxRedirects) {
                     throw new Error(`Too many redirects (${maxRedirects}) while requesting ${currentRequest.url}`);
                 }
