@@ -504,6 +504,9 @@ export interface BasicCrawlerOptions<
      * - [**AWS WAF** Challenge and CAPTCHA](https://docs.aws.amazon.com/waf/latest/developerguide/waf-captcha-and-challenge.html)
      * - [**Google Search** Rate Limiting](https://www.google.com/sorry/)
      * - **Imperva Incapsula**
+     *
+     * Blocking is detected from the HTTP response, so this option only takes effect in the HTTP and browser
+     * crawlers. A plain {@apilink BasicCrawler} has no blocking detection and ignores it.
      */
     retryOnBlocked?: boolean;
 
@@ -989,9 +992,7 @@ export class BasicCrawler<
         const parsedOptions = parseArgument(options, BasicCrawler.#optionsSchema, 'BasicCrawlerOptions');
 
         const {
-            // oxlint-disable-next-line typescript/no-deprecated -- still accepted and folded into `requestManager` for back-compat
             requestList,
-            // oxlint-disable-next-line typescript/no-deprecated -- still accepted and folded into `requestManager` for back-compat
             requestQueue,
             requestManager,
             maxRequestRetries,
