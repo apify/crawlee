@@ -134,6 +134,13 @@ describe('StagehandCrawler', () => {
         );
         expect(() => new StagehandCrawler({ browserPool })).not.toThrow();
     });
+
+    test('rejects the options only `parseWithCheerio` would use', () => {
+        // @ts-expect-error Not part of StagehandCrawlerOptions
+        expect(() => new StagehandCrawler({ ignoreShadowRoots: true })).toThrow(/Unrecognized key/);
+        // @ts-expect-error Not part of StagehandCrawlerOptions
+        expect(() => new StagehandCrawler({ ignoreIframes: true })).toThrow(/Unrecognized key/);
+    });
 });
 
 describe('createStagehandRouter', () => {
