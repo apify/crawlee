@@ -337,10 +337,11 @@ export interface RequestQueueBackend {
      * Handled requests are never returned again by {@link fetchNextRequest}. Returns information
      * about the operation, or `undefined` if the request was not in progress.
      *
-     * An `undefined` result is a no-op, not an error: the request is simply not something this client is
-     * currently processing, so nothing is changed and the request is never added to the queue as a side
-     * effect. (Marking an already-handled request is idempotent and still returns operation info with
-     * `wasAlreadyHandled: true` rather than `undefined`.)
+     * An `undefined` result is not an error: the request is simply not something this client is currently
+     * processing, and it is never added to the queue as a side effect. A backend may either leave such a
+     * request untouched or still mark it as handled; the result is `undefined` in both cases. (Marking an
+     * already-handled request is idempotent and still returns operation info with `wasAlreadyHandled: true`
+     * rather than `undefined`.)
      */
     markRequestAsHandled(request: UpdateRequestSchema): Promise<QueueOperationInfo | undefined>;
 
@@ -351,8 +352,9 @@ export interface RequestQueueBackend {
      *
      * The request is expected to already be present in the queue (it should have been obtained via
      * {@link fetchNextRequest}); reclaiming releases its lock rather than inserting it. An `undefined` result
-     * is a no-op, not an error: the request is simply not something this client is currently processing,
-     * so nothing is changed and the request is never added to the queue as a side effect. Use
+     * is not an error: the request is simply not something this client is currently processing, and it is
+     * never added to the queue as a side effect. A backend may either leave such a request untouched or still
+     * reorder it (e.g. to honor `forefront`); the result is `undefined` in both cases. Use
      * {@link addBatchOfRequests} to insert a new request.
      */
     reclaimRequest(

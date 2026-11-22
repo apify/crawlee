@@ -326,6 +326,7 @@ export class RequestQueueBackend extends BaseClient implements storage.RequestQu
 
             // A handled request has `orderNo === null`. Marking it again is an idempotent no-op.
             const wasAlreadyHandled = existingRequest.orderNo === null;
+            const wasInProgress = this.#inProgressRequestIds.has(id);
 
             const handledAt = request.handledAt ?? new Date().toISOString();
             const requestModel = this.#createInternalRequest({ ...request, handledAt }, false);
@@ -342,6 +343,11 @@ export class RequestQueueBackend extends BaseClient implements storage.RequestQu
             }
 
             this.#updateTimestamps(true);
+
+            // The leniency above is ours; the result still follows the interface contract.
+            if (!wasInProgress && !wasAlreadyHandled) {
+                return undefined;
+            }
 
             return {
                 requestId: id,
@@ -385,14 +391,19 @@ export class RequestQueueBackend extends BaseClient implements storage.RequestQu
 
             this.#requests.set(id, requestModel);
 
-            // The request is no longer in progress for this client.
-            this.#inProgressRequestIds.delete(id);
+            // The request is no longer in progress for this client. The leniency above is ours; the result
+            // still follows the interface contract.
+            const wasInProgress = this.#inProgressRequestIds.delete(id);
 
             if (options.forefront) {
                 this.#forefrontRequestIds.push(id);
             }
 
             this.#updateTimestamps(true);
+
+            if (!wasInProgress) {
+                return undefined;
+            }
 
             return {
                 requestId: id,
