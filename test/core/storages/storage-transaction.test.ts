@@ -60,7 +60,6 @@ describe('StorageTransaction', () => {
 
         test('double commit does not double-flush', async () => {
             const dataset = await Dataset.open();
-            // @ts-expect-error Accessing private property
             const pushDataSpy = vitest.spyOn(dataset.backend, 'pushData');
 
             const transaction = createStorageTransaction();
@@ -75,7 +74,6 @@ describe('StorageTransaction', () => {
         test('a commit that throws lands in `failed` and later writes pass through', async () => {
             const dataset = await Dataset.open();
             const store = await KeyValueStore.open();
-            // @ts-expect-error Accessing private property
             vitest.spyOn(dataset.backend, 'pushData').mockRejectedValueOnce(new Error('backend exploded'));
 
             const transaction = createStorageTransaction();
@@ -129,7 +127,6 @@ describe('StorageTransaction', () => {
 
         test('receive the error of a failed commit, which still propagates', async () => {
             const dataset = await Dataset.open();
-            // @ts-expect-error Accessing private property
             vitest.spyOn(dataset.backend, 'pushData').mockRejectedValueOnce(new Error('backend exploded'));
             const callback = vitest.fn();
 
@@ -147,7 +144,6 @@ describe('StorageTransaction', () => {
 
         test('an error thrown by a callback replaces the commit error', async () => {
             const dataset = await Dataset.open();
-            // @ts-expect-error Accessing private property
             vitest.spyOn(dataset.backend, 'pushData').mockRejectedValueOnce(new Error('Data item is too large'));
 
             const transaction = createStorageTransaction();
@@ -324,7 +320,6 @@ describe('StorageTransaction', () => {
 
             // `failed` is the terminal state that neither `rollback()` nor an `open` check reaches -
             // dispose must release the journaled snapshots regardless of the outcome.
-            // @ts-expect-error Accessing private property
             vitest.spyOn(dataset.backend, 'pushData').mockRejectedValueOnce(new Error('boom'));
             await expect(transaction.commit()).rejects.toThrow('boom');
             expect(transaction.state).toBe('failed');
@@ -397,7 +392,6 @@ describe('Dataset in a transaction', () => {
 
         // A backend honouring `skipEmpty` / `clean` / `unwind` returns fewer items than asked for while
         // the real items are far from exhausted - `total` stays honest, the page is just filtered.
-        // @ts-expect-error Accessing private property
         const realBackend: DatasetBackend<{ n: number }> = dataset.backend;
         const stubBackend: DatasetBackend<{ n: number }> = {
             getMetadata: async () => realBackend.getMetadata(),
@@ -435,7 +429,6 @@ describe('Dataset in a transaction', () => {
 
     test('values are captured at write time with full fidelity', async () => {
         const dataset = await Dataset.open();
-        // @ts-expect-error Accessing private property
         const pushDataSpy = vitest.spyOn(dataset.backend, 'pushData');
 
         const when = new Date('2023-01-01T00:00:00Z');
@@ -460,7 +453,6 @@ describe('Dataset in a transaction', () => {
 
     test('items from multiple pushData calls are committed in order, in a single backend call', async () => {
         const dataset = await Dataset.open();
-        // @ts-expect-error Accessing private property
         const pushDataSpy = vitest.spyOn(dataset.backend, 'pushData');
 
         await withStorageTransaction(async () => {
