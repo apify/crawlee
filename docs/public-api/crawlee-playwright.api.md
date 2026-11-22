@@ -4,6 +4,7 @@
 
 ```ts
 
+import type { AddRequestsBatchedResult } from '@crawlee/core';
 import type { AnyNode } from 'domhandler';
 import type { Awaitable } from '@crawlee/types';
 import { BasicCrawler } from '@crawlee/basic';
@@ -28,6 +29,7 @@ import { CrawlingRequest } from '@crawlee/browser';
 import type { Dictionary } from '@crawlee/types';
 import type { Download } from 'playwright';
 import type { EnqueueLinksOptions } from '@crawlee/basic';
+import type { ExtractLinksOptions } from '@crawlee/basic';
 import type { GetUserDataFromRequest } from '@crawlee/browser';
 import type { GetUserDataFromRequest as GetUserDataFromRequest_2 } from '@crawlee/basic';
 import { IRequestManager } from '@crawlee/browser';
@@ -83,8 +85,8 @@ export class AdaptivePlaywrightCrawler<ContextExtension = Dictionary<never>, Ext
 
 // @public (undocumented)
 export interface AdaptivePlaywrightCrawlerContext<UserData extends Dictionary = any> extends CrawlingContext<UserData> {
-    // (undocumented)
-    enqueueLinks(options?: EnqueueLinksOptions): Promise<unknown>;
+    enqueueLinks(options?: EnqueueLinksOptions): Promise<AddRequestsBatchedResult>;
+    extractLinks(options?: ExtractLinksOptions): Promise<string[]>;
     page: Page;
     parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioAPI>;
     querySelectorAll(selector: string, timeoutMs?: number): Promise<Cheerio<AnyNode>>;
