@@ -84,6 +84,11 @@ describe('htmlToText()', () => {
         );
         await checkHtmlToText('<div>Div1</div><noembed>Install the plugin</noembed>', 'Div1');
         await checkHtmlToText('<noframes><p>This page uses frames.</p></noframes><div>Div1</div>', 'Div1');
+        // elements that browsers don't render: the hidden attribute and a dialog that isn't open
+        await checkHtmlToText('<div>Div1</div><div hidden>Hidden text</div><div>Div2</div>', 'Div1\nDiv2');
+        await checkHtmlToText('<p>Visible <span hidden="until-found">hidden</span>text</p>', 'Visible text');
+        await checkHtmlToText('<div>Div1</div><dialog><p>Are you sure?</p></dialog>', 'Div1');
+        await checkHtmlToText('<div>Div1</div><dialog open><p>Are you sure?</p></dialog>', 'Div1\nAre you sure?');
 
         await checkHtmlToText('<b>A  B  C  D  E\n\nF  G</b>', 'A B C D E F G');
         await checkHtmlToText('<pre>A  B  C  D  E\n\nF  G</pre>', 'A  B  C  D  E\n\nF  G');
