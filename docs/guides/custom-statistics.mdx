@@ -35,9 +35,9 @@ A schema that gives every field a default doubles as the declaration of the fiel
 
 The fields have to be JSON-serializable, because the state round-trips through the key-value store. A `Date` or a `Set` comes back from that trip as a string or a plain object, so either keep to numbers, strings, booleans, `null`, and plain arrays and objects of those, or pair `deserialize` with a <ApiLink to="basic-crawler/interface/StatisticStateExtensionOptions#serialize">`serialize`</ApiLink> that converts them, as `lastSeenAt` does above.
 
-:::note Injected instances are not reset
+:::note Statistics carry over between runs
 
-A crawler resets the statistics it built itself at the start of every `run()`, but never one you passed in — a supplied instance keeps whatever state it was handed. If you reuse a crawler for several runs and want the counters to start from zero each time, call `statistics.reset()` yourself.
+A repeated `run()` continues the crawl, so the crawler keeps its statistics across runs, whether it built them itself or you passed them in. The counters, the runtime and `maxRequestsPerCrawl` cover the whole crawl rather than a single run. If you want the counters to start from zero, create a new crawler, or pass in a `Statistics` instance and call `statistics.reset()` before `run()`.
 
 :::
 
