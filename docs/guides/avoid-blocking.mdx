@@ -98,7 +98,7 @@ Some sites block HTTP clients no matter how well they impersonate a browser, or 
     {PlaywrightBrowserFetch}
 </CodeBlock>
 
-The pre-navigation hook replaces the page with an empty document, so the site is not loaded, but `fetch()` runs on the site's origin and sends its cookies. The crawler saves the cookies to the session, so with the `use-until-failure` strategy, a single login serves all requests until a `401` retires the session.
+The pre-navigation hook replaces the page with an empty document, so the site is not loaded, but `fetch()` runs on the site's origin and sends its cookies. The post-navigation hook sends the request and [replaces](./crawling-context#returning-from-a-navigation-hook) the empty document's `response` with the one from `fetch()`, so the crawler checks its status code as it would after a navigation, and the request handler only reads the response. The crawler saves the cookies to the session, so with the `use-until-failure` strategy, a single login serves all requests until a `401` retires the session.
 
 ## Camoufox
 

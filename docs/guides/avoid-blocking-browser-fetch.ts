@@ -1,4 +1,4 @@
-import { PlaywrightCrawler, SessionError, SessionPool } from 'crawlee';
+import { PlaywrightCrawler, SessionPool } from 'crawlee';
 import type { Page } from 'playwright';
 
 const logIn = async (page: Page) => {
@@ -22,15 +22,25 @@ const crawler = new PlaywrightCrawler({
             await page.route('**', async (route) => route.fulfill({ body: '' }), { times: 1 });
         },
     ],
-    async requestHandler({ page, request, pushData }) {
-        const { status, body } = await page.evaluate(async (url) => {
-            const response = await fetch(url);
-            return { status: response.status, body: await response.text() };
-        }, request.url);
+    postNavigationHooks: [
+        async ({ page, request }) => {
+            const [response] = await Promise.all([
+                page.waitForResponse(request.url),
+                page.evaluate(async (url) => {
+                    await fetch(url);
+                }, request.url),
+            ]);
 
-        if (status === 401) throw new SessionError('Logged out');
+            // Follow redirects to the final response
+            let fetchRequest = response.request();
+            while (fetchRequest.redirectedTo()) fetchRequest = fetchRequest.redirectedTo()!;
 
-        await pushData(JSON.parse(body));
+            // Replace the empty document's response with the one from `fetch()`
+            return { response: (await fetchRequest.response())! };
+        },
+    ],
+    async requestHandler({ response, pushData }) {
+        await pushData(await response.json());
     },
 });
 
