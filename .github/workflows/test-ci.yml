@@ -58,8 +58,22 @@ jobs:
 
             -   uses: apify/actions/pnpm-install@v1.9.0
 
+            # --with-deps pulls ~140 MB of WebKit/Firefox deps from azure.archive.ubuntu.com, which intermittently crawls at ~50 KB/s
+            -   name: Cache Playwright system dependencies
+                uses: actions/cache@v6.1.0
+                with:
+                    path: /tmp/apt-archives/*.deb
+                    key: playwright-apt-${{ matrix.os }}-${{ hashFiles('node_modules/playwright-core/package.json') }}
+                    restore-keys: |
+                        playwright-apt-${{ matrix.os }}-
+
             -   name: Install Playwright browsers
-                run: pnpm exec playwright install --with-deps
+                timeout-minutes: 10
+                run: |
+                    mkdir -p /tmp/apt-archives/partial
+                    printf 'Dir::Cache::Archives "/tmp/apt-archives/";\nAPT::Keep-Downloaded-Packages "true";\nAcquire::Retries "3";\nAcquire::http::Timeout "30";\n' | sudo tee /etc/apt/apt.conf.d/99-playwright-archives
+                    for i in 1 2 3; do timeout 180 pnpm exec playwright install --with-deps && exit 0; echo "Attempt $i stalled, retrying"; done
+                    exit 1
 
             -   name: Install Puppeteer Chrome
                 run: pnpm exec puppeteer browsers install chrome
