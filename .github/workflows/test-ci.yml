@@ -71,8 +71,9 @@ jobs:
                 timeout-minutes: 10
                 run: |
                     mkdir -p /tmp/apt-archives/partial
-                    printf 'Dir::Cache::Archives "/tmp/apt-archives/";\nAPT::Keep-Downloaded-Packages "true";\n' | sudo tee /etc/apt/apt.conf.d/99-playwright-archives
-                    pnpm exec playwright install --with-deps
+                    printf 'Dir::Cache::Archives "/tmp/apt-archives/";\nAPT::Keep-Downloaded-Packages "true";\nAcquire::Retries "3";\nAcquire::http::Timeout "30";\n' | sudo tee /etc/apt/apt.conf.d/99-playwright-archives
+                    for i in 1 2 3; do timeout 180 pnpm exec playwright install --with-deps && exit 0; echo "Attempt $i stalled, retrying"; done
+                    exit 1
 
             -   name: Install Puppeteer Chrome
                 run: pnpm exec puppeteer browsers install chrome
