@@ -57,6 +57,37 @@ The following properties have been removed from `HttpRequest`, as v4's HTTP clie
 - `responseType` (and the `HttpRequest<TResponseType>` type parameter) — read the body from the returned `Response` with `response.json()` / `response.text()` / `response.bytes()`.
 - `maxRedirects` — redirect following is handled inside `BaseHttpClient.sendRequest` and capped at 10 redirects; it is no longer configurable per request.
 
+### Remaining `HttpRequest` properties changed type
+
+`HttpRequest` and `HttpRequestOptions` (the first argument of `context.sendRequest()`) moved from `@crawlee/core` to `@crawlee/types`, and no longer accept arbitrary extra keys. The properties that stayed are no longer got-shaped:
+
+| Property | v3 | v4 |
+| --- | --- | --- |
+| `headers` | plain object | a `Headers` instance — a plain object throws at runtime |
+| `timeout` | got's object, e.g. `{ request: 5000 }` | a number of milliseconds |
+| `body` | `string`, `Buffer`, `Readable`, generator or form data | `Readable` — wrap other values in `Readable.from()`, or use `json` / `form` |
+| `cookieJar` | any got-compatible jar | a `tough-cookie` `CookieJar` |
+
+**Before:**
+```typescript
+await sendRequest({
+    url,
+    headers: { accept: 'application/json' },
+    timeout: { request: 5000 },
+});
+```
+
+**After:**
+```typescript
+await sendRequest({
+    url,
+    headers: new Headers({ accept: 'application/json' }),
+    timeout: 5000,
+});
+```
+
+`followRedirect` and `encoding` are still declared, but nothing reads them: redirects are always followed, and the body is decoded when you call `response.text()` / `response.json()`.
+
 ### `gotScraping` is no longer exported from `@crawlee/utils`
 
 The `gotScraping` singleton previously exported from `@crawlee/utils` has been removed. If you used it as the crawler's HTTP client, use the new `GotScrapingHttpClient` instead:

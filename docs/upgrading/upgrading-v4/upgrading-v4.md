@@ -342,6 +342,8 @@ The following methods and properties have been removed from `Configuration`:
 - `Configuration.getEventManager()` - moved to `ServiceLocator.getEventManager()`
 - `Configuration.useStorageClient()` - use `ServiceLocator.setStorageBackend()` instead
 - `Configuration.useEventManager()` - use `ServiceLocator.setEventManager()` instead
+
+The setters are stricter than the methods they replace. `Configuration.useStorageClient()` swapped the client at any time; `setStorageBackend()`, `setEventManager()` and `setConfiguration()` throw a `ServiceConflictError` once a different instance is in place — including the default one the locator creates the first time a getter runs. Set your services before anything opens a storage or constructs a crawler.
 - `Configuration.resetGlobalState()` - use `serviceLocator.reset()` instead. The method is marked `@internal`: it exists at runtime and is the supported way to tear down global state between tests, but it is not part of the public API and may change without a major version bump.
 - `Configuration.storageManagers` - use `serviceLocator.getStorageInstanceManager()` instead. Also marked `@internal` - available at runtime, but excluded from the documented surface and not covered by semver guarantees. Application code should reach storages through `Dataset.open()` / `KeyValueStore.open()` / `RequestQueue.open()` rather than the instance manager.
 
