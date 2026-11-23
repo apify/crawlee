@@ -705,12 +705,12 @@ export class AdaptivePlaywrightCrawler<
     }
 
     async #adaptPlaywrightContext(playwrightContext: PlaywrightCrawlingContext) {
-        // With `skipNavigation`, the inner crawler's throwing `response` getter stays.
-        const { skipNavigation } = playwrightContext.request;
-        // Capture the original response to avoid infinite recursion when the getter is copied to the context
-        const originalResponse = skipNavigation
-            ? undefined
-            : (playwrightContext.response as PlaywrightCrawlingContext['response'] | undefined);
+        // Capture the original response to avoid infinite recursion when the getter is copied to the context.
+        // The inner getter throws with `skipNavigation` or when navigation produced no response; it then stays.
+        let originalResponse: PlaywrightCrawlingContext['response'] | undefined;
+        try {
+            originalResponse = playwrightContext.response;
+        } catch {}
 
         let response: ResponseWithUrl | undefined;
         if (originalResponse) {
@@ -733,41 +733,25 @@ export class AdaptivePlaywrightCrawler<
             });
         }
 
-        // Unlike the HTTP client, `page.goto()` can resolve to `null`, e.g. in Firefox for a page that runs
-        // `location.replace()` while loading, and `BrowserCrawler` passes that on. Throw on access rather than hand
-        // out `undefined` as a `Response`.
-        const responseExtension = skipNavigation
-            ? {}
-            : response
-              ? { response }
-              : {
-                    get response(): Response {
-                        throw new Error('The `response` property is not available - navigation produced no response');
-                    },
-                };
+        return {
+            ...(response && { response }),
+            enqueueLinks: async (options: EnqueueLinksOptions = {}, timeoutMs = 5000) => {
+                // TODO consider using `context.parseWithCheerio` to make this universal and avoid code duplication
+                const selector = options.selector ?? 'a';
+                const locator = playwrightContext.page.locator(selector).first();
+                // Wait for client-rendered links, but like the HTTP side, enqueue nothing when there are none.
+                await locator.waitFor({ timeout: timeoutMs, state: 'attached' }).catch((error: Error) => {
+                    if (error.name !== 'TimeoutError') throw error;
+                });
+                const urls = await extractUrlsFromPage(
+                    playwrightContext.page,
+                    selector,
+                    options.baseUrl ?? playwrightContext.request.loadedUrl,
+                );
 
-        // Not spread: that would call the throwing getter.
-        return Object.defineProperties(
-            {
-                enqueueLinks: async (options: EnqueueLinksOptions = {}, timeoutMs = 5000) => {
-                    // TODO consider using `context.parseWithCheerio` to make this universal and avoid code duplication
-                    const selector = options.selector ?? 'a';
-                    const locator = playwrightContext.page.locator(selector).first();
-                    // Wait for client-rendered links, but like the HTTP side, enqueue nothing when there are none.
-                    await locator.waitFor({ timeout: timeoutMs, state: 'attached' }).catch((error: Error) => {
-                        if (error.name !== 'TimeoutError') throw error;
-                    });
-                    const urls = await extractUrlsFromPage(
-                        playwrightContext.page,
-                        selector,
-                        options.baseUrl ?? playwrightContext.request.loadedUrl,
-                    );
-
-                    return (await this.#enqueueLinks(urls, options, playwrightContext.request)) as unknown as void;
-                },
+                return (await this.#enqueueLinks(urls, options, playwrightContext.request)) as unknown as void;
             },
-            Object.getOwnPropertyDescriptors(responseExtension),
-        );
+        };
     }
 
     /**

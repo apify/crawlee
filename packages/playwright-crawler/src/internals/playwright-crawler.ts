@@ -354,8 +354,7 @@ export class PlaywrightCrawler<
                 try {
                     response = context.response;
                 } catch {
-                    // the getter throws before navigation and with `skipNavigation`; a navigation
-                    // without a response replaces it with plain `undefined` instead
+                    // the getter throws before navigation, with `skipNavigation`, and when navigation produced no response
                 }
                 return handleCloudflareChallenge(context.page, context.request.url, options, response);
             },

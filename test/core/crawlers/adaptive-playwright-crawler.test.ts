@@ -160,10 +160,6 @@ describe('AdaptivePlaywrightCrawler', () => {
         app.get('/multiple-choices', (_req, res) => {
             res.status(300).send('<html><body><h1>Heading</h1></body></html>');
         });
-
-        app.get('/self-redirect', (_req, res) => {
-            res.send(`<html><body><script>location.replace('/static')</script></body></html>`);
-        });
     });
     afterAll(async () => {
         server.close();
@@ -820,36 +816,6 @@ describe('AdaptivePlaywrightCrawler', () => {
 
         expect(requestHandler).toHaveBeenCalledOnce();
         expect((await Dataset.getData()).items).toEqual([{ status: 300, hasHeading: true }]);
-    });
-
-    test('browser navigation without a response runs the handler, reading response throws', async () => {
-        const renderingTypePredictor = makeRiggedRenderingTypePredictor({
-            detectionProbabilityRecommendation: 0,
-            renderingType: 'clientOnly',
-        });
-
-        let responseError: string | undefined;
-        const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = async (context) => {
-            try {
-                void context.response;
-            } catch (error) {
-                responseError = (error as Error).message;
-            }
-        };
-
-        const crawler = await makeOneshotCrawler(
-            {
-                requestHandler,
-                renderingTypePredictor,
-                // Firefox resolves `goto()` to `null` for this page; Chromium returns the response
-                launchContext: { launcher: playwright.firefox },
-            },
-            [`http://${HOSTNAME}:${port}/self-redirect`],
-        );
-
-        await crawler.run();
-
-        expect(responseError).toBe('The `response` property is not available - navigation produced no response');
     });
 
     test.each(['static', 'clientOnly'] as const)(

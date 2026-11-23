@@ -612,7 +612,7 @@ export abstract class BrowserCrawler<
             page,
             get response(): Response {
                 throw new Error(
-                    "The `response` property is not available. This might mean that you're trying to access it before navigation or that navigation resulted in `null` (this should only happen with `about:` URLs)",
+                    "The `response` property is not available. This might mean that you're trying to access it before navigation or that navigation resulted in `null` (e.g. `about:` URLs, or in Firefox a page that runs `location.replace()` while loading)",
                 );
             },
             get gotoOptions(): Dictionary {
@@ -695,7 +695,8 @@ export abstract class BrowserCrawler<
 
         crawlingContext.request.state = RequestState.AFTER_NAV;
 
-        return { response } as Partial<Context>;
+        // Without a response, the throwing getter from `preparePage` stays.
+        return (response ? { response } : {}) as Partial<Context>;
     }
 
     async #finalizeNavigation(crawlingContext: Context): Promise<Partial<Context>> {
