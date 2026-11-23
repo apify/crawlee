@@ -102,8 +102,8 @@ describe('StorageTransaction', () => {
             const controller = new AbortController();
             controller.abort();
 
-            // Simulates a request-handler timeout that fired before commit: `tryCancel()` in the replayed
-            // frontend calls would throw if commit inherited the shared, already-aborted controller.
+            // Simulates a caller whose timeout fired before commit: `tryCancel()` in the replayed frontend
+            // calls would throw if commit ran inside the caller's already-aborted frame.
             await timeoutStorage.run({ cancelTask: controller }, async () => {
                 await transaction.commit();
             });
@@ -214,7 +214,7 @@ describe('StorageTransaction', () => {
             const controller = new AbortController();
             controller.abort();
 
-            // As for the flush itself: a request-handler timeout that fired before the commit must not
+            // As for the flush itself: a caller's timeout that fired before the commit must not
             // cancel the storage operations of a handler that succeeded.
             await timeoutStorage.run({ cancelTask: controller }, async () => transaction.commit());
             transaction.dispose();

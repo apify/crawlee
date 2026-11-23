@@ -2089,49 +2089,107 @@ describe('BasicCrawler', () => {
         failed[0].errorMessages.forEach((msg) => expect(msg).toMatch('requestHandler timed out after 0.1 seconds'));
     });
 
-    test('internal timeout catches a request stuck outside the timed phases', async () => {
-        // reset so we can install a configuration with a custom internal timeout before anything resolves it
-        serviceLocator.reset();
-        serviceLocator.setStorageBackend(new MemoryStorageBackend());
-        serviceLocator.setConfiguration(new Configuration({ internalTimeoutMillis: 100 }));
-
-        const url = 'https://example.com';
-        const requestList = await RequestList.open({ sources: [{ url }] });
-
-        const results: Request[] = [];
-        const requestHandler = vitest.fn();
-
-        const crawler = new BasicCrawler({
-            requestList,
-            maxRequestRetries: 0,
-            // keep the handler timeout small so the backstop is not floored above the 100ms set above
-            requestHandlerTimeoutSecs: 0.05,
-            // `extendContext` is not the navigation, the hooks or the request handler, so none of their
-            // timeouts apply to it - only the internal one stands between this and a stuck crawler. It also
-            // outlives the backstop, so it is the case where the losing side of the race keeps running.
-            extendContext: async () => {
-                await sleep(500);
-                return {};
-            },
-            requestHandler,
-            failedRequestHandler: async ({ request }) => {
-                results.push(request);
-            },
+    describe('with a 100ms internal timeout', () => {
+        beforeEach(() => {
+            // reset so we can install a configuration with a custom internal timeout before anything resolves it
+            serviceLocator.reset();
+            serviceLocator.setStorageBackend(new MemoryStorageBackend());
+            serviceLocator.setConfiguration(new Configuration({ internalTimeoutMillis: 100 }));
         });
 
-        await crawler.run();
+        test('internal timeout catches a request stuck outside the timed phases', async () => {
+            const url = 'https://example.com';
+            const requestList = await RequestList.open({ sources: [{ url }] });
 
-        // Wait past the stuck `extendContext`: `run()` resolves when the backstop fails the request, but the
-        // pipeline keeps running underneath - the handler must still not fire once it finally gets there.
-        await sleep(600);
+            const results: Request[] = [];
+            const requestHandler = vitest.fn();
 
-        expect(requestHandler).not.toHaveBeenCalled();
-        expect(results).toHaveLength(1);
+            const crawler = new BasicCrawler({
+                requestList,
+                maxRequestRetries: 0,
+                // keep the handler timeout small so the backstop is not floored above the 100ms set above
+                requestHandlerTimeoutSecs: 0.05,
+                // `extendContext` is not the navigation, the hooks or the request handler, so none of their
+                // timeouts apply to it - only the internal one stands between this and a stuck crawler. It also
+                // outlives the backstop, so it is the case where the losing side of the race keeps running.
+                extendContext: async () => {
+                    await sleep(500);
+                    return {};
+                },
+                requestHandler,
+                failedRequestHandler: async ({ request }) => {
+                    results.push(request);
+                },
+            });
 
-        results[0].errorMessages.forEach((msg) => {
-            expect(msg).toMatch('Request timed out');
-            // the request handler never even started, so blaming it would be a lie
-            expect(msg).not.toMatch('requestHandler timed out');
+            await crawler.run();
+
+            // Wait past the stuck `extendContext`: `run()` resolves when the backstop fails the request, but the
+            // pipeline keeps running underneath - the handler must still not fire once it finally gets there.
+            await sleep(600);
+
+            expect(requestHandler).not.toHaveBeenCalled();
+            expect(results).toHaveLength(1);
+
+            results[0].errorMessages.forEach((msg) => {
+                expect(msg).toMatch('Request timed out');
+                // the request handler never even started, so blaming it would be a lie
+                expect(msg).not.toMatch('requestHandler timed out');
+            });
+        });
+
+        test('a phase cancelled by the internal timeout is not handled as another failure', async () => {
+            const failedRequestHandler = vitest.fn();
+
+            const crawler = new BasicCrawler({
+                maxRequestRetries: 0,
+                requestHandlerTimeoutSecs: 0.05,
+                extendContext: async ({ pushData }) => {
+                    await sleep(300);
+                    // checks for cancellation, so this throws once the internal timeout fired
+                    await pushData({ late: true });
+                    return {};
+                },
+                requestHandler: async () => {},
+                failedRequestHandler,
+            });
+            // the second error handling gets cut short by the same cancellation, so the user-facing handlers may never see it
+            const errorHandlingSpy = vitest.spyOn(crawler as any, 'requestFunctionErrorHandler');
+
+            await crawler.run(['https://example.com']);
+            await sleep(400);
+
+            expect(errorHandlingSpy).toHaveBeenCalledOnce();
+            expect(failedRequestHandler).toHaveBeenCalledExactlyOnceWith(
+                expect.anything(),
+                expect.objectContaining({ message: expect.stringContaining('Request timed out') }),
+            );
+        });
+
+        test('a request handler cancelled by the internal timeout does not count as a success', async () => {
+            let handlerFinished = false;
+
+            const crawler = new BasicCrawler({
+                maxRequestRetries: 0,
+                // the internal timeout is max(100ms, 200ms); `extendContext` eats into it, so it fires while the handler runs
+                requestHandlerTimeoutSecs: 0.2,
+                extendContext: async () => {
+                    await sleep(150);
+                    return {};
+                },
+                requestHandler: async ({ pushData }) => {
+                    await sleep(150);
+                    await pushData({ late: true });
+                    handlerFinished = true;
+                },
+            });
+            const successSpy = vitest.spyOn(crawler.statistics as Statistics, 'recordRequestSuccess');
+
+            await expect(crawler.run(['https://example.com'])).resolves.toMatchObject({ requestsFailed: 1 });
+            await sleep(300);
+
+            expect(handlerFinished).toBe(false);
+            expect(successSpy).not.toHaveBeenCalled();
         });
     });
 

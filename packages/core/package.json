@@ -51,7 +51,7 @@
         "@apify/consts": "^3.1.0",
         "@apify/datastructures": "^3.0.1",
         "@apify/log": "^3.0.2",
-        "@apify/timeout": "^1.0.2",
+        "@apify/timeout": "^1.1.0",
         "@apify/utilities": "^3.1.1",
         "@crawlee/fs-storage": "workspace:*",
         "@crawlee/http-client": "workspace:*",
