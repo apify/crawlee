@@ -173,9 +173,6 @@ settings:
 
 catalogs:
   default:
-    playwright:
-      specifier: 1.65.1
-      version: 1.65.1
     zod:
       specifier: ^4.6.7
       version: 4.6.7
@@ -183,7 +180,12 @@ catalogs:
 overrides:
   '@puppeteer/browsers': ^3.0.4
   apify: ^4.0.0-beta.46
+  apify>@crawlee/core: workspace:*
+  apify>@crawlee/fs-storage: workspace:*
+  apify>@crawlee/types: workspace:*
+  apify>@crawlee/utils: workspace:*
   header-generator>ow: ^3.0.0
+  playwright: 1.65.1
   playwright-core: 1.65.1
 
 patchedDependencies:
@@ -367,7 +369,7 @@ importers:
         specifier: ^7.0.2008
         version: 7.0.2008
       playwright:
-        specifier: 'catalog:'
+        specifier: 1.65.1
         version: 1.65.1
       portastic:
         specifier: ^1.0.1
@@ -543,7 +545,7 @@ importers:
         specifier: workspace:*
         version: link:../utils
       playwright:
-        specifier: '*'
+        specifier: 1.65.1
         version: 1.65.1
       puppeteer:
         specifier: '*'
@@ -585,7 +587,7 @@ importers:
         specifier: ^6.2.0
         version: 6.2.0
       playwright:
-        specifier: '*'
+        specifier: 1.65.1
         version: 1.65.1
       proxy-chain:
         specifier: ^2.7.1
@@ -750,7 +752,7 @@ importers:
         specifier: ^3.2.0
         version: 3.2.0
       playwright:
-        specifier: '*'
+        specifier: 1.65.1
         version: 1.65.1
       puppeteer:
         specifier: '*'
@@ -922,7 +924,7 @@ importers:
         specifier: ^6.15.1
         version: 6.15.1
       playwright:
-        specifier: '*'
+        specifier: 1.65.1
         version: 1.65.1
       string-comparison:
         specifier: ^1.3.0
@@ -1004,7 +1006,7 @@ importers:
         specifier: 3.0.7
         version: 3.0.7(@cfworker/json-schema@4.1.6)(@opentelemetry/api@1.10.0)(@opentelemetry/exporter-trace-otlp-proto@0.301.0(@opentelemetry/api@1.10.0))(@opentelemetry/sdk-trace-base@2.12.1(@opentelemetry/api@1.10.0))(deepmerge@4.3.1)(dotenv@16.4.7)(proxy-agent@8.0.3(supports-color@8.1.1))(supports-color@8.1.1)(zod@4.6.7)
       playwright:
-        specifier: ^1.64.1
+        specifier: 1.65.1
         version: 1.65.1
 
   packages/templates:
@@ -2078,10 +2080,6 @@ packages:
     resolution: {integrity: sha512-mHyyEL0eIEqJ6+aF24+AdZRo4bu4W5GdUiCiCx5X7kfDY51ye8GQJ264uOINObrRSKxtSRCOWPpl9hbOy4UzxQ==}
     engines: {node: '>=22'}
 
-  '@crawlee/core@4.0.0-rc.2':
-    resolution: {integrity: sha512-figCabIukHywQsgYpRAKwmVpogHCmT5SBP7+DgzIItgwMa9QMqIGxXqJ0RlOYmmtYEvJs9vctGF1sFRz818RtA==}
-    engines: {node: '>=22.13.0'}
-
   '@crawlee/fs-storage-native-darwin-arm64@0.2.2':
     resolution: {integrity: sha512-8R9fm6iyUVSxPdRA/m7XTgDawm6bjZIaDzmLmtQPwEIDTE97z6mk2MOyrlT53rr7B5aObN/nYJeCDENIGfcH1g==}
     engines: {node: '>= 20'}
@@ -2137,22 +2135,6 @@ packages:
   '@crawlee/fs-storage-native@0.2.2':
     resolution: {integrity: sha512-WGKNyPoRq1LKqndeJ9LdEWigGNm9Z+3U8jJaSlEVgPq8CkmcqHANXxpZXkgGXl9jfEiWzFlJmWm4JUMqT/TxfA==}
     engines: {node: '>= 20'}
-
-  '@crawlee/fs-storage@4.0.0-rc.2':
-    resolution: {integrity: sha512-57Ak42Af+eKs5jhN17V2yUJ+IUL/3AHtDdkWclWLVutFSZ/fP68IRYU0+l8hi3oVx2tF1twsei6tLij5Cgox5Q==}
-    engines: {node: '>=22.13.0'}
-
-  '@crawlee/http-client@4.0.0-rc.2':
-    resolution: {integrity: sha512-hTv+AH765poEfFe0ws7StJtVoBI8ZXkfYBcEa9cnpqlIU1PPe9eMSBlFDZSSenf8w3usnLBLrpxp9L5MXjcurw==}
-    engines: {node: '>=22.13.0'}
-
-  '@crawlee/types@4.0.0-rc.2':
-    resolution: {integrity: sha512-ZnygoW9X+Sv4djLrX34+QNw+mxTgh1nIw+eg5jSdGsO8vogz0rLbjh4qM7FAWGxGnbGSGxCM7PDWtynfFhahXw==}
-    engines: {node: '>=22.13.0'}
-
-  '@crawlee/utils@4.0.0-rc.2':
-    resolution: {integrity: sha512-Cj7lL1eOyEJR/IB+8L+H6qKi6m2OYs/iVY8PT7R190o4A3X1nssi9P19B5WZ4WFB54vsykDS9orZSacNZwo3bw==}
-    engines: {node: '>=22.13.0'}
 
   '@csstools/cascade-layer-name-parser@2.0.5':
     resolution: {integrity: sha512-p1ko5eHgV+MgXFVa4STPKpvPxr6ReS8oS2jzTukjR74i5zJNyWO1ZM1m8YKBXnzDKWfBN1ztLYlHxbVemDD88A==}
@@ -7530,7 +7512,7 @@ packages:
     resolution: {integrity: sha512-Oj+qxD2tUunsbPhDtaDNYDyffGqxYYDU0NRar5qxUyT1WujRbW/DjM6tw/AyHdifUF9Z1EKTGlCqHP1SNtKfDQ==}
     engines: {node: '>=16.0.0'}
     peerDependencies:
-      playwright: ^1.22.2
+      playwright: 1.65.1
       puppeteer: '>= 9.x'
     peerDependenciesMeta:
       playwright:
@@ -10078,7 +10060,7 @@ packages:
     resolution: {integrity: sha512-q2rVtcE8V8K3vPVF1zny4pvwZveHLH8KBuVU2MoE3Jw4OKVoBWsHI9CH9zPydovHHOCDxjGN2Vg+2m644q3ijA==}
     engines: {node: '>=12'}
     peerDependencies:
-      playwright: '*'
+      playwright: 1.65.1
       playwright-core: 1.65.1
     peerDependenciesMeta:
       playwright:
@@ -11038,10 +11020,6 @@ packages:
 
   robots-parser@3.0.1:
     resolution: {integrity: sha512-s+pyvQeIKIZ0dx5iJiQk1tPLJAWln39+MI5jtM8wnyws+G5azk+dMnMX0qfbqNetKKNgcWWOdi0sfm+FbQbgdQ==}
-    engines: {node: '>=10.0.0'}
-
-  robots-parser@3.1.1:
-    resolution: {integrity: sha512-ltsI9/0CiaaZpnJeLT4vwK86cW1AfSXoBgnQHIaCtBrg4K8UckV7HakNzWfG8UvT2hqwrLZ1YWilWMEiynBg6g==}
     engines: {node: '>=10.0.0'}
 
   robust-predicates@3.0.3:
@@ -13733,31 +13711,6 @@ snapshots:
 
   '@conventional-changelog/template@1.4.1': {}
 
-  '@crawlee/core@4.0.0-rc.2(supports-color@8.1.1)':
-    dependencies:
-      '@apify/consts': 3.1.0
-      '@apify/datastructures': 3.0.1
-      '@apify/log': 3.0.2
-      '@apify/timeout': 1.0.2
-      '@apify/utilities': 3.1.1
-      '@crawlee/fs-storage': 4.0.0-rc.2(supports-color@8.1.1)
-      '@crawlee/http-client': 4.0.0-rc.2
-      '@crawlee/types': 4.0.0-rc.2
-      '@crawlee/utils': 4.0.0-rc.2(supports-color@8.1.1)
-      '@sapphire/async-queue': 1.5.5
-      '@standard-schema/spec': 1.1.0
-      '@vladfrangu/async_event_emitter': 2.4.7
-      content-type: 3.1.1
-      csv-stringify: 6.9.0
-      json5: 2.2.3
-      mime-types: 3.0.2
-      stream-json: 3.9.0
-      tslib: 2.9.1
-      type-fest: 4.41.0
-      zod: 4.6.7
-    transitivePeerDependencies:
-      - supports-color
-
   '@crawlee/fs-storage-native-darwin-arm64@0.2.2':
     optional: true
 
@@ -13792,42 +13745,6 @@ snapshots:
       '@crawlee/fs-storage-native-linux-x64-musl': 0.2.2
       '@crawlee/fs-storage-native-win32-arm64-msvc': 0.2.2
       '@crawlee/fs-storage-native-win32-x64-msvc': 0.2.2
-
-  '@crawlee/fs-storage@4.0.0-rc.2(supports-color@8.1.1)':
-    dependencies:
-      '@crawlee/fs-storage-native': 0.2.2
-      '@crawlee/types': 4.0.0-rc.2
-      '@crawlee/utils': 4.0.0-rc.2(supports-color@8.1.1)
-      zod: 4.6.7
-    transitivePeerDependencies:
-      - supports-color
-
-  '@crawlee/http-client@4.0.0-rc.2':
-    dependencies:
-      '@crawlee/types': 4.0.0-rc.2
-      tough-cookie: 6.1.0
-
-  '@crawlee/types@4.0.0-rc.2':
-    dependencies:
-      tslib: 2.9.1
-
-  '@crawlee/utils@4.0.0-rc.2(supports-color@8.1.1)':
-    dependencies:
-      '@apify/validations': 1.1.4
-      '@crawlee/http-client': 4.0.0-rc.2
-      '@crawlee/types': 4.0.0-rc.2
-      '@types/sax': 1.2.7
-      cheerio: 1.2.0
-      domhandler: 6.0.1
-      file-type: 21.3.4(supports-color@8.1.1)
-      robots-parser: 3.1.1
-      sax: 1.6.1
-      tldts: 7.5.5
-      tslib: 2.9.1
-      whatwg-mimetype: 5.0.0
-      zod: 4.6.7
-    transitivePeerDependencies:
-      - supports-color
 
   '@csstools/cascade-layer-name-parser@2.0.5(@csstools/css-parser-algorithms@3.0.5(@csstools/css-tokenizer@3.0.4))(@csstools/css-tokenizer@3.0.4)':
     dependencies:
@@ -18190,10 +18107,10 @@ snapshots:
       '@apify/timeout': 1.0.2
       '@apify/utilities': 3.1.1
       '@apify/validations': 1.1.4
-      '@crawlee/core': 4.0.0-rc.2(supports-color@8.1.1)
-      '@crawlee/fs-storage': 4.0.0-rc.2(supports-color@8.1.1)
-      '@crawlee/types': 4.0.0-rc.2
-      '@crawlee/utils': 4.0.0-rc.2(supports-color@8.1.1)
+      '@crawlee/core': link:packages/core
+      '@crawlee/fs-storage': link:packages/fs-storage
+      '@crawlee/types': link:packages/types
+      '@crawlee/utils': link:packages/utils
       apify-client: 3.0.0-rc.1(debug@4.4.3(supports-color@8.1.1))(supports-color@8.1.1)
       minimatch: 11.0.9
       tslib: 2.9.1
@@ -24829,8 +24746,6 @@ snapshots:
       package-json-from-dist: 1.0.1
 
   robots-parser@3.0.1: {}
-
-  robots-parser@3.1.1: {}
 
   robust-predicates@3.0.3: {}
 
