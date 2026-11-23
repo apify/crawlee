@@ -187,6 +187,16 @@ interface DomainState {
      * `rateLimitedSince` to tell a domain that is still turning us away from one that is merely being waited out.
      */
     lastRateLimitedAt: number;
+    /**
+     * Transient dispatch interval armed once a 429 backoff ends so idle concurrency slots ramp back up instead
+     * of firing all at once, decaying back to `0` as post-backoff dispatches succeed.
+     */
+    recoveryDelayMs: number;
+    /**
+     * Whether a post-backoff dispatch has gone out under the current `recoveryDelayMs` step, gating relaxation
+     * so pre-backoff in-flight completions cannot clear the interval before it paces anything.
+     */
+    canRelaxRecovery: boolean;
 }
 
 /** The moment a domain may be dispatched to again - whichever of its two independent clocks runs longer. */
@@ -206,9 +216,12 @@ function isStalling(state: DomainState, now: number, maxStallMs: number): boolea
     );
 }
 
-/** How long a domain must be left alone after a dispatch: what it asked for, or our floor, whichever is longer. */
+/**
+ * How long a domain must be left alone after a dispatch: its declared crawl-delay, our floor, or the transient
+ * post-backoff recovery interval, whichever is longest.
+ */
 function crawlDelayMs(state: DomainState, minCrawlDelayMs: number): number {
-    return Math.max(state.declaredCrawlDelayMs ?? 0, minCrawlDelayMs);
+    return Math.max(state.declaredCrawlDelayMs ?? 0, minCrawlDelayMs, state.recoveryDelayMs);
 }
 
 function newDomainState(domain: string): DomainState {
@@ -221,6 +234,8 @@ function newDomainState(domain: string): DomainState {
         declaredCrawlDelayMs: null,
         rateLimitedSince: 0,
         lastRateLimitedAt: 0,
+        recoveryDelayMs: 0,
+        canRelaxRecovery: false,
     };
 }
 
@@ -246,7 +261,8 @@ const MAX_INNER_MIGRATIONS = 1000;
  *
  * Each throttled domain runs two independent clocks, and may be dispatched to once **both** have run out:
  * - **Backoff**, set by HTTP 429 responses - honouring `Retry-After`, and otherwise doubling from `baseDelaySecs`.
- *   Reactive and temporary: it decays once the domain stops turning us away. The crawlers report the 429s
+ *   Reactive and temporary: it decays once the domain stops turning us away, and dispatches out of a backoff ramp
+ *   back up over a decaying interval rather than releasing every idle slot at once. The crawlers report the 429s
  *   themselves; a request held back this way is retried later without counting against `maxRequestRetries` and
  *   without penalising its session.
  * - **Crawl delay**, the minimum interval between two dispatches to the domain, armed after each one. Proactive
@@ -753,6 +769,13 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         state.backoffUntil = now + delayMs;
         state.backoffDecaysAt = state.backoffUntil + delayMs;
 
+        const initialRecoveryMs = delayMs > 0 ? Math.max(1, Math.floor(delayMs / 4)) : 0;
+        state.recoveryDelayMs =
+            state.recoveryDelayMs > 0
+                ? Math.min(this.#maxDelayMs, Math.max(initialRecoveryMs, state.recoveryDelayMs * 2))
+                : initialRecoveryMs;
+        state.canRelaxRecovery = false;
+
         this.#log.info(
             `Rate limit (429) detected for domain "${state.domain}" ` +
                 `(consecutive: ${state.consecutive429Count}, delay: ${(delayMs / 1000).toFixed(1)}s)`,
@@ -789,14 +812,23 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     }
 
     /**
-     * Records that a domain let a request through, which ends any rate-limit run stall detection was timing
-     * and the run of 429s the backoff was doubling for.
+     * Records that a domain let a request through, which ends any rate-limit run stall detection was timing,
+     * restarts the backoff exponent, and relaxes one step of post-backoff recovery pacing.
      */
     #recordProgress(url: string): void {
         const state = this.#getDomainState(url);
-        if (state) {
-            state.rateLimitedSince = 0;
-            state.consecutive429Count = 0;
+        if (!state) {
+            return;
+        }
+
+        state.rateLimitedSince = 0;
+        state.consecutive429Count = 0;
+
+        if (state.recoveryDelayMs > 0 && state.canRelaxRecovery && Date.now() >= state.backoffUntil) {
+            const nextDelayMs = Math.floor(state.recoveryDelayMs * 0.75);
+            const minStepMs = Math.min(10, Math.floor(this.#baseDelayMs / 20));
+            state.recoveryDelayMs = nextDelayMs <= minStepMs ? 0 : nextDelayMs;
+            state.canRelaxRecovery = false;
         }
     }
 
@@ -1062,6 +1094,8 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
             state.backoffDecaysAt = 0;
             state.rateLimitedSince = 0;
             state.lastRateLimitedAt = 0;
+            state.recoveryDelayMs = 0;
+            state.canRelaxRecovery = false;
         }
     }
 
@@ -1133,6 +1167,9 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
 
             const request = await (await this.#subManagers.get(domain)!).fetchNextRequest<R>();
             if (request) {
+                if (state.recoveryDelayMs > 0) {
+                    state.canRelaxRecovery = true;
+                }
                 return request;
             }
 
