@@ -1043,8 +1043,8 @@ importers:
         specifier: ^21.3.4
         version: 21.3.4(supports-color@8.1.1)
       robots-parser:
-        specifier: ^3.1.1
-        version: 3.1.1
+        specifier: ^3.0.1
+        version: 3.0.1
       sax:
         specifier: ^1.6.1
         version: 1.6.1
@@ -11017,6 +11017,10 @@ packages:
     resolution: {integrity: sha512-Fk3reQDVPZUMbEm7Zwxz03BWQMW3V5buSk9aU8OckTrO8A1nQtbqvYsAantGNermwsIsXcuOBqcoJ3HuMELctw==}
     engines: {node: 20 || >=22}
     hasBin: true
+
+  robots-parser@3.0.1:
+    resolution: {integrity: sha512-s+pyvQeIKIZ0dx5iJiQk1tPLJAWln39+MI5jtM8wnyws+G5azk+dMnMX0qfbqNetKKNgcWWOdi0sfm+FbQbgdQ==}
+    engines: {node: '>=10.0.0'}
 
   robots-parser@3.1.1:
     resolution: {integrity: sha512-ltsI9/0CiaaZpnJeLT4vwK86cW1AfSXoBgnQHIaCtBrg4K8UckV7HakNzWfG8UvT2hqwrLZ1YWilWMEiynBg6g==}
@@ -24787,6 +24791,8 @@ snapshots:
     dependencies:
       glob: 14.0.6
       package-json-from-dist: 1.0.1
+
+  robots-parser@3.0.1: {}
 
   robots-parser@3.1.1: {}
 

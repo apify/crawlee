@@ -49,7 +49,7 @@
         "cheerio": "^1.2.0",
         "domhandler": "^6.0.1",
         "file-type": "^21.3.4",
-        "robots-parser": "^3.1.1",
+        "robots-parser": "^3.0.1",
         "sax": "^1.6.1",
         "tldts": "^7.5.5",
         "tslib": "^2.9.1",
