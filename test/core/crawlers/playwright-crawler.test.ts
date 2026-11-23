@@ -11,6 +11,7 @@ import {
     playwrightBrowserPool,
     RequestList,
     RequestValidationError,
+    SessionPool,
 } from '@crawlee/playwright';
 import type { Cheerio, CheerioAPI } from 'cheerio';
 import type { Element } from 'domhandler';
@@ -403,6 +404,31 @@ describe('PlaywrightCrawler', () => {
         await playwrightCrawler.run([`http://${HOSTNAME}:${port}/download-file`]);
 
         expect(suggestedFilenames).toEqual(['hello.txt']);
+    });
+
+    test('a navigation that starts a download does not count against the session', async () => {
+        const sessions: PlaywrightCrawlingContext['session'][] = [];
+        const errorMessages: string[] = [];
+
+        const playwrightCrawler = new PlaywrightCrawler({
+            sessionPool: new SessionPool({ sessionOptions: { maxErrorScore: 1 } }),
+            maxRequestRetries: 2,
+            maxConcurrency: 1,
+            requestHandler: async () => {},
+            errorHandler: async ({ session }, error) => {
+                sessions.push(session);
+                errorMessages.push(error.message);
+            },
+        });
+
+        await playwrightCrawler.run([`http://${HOSTNAME}:${port}/download-file`]);
+
+        // With `maxErrorScore: 1`, a single penalty would retire the session, and its browser with it.
+        expect(sessions.map((session) => session.isUsable())).toEqual([true, true]);
+        expect(errorMessages).toEqual([
+            expect.stringContaining('Download is starting'),
+            expect.stringContaining('Download is starting'),
+        ]);
     });
 
     test('should have correct types in crawling context', async () => {

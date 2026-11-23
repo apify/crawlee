@@ -12,7 +12,7 @@ import type {
     RouteSchemas,
     RoutesFromSchemas,
 } from '@crawlee/browser';
-import { BrowserCrawler, RequestState, Router, serviceLocator } from '@crawlee/browser';
+import { BrowserCrawler, DownloadStartedError, RequestState, Router, serviceLocator } from '@crawlee/browser';
 import type { Dictionary } from '@crawlee/types';
 import { assertBrowserPoolNotConfigured, parseArgument, schemas } from '@crawlee/utils/internal';
 import type { Download, Page, Response } from 'playwright';
@@ -279,6 +279,7 @@ export class PlaywrightCrawler<
             // ponytail: fixed 5 s bound, tie it to the navigation window if downloads start slower than that
             if ((error as Error).message?.includes('Download is starting')) {
                 await Promise.race([downloadStarted, delay(5_000, undefined, { ref: false })]);
+                throw new DownloadStartedError((error as Error).message, { cause: error });
             }
             throw error;
         } finally {
