@@ -532,11 +532,20 @@ export abstract class BrowserCrawler<
         return foundSelectors.length > 0 ? foundSelectors : null;
     }
 
-    async #detectSelfResolvingChallenge({
-        page,
-        response,
-    }: BrowserCrawlingContext<Page, Response>): Promise<string | null> {
-        const statusCode = response?.status();
+    /** The getter from `preparePage` throws when navigation produced no response and no hook overrode it. */
+    #navigationResponse(crawlingContext: BrowserCrawlingContext<Page, Response>): Response | undefined {
+        try {
+            return crawlingContext.response;
+        } catch {
+            return undefined;
+        }
+    }
+
+    async #detectSelfResolvingChallenge(
+        crawlingContext: BrowserCrawlingContext<Page, Response>,
+    ): Promise<string | null> {
+        const { page } = crawlingContext;
+        const statusCode = this.#navigationResponse(crawlingContext)?.status();
 
         if (statusCode === 403 && (await this.#containsSelectors(page, CLOUDFLARE_RETRY_CSS_SELECTORS))) {
             return 'Cloudflare';
@@ -550,7 +559,8 @@ export abstract class BrowserCrawler<
     }
 
     async #isRequestBlocked(crawlingContext: BrowserCrawlingContext<Page, Response>): Promise<string | false> {
-        const { page, response } = crawlingContext;
+        const { page } = crawlingContext;
+        const response = this.#navigationResponse(crawlingContext);
 
         const foundSelectors = await this.#containsSelectors(page, RETRY_CSS_SELECTORS);
         const statusCode = response?.status() ?? 0;
@@ -702,13 +712,7 @@ export abstract class BrowserCrawler<
     async #finalizeNavigation(crawlingContext: Context): Promise<Partial<Context>> {
         tryCancel();
 
-        let response: Response | undefined;
-        try {
-            response = crawlingContext.response;
-        } catch {
-            // `preparePage` installs a throwing getter for `response`; reaching this branch means
-            // navigation produced no response and no hook overrode it. Treat as undefined.
-        }
+        const response = this.#navigationResponse(crawlingContext);
 
         await this.#processResponse(response, crawlingContext);
         tryCancel();

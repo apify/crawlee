@@ -431,30 +431,34 @@ describe('PlaywrightCrawler', () => {
         ]);
     });
 
-    test('reading response throws when the navigation produced none', async () => {
-        let responseError: string | undefined;
+    test.each([{ retryOnBlocked: false }, { retryOnBlocked: true }])(
+        'reading response throws when the navigation produced none (retryOnBlocked: $retryOnBlocked)',
+        async ({ retryOnBlocked }) => {
+            let responseError: string | undefined;
 
-        const playwrightCrawler = new PlaywrightCrawler({
-            // The crawler's `goto()` to the same URL with a hash is then a same-document navigation without a response
-            preNavigationHooks: [
-                async ({ page, request }) => {
-                    await page.goto(request.url.split('#')[0]);
+            const playwrightCrawler = new PlaywrightCrawler({
+                retryOnBlocked,
+                // The crawler's `goto()` to the same URL with a hash is then a same-document navigation without a response
+                preNavigationHooks: [
+                    async ({ page, request }) => {
+                        await page.goto(request.url.split('#')[0]);
+                    },
+                ],
+                maxRequestRetries: 0,
+                requestHandler: async (context) => {
+                    try {
+                        void context.response;
+                    } catch (error) {
+                        responseError = (error as Error).message;
+                    }
                 },
-            ],
-            maxRequestRetries: 0,
-            requestHandler: async (context) => {
-                try {
-                    void context.response;
-                } catch (error) {
-                    responseError = (error as Error).message;
-                }
-            },
-        });
+            });
 
-        await playwrightCrawler.run([`http://${HOSTNAME}:${port}/#fragment`]);
+            await playwrightCrawler.run([`http://${HOSTNAME}:${port}/#fragment`]);
 
-        expect(responseError).toContain('The `response` property is not available');
-    });
+            expect(responseError).toContain('The `response` property is not available');
+        },
+    );
 
     test('should have correct types in crawling context', async () => {
         const requestHandler = async (crawlingContext: PlaywrightCrawlingContext) => {
