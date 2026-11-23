@@ -33,6 +33,18 @@ The `StorageBackend` interface changed from synchronous sub-client getters to **
 | `client.requestQueue(id, opts)` | `backend.createRequestQueueBackend({ id?, name? })` |
 | `client.requestQueues().getOrCreate(name)` | _(absorbed into `createRequestQueueBackend`)_ |
 
+The optional `StorageClient.setStatusMessage()` method has been removed, as reporting a status message is not a storage concern. `crawler.setStatusMessage()` now logs the message and emits an `EventType.STATUS_MESSAGE` event (`{ crawlerId, message, isStatusMessageTerminal?, level? }`) on the event manager. A backend that forwarded status messages should subscribe to that event instead:
+
+```typescript
+import { EventType, serviceLocator } from 'crawlee';
+
+serviceLocator.getEventManager().on(EventType.STATUS_MESSAGE, ({ message, isStatusMessageTerminal }) => {
+    // forward the message to your platform
+});
+```
+
+Two option types in `@crawlee/types` were renamed along with the interfaces: `DatasetClientListOptions` is now `DatasetBackendListOptions`, and the request queue's `RequestOptions` is now `RequestQueueOperationOptions`.
+
 The sub-backend interfaces (`DatasetBackend`, `KeyValueStoreBackend`, `RequestQueueBackend`, formerly `DatasetClient` / `KeyValueStoreClient` / `RequestQueueClient`) have been simplified:
 
 | Before (v3) | After (v4) |
@@ -58,7 +70,7 @@ The sub-backend interfaces (`DatasetBackend`, `KeyValueStoreBackend`, `RequestQu
 | `getRecord(key, options?)` | `getValue(key)` |
 | `setRecord(record, options?)` | `setValue(record)` |
 | `deleteRecord(key)` | `deleteValue(key)` |
-| `getRecordPublicUrl(key)` | `getPublicUrl(key)` |
+| _(n/a)_ | `getPublicUrl(key)` (new, required — resolves to `undefined` when the backend has no public URLs) |
 | `listKeys(options?)` → `KeyValueStoreClientListData` | `listKeys(options?)` → `KeyValueStoreListKeysResult` (a single self-describing page) |
 | `keys()`, `values()`, `entries()` | Removed (handled by `KeyValueStore` frontend) |
 
@@ -119,7 +131,7 @@ await queue.setExpectedRequestProcessingTime(600);
 
 The `RequestQueue.internalTimeoutMillis` property and the associated "stuck queue" self-recovery have been removed. In v3 the `RequestQueue` frontend kept its own copy of the queue head and in-progress set, which could drift out of sync with the backing storage (an eventual-consistency hazard on the Apify platform); `isFinished()` watched for inactivity exceeding `internalTimeoutMillis` and reset that frontend state to recover. In v4 the frontend no longer holds any such bookkeeping — the storage backend is the single source of truth — so there is nothing for a reset to fix, and stuck request locks now self-heal on expiry. Any consistency-recovery logic that is genuinely specific to the Apify platform's distributed storage belongs in the Apify SDK's client implementation instead, and is tracked in [apify/crawlee#3328](https://github.com/apify/crawlee/issues/3328).
 
-**Apify-specific fields removed from storage metadata.** The metadata returned by `getMetadata()` (`DatasetInfo`, `KeyValueStoreInfo`, `RequestQueueInfo`) has been trimmed to what is meaningful for any storage backend. The following platform-specific fields were dropped: `actId`, `actRunId`, `userId`, and — on `RequestQueueInfo` — `expireAt` and `hadMultipleClients`. The per-storage `stats` field (and its `DatasetStats` / `KeyValueStoreStats` / `RequestQueueStats` types) was removed as well. If you consumed any of these, read them from the Apify API client directly; a custom `StorageBackend` should simply stop returning them.
+**Apify-specific fields removed from storage metadata.** The metadata returned by `getMetadata()` (`DatasetInfo`, `KeyValueStoreInfo`, `RequestQueueInfo`) has been trimmed to what is meaningful for any storage backend. The following platform-specific fields were dropped: `actId`, `actRunId`, `userId`, and — on `RequestQueueInfo` — `expireAt` and `hadMultipleClients`. The per-storage `stats` field (and its `DatasetStats` / `KeyValueStoreStats` / `RequestQueueStats` types) was removed as well. If you consumed any of these, read them from the Apify API client directly; a custom `StorageBackend` should simply stop returning them. The `DatasetStats` / `KeyValueStoreStats` / `RequestQueueStats` types now exported from `@crawlee/core` are different: they type the new `stats` getter on each storage frontend, which holds backend-independent operation counters (`readCount`, `writeCount`, ...).
 
 **Removed types** from `@crawlee/types`: `DatasetClientUpdateOptions`, `KeyValueStoreClientUpdateOptions`, `KeyValueStoreRecordOptions`, `KeyValueStoreClientListData`, `KeyValueStoreClientGetRecordOptions`, `QueueHead`, `RequestQueueHeadItem`, `ListOptions`, `ListAndLockOptions`, `ListAndLockHeadResult`, `ProlongRequestLockOptions`, `ProlongRequestLockResult`, `DeleteRequestLockOptions`, `DatasetStats`, `KeyValueStoreStats`, `RequestQueueStats`. `KeyValueStoreClientListOptions` was renamed to `KeyValueStoreListKeysOptions`.
 
@@ -139,11 +151,11 @@ The `maybeStringify` helper exported from `@crawlee/core` has been removed. Valu
 
 `exclusiveStartKey` and `collection` were removed. Only `prefix` remains.
 
-### `Dataset.listItems` replaced by `Dataset.getData` and `Dataset.values`
+### `DatasetClient.listItems` replaced by `Dataset.getData` and `Dataset.values`
 
-`Dataset.listItems()` is replaced by two methods:
-- `Dataset.getData(options?)` — returns a single `PaginatedList<Data>` page.
-- `Dataset.values(options?)` — dual iterable: `for await...of` iterates all items; `await` returns all items as `Data[]`.
+`DatasetClient.listItems()` (reached through `dataset.client` in v3) is replaced by two `Dataset` methods:
+- `Dataset.getData(options?)` — returns a single page of items.
+- `Dataset.values(options?)` — dual iterable: `for await...of` iterates all items; `await` returns all items as `Data[]` (it resolved to a `PaginatedList<Data>` in v3, so drop any `.items` access on the result).
 
 `Dataset.entries()` works the same way as `values()` but yields `[index, Data]` tuples. `KeyValueStore.keys()`, `.values()`, `.entries()` follow the same dual-iterable pattern.
 
@@ -165,6 +177,6 @@ If you implemented a custom `StorageBackend`, you need to:
 
 ## `Dataset` field visibility now matches its siblings
 
-- `Dataset.backend` is private, matching `KeyValueStore.backend`. Use the `Dataset` methods (`pushData`, `getData`, `getInfo`, `drop`, ...) rather than reaching for the backend client.
+- The public `Dataset.client` field is replaced by a private `backend` field. Use the `Dataset` methods (`pushData`, `getData`, `getInfo`, `drop`, ...) rather than reaching for the backend client.
 - `Dataset.id` and `Dataset.name` are `readonly`, matching `KeyValueStore` and `RequestQueue`.
 - `Dataset.log` has been removed. It was never read by Crawlee and `KeyValueStore` never had it; use your own logger, or `crawler.log` inside a request handler.

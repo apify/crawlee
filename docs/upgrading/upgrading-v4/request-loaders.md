@@ -40,7 +40,7 @@ The harmonized loader interface differs from the old `IRequestList` in a few way
 | `persistState(): Promise<void>` (required) | Removed from the interface; loaders that have state persist it themselves on the `persistState` event, and `RequestList`/`SitemapRequestLoader` still expose the method as a class member |
 | _(n/a)_ | `toTandem?(requestManager?)` (new) |
 
-`RequestList.length()` and `RequestList.handledCount()` (and their `SitemapRequestLoader` counterparts) were renamed to `getTotalCount()` and `getHandledCount()` and are now `async` — `await` them.
+`RequestList.length()` and `RequestList.handledCount()` (and their `SitemapRequestLoader` counterparts) were renamed to `getTotalCount()` and `getHandledCount()` and are now `async` — `await` them. The same goes for `RequestQueue`: its `getTotalCount()` and `getPendingCount()` are now `async`, and `handledCount()` was renamed to `getHandledCount()`.
 
 `markRequestHandled()` was renamed to `markRequestAsHandled()` across the loader and manager interfaces (`RequestList`, `SitemapRequestLoader`, `RequestQueue`, `RequestManagerTandem`) to match the storage backend method of the same name. Rename any calls accordingly.
 
@@ -111,7 +111,7 @@ If you implemented either interface, return `ready` without evaluating anything 
 
 ### Combining a list and a queue: `toTandem()`
 
-`RequestList` and `SitemapRequestLoader` now expose a `toTandem()` helper that pairs the read-only loader with a writable request manager (the default `RequestQueue` if none is passed), producing a `RequestManagerTandem` you can hand to a crawler via the new `requestManager` option:
+`RequestList` and `SitemapRequestLoader` now expose a `toTandem()` helper that pairs the read-only loader with a writable request manager (the default `RequestQueue` if none is passed), producing a `RequestManagerTandem` you can hand to a crawler via the `requestManager` option:
 
 ```typescript
 import { CheerioCrawler, RequestList } from 'crawlee';
@@ -192,8 +192,8 @@ Inject your own manager through the constructor option instead, and read the res
 **Before:**
 ```typescript
 class MyCrawler extends BasicCrawler {
-    protected override async init() {
-        await super.init();
+    protected override async _init() {
+        await super._init();
         this.requestManager = await MyRequestQueue.open();
     }
 }
@@ -222,7 +222,7 @@ const manager = await crawler.getRequestManager();
 
 ### Standalone `enqueueLinks()` removed; `enqueueLinksByClickingElements` takes `requestManager`
 
-The standalone `enqueueLinks()` function is gone. Call `context.enqueueLinks()` inside a request handler, or add known URLs with `context.addRequests()` / `requestManager.addRequests()`.
+The standalone `enqueueLinks()` function is gone. Call `context.enqueueLinks()` inside a request handler, or add known URLs with `context.addRequests()` / `crawler.addRequests()`.
 
 The click-elements enqueue helpers (`enqueueLinksByClickingElements` in `@crawlee/puppeteer` and `@crawlee/playwright`) now take a `requestManager` option instead of `requestQueue`:
 
