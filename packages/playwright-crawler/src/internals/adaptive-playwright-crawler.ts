@@ -698,17 +698,22 @@ export class AdaptivePlaywrightCrawler<
                 );
                 return (await this.#enqueueLinks(urls, options, cheerioContext.request)) as unknown as void;
             },
-            // The HTTP crawler has already consumed the body; hand out a fresh copy, like the browser side does.
-            // HTML bodies are already decoded to UTF-8, so `arrayBuffer()` may disagree with the original headers.
-            response: new ResponseWithUrl(cheerioContext.body, cheerioContext.response),
+            // `skipNavigation` keeps the inner throwing getter. The body is already consumed (and decoded to UTF-8).
+            ...(cheerioContext.request.skipNavigation
+                ? {}
+                : { response: new ResponseWithUrl(cheerioContext.body, cheerioContext.response) }),
         };
     }
 
     async #adaptPlaywrightContext(playwrightContext: PlaywrightCrawlingContext) {
+        // With `skipNavigation`, the inner crawler's throwing `response` getter stays.
+        const { skipNavigation } = playwrightContext.request;
         // Capture the original response to avoid infinite recursion when the getter is copied to the context.
         // It is undefined when the navigation produced no response: a same-document navigation, or in Firefox a page
         // that redirects itself before `load`.
-        const originalResponse = playwrightContext.response as PlaywrightCrawlingContext['response'] | undefined;
+        const originalResponse = skipNavigation
+            ? undefined
+            : (playwrightContext.response as PlaywrightCrawlingContext['response'] | undefined);
 
         let response: ResponseWithUrl | undefined;
         if (originalResponse) {
@@ -732,7 +737,7 @@ export class AdaptivePlaywrightCrawler<
         }
 
         return {
-            response,
+            ...(skipNavigation ? {} : { response }),
             enqueueLinks: async (options: EnqueueLinksOptions = {}, timeoutMs = 5000) => {
                 // TODO consider using `context.parseWithCheerio` to make this universal and avoid code duplication
                 const selector = options.selector ?? 'a';

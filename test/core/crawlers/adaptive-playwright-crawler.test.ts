@@ -818,6 +818,38 @@ describe('AdaptivePlaywrightCrawler', () => {
         expect((await Dataset.getData()).items).toEqual([{ status: 300, hasHeading: true }]);
     });
 
+    test.each(['static', 'clientOnly'] as const)(
+        'runs the handler for a skipNavigation request (%s)',
+        async (renderingType) => {
+            const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+                detectionProbabilityRecommendation: 0,
+                renderingType,
+            });
+
+            const responseErrors: string[] = [];
+            const crawler = await makeOneshotCrawler(
+                {
+                    requestHandler: async (context) => {
+                        try {
+                            void context.response.status;
+                        } catch (error) {
+                            responseErrors.push((error as Error).message);
+                        }
+                    },
+                    renderingTypePredictor,
+                    requestList: await RequestList.open({
+                        sources: [{ url: `http://${HOSTNAME}:${port}/static`, skipNavigation: true }],
+                    }),
+                },
+                [],
+            );
+
+            await crawler.run();
+
+            expect(responseErrors).toEqual([expect.stringContaining('`skipNavigation` was used')]);
+        },
+    );
+
     test.each(['chromium', 'firefox'] as const)('browser response keeps repeated headers (%s)', async (browser) => {
         const renderingTypePredictor = makeRiggedRenderingTypePredictor({
             detectionProbabilityRecommendation: 0,
