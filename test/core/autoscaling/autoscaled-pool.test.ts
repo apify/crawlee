@@ -690,10 +690,7 @@ describe('AutoscaledPool', () => {
     test('should pause and resume', async () => {
         let count = 0;
         const results: number[] = [];
-        let pauseResolve: (value: unknown) => void;
-        const pausePromise = new Promise((res) => {
-            pauseResolve = res;
-        });
+        const paused = Promise.withResolvers<void>();
 
         const pool = await makePool(
             {
@@ -701,7 +698,8 @@ describe('AutoscaledPool', () => {
                 runTaskFunction: async () => {
                     results.push(count++);
                     if (count === 20) {
-                        void pool.pause().then(pauseResolve);
+                        // 1 sec, far above the 10ms poll; would reject first if read as millis.
+                        void pool.pause(1).then(paused.resolve, paused.reject);
                     }
                 },
                 isFinishedFunction: async () => !(count < 50),
@@ -715,7 +713,7 @@ describe('AutoscaledPool', () => {
         void runPromise.then(() => {
             finished = true;
         });
-        await pausePromise;
+        await paused.promise;
         expect(count).toBe(20);
         expect(finished).toBe(false);
         expect(results).toHaveLength(count);

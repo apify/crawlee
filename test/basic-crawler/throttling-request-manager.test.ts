@@ -418,25 +418,23 @@ describe('ThrottlingRequestManager', () => {
             expect(factory).toHaveBeenCalledTimes(1);
         });
 
-        test('is not forced by bookkeeping', async () => {
-            const factory = vitest.fn(async () => createQueue());
-            const manager = new ThrottlingRequestManager({ ...throttling, inner: factory });
+        test.each(['purge', 'drop'] as const)('is opened and reached by %s()', async (method) => {
+            const inner = await createQueue();
+            const spy = vitest.spyOn(inner, method);
+            const manager = new ThrottlingRequestManager({ ...throttling, inner: () => inner });
 
-            await manager.purge();
-            await manager.setExpectedRequestProcessingTime(600);
-            await manager.drop();
+            await manager[method]();
 
-            expect(factory).not.toHaveBeenCalled();
-            expect(manager.innerManager).toBeUndefined();
+            expect(spy).toHaveBeenCalledTimes(1);
         });
 
-        test('receives an expected-processing-time hint given before it was resolved', async () => {
+        test('receives an expected-processing-time hint given before it was resolved, without being opened by it', async () => {
             const inner = await createQueue();
             const setHint = vitest.spyOn(inner, 'setExpectedRequestProcessingTime');
             const manager = new ThrottlingRequestManager({ ...throttling, inner: () => inner });
 
             await manager.setExpectedRequestProcessingTime(600);
-            expect(setHint).not.toHaveBeenCalled();
+            expect(manager.innerManager).toBeUndefined();
 
             await manager.fetchNextRequest();
 

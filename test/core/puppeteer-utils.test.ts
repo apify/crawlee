@@ -170,7 +170,8 @@ describe('puppeteerUtils', () => {
 
             try {
                 const page = await browser.newPage();
-                await page.goto(new URL('/special/outside-iframe', serverAddress).toString());
+                // Same page as `/special/outside-iframe`, served with a Trusted Types CSP.
+                await page.goto(new URL('/special/outside-iframe-csp', serverAddress).toString());
 
                 const $ = await puppeteerUtils.parseWithCheerio(page);
 
@@ -184,6 +185,27 @@ describe('puppeteerUtils', () => {
 
                 expect(titles).toEqual(['Outside iframe title']);
                 expect(headings).toEqual(['Outside iframe', 'In iframe']);
+                // The page itself stays as it was.
+                expect(await page.$$('.crawlee-iframe-replacement')).toHaveLength(0);
+            } finally {
+                await browser.close();
+            }
+        });
+
+        test('parseWithCheerio() iframe expansion skips iframes inside <template>', async () => {
+            const browser = await launchPuppeteer(launchContext);
+
+            try {
+                const page = await browser.newPage();
+                await page.goto(new URL('/special/outside-iframe', serverAddress).toString());
+                await page.evaluate(() => {
+                    document.body.insertAdjacentHTML('afterbegin', '<template><p><iframe></iframe></p></template>');
+                });
+
+                const $ = await puppeteerUtils.parseWithCheerio(page);
+
+                expect($('template').html()).toBe('<p><iframe></iframe></p>');
+                expect($('.crawlee-iframe-replacement h1').text()).toBe('In iframe');
             } finally {
                 await browser.close();
             }

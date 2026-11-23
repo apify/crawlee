@@ -1038,10 +1038,11 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     /**
      * Empties every manager and clears the accumulated backoff. A robots.txt `Crawl-delay` is a property of the
      * site rather than of the run, so it survives.
+     * Opens a lazily-opened `inner` first: without `purgeOnStart`, it may still hold a previous run's requests.
      */
     async purge(): Promise<void> {
         await this.#purgeDomainQueues();
-        await this.#resolvedInner?.purge?.();
+        await (await this.#getInner()).purge?.();
     }
 
     /**
@@ -1224,10 +1225,12 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     }
 
     /**
-     * Drops every managed storage - the wrapped manager and each per-domain queue.
+     * Drops every managed storage - the wrapped manager and each per-domain queue. Opens `inner` first, like
+     * {@link purge}.
      * @internal
      */
     async drop(): Promise<void> {
+        await this.#getInner();
         await this.#forEachManager((manager) => (manager as { drop?(): Promise<void> }).drop?.());
         this.#subManagers.clear();
         this.#subManagersReady = undefined;

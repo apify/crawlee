@@ -27,7 +27,7 @@ import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
 import type { Cheerio, CheerioAPI } from 'cheerio';
 import type { AnyNode } from 'domhandler';
 import { sleep } from '@crawlee/utils';
-import { expandShadowRoots, parseArgument, schemas } from '@crawlee/utils/internal';
+import { expandShadowRoots, parseArgument, schemas, snapshotPageWithIframes } from '@crawlee/utils/internal';
 import type { Download, Page, Response, Route } from 'playwright';
 import { z } from 'zod';
 
@@ -584,42 +584,34 @@ export async function parseWithCheerio(
 ): Promise<CheerioAPI> {
     parseArgument(page, validators.browserPage);
 
-    const html = ignoreShadowRoots
-        ? null
-        : ((await page.evaluate(`(${expandShadowRoots.toString()})(document)`)) as string);
-    const pageContent = html || (await page.content());
+    const snapshot = await page.evaluateHandle(
+        `(${snapshotPageWithIframes.toString()})(document, ${ignoreShadowRoots ? 'null' : expandShadowRoots.toString()})`,
+    );
+    const pageContent = (await (await snapshot.getProperty('html')).jsonValue()) as string;
+
     // Full cheerio (parse5) import for browser compliant parser
     const { load } = await import('cheerio');
     const $ = load(pageContent);
 
     if (page.frames().length > 1 && !ignoreIframes) {
-        const frames = await page.$$('iframe');
-        const cheerioIframes = $('iframe').toArray();
-
-        if (frames.length !== cheerioIframes.length) {
-            serviceLocator
-                .getLogger()
-                .warning(
-                    `parseWithCheerio: iframe count mismatch between live DOM (${frames.length}) and page snapshot (${cheerioIframes.length}). Some iframes may not be expanded.`,
-                );
-        }
+        const iframes = await (await snapshot.getProperty('iframes')).getProperties();
 
         await Promise.all(
-            frames.map(async (frame, index) => {
+            [...iframes].map(async ([id, handle]) => {
                 try {
-                    const iframe = await frame.contentFrame();
+                    const iframe = await handle.asElement()?.contentFrame();
 
-                    if (iframe && cheerioIframes[index]) {
+                    if (iframe) {
                         const getIframeHTML = async (): Promise<string> => {
                             try {
-                                return iframe.locator('body').first().innerHTML();
+                                return await iframe.locator('body').first().innerHTML();
                             } catch {
                                 return iframe.content();
                             }
                         };
 
                         const contents = await getIframeHTML();
-                        $(cheerioIframes[index]).replaceWith(
+                        $(`iframe[data-crawlee-iframe-id="${id}"]`).replaceWith(
                             `<div class="crawlee-iframe-replacement">${contents}</div>`,
                         );
                     }
@@ -629,6 +621,9 @@ export async function parseWithCheerio(
             }),
         );
     }
+
+    await snapshot.dispose();
+    $('[data-crawlee-iframe-id]').removeAttr('data-crawlee-iframe-id');
 
     return $;
 }
