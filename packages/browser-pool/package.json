@@ -30,7 +30,7 @@
         "copy": "tsx ../../scripts/copy.ts"
     },
     "dependencies": {
-        "@apify/timeout": "^1.0.2",
+        "@apify/timeout": "^1.1.0",
         "@crawlee/core": "workspace:*",
         "@crawlee/types": "workspace:*",
         "@crawlee/utils": "workspace:*",
