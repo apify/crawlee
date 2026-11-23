@@ -86,6 +86,7 @@ import type { CrawlingRequestData, SkippedRequestReason } from './crawling-reque
 import { CrawlingRequest, RequestState } from './crawling-request.js';
 import {
     ContextPipelineCleanupError,
+    DownloadStartedError,
     ContextPipelineInterruptedError,
     MissingSessionError,
     NavigationSkippedError,
@@ -3025,7 +3026,8 @@ export class BasicCrawler<
         return (
             error instanceof SessionError ||
             error instanceof RequestThrottledError ||
-            error instanceof ContextPipelineInterruptedError
+            error instanceof ContextPipelineInterruptedError ||
+            error instanceof DownloadStartedError
         );
     }
 

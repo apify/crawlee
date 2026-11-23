@@ -1,3 +1,5 @@
+import { setTimeout as delay } from 'node:timers/promises';
+
 import type {
     BrowserCrawlerOptions,
     BrowserCrawlingContext,
@@ -10,7 +12,7 @@ import type {
     RouteSchemas,
     RoutesFromSchemas,
 } from '@crawlee/browser';
-import { BrowserCrawler, RequestState, Router, serviceLocator } from '@crawlee/browser';
+import { BrowserCrawler, DownloadStartedError, RequestState, Router, serviceLocator } from '@crawlee/browser';
 import type { Dictionary } from '@crawlee/types';
 import { assertBrowserPoolNotConfigured, parseArgument, schemas } from '@crawlee/utils/internal';
 import type { Download, Page, Response } from 'playwright';
@@ -266,7 +268,23 @@ export class PlaywrightCrawler<
         crawlingContext: PlaywrightCrawlingContext,
         gotoOptions: DirectNavigationOptions,
     ) {
-        return gotoExtended(crawlingContext.page, crawlingContext.request, gotoOptions);
+        const { page } = crawlingContext;
+        const { promise: downloadStarted, resolve } = Promise.withResolvers<void>();
+        const onDownload = () => resolve();
+        page.once('download', onDownload);
+        try {
+            return await gotoExtended(page, crawlingContext.request, gotoOptions);
+        } catch (error) {
+            // `goto` can reject before the `download` event arrives, and `listDownloads()` would miss it.
+            // ponytail: fixed 5 s bound, tie it to the navigation window if downloads start slower than that
+            if ((error as Error).message?.includes('Download is starting')) {
+                await Promise.race([downloadStarted, delay(5_000, undefined, { ref: false })]);
+                throw new DownloadStartedError((error as Error).message, { cause: error });
+            }
+            throw error;
+        } finally {
+            page.off('download', onDownload);
+        }
     }
 
     async #enhanceContext(context: BrowserCrawlingContext<Page, Response, Dictionary>) {
