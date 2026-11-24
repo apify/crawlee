@@ -1,4 +1,5 @@
 import type { Server } from 'node:http';
+import { createServer as createHttpsServer } from 'node:https';
 import type { AddressInfo } from 'node:net';
 import { Duplex, finished, pipeline as pipelineWithCallbacks, Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
@@ -8,6 +9,7 @@ import { setTimeout } from 'node:timers/promises';
 import { FileDownload } from '@crawlee/http';
 import { FetchHttpClient } from '@crawlee/http-client';
 import express from 'express';
+import { generate } from 'selfsigned';
 import { startExpressAppPromise } from '../../shared/_helper.js';
 import { afterAll, beforeAll, expect, test, vi } from 'vitest';
 
@@ -57,7 +59,9 @@ class ReadableStreamGenerator {
 }
 
 let url = 'http://localhost';
+let httpsUrl = 'https://localhost';
 let server: Server;
+let httpsServer: Server;
 beforeAll(async () => {
     const app = express();
 
@@ -78,10 +82,16 @@ beforeAll(async () => {
 
     server = await startExpressAppPromise(app, 0);
     url = `http://localhost:${(server.address() as AddressInfo).port}`;
+
+    const pems = await generate([{ name: 'commonName', value: 'localhost' }], { keyType: 'ec' });
+    httpsServer = createHttpsServer({ key: pems.private, cert: pems.cert }, app);
+    await new Promise<void>((done) => httpsServer.listen(0, done));
+    httpsUrl = `https://localhost:${(httpsServer.address() as AddressInfo).port}`;
 });
 
 afterAll(async () => {
     server.close();
+    httpsServer.close();
 });
 
 test('requestHandler - reading bytes synchronously', async () => {
@@ -207,7 +217,7 @@ test('verifies TLS certificates by default', async () => {
         requestHandler: async () => {},
     });
 
-    const stats = await crawler.run(['https://self-signed.badssl.com/']);
+    const stats = await crawler.run([new URL('/file', httpsUrl).toString()]);
 
     expect(stats.requestsFailed).toBe(1);
 });
@@ -223,7 +233,7 @@ test('ignoreTlsErrors: true accepts invalid certificates', async () => {
         },
     });
 
-    const stats = await crawler.run(['https://self-signed.badssl.com/']);
+    const stats = await crawler.run([new URL('/file', httpsUrl).toString()]);
 
     expect(stats.requestsFailed).toBe(0);
     expect(status).toBe(200);
