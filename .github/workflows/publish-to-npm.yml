@@ -36,7 +36,9 @@ jobs:
     publish_to_npm:
         name: Publish to NPM (${{ inputs.dist-tag }})
         runs-on: ubuntu-22.04
-        environment: npm
+        environment:
+            name: npm
+            deployment: false
         steps:
             - uses: actions/checkout@v7
               with:
