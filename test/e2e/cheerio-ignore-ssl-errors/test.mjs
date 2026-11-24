@@ -1,11 +1,11 @@
-import { expect, getActorTestDir, initialize, runActor, validateDataset } from '../tools.mjs';
+import { expect, getActorTestDir, initialize, runActor } from '../tools.mjs';
 
 const testActorDirname = getActorTestDir(import.meta.url);
 await initialize(testActorDirname);
 
 const { stats, datasetItems } = await runActor(testActorDirname);
 
-// ~21 of the 31 URLs load (the rest use ciphers impit can't negotiate); the throw-on-ssl-errors twin gets ~5.
-await expect(stats.requestsSucceeded > 15, 'All requests finished');
-await expect(datasetItems.length > 15, 'Minimum number of dataset items');
-await expect(validateDataset(datasetItems, ['url', 'title']), 'Dataset items validation');
+await expect(stats.requestsSucceeded === 3, 'All requests finished');
+await expect(datasetItems.length === 3, 'Number of dataset items');
+const titles = datasetItems.map((item) => item.title).sort();
+await expect(titles.join() === 'expired,self-signed,wrong-host', 'Dataset items validation');
