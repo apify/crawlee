@@ -9,7 +9,7 @@ import { FileDownload } from '@crawlee/http';
 import { FetchHttpClient } from '@crawlee/http-client';
 import express from 'express';
 import { startExpressAppPromise } from '../../shared/_helper.js';
-import { afterAll, beforeAll, expect, test } from 'vitest';
+import { afterAll, beforeAll, expect, test, vi } from 'vitest';
 
 class ReadableStreamGenerator {
     static async #generateRandomData(size: number, seed: number): Promise<Uint8Array> {
@@ -228,3 +228,83 @@ test('ignoreTlsErrors: true accepts invalid certificates', async () => {
     expect(stats.requestsFailed).toBe(0);
     expect(status).toBe(200);
 });
+
+test('passes an abort signal to the HTTP client', async () => {
+    // Without a signal, `ImpitHttpClient` keeps impit's own 30 s timeout, which cuts longer downloads short.
+    const httpClient = new FetchHttpClient();
+    const sendRequest = vi.spyOn(httpClient, 'sendRequest');
+
+    const crawler = new FileDownload({
+        maxRequestRetries: 0,
+        httpClient,
+        requestHandler: async ({ response }) => {
+            await response.arrayBuffer();
+        },
+    });
+
+    const stats = await crawler.run([new URL('/file?size=1024&seed=111', url).toString()]);
+
+    expect(stats.requestsFailed).toBe(0);
+    expect(sendRequest.mock.calls[0][1]?.signal).toBeInstanceOf(AbortSignal);
+});
+
+test('a failed request stops its download', async () => {
+    const crawler = new FileDownload({
+        maxRequestRetries: 0,
+        httpClient: new FetchHttpClient(),
+        requestHandler: async ({ response }) => {
+            await response.body!.getReader().read();
+            throw new Error('gave up after the first chunk');
+        },
+    });
+
+    // A second per kilobyte, so the whole file would take 30 s.
+    const fileUrl = new URL(`/file?size=${30 * 1024}&seed=222&throttle=1000`, url).toString();
+    const start = Date.now();
+    const stats = await crawler.run([fileUrl]);
+
+    expect(stats.requestsFailed).toBe(1);
+    expect(Date.now() - start).toBeLessThan(10_000);
+});
+
+const httpClients = [
+    ['fetch', () => new FetchHttpClient()],
+    ['the default client', () => undefined],
+] as const;
+
+test.each(httpClients)(
+    'a failed request does not wait for its unread body (%s)',
+    async (_name, httpClient) => {
+        const crawler = new FileDownload({
+            maxRequestRetries: 0,
+            httpClient: httpClient(),
+            requestHandler: async () => {
+                throw new Error('gave up before reading');
+            },
+        });
+
+        const stats = await crawler.run([new URL(`/file?size=${512 * 1024}&seed=333`, url).toString()]);
+
+        expect(stats.requestsFailed).toBe(1);
+    },
+    10_000,
+);
+
+test.each(httpClients)(
+    'a failed request does not wait for the rest of its body (%s)',
+    async (_name, httpClient) => {
+        const crawler = new FileDownload({
+            maxRequestRetries: 0,
+            httpClient: httpClient(),
+            requestHandler: async ({ response }) => {
+                await response.body!.getReader().read();
+                throw new Error('gave up after the first chunk');
+            },
+        });
+
+        const stats = await crawler.run([new URL(`/file?size=${512 * 1024}&seed=444`, url).toString()]);
+
+        expect(stats.requestsFailed).toBe(1);
+    },
+    10_000,
+);
