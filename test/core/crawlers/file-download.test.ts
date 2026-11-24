@@ -1,8 +1,6 @@
-import { readFileSync } from 'node:fs';
 import type { Server } from 'node:http';
 import { createServer as createHttpsServer } from 'node:https';
 import type { AddressInfo } from 'node:net';
-import { resolve } from 'node:path';
 import { Duplex, finished, pipeline as pipelineWithCallbacks, Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { ReadableStream } from 'node:stream/web';
@@ -11,6 +9,7 @@ import { setTimeout } from 'node:timers/promises';
 import { FileDownload } from '@crawlee/http';
 import { FetchHttpClient } from '@crawlee/http-client';
 import express from 'express';
+import { generate } from 'selfsigned';
 import { startExpressAppPromise } from '../../shared/_helper.js';
 import { afterAll, beforeAll, expect, test } from 'vitest';
 
@@ -84,14 +83,8 @@ beforeAll(async () => {
     server = await startExpressAppPromise(app, 0);
     url = `http://localhost:${(server.address() as AddressInfo).port}`;
 
-    const dataDir = resolve(import.meta.dirname, '../../shared/data');
-    httpsServer = createHttpsServer(
-        {
-            key: readFileSync(resolve(dataDir, 'self-signed-key.pem')),
-            cert: readFileSync(resolve(dataDir, 'self-signed-cert.pem')),
-        },
-        app,
-    );
+    const pems = await generate([{ name: 'commonName', value: 'localhost' }], { keyType: 'ec' });
+    httpsServer = createHttpsServer({ key: pems.private, cert: pems.cert }, app);
     await new Promise<void>((done) => httpsServer.listen(0, done));
     httpsUrl = `https://localhost:${(httpsServer.address() as AddressInfo).port}`;
 });

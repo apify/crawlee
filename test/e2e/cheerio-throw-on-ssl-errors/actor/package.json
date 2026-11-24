@@ -4,6 +4,7 @@
     "description": "Cheerio Crawler Test - Should throw on SSL Errors",
     "dependencies": {
         "apify": "^4.0.0-beta.46",
+        "selfsigned": "^5.5.0",
         "@crawlee/basic": "file:./packages/basic-crawler",
         "@crawlee/browser-pool": "file:./packages/browser-pool",
         "@crawlee/http": "file:./packages/http-crawler",
