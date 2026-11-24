@@ -1,5 +1,8 @@
+import { readFileSync } from 'node:fs';
 import type { Server } from 'node:http';
+import { createServer as createHttpsServer } from 'node:https';
 import type { AddressInfo } from 'node:net';
+import { resolve } from 'node:path';
 import { Duplex, finished, pipeline as pipelineWithCallbacks, Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { ReadableStream } from 'node:stream/web';
@@ -57,7 +60,9 @@ class ReadableStreamGenerator {
 }
 
 let url = 'http://localhost';
+let httpsUrl = 'https://localhost';
 let server: Server;
+let httpsServer: Server;
 beforeAll(async () => {
     const app = express();
 
@@ -78,10 +83,22 @@ beforeAll(async () => {
 
     server = await startExpressAppPromise(app, 0);
     url = `http://localhost:${(server.address() as AddressInfo).port}`;
+
+    const dataDir = resolve(import.meta.dirname, '../../shared/data');
+    httpsServer = createHttpsServer(
+        {
+            key: readFileSync(resolve(dataDir, 'self-signed-key.pem')),
+            cert: readFileSync(resolve(dataDir, 'self-signed-cert.pem')),
+        },
+        app,
+    );
+    await new Promise<void>((done) => httpsServer.listen(0, done));
+    httpsUrl = `https://localhost:${(httpsServer.address() as AddressInfo).port}`;
 });
 
 afterAll(async () => {
     server.close();
+    httpsServer.close();
 });
 
 test('requestHandler - reading bytes synchronously', async () => {
@@ -207,7 +224,7 @@ test('verifies TLS certificates by default', async () => {
         requestHandler: async () => {},
     });
 
-    const stats = await crawler.run(['https://self-signed.badssl.com/']);
+    const stats = await crawler.run([new URL('/file', httpsUrl).toString()]);
 
     expect(stats.requestsFailed).toBe(1);
 });
@@ -223,7 +240,7 @@ test('ignoreTlsErrors: true accepts invalid certificates', async () => {
         },
     });
 
-    const stats = await crawler.run(['https://self-signed.badssl.com/']);
+    const stats = await crawler.run([new URL('/file', httpsUrl).toString()]);
 
     expect(stats.requestsFailed).toBe(0);
     expect(status).toBe(200);
