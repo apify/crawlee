@@ -382,7 +382,7 @@ describe('ServiceLocator', () => {
     describe('bindMethodsToServiceLocator', () => {
         test('wrapped methods resolve the scoped service locator', () => {
             const scopedLogger = makeMockLogger();
-            const scopedLocator = new ServiceLocator(undefined, undefined, undefined, scopedLogger);
+            const scopedLocator = new ServiceLocator(undefined, undefined, scopedLogger);
 
             class Service {
                 getLogger() {
@@ -422,19 +422,17 @@ describe('ServiceLocator', () => {
         test('creating separate service locator for crawler', () => {
             const crawlerConfig = new Configuration({ headless: false });
             const crawlerStorage = new MemoryStorageBackend();
-            const crawlerEvents = new LocalEventManager({
-                persistStateIntervalMillis: 1000,
-                systemInfoIntervalMillis: 1000,
-            });
 
-            const crawlerLocator = new ServiceLocator(crawlerConfig, crawlerEvents, crawlerStorage);
+            const crawlerLocator = new ServiceLocator(crawlerConfig, crawlerStorage);
 
             expect(crawlerLocator.getConfiguration()).toBe(crawlerConfig);
-            expect(crawlerLocator.getEventManager()).toBe(crawlerEvents);
             expect(crawlerLocator.getStorageBackend()).toBe(crawlerStorage);
 
             // Global service locator should remain independent
             expect(serviceLocator.getConfiguration()).not.toBe(crawlerConfig);
+
+            // ...except for the event manager, which is shared by the whole process
+            expect(crawlerLocator.getEventManager()).toBe(serviceLocator.getEventManager());
         });
     });
 });

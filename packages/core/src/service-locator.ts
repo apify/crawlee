@@ -30,7 +30,7 @@ interface ServiceLocatorInterface {
     setConfiguration(configuration: Configuration): void;
 
     /**
-     * Get the event manager.
+     * Get the event manager. There is a single one per process, shared by all service locators.
      * Creates a default LocalEventManager instance if none has been set.
      */
     getEventManager(): EventManager;
@@ -91,7 +91,6 @@ interface ServiceLocatorInterface {
      */
     getServicesIfSet(): {
         configuration?: Configuration;
-        eventManager?: EventManager;
         storageBackend?: StorageBackend;
         logger?: CrawleeLogger;
     };
@@ -124,20 +123,20 @@ interface ServiceLocatorInterface {
  *
  * **2. Per-crawler services (recommended for isolation):**
  * ```typescript
- * import { BasicCrawler, Configuration, LocalEventManager, MemoryStorageBackend } from 'crawlee';
+ * import { BasicCrawler, Configuration, MemoryStorageBackend } from 'crawlee';
  *
  * const crawler = new BasicCrawler({
  *     requestHandler: async ({ request }) => { ... },
  *     configuration: new Configuration({ ... }),           // custom configuration
  *     storageBackend: new MemoryStorageBackend(),          // custom storage
- *     eventManager: LocalEventManager.fromConfiguration(), // custom events
  * });
  * // Crawler has its own isolated ServiceLocator instance
  * ```
+ *
+ * The event manager is the exception: there is a single one per process, shared by all instances.
  */
 export class ServiceLocator implements ServiceLocatorInterface {
     #configuration?: Configuration;
-    #eventManager?: EventManager;
     #storageBackend?: StorageBackend;
     #logger?: CrawleeLogger;
 
@@ -148,22 +147,18 @@ export class ServiceLocator implements ServiceLocatorInterface {
      */
     static #storageInstanceManager?: StorageInstanceManager;
 
+    /** One per process - storages are shared across instances, and their listeners must all end up on the same manager. */
+    static #eventManager?: EventManager;
+
     /**
      * Creates a new ServiceLocator instance.
      *
      * @param configuration Optional configuration instance to use
-     * @param eventManager Optional event manager instance to use
      * @param storageBackend Optional storage backend instance to use
      * @param logger Optional logger instance to use
      */
-    constructor(
-        configuration?: Configuration,
-        eventManager?: EventManager,
-        storageBackend?: StorageBackend,
-        logger?: CrawleeLogger,
-    ) {
+    constructor(configuration?: Configuration, storageBackend?: StorageBackend, logger?: CrawleeLogger) {
         this.#configuration = configuration;
-        this.#eventManager = eventManager;
         this.#storageBackend = storageBackend;
         this.#logger = logger;
     }
@@ -171,13 +166,11 @@ export class ServiceLocator implements ServiceLocatorInterface {
     /** @internal */
     getServicesIfSet(): {
         configuration?: Configuration;
-        eventManager?: EventManager;
         storageBackend?: StorageBackend;
         logger?: CrawleeLogger;
     } {
         return {
             configuration: this.#configuration,
-            eventManager: this.#eventManager,
             storageBackend: this.#storageBackend,
             logger: this.#logger,
         };
@@ -206,7 +199,7 @@ export class ServiceLocator implements ServiceLocatorInterface {
     }
 
     getEventManager(): EventManager {
-        if (!this.#eventManager) {
+        if (!ServiceLocator.#eventManager) {
             this.getLogger().debug('No event manager set, implicitly creating and using default LocalEventManager.');
             if (!this.#configuration) {
                 this.getLogger().warning(
@@ -214,23 +207,23 @@ export class ServiceLocator implements ServiceLocatorInterface {
                         'It is advised to explicitly first set the configuration instead.',
                 );
             }
-            this.#eventManager = LocalEventManager.fromConfiguration(this.getConfiguration());
+            ServiceLocator.#eventManager = LocalEventManager.fromConfiguration(this.getConfiguration());
         }
-        return this.#eventManager;
+        return ServiceLocator.#eventManager;
     }
 
     setEventManager(eventManager: EventManager): void {
         // Same instance, no need to do anything
-        if (this.#eventManager === eventManager) {
+        if (ServiceLocator.#eventManager === eventManager) {
             return;
         }
 
         // Already have a different event manager that was retrieved
-        if (this.#eventManager) {
-            throw new ServiceConflictError('EventManager', eventManager, this.#eventManager);
+        if (ServiceLocator.#eventManager) {
+            throw new ServiceConflictError('EventManager', eventManager, ServiceLocator.#eventManager);
         }
 
-        this.#eventManager = eventManager;
+        ServiceLocator.#eventManager = eventManager;
     }
 
     getStorageBackend(): StorageBackend {
@@ -306,7 +299,8 @@ export class ServiceLocator implements ServiceLocatorInterface {
     /** @internal */
     reset(): void {
         this.#configuration = undefined;
-        this.#eventManager = undefined;
+        ServiceLocator.#eventManager?.stop();
+        ServiceLocator.#eventManager = undefined;
         this.#storageBackend = undefined;
         this.#logger = undefined;
         ServiceLocator.#storageInstanceManager?.clearCache();

@@ -25,7 +25,6 @@ import {
     currentStorageTransaction,
     Dataset,
     EnqueueStrategy,
-    EventManager,
     EventType,
     getObjectType,
     KeyValueStore,
@@ -581,12 +580,6 @@ export interface BasicCrawlerOptions<
     storageBackend?: StorageBackend;
 
     /**
-     * Custom event manager to use for this crawler.
-     * If provided, the crawler will use its own ServiceLocator instance instead of the global one.
-     */
-    eventManager?: EventManager;
-
-    /**
      * Custom logger to use for this crawler.
      * If provided, the crawler will use its own ServiceLocator instance instead of the global one.
      */
@@ -963,7 +956,6 @@ export class BasicCrawler<
 
         configuration: z.instanceof(Configuration).optional(),
         storageBackend: validators.storageBackend.optional(),
-        eventManager: z.instanceof(EventManager).optional(),
         logger: validators.logger.optional(),
 
         // AutoscaledPool shorthands
@@ -1012,7 +1004,6 @@ export class BasicCrawler<
             // Service locator options
             configuration,
             storageBackend,
-            eventManager,
             logger,
 
             // AutoscaledPool shorthands
@@ -1064,7 +1055,6 @@ export class BasicCrawler<
 
         if (
             storageBackend ||
-            eventManager ||
             logger ||
             (configuration !== undefined && configuration !== serviceLocator.getConfiguration())
         ) {
@@ -1074,7 +1064,6 @@ export class BasicCrawler<
             const ambientServices = serviceLocator.getServicesIfSet();
             const scopedServiceLocator = new ServiceLocator(
                 configuration ?? ambientServices.configuration,
-                eventManager ?? ambientServices.eventManager,
                 storageBackend ?? ambientServices.storageBackend,
                 logger ?? ambientServices.logger,
             );
@@ -2345,13 +2334,6 @@ export class BasicCrawler<
             throw new Error('There is no crawl in progress - `run()` is the only thing that starts one.');
         }
 
-        const eventManager = serviceLocator.getEventManager();
-
-        if (!eventManager.isInitialized()) {
-            await eventManager.init();
-            run.ownsEventManager = true;
-        }
-
         // Warn once at startup if the internal timeout is shorter than the phases it is meant to outlast. It is
         // floored per request so it will not actually cut them short, but the configured value is then effectively
         // ignored, which is worth flagging. Checked here (not in the constructor) because a subclass sets its
@@ -3061,23 +3043,14 @@ export class BasicCrawler<
      * To stop the crawler gracefully (waiting for all running requests to finish), use {@apilink BasicCrawler.stop|`crawler.stop()`} instead.
      */
     async teardown(): Promise<void> {
-        const eventManager = serviceLocator.getEventManager();
-        const ownsEventManager = this.#run?.ownsEventManager === true;
-
         // First, so that the pool writes its final state once - its teardown stops it listening before the
         // persistence event below goes out.
         await this.#sessionPoolDep.ifOwned(async (pool) => pool.teardown());
 
-        // When this crawler initialized the event manager, its close() call emits
-        // the final persistence event after the crawler-specific state has been
-        // saved. External event managers still need an explicit event here.
-        if (!ownsEventManager) {
-            eventManager.emit(EventType.PERSIST_STATE, { isMigrating: false });
-        }
-
-        if (ownsEventManager) {
-            await eventManager.close();
-        }
+        // The event manager outlives the run, so the state of the run is persisted by an explicit event.
+        const eventManager = serviceLocator.getEventManager();
+        eventManager.emit(EventType.PERSIST_STATE, { isMigrating: false });
+        await eventManager.waitForAllListenersToComplete();
 
         await this.#run?.end();
     }

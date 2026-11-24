@@ -10,7 +10,6 @@ import { AsyncEventEmitter } from '@vladfrangu/async_event_emitter';
 import type { Awaitable } from '@crawlee/types';
 import { BaseHttpClient } from '@crawlee/http-client';
 import type { BatchAddRequestsResult } from '@crawlee/types';
-import type { BetterIntervalID } from '@apify/utilities';
 import type { Constructor } from '@crawlee/types';
 import { CrawleeLogger } from '@crawlee/types';
 import type { CrawleeLoggerOptions } from '@crawlee/types';
@@ -363,9 +362,9 @@ export type FieldsOutput<F extends Record<string, ConfigField>> = {
 // @public (undocumented)
 interface Intervals {
     // (undocumented)
-    persistState?: BetterIntervalID;
+    persistState?: NodeJS.Timeout;
     // (undocumented)
-    systemInfo?: BetterIntervalID;
+    systemInfo?: NodeJS.Timeout;
 }
 
 // @public
@@ -480,10 +479,10 @@ export interface LoadSignalInfo {
 // @public (undocumented)
 export class LocalEventManager extends EventManager {
     constructor(options: LocalEventManagerOptions);
-    // (undocumented)
-    close(): Promise<void>;
     static fromConfiguration(configuration?: Configuration): LocalEventManager;
-    init(): Promise<void>;
+    // (undocumented)
+    off(event: EventTypeName, listener?: (...args: any[]) => any): void;
+    on(event: EventTypeName, listener: (...args: any[]) => any): void;
 }
 
 // @public (undocumented)
@@ -857,7 +856,7 @@ export class ServiceConflictError extends Error {
 
 // @public
 export class ServiceLocator implements ServiceLocatorInterface {
-    constructor(configuration?: Configuration, eventManager?: EventManager, storageBackend?: StorageBackend, logger?: CrawleeLogger);
+    constructor(configuration?: Configuration, storageBackend?: StorageBackend, logger?: CrawleeLogger);
     // (undocumented)
     getChildLog(prefix: string): CrawleeLogger;
     // (undocumented)

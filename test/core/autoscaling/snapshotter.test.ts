@@ -1,7 +1,7 @@
 import os from 'node:os';
 
 import { type EventLoopLoadSignal, MemoryLoadSignal, Snapshotter, StorageBackendLoadSignal } from '@crawlee/basic';
-import { Configuration, EventType, LocalEventManager, serviceLocator } from '@crawlee/core';
+import { Configuration, EventManager, EventType, LocalEventManager, serviceLocator } from '@crawlee/core';
 import type { MemoryInfo } from '../../../packages/core/src/system-info/memory-info.js';
 import * as utils from '../../../packages/core/src/system-info/memory-info.js';
 import { sleep } from '@crawlee/utils';
@@ -112,6 +112,9 @@ describe('Snapshotter', () => {
     });
 
     test('correctly marks CPU overloaded using Platform event', async () => {
+        class PlatformEventManager extends EventManager {}
+        serviceLocator.setEventManager(new PlatformEventManager({ persistStateIntervalMillis: 60_000 }));
+
         let count = 0;
         const emitAndWait = async (delay: number) => {
             serviceLocator.getEventManager().emit(EventType.SYSTEM_INFO, {
@@ -154,32 +157,31 @@ describe('Snapshotter', () => {
 
         cpusMock.mockReturnValue(fakeCpu as any);
 
-        const noop = () => {};
         serviceLocator.setConfiguration(new Configuration({ maxUsedCpuRatio: 0.5 }));
         const snapshotter = new Snapshotter();
-        // do not initialize the event intervals as we will fire them manually
-        const spy = vitest.spyOn(LocalEventManager.prototype, 'init').mockImplementation(async () => {});
+        // do not start the systemInfo interval as we will fire the events manually
+        const spy = vitest.spyOn(LocalEventManager.prototype, 'on').mockImplementation(EventManager.prototype.on);
         const events = serviceLocator.getEventManager() as LocalEventManager;
 
         // Establish a baseline before the Snapshotter starts listening for events.
-        await events.emitSystemInfoEvent(noop);
+        await events.emitSystemInfoEvent();
         cpusMock.mockClear();
         await snapshotter.start(START_CONTEXT);
 
-        await events.emitSystemInfoEvent(noop);
+        await events.emitSystemInfoEvent();
 
         times.idle++;
         times.other++;
-        await events.emitSystemInfoEvent(noop);
+        await events.emitSystemInfoEvent();
 
         times.other += 2;
-        await events.emitSystemInfoEvent(noop);
+        await events.emitSystemInfoEvent();
 
         times.idle += 2;
-        await events.emitSystemInfoEvent(noop);
+        await events.emitSystemInfoEvent();
 
         times.other += 4;
-        await events.emitSystemInfoEvent(noop);
+        await events.emitSystemInfoEvent();
 
         const loopSnapshots = sampleOf(snapshotter, 'cpuInfo');
 
@@ -230,20 +232,20 @@ describe('Snapshotter', () => {
         vitest.spyOn(utils, 'getMemoryInfo').mockResolvedValue(memoryData);
         serviceLocator.setConfiguration(new Configuration({ availableMemoryRatio: 1 }));
         const snapshotter = new Snapshotter({ memory: { maxUsedRatio: 0.5 } });
-        // do not initialize the event intervals as we will fire them manually
-        vitest.spyOn(LocalEventManager.prototype, 'init').mockImplementation(async () => {});
+        // do not start the systemInfo interval as we will fire the events manually
+        vitest.spyOn(LocalEventManager.prototype, 'on').mockImplementation(EventManager.prototype.on);
         const events = serviceLocator.getEventManager() as LocalEventManager;
         await snapshotter.start(START_CONTEXT);
 
-        await events.emitSystemInfoEvent(noop);
+        await events.emitSystemInfoEvent();
         memoryData.mainProcessBytes = toBytes(2000);
-        await events.emitSystemInfoEvent(noop);
+        await events.emitSystemInfoEvent();
         memoryData.childProcessesBytes = toBytes(2000);
-        await events.emitSystemInfoEvent(noop);
+        await events.emitSystemInfoEvent();
         memoryData.mainProcessBytes = toBytes(3001);
-        await events.emitSystemInfoEvent(noop);
+        await events.emitSystemInfoEvent();
         memoryData.childProcessesBytes = toBytes(1999);
-        await events.emitSystemInfoEvent(noop);
+        await events.emitSystemInfoEvent();
         const memorySnapshots = sampleOf(snapshotter, 'memInfo');
 
         expect(memorySnapshots.length).toBe(5);
@@ -285,19 +287,19 @@ describe('Snapshotter', () => {
         await memorySignal.start(START_CONTEXT);
 
         // First snapshot - below warning usage
-        await eventManager.emitSystemInfoEvent(noop);
+        await eventManager.emitSystemInfoEvent();
         expect(warningSpy).not.toBeCalled();
 
         // Second snapshot - above warning usage
         memoryData.usedBytes = initialMemory * usageRatio2;
         memoryData.mainProcessBytes = initialMemory * usageRatio2;
         memoryData.freeBytes = initialMemory * (1 - usageRatio2);
-        await eventManager.emitSystemInfoEvent(noop);
+        await eventManager.emitSystemInfoEvent();
         expect(warningSpy).toBeCalled();
         warningSpy.mockReset();
 
         // Second snapshot again - repeated warning ignored
-        await eventManager.emitSystemInfoEvent(noop);
+        await eventManager.emitSystemInfoEvent();
         expect(warningSpy).not.toBeCalled();
         warningSpy.mockReset();
 
@@ -409,17 +411,17 @@ describe('Snapshotter', () => {
             serviceLocator.setConfiguration(configuration);
 
             const memorySignal = new MemoryLoadSignal();
-            vitest.spyOn(LocalEventManager.prototype, 'init').mockImplementation(async () => {});
+            vitest.spyOn(LocalEventManager.prototype, 'on').mockImplementation(EventManager.prototype.on);
             const eventManager = serviceLocator.getEventManager() as LocalEventManager;
             await memorySignal.start(START_CONTEXT);
 
             // First snapshot - full usage of the memory, should be overloaded in both modes
-            await eventManager.emitSystemInfoEvent(noop);
+            await eventManager.emitSystemInfoEvent();
 
             // Second snapshot - total memory doubled, should be overloaded only in static mode
             memoryData.totalBytes = initialTotalBytes * 2;
             memoryData.freeBytes = memoryData.totalBytes - actualMemoryUsage;
-            await eventManager.emitSystemInfoEvent(noop);
+            await eventManager.emitSystemInfoEvent();
 
             const memorySnapshots = memorySignal.getSample();
             expect(memorySnapshots).toHaveLength(2);
