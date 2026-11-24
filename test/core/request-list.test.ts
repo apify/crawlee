@@ -754,4 +754,14 @@ describe('Request', () => {
         expect(request).toMatchObject({ errorMessages: [null], handledAt: '2026-01-01T00:00:00.000Z' });
         expect(request.payload).toBeInstanceOf(Uint8Array);
     });
+
+    test('useExtendedUniqueKey tells apart requests to the same URL with different payloads', () => {
+        const options = { url: 'https://example.com/search', method: 'POST', useExtendedUniqueKey: true } as const;
+        const first = new Request({ ...options, payload: 'q=shoes' });
+        const second = new Request({ ...options, payload: 'q=hats' });
+        const repeat = new Request({ ...options, payload: 'q=shoes' });
+
+        expect(first.uniqueKey).not.toBe(second.uniqueKey);
+        expect(first.uniqueKey).toBe(repeat.uniqueKey);
+    });
 });
