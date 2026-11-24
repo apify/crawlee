@@ -124,4 +124,19 @@ describe('EventManager', () => {
         events.on(EventType.PERSIST_STATE, () => {});
         await vitest.waitFor(() => expect(listener).toHaveBeenCalled());
     });
+
+    test('systemInfo listeners that outlive close() are served again when emit() restarts the manager', async () => {
+        const events = serviceLocator.getEventManager();
+        const listener = vitest.fn();
+
+        events.on(EventType.SYSTEM_INFO, listener);
+        await vitest.waitFor(() => expect(listener).toHaveBeenCalled());
+
+        await events.close();
+        await events.waitForAllListenersToComplete();
+        listener.mockClear();
+
+        events.emit(EventType.PERSIST_STATE, { isMigrating: false });
+        await vitest.waitFor(() => expect(listener).toHaveBeenCalled());
+    });
 });

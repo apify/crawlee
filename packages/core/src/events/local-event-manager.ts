@@ -34,23 +34,12 @@ export class LocalEventManager extends EventManager {
      */
     override on(event: EventTypeName, listener: (...args: any[]) => any): void {
         super.on(event, listener);
+        this.#startSystemInfo();
+    }
 
-        // Checked on every event, so that listeners which outlived a `close()` are served again.
-        if (this.intervals.systemInfo || this.listenerCount(EventType.SYSTEM_INFO) === 0) {
-            return;
-        }
-
-        let sampling = false;
-        const sample = async () => {
-            if (sampling) return;
-            sampling = true;
-            await this.emitSystemInfoEvent().finally(() => {
-                sampling = false;
-            });
-        };
-
-        this.intervals.systemInfo = setInterval(sample, this.#systemInfoIntervalMillis).unref();
-        void sample();
+    override emit(event: EventTypeName, ...args: unknown[]): void {
+        super.emit(event, ...args);
+        this.#startSystemInfo();
     }
 
     override off(event: EventTypeName, listener?: (...args: any[]) => any): void {
@@ -67,6 +56,25 @@ export class LocalEventManager extends EventManager {
     override stop(): void {
         super.stop();
         this.#stopSystemInfo();
+    }
+
+    #startSystemInfo(): void {
+        // Checked on every `on()` and `emit()`, so that listeners which outlived a `close()` are served again.
+        if (this.intervals.systemInfo || this.listenerCount(EventType.SYSTEM_INFO) === 0) {
+            return;
+        }
+
+        let sampling = false;
+        const sample = async () => {
+            if (sampling) return;
+            sampling = true;
+            await this.emitSystemInfoEvent().finally(() => {
+                sampling = false;
+            });
+        };
+
+        this.intervals.systemInfo = setInterval(sample, this.#systemInfoIntervalMillis).unref();
+        void sample();
     }
 
     #stopSystemInfo(): void {
