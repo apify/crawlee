@@ -822,6 +822,28 @@ describe('BasicCrawler', () => {
             expect(skippedRequests[1].request).toBeInstanceOf(Request);
             expect(skippedRequests[1].request.url).toBe('https://example.com/2/');
         });
+
+        it('should look up robots.txt only for requests that pass the filters', async () => {
+            const robotsTxtLookups: string[] = [];
+            const robotsTxtCrawler = new (class extends BasicCrawler {
+                override async getRobotsTxtFileForUrl(url: string) {
+                    robotsTxtLookups.push(url);
+                    return RobotsTxtFile.from('https://example.com/robots.txt', 'User-agent: *\nAllow: /\n');
+                }
+            })({ respectRobotsTxtFile: true, requestManager: requestQueue });
+
+            await robotsTxtCrawler.addRequests(
+                ['https://example.com/1/', 'https://example.com/excluded/', 'https://other.com/1/'],
+                {
+                    ...options,
+                    baseUrl: 'https://example.com/',
+                    strategy: 'same-hostname',
+                    exclude: ['https://example.com/excluded/'],
+                },
+            );
+
+            expect(robotsTxtLookups).toEqual(['https://example.com/1/']);
+        });
     });
 
     describe('addRequests() background skip reporting', () => {
