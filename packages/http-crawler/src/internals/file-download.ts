@@ -127,8 +127,8 @@ export class FileDownload extends BasicCrawler<FileDownloadCrawlingContext> {
     }
 
     async #initiateDownload(context: CrawlingContext, onCleanup: CleanupRegistrar) {
-        // Ends the download when the request fails. It also keeps `ImpitHttpClient` from applying impit's own 30 s
-        // timeout, which cut longer downloads short.
+        // Ends the download when the request fails. Passing a signal also keeps `ImpitHttpClient` from applying
+        // impit's 30 s timeout to the whole download.
         const downloadAbortController = new AbortController();
 
         const response = await this.httpClient.sendRequest(context.request.intoFetchAPIRequest(), {
@@ -141,12 +141,14 @@ export class FileDownload extends BasicCrawler<FileDownloadCrawlingContext> {
 
         context.request.url = response.url;
 
-        const { response: trackedResponse, bodyDrained } = trackBodyConsumption(response);
+        const { response: trackedResponse, bodyDrained, stop } = trackBodyConsumption(response);
 
         onCleanup(async (error) => {
             if (error !== undefined) {
-                // A failed request may have left the body half-read, and waiting for it to drain would wait for
-                // the whole download.
+                // Nobody is going to read the rest of the body. The pipe feeding it can be stuck on a write that
+                // only a reader would complete, and aborting the download does not release it, so error the
+                // passthrough too.
+                stop(error);
                 downloadAbortController.abort();
             } else if (!trackedResponse.bodyUsed) {
                 // Nobody consumed the body — cancel it so the
@@ -169,14 +171,25 @@ export class FileDownload extends BasicCrawler<FileDownloadCrawlingContext> {
  * Wraps a Response so that we can track when the body stream has been fully
  * consumed (or errored). Pipes the original body through a TransformStream;
  * the readable side becomes the new Response body, and `pipeTo` gives us a
- * promise that resolves once the body is fully read or cancelled.
+ * promise that resolves once the body is fully read or cancelled. `stop` errors
+ * the passthrough even while it is locked by a reader, which also cancels the
+ * original body.
  */
-function trackBodyConsumption(response: Response): { response: ResponseWithUrl; bodyDrained: Promise<void> } {
+function trackBodyConsumption(response: Response): {
+    response: ResponseWithUrl;
+    bodyDrained: Promise<void>;
+    stop: (reason: unknown) => void;
+} {
     if (!response.body) {
-        return { response, bodyDrained: Promise.resolve() };
+        return { response, bodyDrained: Promise.resolve(), stop: () => {} };
     }
 
-    const passthrough = new TransformStream();
+    let passthroughController!: TransformStreamDefaultController;
+    const passthrough = new TransformStream({
+        start: (controller) => {
+            passthroughController = controller;
+        },
+    });
     const bodyDrained = response.body.pipeTo(passthrough.writable).catch(() => {});
 
     const trackedResponse = new ResponseWithUrl(passthrough.readable, {
@@ -186,7 +199,7 @@ function trackBodyConsumption(response: Response): { response: ResponseWithUrl; 
         url: response.url,
     });
 
-    return { response: trackedResponse, bodyDrained };
+    return { response: trackedResponse, bodyDrained, stop: (reason) => passthroughController.error(reason) };
 }
 
 /**

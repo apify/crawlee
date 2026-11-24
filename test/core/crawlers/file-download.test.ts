@@ -266,3 +266,45 @@ test('a failed request stops its download', async () => {
     expect(stats.requestsFailed).toBe(1);
     expect(Date.now() - start).toBeLessThan(10_000);
 });
+
+const httpClients = [
+    ['fetch', () => new FetchHttpClient()],
+    ['the default client', () => undefined],
+] as const;
+
+test.each(httpClients)(
+    'a failed request does not wait for its unread body (%s)',
+    async (_name, httpClient) => {
+        const crawler = new FileDownload({
+            maxRequestRetries: 0,
+            httpClient: httpClient(),
+            requestHandler: async () => {
+                throw new Error('gave up before reading');
+            },
+        });
+
+        const stats = await crawler.run([new URL(`/file?size=${512 * 1024}&seed=333`, url).toString()]);
+
+        expect(stats.requestsFailed).toBe(1);
+    },
+    10_000,
+);
+
+test.each(httpClients)(
+    'a failed request does not wait for the rest of its body (%s)',
+    async (_name, httpClient) => {
+        const crawler = new FileDownload({
+            maxRequestRetries: 0,
+            httpClient: httpClient(),
+            requestHandler: async ({ response }) => {
+                await response.body!.getReader().read();
+                throw new Error('gave up after the first chunk');
+            },
+        });
+
+        const stats = await crawler.run([new URL(`/file?size=${512 * 1024}&seed=444`, url).toString()]);
+
+        expect(stats.requestsFailed).toBe(1);
+    },
+    10_000,
+);
