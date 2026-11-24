@@ -96,7 +96,9 @@ jobs:
         if: (!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, 'docs:'))
         needs: build_and_test
         runs-on: ubuntu-22.04
-        environment: npm
+        environment:
+            name: npm
+            deployment: false
 
         steps:
             -   name: Checkout repository
