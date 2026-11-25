@@ -2604,6 +2604,16 @@ describe('BasicCrawler', () => {
             expect(persistedKeys.filter((key) => key.startsWith('CRAWLEE_SESSION_POOL_STATE'))).toHaveLength(1);
         });
 
+        it('persists the session pool it creates under a key derived from the crawler id', async () => {
+            const setValue = vitest.spyOn(KeyValueStore.prototype, 'setValue');
+            const crawler = new BasicCrawler({ id: 'my-crawler', requestHandler: async () => {} });
+
+            await crawler.run(['https://example.com']);
+
+            const persistedKeys = setValue.mock.calls.map(([key]) => key);
+            expect(persistedKeys).toContain('CRAWLEE_SESSION_POOL_STATE_my-crawler');
+        });
+
         it('persists the session pool once with a shared event manager', async () => {
             await serviceLocator.getEventManager().init();
             const setValue = vitest.spyOn(KeyValueStore.prototype, 'setValue');

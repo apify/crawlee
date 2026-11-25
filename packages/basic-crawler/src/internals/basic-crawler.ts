@@ -1208,6 +1208,7 @@ export class BasicCrawler<
                 sessionPool,
                 () =>
                     new SessionPool({
+                        id: this.#identity.id,
                         createSessionFunction: async (opts) =>
                             new Session({
                                 ...opts?.sessionOptions,
