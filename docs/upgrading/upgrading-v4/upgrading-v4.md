@@ -512,7 +512,7 @@ const crawler = new BasicCrawler({
 });
 ```
 
-When a `sessionPool` is supplied, the crawler ignores its `proxyConfiguration` option (with a warning), so a crawler that combined `sessionPoolOptions` with `proxyConfiguration` would silently stop using proxies. Assign the proxies in the pool's `createSessionFunction` instead:
+Passing both `sessionPool` and `proxyConfiguration` to a crawler throws, since a supplied pool would ignore the proxies. Assign the proxies in the pool's `createSessionFunction` instead:
 
 ```typescript
 import { Session, SessionPool } from '@crawlee/basic';

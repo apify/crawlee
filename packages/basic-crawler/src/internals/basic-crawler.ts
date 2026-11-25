@@ -1196,10 +1196,9 @@ export class BasicCrawler<
             );
 
             if (sessionPool && proxyConfiguration) {
-                this.log.warning(
-                    'Both `sessionPool` and `proxyConfiguration` were provided to the crawler. ' +
-                        'The `proxyConfiguration` is ignored - sessions from the supplied pool keep whatever ' +
-                        '`proxyInfo` they were created with. Configure proxies on the pool instead, ' +
+                throw new Error(
+                    'Both `sessionPool` and `proxyConfiguration` were provided to the crawler, but a supplied pool ' +
+                        'ignores `proxyConfiguration`. Configure proxies on the pool instead, ' +
                         'e.g. via `addSession({ proxyInfo })` or a custom `createSessionFunction`.',
                 );
             }

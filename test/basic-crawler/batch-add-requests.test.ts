@@ -1,4 +1,4 @@
-import { BasicCrawler, SessionPool } from '@crawlee/basic';
+import { BasicCrawler, ProxyConfiguration, SessionPool } from '@crawlee/basic';
 import { MemoryStorageBackend, serviceLocator } from '@crawlee/core';
 
 describe('BasicCrawler#addRequests with big batch sizes', () => {
@@ -96,5 +96,16 @@ describe('BasicCrawler - request.sessionId', () => {
         expect(errors[0].message).toContain(
             "The current SessionPool instance couldn't find a valid session for the following id: nonexistent",
         );
+    });
+
+    test('throws when both sessionPool and proxyConfiguration are supplied', () => {
+        expect(
+            () =>
+                new BasicCrawler({
+                    requestHandler() {},
+                    sessionPool: new SessionPool(),
+                    proxyConfiguration: new ProxyConfiguration({ proxyUrls: ['http://localhost:1234'] }),
+                }),
+        ).toThrow(/Both `sessionPool` and `proxyConfiguration`/);
     });
 });
