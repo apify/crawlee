@@ -10,6 +10,7 @@ import { AsyncEventEmitter } from '@vladfrangu/async_event_emitter';
 import type { Awaitable } from '@crawlee/types';
 import { BaseHttpClient } from '@crawlee/http-client';
 import type { BatchAddRequestsResult } from '@crawlee/types';
+import type { BetterIntervalID } from '@apify/utilities';
 import type { Constructor } from '@crawlee/types';
 import { CrawleeLogger } from '@crawlee/types';
 import type { CrawleeLoggerOptions } from '@crawlee/types';
@@ -362,9 +363,9 @@ export type FieldsOutput<F extends Record<string, ConfigField>> = {
 // @public (undocumented)
 interface Intervals {
     // (undocumented)
-    persistState?: NodeJS.Timeout;
+    persistState?: BetterIntervalID;
     // (undocumented)
-    systemInfo?: NodeJS.Timeout;
+    systemInfo?: BetterIntervalID;
 }
 
 // @public

@@ -1,5 +1,8 @@
 import { AsyncEventEmitter } from '@vladfrangu/async_event_emitter';
 
+import type { BetterIntervalID } from '@apify/utilities';
+import { betterClearInterval, betterSetInterval } from '@apify/utilities';
+
 import { serviceLocator } from '../service-locator.js';
 
 export interface EventManagerOptions {
@@ -50,8 +53,8 @@ export interface EventStatusMessageData {
 }
 
 interface Intervals {
-    persistState?: NodeJS.Timeout;
-    systemInfo?: NodeJS.Timeout;
+    persistState?: BetterIntervalID;
+    systemInfo?: BetterIntervalID;
 }
 
 export abstract class EventManager {
@@ -112,7 +115,7 @@ export abstract class EventManager {
      * @internal
      */
     stop(): void {
-        clearInterval(this.intervals.persistState);
+        betterClearInterval(this.intervals.persistState!);
         process.off('beforeExit', this.#flushBeforeExit);
         this.#started = false;
     }
@@ -140,12 +143,13 @@ export abstract class EventManager {
             return;
         }
 
+        // Set first, as the interval emits right away and `emit()` would start it again.
+        this.#started = true;
         // Unreferenced, so that a manager nobody closes does not keep the process alive.
-        this.intervals.persistState = setInterval(() => {
+        this.intervals.persistState = betterSetInterval(() => {
             this.emit(EventType.PERSIST_STATE, { isMigrating: false });
         }, this.#persistStateIntervalMillis).unref();
         process.once('beforeExit', this.#flushBeforeExit);
-        this.#started = true;
     }
 
     isInitialized(): boolean {

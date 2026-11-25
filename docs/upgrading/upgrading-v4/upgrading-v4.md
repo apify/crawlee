@@ -435,7 +435,6 @@ There is a single event manager per process, shared by all crawlers, and `crawle
 - To use a custom event manager, call `serviceLocator.setEventManager()` before anything else resolves one.
 - `persistStateIntervalMillis` and `systemInfoIntervalMillis` are read from the configuration of whoever resolves the event manager first, so set them on the global configuration rather than on the one passed to a crawler.
 - `LocalEventManager` emits `systemInfo` events only while something listens to them.
-- If you subclass `EventManager`: `this.intervals` now holds plain timers, so clear them with `clearInterval()` instead of `betterClearInterval()`.
 
 ### Navigation and the request handler are timed separately
 

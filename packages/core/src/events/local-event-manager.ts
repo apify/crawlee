@@ -1,3 +1,5 @@
+import { betterClearInterval, betterSetInterval } from '@apify/utilities';
+
 import type { Configuration } from '../configuration.js';
 import { serviceLocator } from '../service-locator.js';
 import { EventManager, type EventManagerOptions, EventType, type EventTypeName } from './event-manager.js';
@@ -64,21 +66,14 @@ export class LocalEventManager extends EventManager {
             return;
         }
 
-        let sampling = false;
-        const sample = async () => {
-            if (sampling) return;
-            sampling = true;
-            await this.emitSystemInfoEvent().finally(() => {
-                sampling = false;
-            });
-        };
-
-        this.intervals.systemInfo = setInterval(sample, this.#systemInfoIntervalMillis).unref();
-        void sample();
+        this.intervals.systemInfo = betterSetInterval(
+            async () => this.emitSystemInfoEvent(),
+            this.#systemInfoIntervalMillis,
+        ).unref();
     }
 
     #stopSystemInfo(): void {
-        clearInterval(this.intervals.systemInfo);
+        betterClearInterval(this.intervals.systemInfo!);
         this.intervals.systemInfo = undefined;
     }
 
