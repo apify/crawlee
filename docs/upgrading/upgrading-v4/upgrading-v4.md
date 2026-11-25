@@ -82,7 +82,7 @@ The purely mechanical renames, collected in one place. Where a row links to a se
 | `statistics.startJob()` / `finishJob()` / `failJob()` | `recordRequestStart()` / `recordRequestSuccess()` / `recordRequestFailure()` ([details](./statistics.md#the-request-recording-methods-are-renamed)) |
 | `browserPoolOptions` | `browserPool` + a `*BrowserPool()` factory ([details](#browserpooloptions-is-removed)) |
 | `gotScraping` (from `@crawlee/utils`) | `GotScrapingHttpClient` (`@crawlee/got-scraping-client`) |
-| `SDK_`-prefixed internal KVS keys | `CRAWLEE_`-prefixed ([details](#internal-kvs-keys-renamed)) |
+| Internal KVS keys (`SDK_*` and others) | `CRAWLEE_*` keys ([details](#internal-kvs-keys-renamed)) |
 | `ArgumentError` (from `ow`) | `ArgumentValidationError` ([details](#argument-validation-errors-use-zod)) |
 
 ## Changes most users will hit
@@ -558,7 +558,7 @@ The `PersistenceOptions` argument of `persistState()` and `resetStore()` and the
 
 With both `state` and `persistStateKey` set, the record now wins. Previously `state` did. The option is also validated up front: `nextIndex` must be a non-negative integer and `inProgress` an array of unique keys. The `@internal` `isStatePersisted` flag is gone.
 
-Both `SessionPool` and `RequestList` now persist through `RecoverableState`, like `Statistics`. Resuming a v3 crawl on v4 is not supported: `RequestList` stores its records under `CRAWLEE_`-prefixed keys where v3 used `SDK_`, so a v4 run does not find a v3 run's state and starts the list from the beginning. Finish or discard in-flight crawls before upgrading.
+Both `SessionPool` and `RequestList` now persist through `RecoverableState`, like `Statistics`. Resuming a v3 crawl on v4 is not supported: `RequestList` stores its records under [new keys](#internal-kvs-keys-renamed), so a v4 run does not find a v3 run's state and starts the list from the beginning. Finish or discard in-flight crawls before upgrading.
 
 ### `retireOnBlockedStatusCodes` is removed from `Session`
 
@@ -1187,7 +1187,7 @@ Crawlee keeps its internal state in the default key-value store. These records n
 | Sitemap request loader | `SITEMAP_REQUEST_LIST_STATE` | `CRAWLEE_SITEMAP_REQUEST_LOADER_STATE` |
 | Rendering type predictor | `rendering-type-predictor-state` | `CRAWLEE_RENDERING_TYPE_PREDICTOR_STATE_{id}` |
 
-The session pool that a crawler creates uses the crawler's `id` option as its `{id}`. A `persistStateKey` or `persistRequestsKey` you pass to `RequestList` is used as it is, without the `SDK_` prefix v3 added. The `{id}` of the rendering type predictor comes from its new `id` option. The predictor that `AdaptivePlaywrightCrawler` builds gets the crawler's `id` option, so adaptive crawlers no longer share one model. The `ThrottlingRequestManager` stores its domain list under `CRAWLEE_THROTTLED_DOMAINS_{id}` and opens its per-domain queues under the alias `throttled-{id}-{domain}`, where `{id}` comes from its `id` option.
+A `persistStateKey` or `persistRequestsKey` you pass to `RequestList` is used as it is, without the `SDK_` prefix v3 added, so a v4 run doesn't find the v3 record under `SDK_{key}`. The `{id}` of the statistics, the session pool, the rendering type predictor and the `ThrottlingRequestManager` comes from their `id` option. Without one, each class numbers its instances in creation order. The ones a crawler creates take the crawler's `id` option when it is set. Adaptive crawlers no longer share one rendering type model. The `ThrottlingRequestManager` stores its domain list under `CRAWLEE_THROTTLED_DOMAINS_{id}` and opens its per-domain queues under the alias `throttled-{id}-{domain}`.
 
 v4 doesn't read the v3 keys. Resuming a v3 crawl on v4 is not supported, so finish or discard in-flight crawls before upgrading.
 
