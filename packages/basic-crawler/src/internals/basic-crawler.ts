@@ -1125,7 +1125,8 @@ export class BasicCrawler<
                       domains: 'all',
                       minCrawlDelaySecs: sameDomainDelaySecs,
                       throttleBy: 'registrableDomain',
-                      id: this.#identity.id,
+                      // Only an explicit ID, as the creation index would collide with the manager's own generated IDs.
+                      id,
                       // A factory, because the default queue is only opened on first use.
                       inner: suppliedManager ?? (() => this.#openOwnedRequestQueue()),
                   })
@@ -1191,7 +1192,8 @@ export class BasicCrawler<
                     new Statistics({
                         logMessage: `${this.constructor.name} request statistics:`,
                         log: this.log,
-                        id: this.#identity.id,
+                        // Only an explicit ID, as the creation index would collide with the statistics' own generated IDs.
+                        id,
                     }) as Statistics<StatisticStateExtension>,
             );
 
@@ -1208,7 +1210,8 @@ export class BasicCrawler<
                 sessionPool,
                 () =>
                     new SessionPool({
-                        id: this.#identity.id,
+                        // Only an explicit ID, as the creation index would collide with the pool's own generated IDs.
+                        id,
                         createSessionFunction: async (opts) =>
                             new Session({
                                 ...opts?.sessionOptions,
