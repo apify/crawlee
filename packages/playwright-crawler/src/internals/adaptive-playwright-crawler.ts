@@ -257,7 +257,7 @@ export interface AdaptivePlaywrightCrawlerContext<
     /**
      * Extracts URLs from the current page and adds them to the request queue.
      *
-     * The requests are buffered until the crawler settles on this attempt's result, so the returned
+     * By default, the requests are buffered until the crawler settles on this attempt's result, so the returned
      * `requestId` of a newly added request is provisional, and nothing is added when the attempt is discarded.
      */
     enqueueLinks(options?: EnqueueLinksOptions): Promise<AddRequestsBatchedResult>;
