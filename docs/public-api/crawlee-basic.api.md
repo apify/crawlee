@@ -17,7 +17,6 @@ import type { DatasetExportOptions } from '@crawlee/core';
 import { Dictionary } from '@crawlee/types';
 import { EnqueueStrategy } from '@crawlee/utils';
 import type { EnqueueStrategyOption } from '@crawlee/core';
-import { EventManager } from '@crawlee/core';
 import type { HttpRequestOptions } from '@crawlee/types';
 import { IProxyConfiguration } from '@crawlee/core';
 import { IRequestLoader } from '@crawlee/core';
@@ -116,7 +115,6 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = CrawlingC
     configuration?: Configuration;
     contextPipelineBuilder?: () => ContextPipeline<CrawlingContext, Context>;
     errorHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
-    eventManager?: EventManager;
     extendContext?: ContextMiddleware<CrawlingContext, ContextExtension>;
     failedRequestHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
     httpClient?: BaseHttpClient;

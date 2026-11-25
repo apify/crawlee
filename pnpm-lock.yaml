@@ -494,8 +494,8 @@ importers:
         specifier: ^1.1.0
         version: 1.1.0
       '@apify/utilities':
-        specifier: ^3.1.1
-        version: 3.1.1
+        specifier: ^3.2.0
+        version: 3.2.0
       '@crawlee/core':
         specifier: workspace:*
         version: link:../core
@@ -681,8 +681,8 @@ importers:
         specifier: ^1.1.0
         version: 1.1.0
       '@apify/utilities':
-        specifier: ^3.1.1
-        version: 3.1.1
+        specifier: ^3.2.0
+        version: 3.2.0
       '@crawlee/fs-storage':
         specifier: workspace:*
         version: link:../fs-storage
@@ -1442,8 +1442,8 @@ packages:
       react: 17.x || 18.x || 19.x
       react-dom: 17.x || 18.x || 19.x
 
-  '@apify/utilities@3.1.1':
-    resolution: {integrity: sha512-7OnOwNeVBcVDkMXp9keZ8aL6O7R+APIOqNgArclf0P9SBN0MOjG9Xl86lyVMfuOIp2LYpb9Xz3i7TJEzqGKWdg==}
+  '@apify/utilities@3.2.0':
+    resolution: {integrity: sha512-rNGngtFaprGdPWCh+Hu7Z15k4HrpF06mRXZxvyZGYIr1nHtZMWBqB4HDvY2bWshIubR3FGXgEQ8KXROd//EN/A==}
     engines: {node: '>=22'}
 
   '@apify/validations@1.1.4':
@@ -12815,7 +12815,7 @@ snapshots:
   '@apify/input_secrets@2.0.9':
     dependencies:
       '@apify/log': 3.0.2
-      '@apify/utilities': 3.1.1
+      '@apify/utilities': 3.2.0
       '@apify/validations': 1.1.4
       zod: 4.6.7
 
@@ -12842,7 +12842,7 @@ snapshots:
       react: 19.3.1
       react-dom: 19.3.1(react@19.3.1)
 
-  '@apify/utilities@3.1.1':
+  '@apify/utilities@3.2.0':
     dependencies:
       '@apify/consts': 3.1.0
       '@apify/log': 3.0.2
@@ -18097,7 +18097,7 @@ snapshots:
     dependencies:
       '@apify/consts': 3.1.0
       '@apify/log': 3.0.2
-      '@apify/utilities': 3.1.1
+      '@apify/utilities': 3.2.0
       '@apify/validations': 1.1.4
       ansi-colors: 4.1.3
       axios: 1.21.1(debug@4.4.3(supports-color@8.1.1))(supports-color@8.1.1)
@@ -18121,7 +18121,7 @@ snapshots:
       '@apify/log': 3.0.2
       '@apify/pseudo_url': 3.0.2
       '@apify/timeout': 1.1.0
-      '@apify/utilities': 3.1.1
+      '@apify/utilities': 3.2.0
       '@apify/validations': 1.1.4
       '@crawlee/core': link:packages/core
       '@crawlee/fs-storage': link:packages/fs-storage

@@ -222,3 +222,11 @@ the crawler will use the global configuration, which is using the default `persi
 So again, the run was aborted before the state was persisted for the first time.
 
 :::
+
+:::caution
+
+There is a single event manager per process, and it reads `persistStateIntervalMillis` and `systemInfoIntervalMillis`
+from the configuration of whoever uses it first. A custom configuration only sets them when its crawler gets there
+before anything else does (e.g. a storage opened earlier), so prefer setting these two on the global configuration.
+
+:::

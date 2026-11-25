@@ -2,7 +2,7 @@ import { betterClearInterval, betterSetInterval } from '@apify/utilities';
 
 import type { Configuration } from '../configuration.js';
 import { serviceLocator } from '../service-locator.js';
-import { EventManager, type EventManagerOptions, EventType } from './event-manager.js';
+import { EventManager, type EventManagerOptions, EventType, type EventTypeName } from './event-manager.js';
 import type { SystemInfo } from './system-info.js';
 
 export interface LocalEventManagerOptions extends EventManagerOptions {
@@ -32,44 +32,54 @@ export class LocalEventManager extends EventManager {
     }
 
     /**
-     * Initializes the EventManager and sets up periodic `systemInfo` events.
-     * This is automatically called at the beginning of `crawler.run()`.
+     * The `systemInfo` events are only emitted while something listens to them, as collecting them is not free.
      */
-    override async init() {
-        if (this.initialized) {
-            return;
-        }
-
-        await super.init();
-
-        this.emitSystemInfoEvent = this.emitSystemInfoEvent.bind(this);
-        this.intervals.systemInfo = betterSetInterval(
-            this.emitSystemInfoEvent.bind(this),
-            this.#systemInfoIntervalMillis,
-        );
+    override on(event: EventTypeName, listener: (...args: any[]) => any): void {
+        super.on(event, listener);
+        this.#startSystemInfo();
     }
 
-    /**
-     * @inheritDoc
-     */
-    override async close() {
-        if (!this.initialized) {
-            return;
-        }
+    override off(event: EventTypeName, listener?: (...args: any[]) => any): void {
+        super.off(event, listener);
 
-        await super.close();
-        betterClearInterval(this.intervals.systemInfo!);
+        if (this.listenerCount(EventType.SYSTEM_INFO) === 0) {
+            this.#stopSystemInfo();
+        }
     }
 
     /**
      * @internal
      */
-    async emitSystemInfoEvent(intervalCallback: () => unknown) {
+    override stop(): void {
+        super.stop();
+        this.#stopSystemInfo();
+    }
+
+    #startSystemInfo(): void {
+        // Checked on every `on()`, so that listeners which outlived a `close()` are served again.
+        if (this.intervals.systemInfo || this.listenerCount(EventType.SYSTEM_INFO) === 0) {
+            return;
+        }
+
+        this.intervals.systemInfo = betterSetInterval(
+            async () => this.emitSystemInfoEvent(),
+            this.#systemInfoIntervalMillis,
+        ).unref();
+    }
+
+    #stopSystemInfo(): void {
+        betterClearInterval(this.intervals.systemInfo!);
+        this.intervals.systemInfo = undefined;
+    }
+
+    /**
+     * @internal
+     */
+    async emitSystemInfoEvent() {
         const info = await this.#createSystemInfo({
             maxUsedCpuRatio: serviceLocator.getConfiguration().maxUsedCpuRatio,
         });
         this.events.emit(EventType.SYSTEM_INFO, info);
-        intervalCallback();
     }
 
     /**

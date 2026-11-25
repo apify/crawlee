@@ -156,7 +156,7 @@ try {
 }
 ```
 
-One behavioral change: options validated against class interfaces (`httpClient`, `configuration`, `eventManager`) now require actual instances (`instanceof BaseHttpClient`, …) rather than duck-typed plain objects — extend the class (or `Object.create(BaseHttpClient.prototype)` in tests) instead of passing an object literal.
+One behavioral change: options validated against class interfaces (`httpClient`, `configuration`) now require actual instances (`instanceof BaseHttpClient`, …) rather than duck-typed plain objects — extend the class (or `Object.create(BaseHttpClient.prototype)` in tests) instead of passing an object literal.
 
 ### Zod 4 required
 
@@ -376,10 +376,10 @@ const eventManager = serviceLocator.getEventManager();
 
 #### Using per-crawler services (recommended)
 
-The new `ServiceLocator` supports per-crawler service isolation, allowing you to use different storage backends or event managers for different crawlers by passing them via options:
+The new `ServiceLocator` supports per-crawler service isolation, allowing you to use a different configuration, storage backend or logger for different crawlers by passing them via options:
 
 ```typescript
-import { BasicCrawler, Configuration, LocalEventManager, MemoryStorageBackend } from 'crawlee';
+import { BasicCrawler, Configuration, MemoryStorageBackend } from 'crawlee';
 
 const crawler = new BasicCrawler({
     requestHandler: async ({ request, log }) => {
@@ -387,7 +387,6 @@ const crawler = new BasicCrawler({
     },
     configuration: new Configuration({ headless: false }),
     storageBackend: new MemoryStorageBackend(),
-    eventManager: LocalEventManager.fromConfiguration(),
 });
 
 await crawler.run(['https://example.com']);
@@ -457,6 +456,15 @@ const store = await KeyValueStore.open(null, { configuration: new Configuration(
 Renamed properties — `Dataset.config`, `KeyValueStore.config` and `BrowserLauncher.config` (including `PuppeteerLauncher`) are now `.configuration`. The `config` property of the crawlers, `RequestQueue`, `SessionPool` and `EventManager` is removed without a `.configuration` counterpart; use `serviceLocator.getConfiguration()`.
 
 The `configuration` crawler option is unchanged, as are `serviceLocator.getConfiguration()` and `serviceLocator.setConfiguration()`.
+
+### The event manager no longer follows the crawler run
+
+There is a single event manager per process, shared by all crawlers, and `crawler.run()` no longer initializes and closes it. It starts itself with the first listener and emits a final `persistState` event before the process exits, so a `RequestList`, a `SitemapRequestLoader` or a `KeyValueStore.getAutoSavedValue()` used outside of a crawler now persists its state periodically too. A crawler emits `persistState` at the end of every run.
+
+- Calling `init()` yourself takes over the lifecycle, and it is then on you to call `close()`. A custom event manager that needs to await something to start (e.g. a connection) has to be initialized this way.
+- To use a custom event manager, call `serviceLocator.setEventManager()` before anything else resolves one.
+- `persistStateIntervalMillis` and `systemInfoIntervalMillis` are read from the configuration of whoever resolves the event manager first, so set them on the global configuration rather than on the one passed to a crawler.
+- `LocalEventManager` emits `systemInfo` events only while something listens to them.
 
 ### Navigation and the request handler are timed separately
 

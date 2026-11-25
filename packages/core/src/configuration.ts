@@ -128,6 +128,9 @@ export interface Configuration extends ResolvedConfigValues {}
  * const crawler = new BasicCrawler({ configuration: config });
  * ```
  *
+ * The event manager is shared by the whole process, so `persistStateIntervalMillis` and `systemInfoIntervalMillis`
+ * are taken from the configuration of whoever uses it first - set them on the global configuration to be sure.
+ *
  * Configuration is immutable — values are set via the constructor and cannot be changed afterwards.
  * The priority order for resolving values is (highest to lowest):
  *
