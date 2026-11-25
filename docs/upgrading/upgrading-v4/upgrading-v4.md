@@ -1129,7 +1129,7 @@ With `respectRobotsTxtFile` enabled, a site that answers `/robots.txt` with a `5
 Crawlee keeps its internal state in the default key-value store. These records now use the `CRAWLEE_` prefix and upper snake case, with the dynamic part at the end. Crawlee for Python uses the same keys.
 
 | Record | v3 key | v4 key |
-|---|---|---|
+| --- | --- | --- |
 | `crawler.useState()` | `CRAWLEE_STATE` | `CRAWLEE_STATE_{id}` |
 | Crawler statistics | `SDK_CRAWLER_STATISTICS_{id}` | `CRAWLEE_CRAWLER_STATISTICS_{id}` |
 | Session pool | `SDK_SESSION_POOL_STATE` | `CRAWLEE_SESSION_POOL_STATE_{id}` |
