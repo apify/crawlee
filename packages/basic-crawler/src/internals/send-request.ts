@@ -2,7 +2,7 @@ import { Readable } from 'node:stream';
 
 import type { Request as CrawleeRequest } from '@crawlee/core';
 import type { BaseHttpClient } from '@crawlee/http-client';
-import type { HttpRequestOptions, ISession, SendRequestOptions } from '@crawlee/types';
+import type { ISession, SendRequestOptions, SendRequestOverrides } from '@crawlee/types';
 import { processHttpRequestOptions } from '@crawlee/utils/internal';
 
 /**
@@ -15,23 +15,22 @@ import { processHttpRequestOptions } from '@crawlee/utils/internal';
  */
 export function createSendRequest(httpClient: BaseHttpClient, originRequest: CrawleeRequest, session: ISession) {
     return async (
-        overrideRequest: Partial<HttpRequestOptions> = {},
+        overrideRequest: SendRequestOverrides = {},
         overrideOptions: SendRequestOptions = {},
     ): Promise<Response> => {
         const baseRequest = originRequest.intoFetchAPIRequest();
 
         const mergedHeaders = new Headers(baseRequest.headers);
-        if (overrideRequest.headers) {
-            overrideRequest.headers.forEach((value, key) => {
-                mergedHeaders.set(key, value);
-            });
-        }
+        new Headers(overrideRequest.headers).forEach((value, key) => {
+            mergedHeaders.set(key, value);
+        });
 
         const opts = processHttpRequestOptions({
             ...overrideRequest,
             url: overrideRequest.url ?? baseRequest.url,
             method: overrideRequest.method ?? originRequest.method,
             headers: mergedHeaders,
+            body: overrideRequest.body === undefined ? undefined : Readable.from(overrideRequest.body),
         });
 
         const request = new Request(opts.url, {
