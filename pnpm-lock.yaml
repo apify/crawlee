@@ -189,7 +189,7 @@ catalogs:
 
 overrides:
   '@puppeteer/browsers': ^3.0.4
-  apify: ^4.0.0-beta.46
+  apify: ^4.0.0-rc.2
   apify>@crawlee/core: workspace:*
   apify>@crawlee/fs-storage: workspace:*
   apify>@crawlee/types: workspace:*
@@ -322,7 +322,7 @@ importers:
         specifier: ^5.1.1
         version: 5.1.1(vitest@5.1.1)
       apify:
-        specifier: ^4.0.0-beta.46
+        specifier: ^4.0.0-rc.2
         version: 4.0.0-rc.2(axios@1.21.1(debug@4.4.3(supports-color@8.1.1))(supports-color@8.1.1))(bufferutil@4.2.0)
       apify-node-curl-impersonate:
         specifier: ^1.0.33
@@ -457,7 +457,7 @@ importers:
         specifier: ^1.45.0
         version: 1.45.0
       apify:
-        specifier: ^4.0.0-beta.46
+        specifier: ^4.0.0-rc.2
         version: 4.0.0-rc.2(axios@1.21.1(debug@4.4.3(supports-color@8.1.1))(supports-color@8.1.1))(bufferutil@4.2.0)
       crawlee:
         specifier: workspace:*
