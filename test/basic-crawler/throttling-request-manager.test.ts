@@ -1195,15 +1195,38 @@ describe('ThrottlingRequestManager', () => {
         });
 
         test('a restart reopens the queues of domains the previous run discovered', async () => {
-            const firstRun = new ThrottlingRequestManager({ inner: await createQueue(), domains: 'all' });
+            const firstRun = new ThrottlingRequestManager({
+                id: 'restart',
+                inner: await createQueue(),
+                domains: 'all',
+            });
             await firstRun.addRequest({ url: 'https://example.com/left-behind' });
 
             // A restart builds a brand new manager over the same storage backend, with nothing but the
             // persisted domain list to tell it that queue exists.
-            const secondRun = new ThrottlingRequestManager({ inner: await createQueue(), domains: 'all' });
+            const secondRun = new ThrottlingRequestManager({
+                id: 'restart',
+                inner: await createQueue(),
+                domains: 'all',
+            });
 
             expect(await secondRun.getPendingCount()).toBe(1);
             expect((await pollForNextRequest(secondRun)).url).toBe('https://example.com/left-behind');
+        });
+
+        test('the domain list is persisted under a key derived from the manager ID', async () => {
+            const named = new ThrottlingRequestManager({
+                id: 'my-manager',
+                inner: await createQueue(),
+                domains: 'all',
+            });
+            const generated = new ThrottlingRequestManager({ inner: await createQueue(), domains: 'all' });
+            await named.addRequest({ url: 'https://example.com/1' });
+            await generated.addRequest({ url: 'https://example.org/1' });
+
+            const store = await KeyValueStore.open();
+            expect(await store.getValue('CRAWLEE_THROTTLED_DOMAINS_my-manager')).toEqual(['example.com']);
+            expect(await store.getValue(`CRAWLEE_THROTTLED_DOMAINS_${generated.id}`)).toEqual(['example.org']);
         });
 
         test('a domain is recorded before its first request lands in the sub-queue', async () => {

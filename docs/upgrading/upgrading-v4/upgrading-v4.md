@@ -1126,7 +1126,23 @@ With `respectRobotsTxtFile` enabled, a site that answers `/robots.txt` with a `5
 
 ### Internal KVS keys renamed
 
-Several internal Crawlee keys were prefixed with the `SDK_` prefix for legacy reasons — these keys now start with `CRAWLEE_` instead. These are, e.g., `CRAWLEE_SESSION_POOL_STATE` or `CRAWLEE_CRAWLER_STATISTICS_{n}`.
+Crawlee keeps its internal state in the default key-value store. These records now use the `CRAWLEE_` prefix and upper snake case, with the dynamic part at the end. Crawlee for Python uses the same keys.
+
+| Record | v3 key | v4 key |
+|---|---|---|
+| `crawler.useState()` | `CRAWLEE_STATE` | `CRAWLEE_STATE_{id}` |
+| Crawler statistics | `SDK_CRAWLER_STATISTICS_{id}` | `CRAWLEE_CRAWLER_STATISTICS_{id}` |
+| Session pool | `SDK_SESSION_POOL_STATE` | `CRAWLEE_SESSION_POOL_STATE_{id}` |
+| Request list progress | `SDK_{name}-REQUEST_LIST_STATE` | `CRAWLEE_REQUEST_LIST_STATE_{name}` |
+| Request list requests | `SDK_{name}-REQUEST_LIST_REQUESTS` | `CRAWLEE_REQUEST_LIST_REQUESTS_{name}` |
+| Sitemap request loader | `SITEMAP_REQUEST_LIST_STATE` | `CRAWLEE_SITEMAP_REQUEST_LOADER_STATE` |
+| Rendering type predictor | `rendering-type-predictor-state` | `CRAWLEE_RENDERING_TYPE_PREDICTOR_STATE` |
+
+The `{id}` of `crawler.useState()` is the crawler's `id` option. Without it, the crawler uses its creation index, such as `'0'`. Crawlers without an `id` therefore no longer share one state object. To share the state, give the crawlers the same `id`.
+
+A `persistStateKey` or `persistRequestsKey` you pass to `RequestList` is used as it is. v3 added the `SDK_` prefix to it, so pass `SDK_my-key` to keep reading a v3 record stored under it. The `ThrottlingRequestManager` stores its domain list under `CRAWLEE_THROTTLED_DOMAINS_{id}`, where `{id}` comes from its new `id` option.
+
+v4 doesn't read the v3 keys. If you resume a v3 run with `purgeOnStart` disabled, these components start from an empty state. To keep a record, copy it to the new key before the first v4 run.
 
 ## Only if you subclassed crawlers or touched internals
 

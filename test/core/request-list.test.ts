@@ -8,9 +8,7 @@ import {
     ProxyConfiguration,
     Request,
     RequestList,
-    REQUESTS_PERSISTENCE_KEY,
     serviceLocator,
-    STATE_PERSISTENCE_KEY,
     StateValidationError,
 } from '@crawlee/core';
 import { BaseHttpClient } from '@crawlee/http-client';
@@ -323,7 +321,7 @@ describe('RequestList', () => {
         serviceLocator.getEventManager().emit(EventType.PERSIST_STATE);
         await sleep(20);
         expect(setValueSpy).toHaveBeenCalledTimes(1);
-        expect(setValueSpy).toHaveBeenLastCalledWith(`CRAWLEE_${PERSIST_STATE_KEY}`, requestList.getState());
+        expect(setValueSpy).toHaveBeenLastCalledWith(PERSIST_STATE_KEY, requestList.getState());
 
         // Do some other changes and persist it again.
         const request2 = await requestList.fetchNextRequest();
@@ -332,7 +330,7 @@ describe('RequestList', () => {
         serviceLocator.getEventManager().emit(EventType.PERSIST_STATE);
         await sleep(20);
         expect(setValueSpy).toHaveBeenCalledTimes(2);
-        expect(setValueSpy).toHaveBeenLastCalledWith(`CRAWLEE_${PERSIST_STATE_KEY}`, requestList.getState());
+        expect(setValueSpy).toHaveBeenLastCalledWith(PERSIST_STATE_KEY, requestList.getState());
 
         // Now initiate new request list from saved state and check that it's same as state
         // of original request list.
@@ -344,7 +342,7 @@ describe('RequestList', () => {
     test('a persisted record that does not match the sources fails validation', async () => {
         const sources = [1, 2, 3].map((i) => ({ url: `https://example.com/${i}` }));
         const store = await KeyValueStore.open();
-        await store.setValue('CRAWLEE_state-key', {
+        await store.setValue('state-key', {
             nextIndex: 1,
             nextUniqueKey: 'https://example.com/3',
             inProgress: [],
@@ -356,7 +354,7 @@ describe('RequestList', () => {
     test('a persisted record takes precedence over the state option', async () => {
         const sources = [1, 2, 3].map((i) => ({ url: `https://example.com/${i}` }));
         const store = await KeyValueStore.open();
-        await store.setValue('CRAWLEE_state-key', {
+        await store.setValue('state-key', {
             nextIndex: 2,
             nextUniqueKey: 'https://example.com/3',
             inProgress: [],
@@ -584,7 +582,6 @@ describe('RequestList', () => {
             const setValueSpy = vitest.spyOn(KeyValueStore.prototype, 'setValue');
 
             const name = 'xxx';
-            const CRAWLEE_KEY = `CRAWLEE_${name}`;
             const sources = [{ url: 'https://example.com' }];
 
             const rl = await RequestList.open(name, sources);
@@ -594,10 +591,10 @@ describe('RequestList', () => {
 
             // The persistence keys are derived from the list name, which shows in the keys it reads and writes.
             expect(keysPassedTo(getValueSpy)).toEqual([
-                `${CRAWLEE_KEY}-${REQUESTS_PERSISTENCE_KEY}`,
-                `${CRAWLEE_KEY}-${STATE_PERSISTENCE_KEY}`,
+                'CRAWLEE_REQUEST_LIST_REQUESTS_xxx',
+                'CRAWLEE_REQUEST_LIST_STATE_xxx',
             ]);
-            expect(keysPassedTo(setValueSpy)).toEqual([`${CRAWLEE_KEY}-${REQUESTS_PERSISTENCE_KEY}`]);
+            expect(keysPassedTo(setValueSpy)).toEqual(['CRAWLEE_REQUEST_LIST_REQUESTS_xxx']);
         });
 
         test('should work with string sources', async () => {
@@ -605,7 +602,6 @@ describe('RequestList', () => {
             const setValueSpy = vitest.spyOn(KeyValueStore.prototype, 'setValue');
 
             const name = 'xxx';
-            const CRAWLEE_KEY = `CRAWLEE_${name}`;
             const sources = ['https://example.com'];
             const requests = sources.map((url) => ({ url, uniqueKey: url }));
 
@@ -615,10 +611,10 @@ describe('RequestList', () => {
             await expect(rl.checkReadiness()).resolves.toEqual({ status: 'ready' });
 
             expect(keysPassedTo(getValueSpy)).toEqual([
-                `${CRAWLEE_KEY}-${REQUESTS_PERSISTENCE_KEY}`,
-                `${CRAWLEE_KEY}-${STATE_PERSISTENCE_KEY}`,
+                'CRAWLEE_REQUEST_LIST_REQUESTS_xxx',
+                'CRAWLEE_REQUEST_LIST_STATE_xxx',
             ]);
-            expect(keysPassedTo(setValueSpy)).toEqual([`${CRAWLEE_KEY}-${REQUESTS_PERSISTENCE_KEY}`]);
+            expect(keysPassedTo(setValueSpy)).toEqual(['CRAWLEE_REQUEST_LIST_REQUESTS_xxx']);
         });
 
         test('should correctly pass options', async () => {
@@ -626,7 +622,6 @@ describe('RequestList', () => {
             const setValueSpy = vitest.spyOn(KeyValueStore.prototype, 'setValue');
 
             const name = 'xxx';
-            const CRAWLEE_KEY = `CRAWLEE_${name}`;
             let counter = 0;
             const sources = [{ url: 'https://example.com' }];
             const requests = sources.map(({ url }) => ({ url, uniqueKey: `${url}-${counter++}` }));
@@ -643,10 +638,10 @@ describe('RequestList', () => {
 
             // The list name wins over the `persistStateKey` option.
             expect(keysPassedTo(getValueSpy)).toEqual([
-                `${CRAWLEE_KEY}-${REQUESTS_PERSISTENCE_KEY}`,
-                `${CRAWLEE_KEY}-${STATE_PERSISTENCE_KEY}`,
+                'CRAWLEE_REQUEST_LIST_REQUESTS_xxx',
+                'CRAWLEE_REQUEST_LIST_STATE_xxx',
             ]);
-            expect(keysPassedTo(setValueSpy)).toEqual([`${CRAWLEE_KEY}-${REQUESTS_PERSISTENCE_KEY}`]);
+            expect(keysPassedTo(setValueSpy)).toEqual(['CRAWLEE_REQUEST_LIST_REQUESTS_xxx']);
         });
 
         test('should work with null name', async () => {

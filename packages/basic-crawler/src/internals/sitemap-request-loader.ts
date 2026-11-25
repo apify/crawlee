@@ -39,7 +39,7 @@ const sitemapRequestLoaderOptionsSchema = z.strictObject({
 });
 
 /** @internal */
-const STATE_PERSISTENCE_KEY = 'SITEMAP_REQUEST_LOADER_STATE';
+const STATE_PERSISTENCE_KEY = 'CRAWLEE_SITEMAP_REQUEST_LOADER_STATE';
 
 interface UrlConstraints {
     /**

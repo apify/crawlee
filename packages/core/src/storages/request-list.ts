@@ -17,10 +17,10 @@ import type { IRequestManager } from './request-manager.js';
 import { purgeDefaultStorages } from './utils.js';
 
 /** @internal */
-export const STATE_PERSISTENCE_KEY = 'REQUEST_LIST_STATE';
+export const STATE_PERSISTENCE_KEY = 'CRAWLEE_REQUEST_LIST_STATE';
 
 /** @internal */
-export const REQUESTS_PERSISTENCE_KEY = 'REQUEST_LIST_REQUESTS';
+export const REQUESTS_PERSISTENCE_KEY = 'CRAWLEE_REQUEST_LIST_REQUESTS';
 
 const CONTENT_TYPE_BINARY = 'application/octet-stream';
 
@@ -417,8 +417,8 @@ export class RequestList implements IRequestLoader {
             throw new Error('At least one of "sources" or "sourcesFunction" must be provided.');
         }
 
-        this.#persistStateKey = persistStateKey ? `CRAWLEE_${persistStateKey}` : persistStateKey;
-        this.#persistRequestsKey = persistRequestsKey ? `CRAWLEE_${persistRequestsKey}` : persistRequestsKey;
+        this.#persistStateKey = persistStateKey;
+        this.#persistRequestsKey = persistRequestsKey;
         this.#httpClient = httpClient;
 
         this.#stateCodec = buildRequestListStateCodec({
@@ -504,7 +504,6 @@ export class RequestList implements IRequestLoader {
         // We don't need the sources so we purge them to
         // prevent them from hanging in memory.
         for (let i = 0; i < this.#sources.length; i++) {
-            // oxlint-disable-next-line typescript/no-array-delete -- intentional, drop the slot so V8 can collect the object
             delete this.#sources[i];
         }
         this.#sources = [];
@@ -529,7 +528,6 @@ export class RequestList implements IRequestLoader {
             const source = this.#sources[i];
             // Using delete here to drop the original object ASAP to free memory
             // .pop would reverse the array and .shift is SLOW.
-            // oxlint-disable-next-line typescript/no-array-delete
             delete this.#sources[i];
 
             if (typeof source === 'object' && (source as Dictionary).requestsFromUrl) {
@@ -549,7 +547,6 @@ export class RequestList implements IRequestLoader {
                 const sourcesFromFunctionCount = sourcesFromFunction.length;
                 for (let i = 0; i < sourcesFromFunctionCount; i++) {
                     const source = sourcesFromFunction[i];
-                    // oxlint-disable-next-line typescript/no-array-delete -- intentional, drop the slot so V8 can collect the object
                     delete sourcesFromFunction[i];
                     this.#addRequest(source);
                 }
@@ -877,8 +874,8 @@ export class RequestList implements IRequestLoader {
      *   is only stored in memory, a restart or migration wipes it clean. Setting a name will enable the `RequestList`'s
      *   state to survive those situations and continue where it left off.
      *
-     *   The name will be used as a prefix in key-value store, producing keys such as `NAME-REQUEST_LIST_STATE`
-     *   and `NAME-REQUEST_LIST_SOURCES`.
+     *   The name will be used as a suffix in key-value store, producing keys such as `CRAWLEE_REQUEST_LIST_STATE_NAME`
+     *   and `CRAWLEE_REQUEST_LIST_REQUESTS_NAME`.
      *
      *   If `null`, the list will not be persisted and will only be stored in memory. Process restart
      *   will then cause the list to be crawled again from the beginning. We suggest always using a name.
@@ -922,8 +919,8 @@ export class RequestList implements IRequestLoader {
 
         const rl = new RequestList({
             ...options,
-            persistStateKey: listName ? `${listName}-${STATE_PERSISTENCE_KEY}` : options.persistStateKey,
-            persistRequestsKey: listName ? `${listName}-${REQUESTS_PERSISTENCE_KEY}` : options.persistRequestsKey,
+            persistStateKey: listName ? `${STATE_PERSISTENCE_KEY}_${listName}` : options.persistStateKey,
+            persistRequestsKey: listName ? `${REQUESTS_PERSISTENCE_KEY}_${listName}` : options.persistRequestsKey,
             sources: sources ?? options.sources,
         });
         await rl.#initialize();
