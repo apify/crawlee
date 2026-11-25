@@ -544,7 +544,10 @@ describe('ThrottlingRequestManager', () => {
             expect(fromInner.url).toBe('https://example.com/inner');
 
             // Re-opening the deterministic alias yields the same cached frontend the manager routes to.
-            const subQueue = await RequestQueue.open({ alias: 'throttled-example.com' }, { storageBackend });
+            const subQueue = await RequestQueue.open(
+                { alias: `throttled-${manager.id}-example.com` },
+                { storageBackend },
+            );
             const innerSpy = vi.spyOn(inner.backend, 'extendRequestProcessingTime');
             const subSpy = vi.spyOn(subQueue.backend, 'extendRequestProcessingTime');
 
@@ -686,12 +689,12 @@ describe('ThrottlingRequestManager', () => {
     test('picks up requests left in per-domain sub-queues by a previous run (if purgeOnStart is not enabled)', async () => {
         const domains = ['example.com'];
 
-        const firstRun = new ThrottlingRequestManager({ inner: await createQueue(), domains });
+        const firstRun = new ThrottlingRequestManager({ id: 'restart', inner: await createQueue(), domains });
         await firstRun.addRequest({ url: 'https://example.com/left-behind' });
         expect(await firstRun.getPendingCount()).toBe(1);
 
-        // A restart builds a brand new manager over the same storage backend.
-        const secondRun = new ThrottlingRequestManager({ inner: await createQueue(), domains });
+        // A restart builds a brand new manager with the same ID over the same storage backend.
+        const secondRun = new ThrottlingRequestManager({ id: 'restart', inner: await createQueue(), domains });
 
         expect((await secondRun.checkReadiness()).status).toBe('ready');
         expect(await secondRun.getPendingCount()).toBe(1);
@@ -701,13 +704,13 @@ describe('ThrottlingRequestManager', () => {
     test('purge empties per-domain sub-queues it has not touched yet', async () => {
         const domains = ['example.com'];
 
-        const firstRun = new ThrottlingRequestManager({ inner: await createQueue(), domains });
+        const firstRun = new ThrottlingRequestManager({ id: 'purge', inner: await createQueue(), domains });
         await firstRun.addRequest({ url: 'https://example.com/stale' });
 
-        const subQueue = await RequestQueue.open({ alias: 'throttled-example.com' });
+        const subQueue = await RequestQueue.open({ alias: 'throttled-purge-example.com' });
         expect(await subQueue.getPendingCount()).toBe(1);
 
-        const secondRun = new ThrottlingRequestManager({ inner: await createQueue(), domains });
+        const secondRun = new ThrottlingRequestManager({ id: 'purge', inner: await createQueue(), domains });
         await secondRun.purge();
 
         expect(await subQueue.getPendingCount()).toBe(0);
@@ -719,7 +722,7 @@ describe('ThrottlingRequestManager', () => {
         const manager = new ThrottlingRequestManager({ inner, domains: ['example.com'] });
         await manager.addRequest({ url: 'https://example.com/stale' });
 
-        const subQueue = await RequestQueue.open({ alias: 'throttled-example.com' });
+        const subQueue = await RequestQueue.open({ alias: `throttled-${manager.id}-example.com` });
         expect(await subQueue.getPendingCount()).toBe(1);
 
         vitest.spyOn(inner, 'purge').mockRejectedValue(new Error('cannot empty a request queue in place'));
@@ -821,7 +824,7 @@ describe('ThrottlingRequestManager', () => {
 
             // Its backoff has run out, so its own queue would happily hand the request over.
             advanceClock(1_000);
-            const subQueue = await RequestQueue.open({ alias: 'throttled-example.com' });
+            const subQueue = await RequestQueue.open({ alias: `throttled-${manager.id}-example.com` });
             await expect(subQueue.checkReadiness()).resolves.toEqual({ status: 'ready' });
 
             expect((await manager.checkReadiness()).status).toBe('stalled');
@@ -1227,6 +1230,16 @@ describe('ThrottlingRequestManager', () => {
             const store = await KeyValueStore.open();
             expect(await store.getValue('CRAWLEE_THROTTLED_DOMAINS_my-manager')).toEqual(['example.com']);
             expect(await store.getValue(`CRAWLEE_THROTTLED_DOMAINS_${generated.id}`)).toEqual(['example.org']);
+        });
+
+        test('managers with different IDs keep separate per-domain queues', async () => {
+            const domains = ['example.com'];
+            const first = new ThrottlingRequestManager({ id: 'first', inner: await createQueue(), domains });
+            const second = new ThrottlingRequestManager({ id: 'second', inner: await createQueue(), domains });
+            await first.addRequest({ url: 'https://example.com/first' });
+
+            expect(await second.getPendingCount()).toBe(0);
+            expect((await pollForNextRequest(first)).url).toBe('https://example.com/first');
         });
 
         test('a domain is recorded before its first request lands in the sub-queue', async () => {

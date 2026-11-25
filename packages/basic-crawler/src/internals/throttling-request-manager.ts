@@ -118,8 +118,9 @@ export interface ThrottlingRequestManagerOptions<T extends IRequestManager = IRe
     maxThrottledDomains?: number;
 
     /**
-     * Unique identifier for this manager instance. Used to generate a unique persistence key when
-     * `persistStateKey` is not provided. If not provided, an auto-incrementing ID is used.
+     * Unique identifier for this manager instance. Used in the aliases of the per-domain queues, and in the
+     * persistence key when `persistStateKey` is not provided. If not provided, an auto-incrementing ID is used.
+     * Explicit IDs share one namespace with the generated ones, so avoid explicit IDs like `'0'` or `'1'`.
      */
     id?: string | number;
 
@@ -132,7 +133,7 @@ export interface ThrottlingRequestManagerOptions<T extends IRequestManager = IRe
     persistStateKey?: string;
 
     /**
-     * Opens the per-domain queues, one per throttled domain, each under the alias `throttled-<domain>`.
+     * Opens the per-domain queues, one per throttled domain, each under the alias `throttled-<id>-<domain>`.
      * @default RequestQueue.open
      * @internal
      */
@@ -545,8 +546,9 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         if (!subManager) {
             subManager = this.#requestManagerOpener(
                 // Backends use the alias as a directory name, and an IPv6 literal is full of characters
-                // Windows will not accept. Ordinary hostnames survive this untouched.
-                { alias: `throttled-${encodeURIComponent(domain)}` },
+                // Windows will not accept. Ordinary hostnames survive this untouched. The manager ID keeps
+                // the queues of two managers apart.
+                { alias: `throttled-${encodeURIComponent(this.id)}-${encodeURIComponent(domain)}` },
                 { configuration: this.#configuration },
             );
             this.#subManagers.set(domain, subManager);
