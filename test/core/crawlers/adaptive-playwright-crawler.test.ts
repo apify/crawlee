@@ -170,7 +170,6 @@ describe('AdaptivePlaywrightCrawler', () => {
         sources: string[],
     ) =>
         new AdaptivePlaywrightCrawler({
-            id: 'adaptive-crawler',
             renderingTypeDetectionRatio: 0.1,
             maxConcurrency: 1,
             maxRequestRetries: 0,
@@ -839,7 +838,7 @@ describe('AdaptivePlaywrightCrawler', () => {
 
         await crawler.run();
         // Reading through the KeyValueStore frontend parses the JSON value for us.
-        expect(await (await KeyValueStore.open()).getValue('CRAWLEE_STATE_adaptive-crawler')).toEqual({ count: 3 });
+        expect(await (await KeyValueStore.open()).getValue('CRAWLEE_STATE')).toEqual({ count: 3 });
     });
 
     describe('writes of a discarded attempt', () => {
@@ -890,7 +889,7 @@ describe('AdaptivePlaywrightCrawler', () => {
             await crawler.run();
 
             expect(seenUserData).toEqual([{}, {}]);
-            expect(await (await KeyValueStore.open()).getValue('CRAWLEE_STATE_adaptive-crawler')).toEqual({
+            expect(await (await KeyValueStore.open()).getValue('CRAWLEE_STATE')).toEqual({
                 count: 1,
                 visited: [`http://${HOSTNAME}:${port}/static`],
             });
@@ -922,7 +921,7 @@ describe('AdaptivePlaywrightCrawler', () => {
                 detectionProbabilityRecommendation: 1,
                 renderingType: 'clientOnly',
             });
-            await (await KeyValueStore.open()).setValue('CRAWLEE_STATE_adaptive-crawler', { seeded: true });
+            await (await KeyValueStore.open()).setValue('CRAWLEE_STATE', { seeded: true });
 
             const seen: Dictionary[] = [];
             const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = async (context) => {
@@ -944,9 +943,7 @@ describe('AdaptivePlaywrightCrawler', () => {
             await crawler.run();
 
             expect(seen).toEqual([{ seeded: true }, { seeded: true, rerun: true }]);
-            expect(await (await KeyValueStore.open()).getValue('CRAWLEE_STATE_adaptive-crawler')).toEqual({
-                seeded: true,
-            });
+            expect(await (await KeyValueStore.open()).getValue('CRAWLEE_STATE')).toEqual({ seeded: true });
         });
 
         test('the detection rerun (HTTP) sees the request as it was before the browser attempt', async () => {
@@ -1010,9 +1007,7 @@ describe('AdaptivePlaywrightCrawler', () => {
                 { state: {}, userData: {} },
                 { state: {}, userData: {} },
             ]);
-            expect(await (await KeyValueStore.open()).getValue('CRAWLEE_STATE_adaptive-crawler')).toEqual({
-                stored: true,
-            });
+            expect(await (await KeyValueStore.open()).getValue('CRAWLEE_STATE')).toEqual({ stored: true });
         });
     });
 

@@ -594,11 +594,13 @@ export interface BasicCrawlerOptions<
 
     /**
      * A unique identifier for the crawler instance. This ID is used to isolate the state returned by
-     * {@apilink BasicCrawler.useState|`crawler.useState()`} from other crawler instances. The state is stored
-     * under the `CRAWLEE_STATE_{id}` key. Crawlers with the same `id` share the state.
+     * {@apilink BasicCrawler.useState|`crawler.useState()`} from other crawler instances.
      *
-     * Without an `id`, the crawler uses its creation index, such as `'0'`. To make sure the state persists across
-     * script restarts (e.g., during Apify migrations), provide a stable, unique ID for each crawler instance.
+     * When multiple crawler instances use `useState()` without an explicit `id`, they will share the same
+     * state object for backward compatibility. A warning will be logged in this case.
+     *
+     * To ensure each crawler has its own isolated state that also persists across script restarts
+     * (e.g., during Apify migrations), provide a stable, unique ID for each crawler instance.
      * Explicit IDs share one namespace with the generated ones, so avoid explicit IDs like `'0'` or `'1'`.
      */
     id?: string;
@@ -714,6 +716,8 @@ interface CrawlerIdentity {
     readonly instanceIndex: number;
     /** The user-supplied `id` option, or a fallback derived from `instanceIndex`. */
     readonly id: string;
+    /** Whether `id` came from the user (as opposed to being derived from `instanceIndex`). */
+    readonly hasExplicitId: boolean;
 }
 
 export class BasicCrawler<
@@ -731,6 +735,12 @@ export class BasicCrawler<
      * collide.
      */
     static #instanceCount = 0;
+
+    /**
+     * Tracks crawler instances that accessed shared state without having an explicit id.
+     * Used to detect and warn about multiple crawlers sharing the same state.
+     */
+    static #useStateAnonymousIndices = new Set<number>();
 
     /** Backs the {@apilink BasicCrawler.statistics|`statistics`} getter. */
     #statisticsDep: OwnedOrInjected<IStatistics<StatisticStateExtension>, Statistics<StatisticStateExtension>>;
@@ -1084,7 +1094,7 @@ export class BasicCrawler<
             serviceLocator.getConfiguration();
 
             const instanceIndex = BasicCrawler.#instanceCount++;
-            this.#identity = { instanceIndex, id: id ?? String(instanceIndex) };
+            this.#identity = { instanceIndex, hasExplicitId: id !== undefined, id: id ?? String(instanceIndex) };
 
             if (requestManager !== undefined && (requestList !== undefined || requestQueue !== undefined)) {
                 throw new Error(
@@ -1986,7 +1996,25 @@ export class BasicCrawler<
     async useState<State extends Dictionary = Dictionary>(defaultValue = {} as State): Promise<State> {
         const kvs = await KeyValueStore.open(null, { configuration: serviceLocator.getConfiguration() });
 
-        return kvs.getAutoSavedValue<State>(`${BasicCrawler.#CRAWLEE_STATE_KEY}_${this.#identity.id}`, defaultValue);
+        if (this.#identity.hasExplicitId) {
+            const stateKey = `${BasicCrawler.#CRAWLEE_STATE_KEY}_${this.#identity.id}`;
+            return kvs.getAutoSavedValue<State>(stateKey, defaultValue);
+        }
+
+        BasicCrawler.#useStateAnonymousIndices.add(this.#identity.instanceIndex);
+
+        if (BasicCrawler.#useStateAnonymousIndices.size > 1) {
+            serviceLocator
+                .getLogger()
+                .warningOnce(
+                    'Multiple crawler instances are calling useState() without an explicit `id` option. \n' +
+                        'This means they will share the same state object, which is likely unintended. \n' +
+                        'To fix this, provide a unique `id` option to each crawler instance. \n' +
+                        'Example: new BasicCrawler({ id: "my-crawler-1", ... })',
+                );
+        }
+
+        return kvs.getAutoSavedValue<State>(BasicCrawler.#CRAWLEE_STATE_KEY, defaultValue);
     }
 
     async #getPendingRequestCountApproximation(): Promise<number> {
