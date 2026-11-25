@@ -17,7 +17,6 @@ import type { DatasetExportOptions } from '@crawlee/core';
 import { Dictionary } from '@crawlee/types';
 import { EnqueueStrategy } from '@crawlee/utils';
 import type { EnqueueStrategyOption } from '@crawlee/core';
-import type { HttpRequestOptions } from '@crawlee/types';
 import { IProxyConfiguration } from '@crawlee/core';
 import { IRequestLoader } from '@crawlee/core';
 import { IRequestManager } from '@crawlee/core';
@@ -39,6 +38,7 @@ import type { RequestSchema } from '@crawlee/types';
 import type { RequestsLike } from '@crawlee/core';
 import type { RequestSourceStatus } from '@crawlee/core';
 import type { SendRequestOptions } from '@crawlee/types';
+import type { SendRequestOverrides } from '@crawlee/types';
 import type { SessionFingerprint } from '@crawlee/types';
 import type { SetStatusMessageOptions } from '@crawlee/types';
 import { Source } from '@crawlee/core';
@@ -276,7 +276,7 @@ export interface CrawlingContext<UserData extends Dictionary = Dictionary> exten
     afterStorageCommit(callback: (error?: Error) => Awaitable<void>): void;
     extendTimeout(secs: number): void;
     registerDeferredCleanup(cleanup: () => Promise<unknown>): void;
-    sendRequest: (requestOverrides?: Partial<HttpRequestOptions>, optionsOverrides?: SendRequestOptions) => Promise<Response>;
+    sendRequest: (requestOverrides?: SendRequestOverrides, optionsOverrides?: SendRequestOptions) => Promise<Response>;
 }
 
 // @public

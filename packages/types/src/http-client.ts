@@ -44,6 +44,15 @@ export interface HttpRequestOptions extends HttpRequest {
     password?: string;
 }
 
+/**
+ * Request overrides accepted by the `sendRequest` context helper. Unlike {@apilink HttpRequestOptions}, headers may be any
+ * `HeadersInit` and the body may be a string or a `Buffer`.
+ */
+export type SendRequestOverrides = Omit<Partial<HttpRequestOptions>, 'headers' | 'body'> & {
+    headers?: HeadersInit;
+    body?: string | Buffer | Readable;
+};
+
 export interface SendRequestOptions {
     session?: ISession;
     cookieJar?: CookieJar;

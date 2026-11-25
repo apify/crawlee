@@ -432,6 +432,12 @@ export interface SendRequestOptions {
 }
 
 // @public
+export type SendRequestOverrides = Omit<Partial<HttpRequestOptions>, 'headers' | 'body'> & {
+    headers?: HeadersInit;
+    body?: string | Buffer | Readable;
+};
+
+// @public
 export interface SerializedCookieJar {
     // (undocumented)
     [key: string]: unknown;

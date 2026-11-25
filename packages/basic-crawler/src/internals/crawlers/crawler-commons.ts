@@ -1,10 +1,10 @@
 import type {
     Awaitable,
     Dictionary,
-    HttpRequestOptions,
     ISession,
     ProxyInfo,
     SendRequestOptions,
+    SendRequestOverrides,
 } from '@crawlee/types';
 import type { ReadonlyDeep } from 'type-fest';
 
@@ -203,10 +203,7 @@ export interface CrawlingContext<UserData extends Dictionary = Dictionary> exten
      * },
      * ```
      */
-    sendRequest: (
-        requestOverrides?: Partial<HttpRequestOptions>,
-        optionsOverrides?: SendRequestOptions,
-    ) => Promise<Response>;
+    sendRequest: (requestOverrides?: SendRequestOverrides, optionsOverrides?: SendRequestOptions) => Promise<Response>;
 
     /**
      * Register a function to be called at the very end of the request handling process. This is useful for resources that should be accessible to error handlers, for instance.
