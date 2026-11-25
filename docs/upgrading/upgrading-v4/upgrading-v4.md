@@ -99,7 +99,7 @@ Support for older node versions was dropped.
 
 ### Actor projects need Apify SDK v4
 
-Apify SDK 3.x does not run on `@crawlee/core@4`. Projects that depend on `apify` upgrade to `apify@4` together with Crawlee. The SDK has its own breaking changes to go through after the bump.
+Apify SDK 3.x does not run on `@crawlee/core@4`. Projects that depend on `apify` upgrade to `apify@4` together with Crawlee. The SDK has its own breaking changes to go through after the bump, see its [v4 upgrade guide](https://docs.apify.com/sdk/js/docs/next/upgrading/upgrading-to-v4).
 
 ### Collaborators you own are disposable
 
@@ -508,6 +508,24 @@ const crawler = new BasicCrawler({
     // sessionPoolOptions: { maxUsageCount: 5 },
     sessionPool: new SessionPool({
         sessionOptions: { maxUsageCount: 5 },
+    }),
+});
+```
+
+When a `sessionPool` is supplied, the crawler ignores its `proxyConfiguration` option (with a warning), so a crawler that combined `sessionPoolOptions` with `proxyConfiguration` would silently stop using proxies. Assign the proxies in the pool's `createSessionFunction` instead:
+
+```typescript
+import { Session, SessionPool } from '@crawlee/basic';
+
+const crawler = new BasicCrawler({
+    // proxyConfiguration is not passed to the crawler anymore
+    sessionPool: new SessionPool({
+        sessionOptions: { maxUsageCount: 5 },
+        createSessionFunction: async (opts) =>
+            new Session({
+                ...opts?.sessionOptions,
+                proxyInfo: await proxyConfiguration.newProxyInfo(opts?.sessionOptions?.proxyInfo),
+            }),
     }),
 });
 ```
