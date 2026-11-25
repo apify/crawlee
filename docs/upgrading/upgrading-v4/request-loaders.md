@@ -140,7 +140,7 @@ import { SitemapRequestLoader } from 'crawlee';
 const loader = await SitemapRequestLoader.open({ sitemapUrls: ['https://example.com/sitemap.xml'] });
 ```
 
-The default `KeyValueStore` key used to persist the loader's state was also renamed from `SITEMAP_REQUEST_LIST_STATE` to `SITEMAP_REQUEST_LOADER_STATE`. State persisted under the old key by a v3 run will **not** be picked up after upgrading; resuming a v3 crawl on v4 is not supported, so finish or discard in-flight sitemap crawls before upgrading.
+The default `KeyValueStore` key used to persist the loader's state was also renamed from `SITEMAP_REQUEST_LIST_STATE` to `CRAWLEE_SITEMAP_REQUEST_LOADER_STATE`. State persisted under the old key by a v3 run will **not** be picked up after upgrading; resuming a v3 crawl on v4 is not supported, so finish or discard in-flight sitemap crawls before upgrading.
 
 ### Crawler `requestList` / `requestQueue` options deprecated in favor of `requestManager`
 

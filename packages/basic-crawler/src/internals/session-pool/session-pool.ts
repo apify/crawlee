@@ -121,6 +121,7 @@ export interface SessionPoolOptions {
      * Unique identifier for this session pool instance. Used to generate a unique
      * persistence key when `persistStateKey` is not provided.
      * If not provided, an auto-incrementing ID is used.
+     * Explicit IDs share one namespace with the generated ones, so avoid explicit IDs like `'0'` or `'1'`.
      */
     id?: string | number;
 

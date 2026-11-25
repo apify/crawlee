@@ -29,6 +29,7 @@ import {
 import { parseArgument, schemas } from '@crawlee/utils/internal';
 
 const throttlingRequestManagerOptionsSchema = z.strictObject({
+    id: z.union([schemas.anyNumber, z.string()]).optional(),
     inner: z.union([schemas.anyObject, schemas.anyFunction]).optional(),
     domains: z.union([schemas.arrayOf(z.string().nonempty(), 'non-empty strings'), z.literal('all')]),
     requestManagerOpener: schemas.anyFunction.optional(),
@@ -117,17 +118,22 @@ export interface ThrottlingRequestManagerOptions<T extends IRequestManager = IRe
     maxThrottledDomains?: number;
 
     /**
+     * Unique identifier for this manager instance. Used in the aliases of the per-domain queues, and in the
+     * persistence key when `persistStateKey` is not provided. If not provided, an auto-incrementing ID is used.
+     * Explicit IDs share one namespace with the generated ones, so avoid explicit IDs like `'0'` or `'1'`.
+     */
+    id?: string | number;
+
+    /**
      * The key under which the discovered domain list is kept in the default key-value store, so that a restart
      * with `purgeOnStart` disabled reopens their queues instead of stranding whatever they still hold. Only
      * written under `domains: 'all'`.
-     *
-     * Give each manager its own key when running several of them against the same storage.
-     * @default 'CRAWLEE_THROTTLED_DOMAINS'
+     * @default CRAWLEE_THROTTLED_DOMAINS_{id}
      */
     persistStateKey?: string;
 
     /**
-     * Opens the per-domain queues, one per throttled domain, each under the alias `throttled-<domain>`.
+     * Opens the per-domain queues, one per throttled domain, each under the alias `throttled-<id>-<domain>`.
      * @default RequestQueue.open
      * @internal
      */
@@ -224,7 +230,7 @@ function newDomainState(domain: string): DomainState {
     };
 }
 
-const DEFAULT_PERSIST_STATE_KEY = 'CRAWLEE_THROTTLED_DOMAINS';
+const PERSIST_STATE_KEY = 'CRAWLEE_THROTTLED_DOMAINS';
 
 /**
  * How many requests one fetch may move out of the wrapped manager before giving up on finding a dispatchable
@@ -279,6 +285,10 @@ const MAX_INNER_MIGRATIONS = 1000;
  * @category Sources
  */
 export class ThrottlingRequestManager<T extends IRequestManager = IRequestManager> implements IRequestManager {
+    static #nextId = 0;
+
+    /** The identifier used in the per-domain queue aliases and the default `persistStateKey`. */
+    readonly id: string;
     readonly #innerFactory: () => T | Promise<T>;
     #innerPromise?: Promise<T>;
     #resolvedInner?: T;
@@ -370,7 +380,8 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         this.#throttlesEveryDomain = options.domains === 'all';
         this.#throttleBy = options.throttleBy ?? 'hostname';
         this.#maxThrottledDomains = options.maxThrottledDomains ?? 100;
-        this.#persistStateKey = options.persistStateKey ?? DEFAULT_PERSIST_STATE_KEY;
+        this.id = options.id != null ? String(options.id) : String(ThrottlingRequestManager.#nextId++);
+        this.#persistStateKey = options.persistStateKey ?? `${PERSIST_STATE_KEY}_${this.id}`;
         this.#log = serviceLocator.getLogger().child({ prefix: 'ThrottlingRequestManager' });
 
         for (const domain of Array.isArray(options.domains) ? options.domains : []) {
@@ -535,8 +546,11 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         if (!subManager) {
             subManager = this.#requestManagerOpener(
                 // Backends use the alias as a directory name, and an IPv6 literal is full of characters
-                // Windows will not accept. Ordinary hostnames survive this untouched.
-                { alias: `throttled-${encodeURIComponent(domain)}` },
+                // Windows will not accept. Ordinary hostnames survive this untouched. The manager ID keeps
+                // the queues of two managers apart, with its `-` escaped so the first `-` after it ends it.
+                {
+                    alias: `throttled-${encodeURIComponent(this.id).replaceAll('-', '%2D')}-${encodeURIComponent(domain)}`,
+                },
                 { configuration: this.#configuration },
             );
             this.#subManagers.set(domain, subManager);

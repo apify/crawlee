@@ -398,6 +398,7 @@ export class RenderingTypePredictor implements IRenderingTypePredictor {
     // (undocumented)
     [Symbol.asyncDispose](): Promise<void>;
     constructor(input: RenderingTypePredictorOptions);
+    readonly id: string;
     initialize(): Promise<void>;
     predict(input: Request_2): {
         renderingType: RenderingType;
@@ -411,6 +412,7 @@ export class RenderingTypePredictor implements IRenderingTypePredictor {
 // @public (undocumented)
 interface RenderingTypePredictorOptions {
     detectionRatio: number;
+    id?: string | number;
     // (undocumented)
     persistenceOptions?: Partial<RecoverableStatePersistenceOptions>;
 }

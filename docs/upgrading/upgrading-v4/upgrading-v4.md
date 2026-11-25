@@ -82,7 +82,7 @@ The purely mechanical renames, collected in one place. Where a row links to a se
 | `statistics.startJob()` / `finishJob()` / `failJob()` | `recordRequestStart()` / `recordRequestSuccess()` / `recordRequestFailure()` ([details](./statistics.md#the-request-recording-methods-are-renamed)) |
 | `browserPoolOptions` | `browserPool` + a `*BrowserPool()` factory ([details](#browserpooloptions-is-removed)) |
 | `gotScraping` (from `@crawlee/utils`) | `GotScrapingHttpClient` (`@crawlee/got-scraping-client`) |
-| `SDK_`-prefixed internal KVS keys | `CRAWLEE_`-prefixed ([details](#internal-kvs-keys-renamed)) |
+| Internal KVS keys (`SDK_*` and others) | `CRAWLEE_*` keys ([details](#internal-kvs-keys-renamed)) |
 | `ArgumentError` (from `ow`) | `ArgumentValidationError` ([details](#argument-validation-errors-use-zod)) |
 
 ## Changes most users will hit
@@ -566,7 +566,7 @@ The `PersistenceOptions` argument of `persistState()` and `resetStore()` and the
 
 With both `state` and `persistStateKey` set, the record now wins. Previously `state` did. The option is also validated up front: `nextIndex` must be a non-negative integer and `inProgress` an array of unique keys. The `@internal` `isStatePersisted` flag is gone.
 
-Both `SessionPool` and `RequestList` now persist through `RecoverableState`, like `Statistics`. Resuming a v3 crawl on v4 is not supported: `RequestList` stores its records under `CRAWLEE_`-prefixed keys where v3 used `SDK_`, so a v4 run does not find a v3 run's state and starts the list from the beginning. Finish or discard in-flight crawls before upgrading.
+Both `SessionPool` and `RequestList` now persist through `RecoverableState`, like `Statistics`. Resuming a v3 crawl on v4 is not supported: `RequestList` stores its records under [new keys](#internal-kvs-keys-renamed), so a v4 run does not find a v3 run's state and starts the list from the beginning. Finish or discard in-flight crawls before upgrading.
 
 ### `retireOnBlockedStatusCodes` is removed from `Session`
 
@@ -1184,7 +1184,20 @@ With `respectRobotsTxtFile` enabled, a site that answers `/robots.txt` with a `5
 
 ### Internal KVS keys renamed
 
-Several internal Crawlee keys were prefixed with the `SDK_` prefix for legacy reasons — these keys now start with `CRAWLEE_` instead. These are, e.g., `CRAWLEE_SESSION_POOL_STATE_{id}` (the pool id is now appended) or `CRAWLEE_CRAWLER_STATISTICS_{n}`.
+Crawlee keeps its internal state in the default key-value store. These records now use the `CRAWLEE_` prefix and upper snake case, with the dynamic part at the end. Crawlee for Python uses the same keys.
+
+| Record | v3 key | v4 key |
+| --- | --- | --- |
+| Crawler statistics | `SDK_CRAWLER_STATISTICS_{id}` | `CRAWLEE_CRAWLER_STATISTICS_{id}` |
+| Session pool | `SDK_SESSION_POOL_STATE` | `CRAWLEE_SESSION_POOL_STATE_{id}` |
+| Request list progress | `SDK_{name}-REQUEST_LIST_STATE` | `CRAWLEE_REQUEST_LIST_STATE_{name}` |
+| Request list requests | `SDK_{name}-REQUEST_LIST_REQUESTS` | `CRAWLEE_REQUEST_LIST_REQUESTS_{name}` |
+| Sitemap request loader | `SITEMAP_REQUEST_LIST_STATE` | `CRAWLEE_SITEMAP_REQUEST_LOADER_STATE` |
+| Rendering type predictor | `rendering-type-predictor-state` | `CRAWLEE_RENDERING_TYPE_PREDICTOR_STATE_{id}` |
+
+A `persistStateKey` or `persistRequestsKey` you pass to `RequestList` is used as it is, without the `SDK_` prefix v3 added, so a v4 run doesn't find the v3 record under `SDK_{key}`. The `{id}` of the statistics, the session pool, the rendering type predictor and the `ThrottlingRequestManager` comes from their `id` option. Without one, each class numbers its instances in creation order. The ones a crawler creates take the crawler's `id` option when it is set. Adaptive crawlers no longer share one rendering type model. The `ThrottlingRequestManager` stores its domain list under `CRAWLEE_THROTTLED_DOMAINS_{id}` and opens its per-domain queues under the alias `throttled-{id}-{domain}`.
+
+v4 doesn't read the v3 keys. Resuming a v3 crawl on v4 is not supported, so finish or discard in-flight crawls before upgrading.
 
 ## Only if you subclassed crawlers or touched internals
 

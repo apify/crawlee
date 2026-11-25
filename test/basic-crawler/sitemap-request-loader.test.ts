@@ -4,7 +4,7 @@ import { Readable } from 'node:stream';
 import { finished } from 'node:stream/promises';
 
 import { CrawlingRequest, SitemapRequestLoader } from '@crawlee/basic';
-import { MemoryStorageBackend, type Request, serviceLocator } from '@crawlee/core';
+import { KeyValueStore, MemoryStorageBackend, type Request, serviceLocator } from '@crawlee/core';
 import { FetchHttpClient } from '@crawlee/http-client';
 import { sleep } from '@crawlee/utils';
 import express from 'express';
@@ -644,6 +644,15 @@ describe('SitemapRequestLoader', () => {
 
         expect(await list.getHandledCount()).toBe(1);
         expect(await newList.getHandledCount()).toBe(2);
+    });
+
+    test('persists state under the default key without `persistStateKey`', async () => {
+        const list = await SitemapRequestLoader.open({ sitemapUrls: [`${url}/sitemap.xml`], enqueueStrategy: 'all' });
+
+        await list.persistState();
+
+        const store = await KeyValueStore.open();
+        await expect(store.getValue('CRAWLEE_SITEMAP_REQUEST_LOADER_STATE')).resolves.not.toBeNull();
     });
 
     test("calling `persistState` doesn't throw", async () => {

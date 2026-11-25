@@ -36,7 +36,6 @@ import {
     Request,
     RequestList,
     RequestManagerTandem,
-    STATE_PERSISTENCE_KEY,
     RequestQueue,
     RequestState,
     RequestValidationError,
@@ -303,6 +302,12 @@ describe('BasicCrawler', () => {
             ).toThrow(/cannot be combined with `concurrencySystem`/);
         },
     );
+
+    test('throws when the id cannot be part of a key-value store key', () => {
+        expect(() => new BasicCrawler({ id: 'my crawler', requestHandler: async () => {} })).toThrow(
+            /only contain the following characters.* at `id`/,
+        );
+    });
 
     test('two crawlers sharing a ConcurrencySystem cap their combined concurrency', async () => {
         const system = new ConcurrencySystem({ minConcurrency: 3, maxConcurrency: 3, desiredConcurrency: 3 });
@@ -1222,7 +1227,7 @@ describe('BasicCrawler', () => {
             // Resolve on the RequestList's state write triggered by the event - the periodic persistence also
             // writes it once at run start, before anything was processed.
             setValueSpy.mockImplementation(async (key) => {
-                if (key.endsWith(STATE_PERSISTENCE_KEY) && processed.length > 0) persistResolve();
+                if (key === 'CRAWLEE_REQUEST_LIST_STATE_reqList' && processed.length > 0) persistResolve();
             });
             // The crawler will pause after 200 requests
             const runPromise = basicCrawler.run();
@@ -2603,6 +2608,16 @@ describe('BasicCrawler', () => {
             const persistedKeys = setValue.mock.calls.map(([key]) => key);
             expect(persistedKeys.filter((key) => key.startsWith('CRAWLEE_CRAWLER_STATISTICS'))).toHaveLength(1);
             expect(persistedKeys.filter((key) => key.startsWith('CRAWLEE_SESSION_POOL_STATE'))).toHaveLength(1);
+        });
+
+        it('persists the session pool it creates under a key derived from the crawler id', async () => {
+            const setValue = vitest.spyOn(KeyValueStore.prototype, 'setValue');
+            const crawler = new BasicCrawler({ id: 'my-crawler', requestHandler: async () => {} });
+
+            await crawler.run(['https://example.com']);
+
+            const persistedKeys = setValue.mock.calls.map(([key]) => key);
+            expect(persistedKeys).toContain('CRAWLEE_SESSION_POOL_STATE_my-crawler');
         });
 
         it('persists the session pool once with a shared event manager', async () => {

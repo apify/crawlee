@@ -568,7 +568,7 @@ export class AdaptivePlaywrightCrawler<
         // detection ratio (and its own state), so the option is ignored in that case.
         this.#renderingTypePredictor = OwnedOrInjected.resolve<IRenderingTypePredictor, RenderingTypePredictor>(
             renderingTypePredictor,
-            () => new RenderingTypePredictor({ detectionRatio: renderingTypeDetectionRatio }),
+            () => new RenderingTypePredictor({ detectionRatio: renderingTypeDetectionRatio, id: options.id }),
         );
         this.#attemptWritePolicy = {
             requestQueue: 'deferred',

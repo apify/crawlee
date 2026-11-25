@@ -487,6 +487,9 @@ importers:
 
   packages/basic-crawler:
     dependencies:
+      '@apify/consts':
+        specifier: ^3.1.0
+        version: 3.1.0
       '@apify/datastructures':
         specifier: ^3.0.1
         version: 3.0.1

@@ -39,6 +39,7 @@
         "access": "public"
     },
     "dependencies": {
+        "@apify/consts": "^3.1.0",
         "@apify/datastructures": "^3.0.1",
         "@apify/timeout": "^1.1.0",
         "@apify/utilities": "^3.2.0",
