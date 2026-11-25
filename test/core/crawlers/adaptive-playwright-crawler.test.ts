@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises';
 import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 
@@ -17,6 +18,7 @@ import type {
     AdaptivePlaywrightCrawlerContext,
     AdaptivePlaywrightCrawlerOptions,
     LoadedContext,
+    PlaywrightCrawlingContext,
     Request,
 } from '@crawlee/playwright';
 import {
@@ -149,6 +151,10 @@ describe('AdaptivePlaywrightCrawler', () => {
             res.cookie('b', '2');
             res.append('X-Repeated', ['first', 'second']);
             res.status(200).send('<html><body><h1>Heading</h1></body></html>');
+        });
+
+        app.get('/download', (_req, res) => {
+            res.attachment('file.pdf').send('%PDF-1.4');
         });
     });
     afterAll(async () => {
@@ -1009,6 +1015,34 @@ describe('AdaptivePlaywrightCrawler', () => {
             ]);
             expect(await (await KeyValueStore.open()).getValue('CRAWLEE_STATE')).toEqual({ stored: true });
         });
+
+        test('the detection rerun (HTTP) discards what its deferred cleanups write after it fails', async () => {
+            const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+                detectionProbabilityRecommendation: 1,
+                renderingType: 'clientOnly',
+            });
+
+            const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = async (context) => {
+                try {
+                    void context.page;
+                } catch {
+                    // The HTTP-only detection rerun - its writes, those of its cleanups included, are discarded.
+                    context.registerDeferredCleanup(async () => {
+                        await context.pushData({ run: 'detection' });
+                    });
+                    throw new Error('HTTP-only attempt failed');
+                }
+
+                await context.pushData({ run: 'browser' });
+            };
+
+            const crawler = await makeOneshotCrawler({ requestHandler, renderingTypePredictor }, [
+                `http://${HOSTNAME}:${port}/static`,
+            ]);
+            await crawler.run();
+
+            expect((await Dataset.getData()).items).toEqual([{ run: 'browser' }]);
+        });
     });
 
     test('should return deeply equal but not identical state objects across handler runs', async () => {
@@ -1283,27 +1317,28 @@ describe('AdaptivePlaywrightCrawler', () => {
         expect(pageClosedInCleanup).toBe(false);
     });
 
-    test('closes the page of a timed-out browser attempt without waiting for its request handler', async () => {
+    test('hands a timed-out browser attempt to the error handlers, then closes its page without waiting for its request handler', async () => {
         const renderingTypePredictor = makeRiggedRenderingTypePredictor({
             detectionProbabilityRecommendation: 0,
             renderingType: 'clientOnly',
         });
 
         let pageClosed: Promise<boolean> | undefined;
-        let pageClosedOnTimeout: boolean | undefined;
+        let pageOpenInFailedRequestHandler: boolean | undefined;
 
         const crawler = await makeOneshotCrawler(
             {
                 renderingTypePredictor,
                 requestHandlerTimeoutSecs: 3,
+                // Returns only once the page is closed, so `run()` would hang if closing it waited for the handler.
                 requestHandler: async ({ page }) => {
                     pageClosed = new Promise((resolve) => {
                         page.once('close', () => resolve(true));
                     });
                     await pageClosed;
                 },
-                failedRequestHandler: async () => {
-                    pageClosedOnTimeout = await Promise.race([pageClosed, sleep(1000).then(() => false)]);
+                failedRequestHandler: async ({ page }) => {
+                    pageOpenInFailedRequestHandler = page?.isClosed() === false;
                 },
             },
             [`http://${HOSTNAME}:${port}/static`],
@@ -1311,7 +1346,36 @@ describe('AdaptivePlaywrightCrawler', () => {
 
         await crawler.run();
 
-        expect(pageClosedOnTimeout).toBe(true);
+        expect(pageOpenInFailedRequestHandler).toBe(true);
+        expect(await pageClosed).toBe(true);
+    });
+
+    test('exposes the downloads of a failed browser attempt to errorHandler', async () => {
+        const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+            detectionProbabilityRecommendation: 0,
+            renderingType: 'clientOnly',
+        });
+
+        let downloadedContents: string[] | undefined;
+
+        const crawler = await makeOneshotCrawler(
+            {
+                renderingTypePredictor,
+                maxRequestRetries: 1,
+                requestHandler: async () => {},
+                errorHandler: async (context) => {
+                    const downloads = (await (context as Partial<PlaywrightCrawlingContext>).listDownloads?.()) ?? [];
+                    downloadedContents = await Promise.all(
+                        downloads.map(async (download) => readFile(await download.path(), 'utf8')),
+                    );
+                },
+            },
+            [`http://${HOSTNAME}:${port}/download`],
+        );
+
+        await crawler.run();
+
+        expect(downloadedContents).toEqual(['%PDF-1.4']);
     });
 
     test('should persist RenderingTypePredictor state on PERSIST_STATE events', async () => {
