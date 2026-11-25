@@ -1015,6 +1015,34 @@ describe('AdaptivePlaywrightCrawler', () => {
             ]);
             expect(await (await KeyValueStore.open()).getValue('CRAWLEE_STATE')).toEqual({ stored: true });
         });
+
+        test('the detection rerun (HTTP) discards what its deferred cleanups write after it fails', async () => {
+            const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+                detectionProbabilityRecommendation: 1,
+                renderingType: 'clientOnly',
+            });
+
+            const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = async (context) => {
+                try {
+                    void context.page;
+                } catch {
+                    // The HTTP-only detection rerun - its writes, those of its cleanups included, are discarded.
+                    context.registerDeferredCleanup(async () => {
+                        await context.pushData({ run: 'detection' });
+                    });
+                    throw new Error('HTTP-only attempt failed');
+                }
+
+                await context.pushData({ run: 'browser' });
+            };
+
+            const crawler = await makeOneshotCrawler({ requestHandler, renderingTypePredictor }, [
+                `http://${HOSTNAME}:${port}/static`,
+            ]);
+            await crawler.run();
+
+            expect((await Dataset.getData()).items).toEqual([{ run: 'browser' }]);
+        });
     });
 
     test('should return deeply equal but not identical state objects across handler runs', async () => {

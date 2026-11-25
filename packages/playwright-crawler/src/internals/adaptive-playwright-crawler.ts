@@ -72,8 +72,8 @@ type AttemptResult = {
  * open page, as in `BasicCrawler`.
  */
 class Attempt {
-    readonly #failed = new AbortController();
     readonly #failure = Promise.withResolvers<never>();
+    #failed = false;
     readonly #cleanupsReleased = Promise.withResolvers<void>();
     #call: Promise<void> | undefined;
     #context: CrawlingContext | undefined;
@@ -81,9 +81,6 @@ class Attempt {
     #releaseDeferred = false;
 
     constructor(readonly transaction: StorageTransaction) {
-        this.#failed.signal.addEventListener('abort', () => this.#failure.reject(this.#failed.signal.reason), {
-            once: true,
-        });
         this.#failure.promise.catch(() => {});
     }
 
@@ -104,14 +101,17 @@ class Attempt {
     }
 
     fail(reason: unknown): void {
-        this.#failed.abort(reason);
+        this.#failed = true;
+        this.#failure.reject(reason);
     }
 
     /** Stops waiting for `handler` once the run fails - a timeout does not stop it. */
     abandonable<Context>(handler: (context: Context) => Awaitable<unknown>) {
         return async (context: Context) => {
-            // The run may have failed before the handler starts, and a late abort listener would never fire.
-            this.#failed.signal.throwIfAborted();
+            // The run may have failed before the handler starts - then it never starts.
+            if (this.#failed) {
+                return this.#failure.promise;
+            }
             return Promise.race([handler(context), this.#failure.promise]);
         };
     }
@@ -143,10 +143,14 @@ class Attempt {
     }
 
     async settle(): Promise<void> {
-        this.transaction.rollback();
-        this.transaction.dispose();
-        if (!this.#releaseDeferred) {
-            await this.release();
+        try {
+            if (!this.#releaseDeferred) {
+                await this.release();
+            }
+        } finally {
+            // Closed even when a cleanup threw - the writes it still holds must never reach storage.
+            this.transaction.rollback();
+            this.transaction.dispose();
         }
     }
 }
