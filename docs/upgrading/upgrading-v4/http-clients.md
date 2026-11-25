@@ -56,6 +56,9 @@ The following properties have been removed from `HttpRequest`, as v4's HTTP clie
 - `throwHttpErrors` — `sendRequest` never throws on an HTTP error status; inspect `response.status` yourself. The crawler's `additionalHttpErrorStatusCodes` / `ignoreHttpErrorStatusCodes` options only cover the crawled request itself.
 - `responseType` (and the `HttpRequest<TResponseType>` type parameter) — read the body from the returned `Response` with `response.json()` / `response.text()` / `response.bytes()`.
 - `maxRedirects` — redirect following is handled inside `BaseHttpClient.sendRequest` and capped at 10 redirects; it is no longer configurable per request.
+- `encoding` — a `Response` has no decoding option. Decode the bytes yourself, e.g. `new TextDecoder('latin1').decode(await response.arrayBuffer())`.
+
+`followRedirect` now only accepts a boolean. With `followRedirect: false`, `sendRequest` returns the redirect response instead of following it; the predicate form is gone.
 
 ### Remaining `HttpRequest` properties changed type
 

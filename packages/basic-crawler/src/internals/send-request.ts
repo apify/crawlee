@@ -37,6 +37,7 @@ export function createSendRequest(httpClient: BaseHttpClient, originRequest: Cra
             method: opts.method,
             headers: opts.headers,
             body: opts.body ? Readable.toWeb(opts.body) : baseRequest.body,
+            redirect: opts.followRedirect === false ? 'manual' : 'follow',
             // Node-specific option to make the request body work with streams
             duplex: 'half',
         } as RequestInit);

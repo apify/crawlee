@@ -19,9 +19,11 @@ export interface HttpRequest {
     timeout?: number;
 
     cookieJar?: CookieJar;
-    followRedirect?: boolean | ((response: any) => boolean); // TODO BC with got - specify type better in 4.0
-
-    encoding?: BufferEncoding;
+    /**
+     * Set to `false` to get the redirect response back instead of following it.
+     * @default true
+     */
+    followRedirect?: boolean;
 
     proxyUrl?: string;
 }

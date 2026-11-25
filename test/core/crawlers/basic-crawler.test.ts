@@ -3249,6 +3249,29 @@ describe('BasicCrawler', () => {
             ]);
         });
 
+        test('followRedirect controls the redirect mode of the request', async () => {
+            const captured: RequestRedirect[] = [];
+
+            const crawler = new BasicCrawler({
+                maxRequestRetries: 0,
+                httpClient: Object.assign(Object.create(BaseHttpClient.prototype) as BaseHttpClient, {
+                    async sendRequest(request: globalThis.Request) {
+                        captured.push(request.redirect);
+                        return new Response('ok');
+                    },
+                }),
+                async requestHandler({ sendRequest }) {
+                    await sendRequest();
+                    await sendRequest({ followRedirect: true });
+                    await sendRequest({ followRedirect: false });
+                },
+            });
+
+            await crawler.run([url]);
+
+            expect(captured).toEqual(['follow', 'follow', 'manual']);
+        });
+
         test('sends the payload of the crawled request', async () => {
             const captured: { method: string; body: string }[] = [];
 

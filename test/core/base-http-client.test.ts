@@ -195,6 +195,28 @@ describe('BaseHttpClient credentials on redirects', () => {
         await new Promise((resolve) => target.close(resolve));
     });
 
+    test('follows redirects by default', async () => {
+        const response = await httpClient.sendRequest(new Request(`${redirectorUrl}/same-origin`));
+
+        expect(response.status).toBe(200);
+        expect(response.url).toBe(`${redirectorUrl}/echo`);
+    });
+
+    test("returns the redirect response for a request with `redirect: 'manual'`", async () => {
+        const response = await httpClient.sendRequest(
+            new Request(`${redirectorUrl}/same-origin`, { redirect: 'manual' }),
+        );
+
+        expect(response.status).toBe(302);
+        expect(response.headers.get('location')).toBe('/echo');
+    });
+
+    test("rejects on a redirect for a request with `redirect: 'error'`", async () => {
+        await expect(
+            httpClient.sendRequest(new Request(`${redirectorUrl}/same-origin`, { redirect: 'error' })),
+        ).rejects.toThrow(/redirect/i);
+    });
+
     test('does not forward credential headers to a different origin', async () => {
         const response = await httpClient.sendRequest(
             new Request(`${redirectorUrl}/cross-origin`, { headers: credentials }),

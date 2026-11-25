@@ -157,10 +157,7 @@ export interface HttpRequest {
     body?: Readable;
     // (undocumented)
     cookieJar?: CookieJar;
-    // (undocumented)
-    encoding?: BufferEncoding;
-    // (undocumented)
-    followRedirect?: boolean | ((response: any) => boolean);
+    followRedirect?: boolean;
     // (undocumented)
     headers?: Headers;
     // (undocumented)
