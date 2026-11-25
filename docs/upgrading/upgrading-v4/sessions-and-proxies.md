@@ -104,7 +104,7 @@ If you previously subscribed to `sessionRetired` on the pool to clean up resourc
 
 The `tieredProxyUrls` option has been removed, together with the `proxyTier` field on `ProxyInfo` and the `proxyTier` plumbing in `BrowserPool`. In v4 the `Session` is the main rotation unit — a session already carries its own proxy, cookies and error score, so the pool rotates the whole fingerprint when a session gets retired on a block.
 
-If you used tiers to escalate from a cheap proxy pool to a pricier one on blocks, you can achieve the same behavior by pre-populating a `SessionPool` with named sessions — one per proxy tier — and flipping `request.sessionId` in an `errorHandler` to reassign the retry to the next tier. Skip the `proxyConfiguration` option on the crawler — the session already carries its own proxy.
+If you used tiers to escalate from a cheap proxy pool to a pricier one on blocks, you can achieve the same behavior by pre-populating a `SessionPool` with named sessions — one per proxy tier — and flipping `request.sessionId` in an `errorHandler` to reassign the retry to the next tier. Do not pass `proxyConfiguration` to the crawler: whenever a `sessionPool` is supplied, the crawler ignores `proxyConfiguration` with a warning and every pooled session keeps the `proxyInfo` it was created with. Configure proxies on the pool instead, through `addSession({ proxyInfo })` or a custom `createSessionFunction`.
 
 ```typescript
 import { BasicCrawler, SessionPool } from '@crawlee/basic';
@@ -126,9 +126,12 @@ await sessionPool.addSession({ id: 'premium', proxyInfo: proxyInfoFromUrl('http:
 
 const crawler = new BasicCrawler({
     sessionPool,
-    retryOnBlocked: true,
     requestHandler: async ({ request, sendRequest }) => {
-        await sendRequest({ url: request.url });
+        const response = await sendRequest({ url: request.url });
+        // `sendRequest` resolves on any status, so throw on a block to reach `errorHandler`
+        if ([401, 403, 429].includes(response.status)) {
+            throw new Error(`Blocked with status ${response.status}`);
+        }
     },
     errorHandler: async ({ request }) => {
         request.sessionId = 'premium';
@@ -142,7 +145,7 @@ More complex routing (more tiers, weighted draws, sticky assignment, cooldowns) 
 
 ### `ProxyConfiguration.newUrl` / `newProxyInfo` signatures changed
 
-Because proxy tiers are gone, the leading `sessionId` positional argument was dropped from `ProxyConfiguration.newUrl()` and `ProxyConfiguration.newProxyInfo()`. `newUrl()` now takes no arguments, and `newProxyInfo()` takes only an optional, previously created `ProxyInfo` (e.g. one restored with a persisted session) instead of `(sessionId?, options?)`. Custom `IProxyConfiguration` implementations should return that `ProxyInfo` (refreshed if it depends on the environment) rather than a new one, otherwise the crawler replaces the session's proxy. The `ProxyConfigurationFunction` callback (the `newUrlFunction` option) was likewise simplified — it no longer receives any arguments, neither a `sessionId` nor a `{ request }` object. The proxy is resolved once per session, so to route specific requests through specific proxies, pin them to named sessions (see [Pinning a request to a specific session](../../guides/session-management.mdx#pinning-a-request-to-a-specific-session)). The `TieredProxy` interface and the `TieredProxyOptions` type have been removed.
+Because proxy tiers are gone, the leading `sessionId` positional argument was dropped from `ProxyConfiguration.newUrl()` and `ProxyConfiguration.newProxyInfo()`. `newUrl()` now takes no arguments, and `newProxyInfo()` takes only an optional, previously created `ProxyInfo` (e.g. one restored with a persisted session) instead of `(sessionId?, options?)`. Custom `IProxyConfiguration` implementations should return that `ProxyInfo` (refreshed if it depends on the environment) rather than a new one, otherwise the crawler replaces the session's proxy. The `ProxyConfigurationFunction` callback (the `newUrlFunction` option) was likewise simplified — it no longer receives any arguments, neither a `sessionId` nor a `{ request }` object. The proxy is resolved once per session, so to route specific requests through specific proxies, pin them to named sessions (see [Pinning a request to a specific session](../../guides/session-management.mdx#pinning-a-request-to-a-specific-session)). The `TieredProxy` interface has been removed.
 
 **Before:**
 ```typescript

@@ -49,7 +49,7 @@ The meta-package used to `export *` from `@crawlee/browser-pool`, which made `Br
 +import { BrowserPool, PlaywrightPlugin } from '@crawlee/browser-pool';
 ```
 
-The crawler-facing surface is unaffected: `playwrightBrowserPool()`, `puppeteerBrowserPool()` and their `remote*` counterparts still come from `crawlee` (and from `@crawlee/playwright` / `@crawlee/puppeteer`), so the common case of building a pool for a crawler needs no extra dependency.
+The crawler-facing factories `playwrightBrowserPool()` and `puppeteerBrowserPool()` still come from `crawlee` and their respective crawler packages. For a remote connection, pass `remoteBrowser` to the regular factory; there are no separate `remote*BrowserPool()` functions. Building a pool this way needs no extra dependency.
 
 ## `BrowserCrawlingContext.browserController` has been removed
 
@@ -59,7 +59,7 @@ If you previously used `browserController` in your request handlers, here is how
 
 **Cookies** — Cookie injection and persistence are now handled automatically by the crawler and the pool. You no longer need to call `browserController.getCookies()` or `browserController.setCookies()` manually.
 
-**Proxy info** — Access proxy information via `session.proxyInfo` instead of `browserController.launchContext.proxyUrl`. TLS-error handling moved along with it: the pool reads `session.proxyInfo.ignoreTlsErrors`, so there is no standalone `ignoreTlsErrors` page option anymore. If you need to disable TLS verification for some other reason, set `ignoreHTTPSErrors` (Playwright) / `acceptInsecureCerts` (Puppeteer) through the browser's `launchOptions`.
+**Proxy info** — Access proxy information via `session.proxyInfo` instead of `browserController.launchContext.proxyUrl`. TLS-error handling moved along with it: the pool reads `session.proxyInfo.ignoreTlsErrors`, so the `IBrowserPool` `newPage()` options have no `ignoreTlsErrors` field (the built-in `BrowserPool.newPage()` still accepts one as an explicit override). If you need to disable TLS verification for some other reason, set `ignoreHTTPSErrors` (Playwright) / `acceptInsecureCerts` (Puppeteer) through the browser's `launchOptions`.
 
 **Direct browser access** — If you need the raw browser or controller instance (e.g. for Puppeteer/Playwright-specific APIs), construct a `BrowserPool` yourself, pass it to the crawler, and reference it directly in your handler — no cast needed:
 
@@ -93,9 +93,9 @@ This aligns the Puppeteer controller with the Playwright controller, which has a
 
 **What changes in practice**
 - Cookie reads return every cookie stored in the page's browser context, not just cookies matching the page's current URL. If your `Session` relied on the URL-scoped filtering (for example, to avoid pulling cookies that belong to other tabs in the same context), you'll now see the full set.
-- Cookie writes are applied to the whole browser context. When you launch pages with shared contexts, cookies written via `Session.setCookiesFromResponse` or similar will be visible to every other page in that context.
+- Cookie writes are applied to the whole browser context. When pages share a context, cookies the crawler syncs from a session's cookie jar are visible to every other page in that context.
 
-If you rely on Crawlee's default configuration (one browser context per session, which is the `useIncognitoPages` / `newContextPerSession` behavior used by `PuppeteerCrawler`), you should not notice any difference — each session already owns its own context.
+With `useIncognitoPages: true`, each page gets its own browser context, so each session owns its cookies and you should not notice any difference. With the default `useIncognitoPages: false`, pages share the browser's default context, so cookies written for one session become visible to other sessions' pages in that browser.
 
 **Cookie `url` field** — the old `page.setCookie()` auto-filled a missing `url` on each cookie with the page's current URL. The new `browserContext().setCookie()` does not; Chromium rejects cookies that carry neither `url` nor `domain`. Crawlee's internal `_setCookies` keeps the old behavior by back-filling `page.url()` for any cookie that has neither field set, but if you call `browserContext().setCookie()` directly (outside of Crawlee) you need to provide one of them yourself.
 
@@ -136,12 +136,12 @@ This experimental option relied on an outdated manifest version for browser exte
 
 ## `BrowserCrawler.launchContext` was removed
 
-The `launchContext` property on crawler instances is gone. It was assigned once in the constructor and never read, so nothing in Crawlee consumed it. The `launchContext` **option** is unchanged on `PlaywrightCrawler`, `PuppeteerCrawler` and `StagehandCrawler` — only the echo of it on the instance is gone. If you were reading `crawler.launchContext`, keep your own reference to the object you passed in.
+The `launchContext` property on crawler instances is gone. The `launchContext` **option** is unchanged on `PlaywrightCrawler`, `PuppeteerCrawler` and `StagehandCrawler` — only the echo of it on the instance is gone. If you were reading `crawler.launchContext`, keep your own reference to the object you passed in.
 
-The abstract `BrowserCrawler` base class also lost its third type parameter, `LaunchOptions`, which existed only to type that field. Custom crawlers extending `BrowserCrawler` must drop that type argument:
+The abstract `BrowserCrawler` base class also lost its `LaunchOptions` type parameter, which existed only to type that field, along with `InternalBrowserPoolOptions`; its type parameters now start with the page and response types. Custom crawlers extending `BrowserCrawler` must update their type arguments:
 
 ```diff
--class MyCrawler extends BrowserCrawler<Page, Response, LaunchOptions, MyCrawlingContext> {
+-class MyCrawler extends BrowserCrawler<BrowserPoolOptions, LaunchOptions, MyCrawlingContext> {
 +class MyCrawler extends BrowserCrawler<Page, Response, MyCrawlingContext> {
 ```
 

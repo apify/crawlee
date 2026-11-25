@@ -40,7 +40,7 @@ The harmonized loader interface differs from the old `IRequestList` in a few way
 | `persistState(): Promise<void>` (required) | Removed from the interface; loaders that have state persist it themselves on the `persistState` event, and `RequestList`/`SitemapRequestLoader` still expose the method as a class member |
 | _(n/a)_ | `toTandem?(requestManager?)` (new) |
 
-`RequestList.length()` and `RequestList.handledCount()` (and their `SitemapRequestLoader` counterparts) were renamed to `getTotalCount()` and `getHandledCount()` and are now `async` — `await` them.
+`RequestList.length()` and `RequestList.handledCount()` (and their `SitemapRequestLoader` counterparts) were renamed to `getTotalCount()` and `getHandledCount()` and are now `async` — `await` them. The same goes for `RequestQueue`: its `getTotalCount()` and `getPendingCount()` are now `async`, and `handledCount()` was renamed to `getHandledCount()`.
 
 `markRequestHandled()` was renamed to `markRequestAsHandled()` across the loader and manager interfaces (`RequestList`, `SitemapRequestLoader`, `RequestQueue`, `RequestManagerTandem`) to match the storage backend method of the same name. Rename any calls accordingly.
 
@@ -111,7 +111,7 @@ If you implemented either interface, return `ready` without evaluating anything 
 
 ### Combining a list and a queue: `toTandem()`
 
-`RequestList` and `SitemapRequestLoader` now expose a `toTandem()` helper that pairs the read-only loader with a writable request manager (the default `RequestQueue` if none is passed), producing a `RequestManagerTandem` you can hand to a crawler via the new `requestManager` option:
+`RequestList` and `SitemapRequestLoader` now expose a `toTandem()` helper that pairs the read-only loader with a writable request manager (the default `RequestQueue` if none is passed), producing a `RequestManagerTandem` you can hand to a crawler via the `requestManager` option:
 
 ```typescript
 import { CheerioCrawler, RequestList } from 'crawlee';
@@ -140,7 +140,7 @@ import { SitemapRequestLoader } from 'crawlee';
 const loader = await SitemapRequestLoader.open({ sitemapUrls: ['https://example.com/sitemap.xml'] });
 ```
 
-The default `KeyValueStore` key used to persist the loader's state was also renamed from `SITEMAP_REQUEST_LIST_STATE` to `CRAWLEE_SITEMAP_REQUEST_LOADER_STATE`. State persisted under the old key by a v3 run will **not** be picked up after upgrading, so any in-flight sitemap crawl that migrates across the upgrade will restart from the beginning. If you need to preserve state, either finish the crawl before upgrading or pass an explicit `persistStateKey`.
+The default `KeyValueStore` key used to persist the loader's state was also renamed from `SITEMAP_REQUEST_LIST_STATE` to `CRAWLEE_SITEMAP_REQUEST_LOADER_STATE`. State persisted under the old key by a v3 run will **not** be picked up after upgrading; resuming a v3 crawl on v4 is not supported, so finish or discard in-flight sitemap crawls before upgrading.
 
 ### Crawler `requestList` / `requestQueue` options deprecated in favor of `requestManager`
 
@@ -164,7 +164,7 @@ A lone `requestList` now runs through a tandem over an auto-opened queue (rather
 
 ### HTTP 429 can now back off per domain instead of retiring the session
 
-`blockedStatusCodes` still defaults to `[401, 403, 429]`, so out of the box a 429 retires the session and retries immediately, as in v3. New in v4 is the opt-in `ThrottlingRequestManager`, which handles rate limits at the scheduling layer instead:
+`blockedStatusCodes` still defaults to `[401, 403, 429]`, so out of the box a 429 retires the session and retries immediately, as in v3. New is a one-time warning per domain when a 429 arrives and no request manager paces that domain; it points at `sameDomainDelaySecs` or a `ThrottlingRequestManager` and changes nothing else. New in v4 is the opt-in `ThrottlingRequestManager`, which handles rate limits at the scheduling layer instead:
 
 ```typescript
 const crawler = new CheerioCrawler({
@@ -192,8 +192,8 @@ Inject your own manager through the constructor option instead, and read the res
 **Before:**
 ```typescript
 class MyCrawler extends BasicCrawler {
-    protected override async init() {
-        await super.init();
+    protected override async _init() {
+        await super._init();
         this.requestManager = await MyRequestQueue.open();
     }
 }
@@ -220,18 +220,20 @@ const queue = await crawler.getRequestQueue();
 const manager = await crawler.getRequestManager();
 ```
 
-### `enqueueLinks` `requestQueue` option renamed to `requestManager`
+### Standalone `enqueueLinks()` removed; `enqueueLinksByClickingElements` takes `requestManager`
 
-The standalone `enqueueLinks()` function and the click-elements enqueue helpers (`enqueueLinksByClickingElements` in `@crawlee/puppeteer` and `@crawlee/playwright`) now take a `requestManager` option instead of `requestQueue`:
+The standalone `enqueueLinks()` function is gone. Call `context.enqueueLinks()` inside a request handler, or add known URLs with `context.addRequests()` / `crawler.addRequests()`.
+
+The click-elements enqueue helpers (`enqueueLinksByClickingElements` in `@crawlee/puppeteer` and `@crawlee/playwright`) now take a `requestManager` option instead of `requestQueue`:
 
 **Before:**
 ```typescript
-await enqueueLinks({ urls, requestQueue });
+await enqueueLinksByClickingElements({ page, selector, requestQueue });
 ```
 
 **After:**
 ```typescript
-await enqueueLinks({ urls, requestManager });
+await enqueueLinksByClickingElements({ page, selector, requestManager });
 ```
 
 ### Removed `UrlList` type alias

@@ -12,7 +12,7 @@ The full list of removed exports and members, for ctrl-F purposes. Where a repla
 
 - `BasicCrawler._cleanupContext` (protected) - this is now handled by the `ContextPipeline`
 - `BasicCrawler.isRequestBlocked` (protected)
-- `BasicCrawler.events` (protected) - this should be accessed via `BasicCrawler.serviceLocator`
+- `BasicCrawler.events` (protected) - use the `serviceLocator` export of `@crawlee/core` instead (`serviceLocator.getEventManager()`); the crawler scopes it to its own services while its methods run
 - `BrowserRequestHandler` and `BrowserErrorHandler` types in `@crawlee/browser`
 - `BrowserCrawler.userProvidedRequestHandler` (protected)
 - `BrowserCrawler.requestHandlerTimeoutInnerMillis` (protected)
@@ -25,7 +25,7 @@ The full list of removed exports and members, for ctrl-F purposes. Where a repla
 - `HttpCrawler.use` and the `CrawlerExtension` class (experimental) - the `ContextPipeline` should be used for extending the crawler
 - `BasicCrawler._tagUserHandlerError` (protected) - internal error-tagging helper, no longer part of the crawler surface
 - `BasicCrawler.handledRequestsCount` setter (`@deprecated`) - the throw-on-assign guard is gone; the getter is now internal-only and the count is derived from `this.statistics`
-- `PlaywrightPlugin._containerProxyServer` (public) - was an unused, never-populated field
+- `PlaywrightPlugin._containerProxyServer` (public) - was only populated with `experimentalContainers`, and is removed together with that option
 - `Snapshotter._snapshotMemory`, `Snapshotter._memoryOverloadWarning`, `Snapshotter._snapshotEventLoop`, `Snapshotter._snapshotCpu`, `Snapshotter._snapshotClient`, `Snapshotter._pruneSnapshots` (all `@deprecated` protected stubs) - snapshotting is now handled by the individual load signals, and the `Snapshotter` itself is internal to `ConcurrencySystem`; there is no longer a public API for reading raw resource snapshots
 - `FileDownloadOptions.streamHandler` - streaming should now be handled directly in the `requestHandler` instead
 - `playwrightUtils.registerUtilsToContext` and `puppeteerUtils.registerUtilsToContext` - this is now added to the context via `ContextPipeline` composition
@@ -34,15 +34,19 @@ The full list of removed exports and members, for ctrl-F purposes. Where a repla
 - `Configuration.systemInfoV2` / `CRAWLEE_SYSTEM_INFO_V2` environment variable — the v2 behavior is now the default (see [Available resource detection](./utils-and-types.md#available-resource-detection))
 - `KeyValueStore.getInput()` and `Configuration.inputKey` / `CRAWLEE_INPUT_KEY` — reading the run input moved to the Apify SDK (see [`KeyValueStore.getInput()` and `Configuration.inputKey` moved to the Apify SDK](./upgrading-v4.md#keyvaluestoregetinput-and-configurationinputkey-moved-to-the-apify-sdk))
 - `Configuration.defaultDatasetId` / `defaultKeyValueStoreId` / `defaultRequestQueueId` and their `CRAWLEE_DEFAULT_*_ID` environment variables — the default storage is addressed by a reserved alias, not by a configurable ID. Open a storage by name if you need a specific one.
-- `checkAndSerialize` and `chunkBySize` functions (from `@crawlee/core`) — value (de)serialization now lives in the `KeyValueStore` frontend; use `serializeValue` / `parseValue` (see [`maybeStringify` is removed](./storage-backends.md#maybestringify-is-removed))
+- `checkAndSerialize` and `chunkBySize` functions (from `@crawlee/core`) — internal helpers of `Dataset.pushData()` (JSON-serializability and size checks, batching); there is no public replacement
 - `BASIC_CRAWLER_TIMEOUT_BUFFER_SECS` constant (from `@crawlee/basic`) — was an internal timeout buffer, no longer exported
-- `HttpResponse`, `HttpResponseWithoutBody`, `StreamingHttpResponse`, `ResponseTypes`, `BaseHttpResponseData`, `SimpleHeaders`, `processHttpRequestOptions`, and `GotScrapingHttpClient` (from `@crawlee/core`) — the HTTP client surface moved to `@crawlee/http-client` / `@crawlee/got-scraping-client` (see [HTTP client packages and `BaseHttpClient` reshaped](./http-clients.md#http-client-packages-and-basehttpclient-reshaped))
+- `HttpResponse`, `StreamingHttpResponse`, `ResponseTypes`, `BaseHttpResponseData`, and `GotScrapingHttpClient` (from `@crawlee/core`) — the HTTP client surface moved to `@crawlee/http-client` / `@crawlee/got-scraping-client` (see [HTTP client packages and `BaseHttpClient` reshaped](./http-clients.md#http-client-packages-and-basehttpclient-reshaped))
 - `StreamHandlerContext` type (from `@crawlee/http`); `FileDownloadOptions` stays but only adds `ignoreTlsErrors` on top of `BasicCrawlerOptions` — see [`FileDownload` now extends `BasicCrawler`](./upgrading-v4.md#filedownload-now-extends-basiccrawler-and-takes-a-slimmer-filedownloadoptions)
 - `PlainResponse` type (from `@crawlee/http`) — it wrapped the `got-scraping` response and is gone along with the rest of the old HTTP response surface (see [`CrawlingContext.response` is now of type `Response`](./upgrading-v4.md#crawlingcontextresponse-is-now-of-type-response))
 - `checkStorageAccess`, `withCheckedStorageAccess` and the `RequestHandlerResult` type — superseded by the storage transaction mechanism; use `withDirectStorageAccess()` and `StorageTransactionView` (see [Storage writes in request handlers are transactional](./upgrading-v4.md#storage-writes-in-request-handlers-are-transactional))
 - `CreateContextOptions` type (from `@crawlee/basic`) — a leftover of the pre-`ContextPipeline` context-creation design, unused by the library itself; context construction is now driven by `ContextPipeline`
-- `ResponseLike` interface (from `@crawlee/core`) — a vestige of the pre-`fetch` HTTP implementation with no consumers; `getCookiesFromResponse()` has always taken a native `Response`
-- `UrlPatternObject` (from `@crawlee/core`) — the *compiled* form of a URL pattern, produced internally by the `enqueueLinks()` machinery. Keep using `UrlPatternInput` / `GlobInput` / `RegExpInput`, which are unchanged, and let the return type of the pattern helpers be inferred
+- `ResponseLike` interface (from `@crawlee/core`) — a vestige of the pre-`fetch` HTTP implementation; `getCookiesFromResponse()`, which took it in v3, now takes a native `Response`
+- The standalone `enqueueLinks()` function (from `@crawlee/core`) — use `context.enqueueLinks()` inside a request handler, or `context.addRequests()` / `crawler.addRequests()` for URLs you already have
+- `UrlPatternObject` (from `@crawlee/core`) — the *compiled* form of a URL pattern, produced internally by the `enqueueLinks()` machinery. Use `UrlPatternInput` (new in v4) / `GlobInput` / `RegExpInput` for the patterns you pass in, and let the return type of the pattern helpers be inferred
+- `createCpuLoadSignal()`, `createEventLoopLoadSignal()`, `createClientLoadSignal()` and the `ClientLoadSignal` / `ClientLoadSignalOptions` / `ClientSnapshot` types (from `@crawlee/core`) — construct `CpuLoadSignal`, `EventLoopLoadSignal` or `StorageBackendLoadSignal` instead (see [Load-signal options restructured](./autoscaling.md#load-signal-options-restructured))
+- `StorageClient.setStatusMessage()` — status messages are broadcast as an `EventType.STATUS_MESSAGE` event (see [`StorageBackend` interface simplified](./storage-backends.md#storagebackend-interface-simplified))
+- `chunk()`, `weightedAvg()`, `snakeCaseToCamelCase()`, `snapshotPageWithIframes()`, `entries()` and `keys()` (from `@crawlee/utils`) — see [Removed and relocated `@crawlee/utils` exports](./utils-and-types.md#removed-and-relocated-crawleeutils-exports)
 - `PERSIST_STATE_KEY` (from `@crawlee/core`) — to change where a session pool persists its state, pass `persistStateKey` to `SessionPool`
 - `MAX_POOL_SIZE` constant (from `@crawlee/core`) — was the internal default for `SessionPoolOptions.maxPoolSize` (1000); inline the literal if you were reading it
 - `WithRequired` type (from `@crawlee/core`) — a bare TypeScript utility that was never crawlee vocabulary; `LoadedRequest` no longer goes through it, so declare your own if you were using it
