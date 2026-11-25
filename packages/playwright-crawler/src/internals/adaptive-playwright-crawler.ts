@@ -697,29 +697,44 @@ export class AdaptivePlaywrightCrawler<
                 );
                 return (await this.#enqueueLinks(urls, options, cheerioContext.request)) as unknown as void;
             },
-            // The HTTP crawler has already consumed the body; hand out a fresh copy, like the browser side does.
-            // HTML bodies are already decoded to UTF-8, so `arrayBuffer()` may disagree with the original headers.
-            response: new ResponseWithUrl(cheerioContext.body, cheerioContext.response),
+            // `skipNavigation` keeps the inner throwing getter. The body is already consumed (and decoded to UTF-8).
+            ...(cheerioContext.request.skipNavigation
+                ? {}
+                : { response: new ResponseWithUrl(cheerioContext.body, cheerioContext.response) }),
         };
     }
 
     async #adaptPlaywrightContext(playwrightContext: PlaywrightCrawlingContext) {
-        // Capture the original response to avoid infinite recursion when the getter is copied to the context
-        const originalResponse = playwrightContext.response;
+        // Capture the original response to avoid infinite recursion when the getter is copied to the context.
+        // The inner getter throws with `skipNavigation` or when navigation produced no response; it then stays.
+        let originalResponse: PlaywrightCrawlingContext['response'] | undefined;
+        try {
+            originalResponse = playwrightContext.response;
+        } catch {}
 
-        // `headers()` can return repeated headers (e.g. `set-cookie`) joined with `\n`, which `Headers` rejects
-        const headers = new Headers();
-        for (const { name, value } of await originalResponse.headersArray()) {
-            headers.append(name, value);
-        }
+        let response: ResponseWithUrl | undefined;
+        if (originalResponse) {
+            // `headers()` can return repeated headers (e.g. `set-cookie`) joined with `\n`, which `Headers` rejects
+            const headers = new Headers();
+            for (const { name, value } of await originalResponse.headersArray()) {
+                headers.append(name, value);
+            }
 
-        return {
-            response: new ResponseWithUrl(Uint8Array.from(await originalResponse.body()), {
+            // `body()` throws for redirects, `304` cache hits included, and for responses the page navigated away from
+            const body = await originalResponse
+                .body()
+                .catch(async () => Buffer.from(await playwrightContext.page.content()));
+
+            response = new ResponseWithUrl(Uint8Array.from(body), {
                 headers,
                 status: originalResponse.status(),
                 statusText: originalResponse.statusText(),
                 url: originalResponse.url(),
-            }),
+            });
+        }
+
+        return {
+            ...(response && { response }),
             enqueueLinks: async (options: EnqueueLinksOptions = {}, timeoutMs = 5000) => {
                 // TODO consider using `context.parseWithCheerio` to make this universal and avoid code duplication
                 const selector = options.selector ?? 'a';

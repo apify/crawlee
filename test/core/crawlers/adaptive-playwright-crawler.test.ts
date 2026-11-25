@@ -156,6 +156,10 @@ describe('AdaptivePlaywrightCrawler', () => {
         app.get('/download', (_req, res) => {
             res.attachment('file.pdf').send('%PDF-1.4');
         });
+
+        app.get('/multiple-choices', (_req, res) => {
+            res.status(300).send('<html><body><h1>Heading</h1></body></html>');
+        });
     });
     afterAll(async () => {
         server.close();
@@ -788,6 +792,63 @@ describe('AdaptivePlaywrightCrawler', () => {
         expect(requestHandler).toHaveBeenCalledOnce();
         expect((await Dataset.getData()).items).toEqual([{ url, hasHeading: true }]);
     });
+
+    test('browser response without a readable body falls back to the rendered page', async () => {
+        const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+            detectionProbabilityRecommendation: 0,
+            renderingType: 'clientOnly',
+        });
+
+        const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = vi.fn(
+            async ({ response, pushData }) => {
+                await pushData({
+                    status: response.status,
+                    hasHeading: (await response.text()).includes('<h1>Heading</h1>'),
+                });
+            },
+        );
+
+        const crawler = await makeOneshotCrawler({ requestHandler, renderingTypePredictor }, [
+            `http://${HOSTNAME}:${port}/multiple-choices`,
+        ]);
+
+        await crawler.run();
+
+        expect(requestHandler).toHaveBeenCalledOnce();
+        expect((await Dataset.getData()).items).toEqual([{ status: 300, hasHeading: true }]);
+    });
+
+    test.each(['static', 'clientOnly'] as const)(
+        'runs the handler for a skipNavigation request (%s)',
+        async (renderingType) => {
+            const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+                detectionProbabilityRecommendation: 0,
+                renderingType,
+            });
+
+            const responseErrors: string[] = [];
+            const crawler = await makeOneshotCrawler(
+                {
+                    requestHandler: async (context) => {
+                        try {
+                            void context.response.status;
+                        } catch (error) {
+                            responseErrors.push((error as Error).message);
+                        }
+                    },
+                    renderingTypePredictor,
+                    requestList: await RequestList.open({
+                        sources: [{ url: `http://${HOSTNAME}:${port}/static`, skipNavigation: true }],
+                    }),
+                },
+                [],
+            );
+
+            await crawler.run();
+
+            expect(responseErrors).toEqual([expect.stringContaining('`skipNavigation` was used')]);
+        },
+    );
 
     test.each(['chromium', 'firefox'] as const)('browser response keeps repeated headers (%s)', async (browser) => {
         const renderingTypePredictor = makeRiggedRenderingTypePredictor({
