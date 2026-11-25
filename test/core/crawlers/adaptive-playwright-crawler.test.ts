@@ -701,6 +701,33 @@ describe('AdaptivePlaywrightCrawler', () => {
             });
         });
 
+        test.each([
+            ['/static', 'static'],
+            ['/dynamic', 'clientOnly'],
+        ] as const)('extractLinks returns the links without enqueuing them (%s)', async (path, renderingType) => {
+            const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+                detectionProbabilityRecommendation: 0,
+                renderingType,
+            });
+
+            const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = vi.fn(
+                async ({ extractLinks, pushData }) => {
+                    await pushData({ links: await extractLinks() });
+                },
+            );
+
+            const crawler = await makeOneshotCrawler({ requestHandler, renderingTypePredictor }, [
+                `http://${HOSTNAME}:${port}${path}`,
+            ]);
+
+            await crawler.run();
+
+            expect(requestHandler).toHaveBeenCalledOnce();
+            expect((await Dataset.getData()).items).toEqual([
+                { links: [1, 2, 3, 4, 5].map((q) => `http://${HOSTNAME}:${port}/static?q=${q}`) },
+            ]);
+        });
+
         test.each([['static'], ['clientOnly']] as const)(
             'enqueues nothing when the selector matches nothing (%s)',
             async (renderingType) => {

@@ -1,4 +1,8 @@
-import type { AdaptivePlaywrightCrawlerContext, AdaptivePlaywrightCrawlerOptions } from '@crawlee/playwright';
+import type {
+    AddRequestsBatchedResult,
+    AdaptivePlaywrightCrawlerContext,
+    AdaptivePlaywrightCrawlerOptions,
+} from '@crawlee/playwright';
 import type { Dictionary } from '@crawlee/types';
 
 /**
@@ -19,5 +23,12 @@ describe('AdaptivePlaywrightCrawler option types (#2063)', () => {
         const options: AdaptivePlaywrightCrawlerOptions = { requestHandler };
 
         expect(options).toBeTruthy();
+    });
+
+    test('the link helpers are typed like on the other crawling contexts', () => {
+        expectTypeOf<
+            AdaptivePlaywrightCrawlerContext['enqueueLinks']
+        >().returns.resolves.toEqualTypeOf<AddRequestsBatchedResult>();
+        expectTypeOf<AdaptivePlaywrightCrawlerContext['extractLinks']>().returns.resolves.toEqualTypeOf<string[]>();
     });
 });
