@@ -504,6 +504,7 @@ export class RequestList implements IRequestLoader {
         // We don't need the sources so we purge them to
         // prevent them from hanging in memory.
         for (let i = 0; i < this.#sources.length; i++) {
+            // oxlint-disable-next-line typescript/no-array-delete -- intentional, drop the slot so V8 can collect the object
             delete this.#sources[i];
         }
         this.#sources = [];
@@ -528,6 +529,7 @@ export class RequestList implements IRequestLoader {
             const source = this.#sources[i];
             // Using delete here to drop the original object ASAP to free memory
             // .pop would reverse the array and .shift is SLOW.
+            // oxlint-disable-next-line typescript/no-array-delete
             delete this.#sources[i];
 
             if (typeof source === 'object' && (source as Dictionary).requestsFromUrl) {
@@ -547,6 +549,7 @@ export class RequestList implements IRequestLoader {
                 const sourcesFromFunctionCount = sourcesFromFunction.length;
                 for (let i = 0; i < sourcesFromFunctionCount; i++) {
                     const source = sourcesFromFunction[i];
+                    // oxlint-disable-next-line typescript/no-array-delete -- intentional, drop the slot so V8 can collect the object
                     delete sourcesFromFunction[i];
                     this.#addRequest(source);
                 }
