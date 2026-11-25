@@ -1349,14 +1349,16 @@ describe('AdaptivePlaywrightCrawler', () => {
 
         // Verify that the regression model was actually saved to the key-value store
         const store = await KeyValueStore.open();
-        const storedState = await store.getValue('CRAWLEE_RENDERING_TYPE_PREDICTOR_STATE');
+        const storedState = await store.getValue(`CRAWLEE_RENDERING_TYPE_PREDICTOR_STATE_${renderingTypePredictor.id}`);
         expect(storedState).toHaveProperty('logreg');
 
         // Test that the persisted state can be successfully restored
         // by creating a new RenderingTypePredictor and seeing if it initializes without error
         const newPredictor = new RenderingTypePredictor({
             detectionRatio: 0.1,
-            persistenceOptions: { persistStateKey: 'CRAWLEE_RENDERING_TYPE_PREDICTOR_STATE' },
+            persistenceOptions: {
+                persistStateKey: `CRAWLEE_RENDERING_TYPE_PREDICTOR_STATE_${renderingTypePredictor.id}`,
+            },
         });
 
         // This should not throw since we've persisted valid state
@@ -1370,6 +1372,7 @@ describe('AdaptivePlaywrightCrawler', () => {
 
         test('initializes the default predictor it built itself', async () => {
             const crawler = new AdaptivePlaywrightCrawler({
+                id: 'own-predictor',
                 requestHandler,
                 // No `renderingTypePredictor` - the crawler builds (and therefore owns) its own.
                 renderingTypeDetectionRatio: 1,
@@ -1387,7 +1390,10 @@ describe('AdaptivePlaywrightCrawler', () => {
             await sleep(100);
 
             const store = await KeyValueStore.open();
-            await expect(store.getValue<string>('CRAWLEE_RENDERING_TYPE_PREDICTOR_STATE')).resolves.not.toBeNull();
+            // The crawler passes its `id` to the predictor it builds.
+            await expect(
+                store.getValue<string>('CRAWLEE_RENDERING_TYPE_PREDICTOR_STATE_own-predictor'),
+            ).resolves.not.toBeNull();
         });
 
         test('tears down the predictor it built itself', async () => {

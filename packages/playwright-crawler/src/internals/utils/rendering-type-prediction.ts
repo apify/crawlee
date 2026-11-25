@@ -45,6 +45,12 @@ type FeatureVector = [staticResultsSimilarity: number, clientOnlyResultsSimilari
 export interface RenderingTypePredictorOptions {
     /** A number between 0 and 1 that determines the desired ratio of rendering type detections */
     detectionRatio: number;
+    /**
+     * Unique identifier for this predictor instance. Used to generate a unique persistence key when
+     * `persistenceOptions.persistStateKey` is not provided. If not provided, an auto-incrementing ID is used.
+     * Explicit IDs share one namespace with the generated ones, so avoid explicit IDs like `'0'` or `'1'`.
+     */
+    id?: string | number;
     persistenceOptions?: Partial<RecoverableStatePersistenceOptions>;
 }
 
@@ -124,17 +130,22 @@ const stateCodec = z.codec(persistedState, predictorState, {
  * Stores rendering type information for previously crawled URLs and predicts the rendering type for URLs that have yet to be crawled and recommends when rendering type detection should be performed.
  */
 export class RenderingTypePredictor implements IRenderingTypePredictor {
+    static #nextId = 0;
+
+    /** The identifier used in the default persistence key. */
+    readonly id: string;
     #detectionRatio: number;
     readonly #state: RecoverableState<z.infer<typeof predictorState>, z.input<typeof persistedState>>;
 
-    constructor({ detectionRatio, persistenceOptions }: RenderingTypePredictorOptions) {
+    constructor({ detectionRatio, id, persistenceOptions }: RenderingTypePredictorOptions) {
+        this.id = id != null ? String(id) : String(RenderingTypePredictor.#nextId++);
         this.#detectionRatio = detectionRatio;
         this.#state = new RecoverableState({
             defaultState: () => stateCodec.decode({}),
             // The codec validates in the decode direction, so it is a Standard Schema as-is; encoding needs a call.
             deserialize: stateCodec,
             serialize: (state) => stateCodec.encode(state),
-            persistStateKey: 'CRAWLEE_RENDERING_TYPE_PREDICTOR_STATE',
+            persistStateKey: `CRAWLEE_RENDERING_TYPE_PREDICTOR_STATE_${this.id}`,
             persistenceEnabled: true,
             ...persistenceOptions,
         });

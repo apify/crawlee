@@ -1186,11 +1186,11 @@ Crawlee keeps its internal state in the default key-value store. These records n
 | Request list progress | `SDK_{name}-REQUEST_LIST_STATE` | `CRAWLEE_REQUEST_LIST_STATE_{name}` |
 | Request list requests | `SDK_{name}-REQUEST_LIST_REQUESTS` | `CRAWLEE_REQUEST_LIST_REQUESTS_{name}` |
 | Sitemap request loader | `SITEMAP_REQUEST_LIST_STATE` | `CRAWLEE_SITEMAP_REQUEST_LOADER_STATE` |
-| Rendering type predictor | `rendering-type-predictor-state` | `CRAWLEE_RENDERING_TYPE_PREDICTOR_STATE` |
+| Rendering type predictor | `rendering-type-predictor-state` | `CRAWLEE_RENDERING_TYPE_PREDICTOR_STATE_{id}` |
 
 The `{id}` of `crawler.useState()` is the crawler's `id` option. Without it, the crawler uses its creation index, such as `'0'`. Crawlers without an `id` therefore no longer share one state object. To share the state, give the crawlers the same `id`.
 
-A `persistStateKey` or `persistRequestsKey` you pass to `RequestList` is used as it is, without the `SDK_` prefix v3 added. The `ThrottlingRequestManager` stores its domain list under `CRAWLEE_THROTTLED_DOMAINS_{id}` and opens its per-domain queues under the alias `throttled-{id}-{domain}`, where `{id}` comes from its `id` option.
+A `persistStateKey` or `persistRequestsKey` you pass to `RequestList` is used as it is, without the `SDK_` prefix v3 added. The `{id}` of the rendering type predictor comes from its new `id` option. The predictor that `AdaptivePlaywrightCrawler` builds gets the crawler's `id` option, so adaptive crawlers no longer share one model. The `ThrottlingRequestManager` stores its domain list under `CRAWLEE_THROTTLED_DOMAINS_{id}` and opens its per-domain queues under the alias `throttled-{id}-{domain}`, where `{id}` comes from its `id` option.
 
 v4 doesn't read the v3 keys. Resuming a v3 crawl on v4 is not supported, so finish or discard in-flight crawls before upgrading.
 
