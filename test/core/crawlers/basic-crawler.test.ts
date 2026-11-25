@@ -4650,7 +4650,6 @@ describe('BasicCrawler', () => {
         test('afterStorageCommit turns a rejected write into a non-retryable request failure', async () => {
             const dataset = await Dataset.open();
             vitest
-                // @ts-expect-error Accessing private property
                 .spyOn(dataset.backend, 'pushData')
                 .mockRejectedValue(new Error('Data item is too large (size: 10000000 bytes)'));
 

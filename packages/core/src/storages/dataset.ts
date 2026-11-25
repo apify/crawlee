@@ -193,8 +193,7 @@ export interface DatasetExportToOptions extends DatasetExportOptions {
 export class Dataset<Data extends Dictionary = Dictionary> {
     readonly id: string;
     readonly name?: string;
-    // oxlint-disable-next-line crawlee/prefer-private-fields -- tests spy on the backend directly
-    private readonly backend: DatasetBackend<Data>;
+    readonly backend: DatasetBackend<Data>;
 
     readonly #statsTracker = new StorageStatsTracker<DatasetStats>({
         readCount: 0,

@@ -165,6 +165,6 @@ If you implemented a custom `StorageBackend`, you need to:
 
 ## `Dataset` field visibility now matches its siblings
 
-- `Dataset.backend` is private, matching `KeyValueStore.backend`. Use the `Dataset` methods (`pushData`, `getData`, `getInfo`, `drop`, ...) rather than reaching for the backend client.
+- `Dataset.client` is now `Dataset.backend`, matching `KeyValueStore.backend` and `RequestQueue.backend`. Prefer the `Dataset` methods (`pushData`, `getData`, `getInfo`, `drop`, ...) over reaching for the backend.
 - `Dataset.id` and `Dataset.name` are `readonly`, matching `KeyValueStore` and `RequestQueue`.
 - `Dataset.log` has been removed. It was never read by Crawlee and `KeyValueStore` never had it; use your own logger, or `crawler.log` inside a request handler.
