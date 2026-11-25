@@ -78,8 +78,8 @@ export abstract class EventManager {
 
     /**
      * Takes over the lifecycle of the event manager: whoever calls this is expected to call
-     * {@apilink EventManager.close|`close()`} as well. Without it, the manager starts itself on the first
-     * `on()` or `emit()` call and emits a final `persistState` event before the process exits.
+     * {@apilink EventManager.close|`close()`} as well. Without it, the manager starts itself with the first
+     * listener and emits a final `persistState` event before the process exits.
      *
      * A subclass that needs to await something to start (e.g. a connection) does so here, which is why
      * such a manager has to be initialized explicitly.
@@ -95,16 +95,15 @@ export abstract class EventManager {
 
     /**
      * Stops the `persistState` event interval and emits the final `persistState` event.
-     * The next `on()` or `emit()` call starts the manager again.
+     * The next `on()` call starts the manager again.
      */
     async close() {
         if (!this.#started) {
             return;
         }
 
-        // Emitted before stopping, so that the final event does not start the interval again.
-        this.emit(EventType.PERSIST_STATE, { isMigrating: false });
         this.stop();
+        this.emit(EventType.PERSIST_STATE, { isMigrating: false });
         this.initialized = false;
 
         await this.waitForAllListenersToComplete();
@@ -134,7 +133,6 @@ export abstract class EventManager {
     }
 
     emit(event: EventTypeName, ...args: unknown[]): void {
-        this.#start();
         this.events.emit(event, ...args);
     }
 
@@ -143,13 +141,12 @@ export abstract class EventManager {
             return;
         }
 
-        // Set first, as the interval emits right away and `emit()` would start it again.
-        this.#started = true;
         // Unreferenced, so that a manager nobody closes does not keep the process alive.
         this.intervals.persistState = betterSetInterval(() => {
             this.emit(EventType.PERSIST_STATE, { isMigrating: false });
         }, this.#persistStateIntervalMillis).unref();
         process.once('beforeExit', this.#flushBeforeExit);
+        this.#started = true;
     }
 
     isInitialized(): boolean {

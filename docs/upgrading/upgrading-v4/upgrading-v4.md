@@ -429,7 +429,7 @@ The `configuration` crawler option is unchanged, as are `serviceLocator.getConfi
 
 ### The event manager no longer follows the crawler run
 
-There is a single event manager per process, shared by all crawlers, and `crawler.run()` no longer initializes and closes it. It starts itself on the first `on()` or `emit()` call and emits a final `persistState` event before the process exits, so a `RequestList`, a `SitemapRequestLoader` or a `KeyValueStore.getAutoSavedValue()` used outside of a crawler now persists its state periodically too. A crawler emits `persistState` at the end of every run.
+There is a single event manager per process, shared by all crawlers, and `crawler.run()` no longer initializes and closes it. It starts itself with the first listener and emits a final `persistState` event before the process exits, so a `RequestList`, a `SitemapRequestLoader` or a `KeyValueStore.getAutoSavedValue()` used outside of a crawler now persists its state periodically too. A crawler emits `persistState` at the end of every run.
 
 - Calling `init()` yourself takes over the lifecycle, and it is then on you to call `close()`. A custom event manager that needs to await something to start (e.g. a connection) has to be initialized this way.
 - To use a custom event manager, call `serviceLocator.setEventManager()` before anything else resolves one.

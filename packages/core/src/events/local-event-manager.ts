@@ -39,11 +39,6 @@ export class LocalEventManager extends EventManager {
         this.#startSystemInfo();
     }
 
-    override emit(event: EventTypeName, ...args: unknown[]): void {
-        super.emit(event, ...args);
-        this.#startSystemInfo();
-    }
-
     override off(event: EventTypeName, listener?: (...args: any[]) => any): void {
         super.off(event, listener);
 
@@ -61,7 +56,7 @@ export class LocalEventManager extends EventManager {
     }
 
     #startSystemInfo(): void {
-        // Checked on every `on()` and `emit()`, so that listeners which outlived a `close()` are served again.
+        // Checked on every `on()`, so that listeners which outlived a `close()` are served again.
         if (this.intervals.systemInfo || this.listenerCount(EventType.SYSTEM_INFO) === 0) {
             return;
         }

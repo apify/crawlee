@@ -78,6 +78,20 @@ describe('EventManager', () => {
         expect(await store.getValue('state')).toEqual({ foo: 'bar' });
     });
 
+    test('emitting after close() does not start the event manager again', async () => {
+        const events = serviceLocator.getEventManager();
+        const listener = vitest.fn();
+        events.on(EventType.PERSIST_STATE, listener);
+
+        await events.close();
+        listener.mockClear();
+
+        events.emit(EventType.EXIT);
+        await sleep(100);
+
+        expect(listener).not.toHaveBeenCalled();
+    });
+
     test('an explicitly initialized event manager is left to its owner on exit', async () => {
         const events = serviceLocator.getEventManager();
         await events.init();
@@ -122,21 +136,6 @@ describe('EventManager', () => {
         listener.mockClear();
 
         events.on(EventType.PERSIST_STATE, () => {});
-        await vitest.waitFor(() => expect(listener).toHaveBeenCalled());
-    });
-
-    test('systemInfo listeners that outlive close() are served again when emit() restarts the manager', async () => {
-        const events = serviceLocator.getEventManager();
-        const listener = vitest.fn();
-
-        events.on(EventType.SYSTEM_INFO, listener);
-        await vitest.waitFor(() => expect(listener).toHaveBeenCalled());
-
-        await events.close();
-        await events.waitForAllListenersToComplete();
-        listener.mockClear();
-
-        events.emit(EventType.PERSIST_STATE, { isMigrating: false });
         await vitest.waitFor(() => expect(listener).toHaveBeenCalled());
     });
 });

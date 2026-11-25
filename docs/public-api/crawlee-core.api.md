@@ -480,8 +480,6 @@ export interface LoadSignalInfo {
 // @public (undocumented)
 export class LocalEventManager extends EventManager {
     constructor(options: LocalEventManagerOptions);
-    // (undocumented)
-    emit(event: EventTypeName, ...args: unknown[]): void;
     static fromConfiguration(configuration?: Configuration): LocalEventManager;
     // (undocumented)
     off(event: EventTypeName, listener?: (...args: any[]) => any): void;
