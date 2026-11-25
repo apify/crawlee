@@ -1242,6 +1242,14 @@ describe('ThrottlingRequestManager', () => {
             expect((await pollForNextRequest(first)).url).toBe('https://example.com/first');
         });
 
+        test('a `-` in the manager ID does not make two queue aliases equal', async () => {
+            const first = new ThrottlingRequestManager({ id: 'a', inner: await createQueue(), domains: ['b-c.com'] });
+            const second = new ThrottlingRequestManager({ id: 'a-b', inner: await createQueue(), domains: ['c.com'] });
+            await first.addRequest({ url: 'https://b-c.com/first' });
+
+            expect(await second.getPendingCount()).toBe(0);
+        });
+
         test('a domain is recorded before its first request lands in the sub-queue', async () => {
             const order: string[] = [];
             const store = await KeyValueStore.open();

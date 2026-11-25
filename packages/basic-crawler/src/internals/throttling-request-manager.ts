@@ -287,7 +287,7 @@ const MAX_INNER_MIGRATIONS = 1000;
 export class ThrottlingRequestManager<T extends IRequestManager = IRequestManager> implements IRequestManager {
     static #nextId = 0;
 
-    /** The identifier used in the default `persistStateKey`. */
+    /** The identifier used in the per-domain queue aliases and the default `persistStateKey`. */
     readonly id: string;
     readonly #innerFactory: () => T | Promise<T>;
     #innerPromise?: Promise<T>;
@@ -547,8 +547,10 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
             subManager = this.#requestManagerOpener(
                 // Backends use the alias as a directory name, and an IPv6 literal is full of characters
                 // Windows will not accept. Ordinary hostnames survive this untouched. The manager ID keeps
-                // the queues of two managers apart.
-                { alias: `throttled-${encodeURIComponent(this.id)}-${encodeURIComponent(domain)}` },
+                // the queues of two managers apart, with its `-` escaped so the first `-` after it ends it.
+                {
+                    alias: `throttled-${encodeURIComponent(this.id).replaceAll('-', '%2D')}-${encodeURIComponent(domain)}`,
+                },
                 { configuration: this.#configuration },
             );
             this.#subManagers.set(domain, subManager);
