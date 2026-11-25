@@ -599,6 +599,7 @@ export interface BasicCrawlerOptions<
      *
      * Without an `id`, the crawler uses its creation index, such as `'0'`. To make sure the state persists across
      * script restarts (e.g., during Apify migrations), provide a stable, unique ID for each crawler instance.
+     * Explicit IDs share one namespace with the generated ones, so avoid explicit IDs like `'0'` or `'1'`.
      */
     id?: string;
 
