@@ -303,6 +303,12 @@ describe('BasicCrawler', () => {
         },
     );
 
+    test('throws when the id cannot be part of a key-value store key', () => {
+        expect(() => new BasicCrawler({ id: 'my crawler', requestHandler: async () => {} })).toThrow(
+            /only contain the following characters.* at `id`/,
+        );
+    });
+
     test('two crawlers sharing a ConcurrencySystem cap their combined concurrency', async () => {
         const system = new ConcurrencySystem({ minConcurrency: 3, maxConcurrency: 3, desiredConcurrency: 3 });
 

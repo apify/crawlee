@@ -63,6 +63,7 @@ import { RobotsTxtFile } from '@crawlee/utils';
 import type { ReadonlyDeep } from 'type-fest';
 import { z } from 'zod';
 
+import { KEY_VALUE_STORE_KEY_REGEX } from '@apify/consts';
 import { LruCache } from '@apify/datastructures';
 import {
     addTimeoutToPromise,
@@ -602,6 +603,9 @@ export interface BasicCrawlerOptions<
      * To ensure each crawler has its own isolated state that also persists across script restarts
      * (e.g., during Apify migrations), provide a stable, unique ID for each crawler instance.
      * Explicit IDs share one namespace with the generated ones, so avoid explicit IDs like `'0'` or `'1'`.
+     *
+     * The ID is also used in the key-value store keys of the statistics, session pool and other components the
+     * crawler creates, so it may only contain the characters `a-zA-Z0-9!-_.'()`.
      */
     id?: string;
 
@@ -978,7 +982,13 @@ export class BasicCrawler<
 
         statistics: schemas.anyObject.optional(),
 
-        id: z.string().optional(),
+        // The ID ends up in key-value store keys, so it has to be a valid part of one.
+        id: z
+            .string()
+            .regex(KEY_VALUE_STORE_KEY_REGEX, {
+                message: `Must be at most 256 characters long and only contain the following characters: a-zA-Z0-9!-_.'()`,
+            })
+            .optional(),
     };
 
     static #optionsSchema = z.strictObject(BasicCrawler.optionsShape);
