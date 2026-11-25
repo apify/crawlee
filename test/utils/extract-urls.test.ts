@@ -28,6 +28,29 @@ describe('downloadListOfUrls()', () => {
             }),
         ).resolves.toEqual(arr);
     });
+
+    test.each(['utf16le', 'ucs2', 'latin1', 'utf8'] as const)('decodes a list in %s', async (encoding) => {
+        const text = fs.readFileSync(path.join(baseDataPath, 'simple_url_list.txt'), 'utf8');
+        const arr = text
+            .trim()
+            .split(/[\r\n]+/g)
+            .map((u) => u.trim());
+
+        const mockClient = Object.assign(Object.create(BaseHttpClient.prototype) as BaseHttpClient, {
+            async sendRequest() {
+                // with a byte order mark, as Windows tools save UTF-16 text
+                return new Response(Buffer.from(`\uFEFF${text}`, encoding));
+            },
+        });
+
+        await expect(
+            downloadListOfUrls({
+                url: 'http://www.nowhere12345.com',
+                encoding,
+                httpClient: mockClient,
+            }),
+        ).resolves.toEqual(arr);
+    });
 });
 
 describe('extractUrls()', () => {

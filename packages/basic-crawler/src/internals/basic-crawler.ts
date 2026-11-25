@@ -64,7 +64,14 @@ import type { ReadonlyDeep } from 'type-fest';
 import { z } from 'zod';
 
 import { LruCache } from '@apify/datastructures';
-import { addTimeoutToPromise, extendTimeout, storage as timeoutStorage, TimeoutError, tryCancel } from '@apify/timeout';
+import {
+    addTimeoutToPromise,
+    extendTimeout,
+    storage as timeoutStorage,
+    suspendTimeout,
+    TimeoutError,
+    tryCancel,
+} from '@apify/timeout';
 import { cryptoRandomObjectId } from '@apify/utilities';
 
 import type { AutoscaledPoolOptions, TaskLoopPredicates } from './autoscaling/autoscaled-pool.js';
@@ -79,6 +86,7 @@ import type { CrawlingRequestData, SkippedRequestReason } from './crawling-reque
 import { CrawlingRequest, RequestState } from './crawling-request.js';
 import {
     ContextPipelineCleanupError,
+    DownloadStartedError,
     ContextPipelineInterruptedError,
     MissingSessionError,
     NavigationSkippedError,
@@ -100,14 +108,7 @@ import {
 } from './enqueue-links/index.js';
 import { parseRetryAfterHeader } from './http.js';
 import { CrawlerRun } from './crawler-run.js';
-import {
-    extendTimeoutKey,
-    navigationDeadlineKey,
-    raceWithTimeout,
-    type RequestTimeoutContext,
-    suspendTimeoutKey,
-    timeoutExpiredKey,
-} from './request-timeout.js';
+import { navigationDeadlineKey, type RequestTimeoutContext, timeoutExpiredKey } from './request-timeout.js';
 import { createSendRequest } from './send-request.js';
 import type { GetUserDataFromRequest, RouterHandler, RouterRoutes } from './router.js';
 import { Router, validateUserData } from './router.js';
@@ -152,9 +153,9 @@ export interface BasicCrawlingContext<UserData extends Dictionary = Dictionary> 
  * results after migration.
  * @ignore
  */
-const SAFE_MIGRATION_WAIT_MILLIS = 20000;
+const SAFE_MIGRATION_WAIT_SECS = 20;
 
-// The request timeout plumbing (the window helper, the context symbols, and the race) lives in its own module.
+// The request timeout plumbing (the window helper and the context symbols) lives in its own module.
 export { navigationDeadlineKey, remainingNavigationWindowMillis } from './request-timeout.js';
 
 const urlPatternSchema = z.union([
@@ -186,7 +187,7 @@ const addRequestsOptionsSchema = z.looseObject({
     onSkippedRequest: schemas.anyFunction.optional(),
 });
 
-/** The in-flight context, carrying the timeout slots ({@apilink raceWithTimeout} hangs its extender on them). */
+/** The in-flight context, carrying the timeout slots (see `#withRequestTimeout`). */
 type PendingCrawlingContext = { request: CrawlingRequest } & Partial<CrawlingContext> & RequestTimeoutContext;
 
 export type RequestHandler<Context extends CrawlingContext = CrawlingContext> = (inputs: Context) => Awaitable<void>;
@@ -504,6 +505,9 @@ export interface BasicCrawlerOptions<
      * - [**AWS WAF** Challenge and CAPTCHA](https://docs.aws.amazon.com/waf/latest/developerguide/waf-captcha-and-challenge.html)
      * - [**Google Search** Rate Limiting](https://www.google.com/sorry/)
      * - **Imperva Incapsula**
+     *
+     * Blocking is detected from the HTTP response, so this option only takes effect in the HTTP and browser
+     * crawlers. A plain {@apilink BasicCrawler} has no blocking detection and ignores it.
      */
     retryOnBlocked?: boolean;
 
@@ -989,9 +993,7 @@ export class BasicCrawler<
         const parsedOptions = parseArgument(options, BasicCrawler.#optionsSchema, 'BasicCrawlerOptions');
 
         const {
-            // oxlint-disable-next-line typescript/no-deprecated -- still accepted and folded into `requestManager` for back-compat
             requestList,
-            // oxlint-disable-next-line typescript/no-deprecated -- still accepted and folded into `requestManager` for back-compat
             requestQueue,
             requestManager,
             maxRequestRetries,
@@ -1270,9 +1272,8 @@ export class BasicCrawler<
                             async () =>
                                 // Navigation, the navigation hooks and the request handler are timed individually, but the
                                 // phases between them are not, so a request could still get stuck indefinitely. This is the
-                                // catch-all for that - see `raceWithTimeout` for why it is a bare timer, not a timeout frame.
-                                await this.#withRequestTimeout(
-                                    crawlingContext,
+                                // catch-all for that.
+                                await this.#withRequestTimeout(crawlingContext, async () =>
                                     this.#basicPipeline.chain(this.contextPipeline).call(
                                         crawlingContext,
                                         (ctx) => this.handleRequest(ctx, source),
@@ -1462,10 +1463,9 @@ export class BasicCrawler<
             extendTimeout: (secs: number) => {
                 const extraMillis = secs * 1000;
 
-                // the current `addTimeoutToPromise` window (the request handler, or a navigation hook)...
+                // the current `addTimeoutToPromise` window (the request handler, or a navigation hook) and the enclosing
+                // ones, including the internal timeout around the whole request...
                 extendTimeout(extraMillis);
-                // ...the internal timeout around the whole request, which is not an `addTimeoutToPromise` frame...
-                context[extendTimeoutKey]?.(extraMillis);
                 // ...and, when called from within the navigation phase, its shared window, so extending a hook
                 // extends the whole navigation budget rather than just that hook's step.
                 if (context[navigationDeadlineKey] !== undefined) {
@@ -2171,11 +2171,6 @@ export class BasicCrawler<
                     continue;
                 }
 
-                if (!(await isAllowedBasedOnRobotsTxtFile(requestOptions.url))) {
-                    allSkipped.push({ source: keepSkippedSource(requestOptions), reason: 'robotsTxt' });
-                    continue;
-                }
-
                 const onSkippedByFilter = (opts: RequestOptions) =>
                     allSkipped.push({ source: keepSkippedSource(opts), reason: 'filters' });
 
@@ -2201,6 +2196,12 @@ export class BasicCrawler<
                 }
 
                 let [finalOptions] = filtered;
+
+                // After the filters, because the check may fetch the robots.txt of the request's origin.
+                if (!(await isAllowedBasedOnRobotsTxtFile(finalOptions.url))) {
+                    allSkipped.push({ source: keepSkippedSource(finalOptions), reason: 'robotsTxt' });
+                    continue;
+                }
 
                 if (options.transformRequestFunction) {
                     const transformed = applyRequestTransform([finalOptions], options.transformRequestFunction, (r) =>
@@ -2377,18 +2378,26 @@ export class BasicCrawler<
     }
 
     /**
-     * Races the request against the internal timeout (see {@apilink raceWithTimeout}), sized to outlast the phases
-     * that have their own timeout - the navigation, its hooks, and the request handler - so a legitimately slow
-     * request, a per-route override, or a low `CRAWLEE_INTERNAL_TIMEOUT` is not cut short mid-phase. It takes
-     * whichever is larger: the configured internal timeout, or this request's combined phase budget.
+     * Runs the request within the internal timeout, sized to outlast the phases that have their own timeout - the
+     * navigation, its hooks, and the request handler - so a legitimately slow request, a per-route override, or a
+     * low `CRAWLEE_INTERNAL_TIMEOUT` is not cut short mid-phase. It takes whichever is larger: the configured
+     * internal timeout, or this request's combined phase budget.
      */
-    async #withRequestTimeout(crawlingContext: PendingCrawlingContext, work: Promise<void>): Promise<void> {
+    async #withRequestTimeout(crawlingContext: PendingCrawlingContext, work: () => Promise<void>): Promise<void> {
         const { request } = crawlingContext;
         const phasesMillis =
             this.getNavigationTimeoutMillis() + this.#resolveRequestHandlerTimeoutMillis(request.label);
         const timeoutMillis = Math.max(this.internalTimeoutMillis, phasesMillis);
 
-        await raceWithTimeout(crawlingContext, work, { timeoutMillis, requestId: request.id });
+        await addTimeoutToPromise(
+            async () => {
+                const { signal } = timeoutStorage.getStore()!.cancelTask;
+                crawlingContext[timeoutExpiredKey] = () => signal.aborted;
+                await work();
+            },
+            timeoutMillis,
+            `Request timed out after ${timeoutMillis / 1e3} seconds (${request.id}).`,
+        );
     }
 
     /**
@@ -2590,7 +2599,7 @@ export class BasicCrawler<
         const run = this.#dispatchingRun;
 
         if (run) {
-            await run.pause(SAFE_MIGRATION_WAIT_MILLIS).catch((err) => {
+            await run.pause(SAFE_MIGRATION_WAIT_SECS).catch((err) => {
                 if (err.message.includes('running tasks did not finish')) {
                     this.log.error(
                         'The crawler was paused due to migration to another host, ' +
@@ -2633,6 +2642,11 @@ export class BasicCrawler<
         request.state = RequestState.REQUEST_HANDLER;
         await this.runRequestHandler(crawlingContext);
 
+        // A handler cancelled by the internal timeout returns normally (its frame swallows the cancellation).
+        if ((crawlingContext as PendingCrawlingContext)[timeoutExpiredKey]?.()) {
+            return;
+        }
+
         // Commit *before* marking the request as handled, so a commit failure fails the request and
         // it is retried. This also closes the transaction, so everything below passes through.
         // Opened by `runInStorageTransaction`; absent when disabled or when the subclass opens its own.
@@ -2669,9 +2683,14 @@ export class BasicCrawler<
         // because the transaction is already closed. A no-op when the commit in `handleRequest` succeeded.
         currentStorageTransaction()?.rollback();
 
-        const resumeRequestTimeout = crawlingContext[suspendTimeoutKey]?.();
+        // `runTaskFunction` already handled the request when the internal timeout fired; this is the late failure of
+        // work that kept running, often just its next `tryCancel()`.
+        if (crawlingContext[timeoutExpiredKey]?.()) {
+            return;
+        }
 
-        try {
+        // Error handling has a timeout of its own, and must not be cut short (and handled again) by the request timeout.
+        await suspendTimeout(async () => {
             const unwrappedError = this.#unwrapError(rawError);
             // A failing or timed out `onSkippedRequest` makes this an ordinary failure, so the request gets retried.
             const err =
@@ -2682,9 +2701,7 @@ export class BasicCrawler<
             if (err) {
                 await this.#runErrorHandler(err, crawlingContext as CrawlingContext, requestSource);
             }
-        } finally {
-            resumeRequestTimeout?.();
-        }
+        });
     }
 
     async #runErrorHandler(err: Error, context: CrawlingContext, requestSource: IRequestManager) {
@@ -3013,7 +3030,8 @@ export class BasicCrawler<
         return (
             error instanceof SessionError ||
             error instanceof RequestThrottledError ||
-            error instanceof ContextPipelineInterruptedError
+            error instanceof ContextPipelineInterruptedError ||
+            error instanceof DownloadStartedError
         );
     }
 

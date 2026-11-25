@@ -25,7 +25,6 @@ describe('dataset', () => {
         test('should work', async () => {
             const dataset = await Dataset.open();
 
-            // @ts-expect-error Accessing private property
             const pushDataSpy = vitest.spyOn(dataset.backend, 'pushData');
 
             const mockPushData = pushDataSpy.mockResolvedValueOnce(undefined);
@@ -42,7 +41,6 @@ describe('dataset', () => {
             expect(mockPushData2).toHaveBeenCalledTimes(2);
             expect(mockPushData2).toHaveBeenCalledWith([{ foo: 'hotel;' }, { foo: 'restaurant' }]);
 
-            // @ts-expect-error Accessing private property
             const mockDrop = vitest.spyOn(dataset.backend, 'drop').mockResolvedValueOnce(undefined);
 
             await dataset.drop();
@@ -56,7 +54,6 @@ describe('dataset', () => {
 
             const dataset = await Dataset.open();
 
-            // @ts-expect-error Accessing private property
             const mockPushData = vitest.spyOn(dataset.backend, 'pushData');
             mockPushData.mockResolvedValueOnce(undefined);
 
@@ -74,7 +71,6 @@ describe('dataset', () => {
 
             const dataset = await Dataset.open();
 
-            // @ts-expect-error Accessing private property
             const mockPushData = vitest.spyOn(dataset.backend, 'pushData');
             mockPushData.mockResolvedValueOnce(undefined);
 
@@ -96,7 +92,6 @@ describe('dataset', () => {
                 desc: false,
             };
 
-            // @ts-expect-error Accessing private property
             const mockGetData = vitest.spyOn(dataset.backend, 'getData');
             mockGetData.mockResolvedValueOnce(expected);
 
@@ -109,7 +104,6 @@ describe('dataset', () => {
 
             expect(result).toEqual(expected);
 
-            // @ts-expect-error Accessing private property
             vitest.spyOn(dataset.backend, 'getData').mockImplementation(() => {
                 throw new Error('Cannot create a string longer than 0x3fffffe7 characters');
             });
@@ -130,7 +124,6 @@ describe('dataset', () => {
                 itemCount: 14,
             };
 
-            // @ts-expect-error Accessing private property
             const mockGetDataset = vitest.spyOn(dataset.backend, 'getMetadata');
             mockGetDataset.mockResolvedValueOnce(expected);
 
@@ -160,7 +153,6 @@ describe('dataset', () => {
                 desc: false,
             };
 
-            // @ts-expect-error Accessing private property
             const mockGetData = vitest.spyOn(dataset.backend, 'getData');
             mockGetData.mockResolvedValueOnce(firstResolve);
             mockGetData.mockResolvedValueOnce(secondResolve);
@@ -300,7 +292,6 @@ describe('dataset', () => {
 
         test('reduce() uses first value as memo if no memo is provided', async () => {
             const dataset = await Dataset.open();
-            // @ts-expect-error Accessing private property
             const mockGetData = vitest.spyOn(dataset.backend, 'getData');
             mockGetData.mockResolvedValueOnce({
                 items: [{ foo: 4 }, { foo: 5 }],
@@ -396,6 +387,18 @@ describe('dataset', () => {
             expect(items[0]).not.toBe(items[1]);
             expect(items[1]).not.toBe(items[2]);
         });
+    });
+
+    test('getData returns rows independent of storage', async () => {
+        const dataset = await Dataset.open<{ price: { amount: number }; tags: string[] }>();
+        const product = { price: { amount: 25 }, tags: ['books'] };
+        await dataset.pushData(product);
+
+        const [item] = (await dataset.getData()).items;
+        item.price.amount = 15;
+        item.tags.push('sale');
+
+        expect((await dataset.getData()).items).toEqual([product]);
     });
 
     describe('utils', () => {

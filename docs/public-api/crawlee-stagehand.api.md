@@ -90,7 +90,7 @@ export class StagehandCrawler<ContextExtension = Dictionary<never>, ExtendedCont
 }
 
 // @public
-export interface StagehandCrawlerOptions<ContextExtension = Dictionary<never>, ExtendedContext extends StagehandCrawlingContext = StagehandCrawlingContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<StagehandCrawlingContext['request']>>, StatisticStateExtension extends object = {}> extends BrowserCrawlerOptions<StagehandPage, Response_2, StagehandCrawlingContext, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
+export interface StagehandCrawlerOptions<ContextExtension = Dictionary<never>, ExtendedContext extends StagehandCrawlingContext = StagehandCrawlingContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<StagehandCrawlingContext['request']>>, StatisticStateExtension extends object = {}> extends Omit<BrowserCrawlerOptions<StagehandPage, Response_2, StagehandCrawlingContext, ContextExtension, ExtendedContext, Routes, StatisticStateExtension>, 'ignoreShadowRoots' | 'ignoreIframes'> {
     headless?: boolean;
     launchContext?: StagehandLaunchContext;
     postNavigationHooks?: BrowserHook<StagehandCrawlingContext<GetUserDataFromRequest<ExtendedContext['request']>>, ContextExtension>[];

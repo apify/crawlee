@@ -321,6 +321,10 @@ export type DefaultRouteUserData<Routes, Fallback extends Dictionary> = Routes e
 } ? DefaultUserData : Fallback;
 
 // @public
+export class DownloadStartedError extends Error {
+}
+
+// @public
 export type EnqueueLinksOptions = ExtractLinksOptions & EnqueueUrlsOptions;
 
 // @public

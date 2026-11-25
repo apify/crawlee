@@ -171,6 +171,8 @@ export class CriticalError extends NonRetryableError {
 export class Dataset<Data extends Dictionary = Dictionary> {
     [Symbol.asyncIterator](): AsyncGenerator<Data, void, undefined>;
     // (undocumented)
+    readonly backend: DatasetBackend<Data>;
+    // (undocumented)
     readonly configuration: Configuration;
     drop(): Promise<void>;
     entries(options?: DatasetIteratorOptions): AsyncIterable<[number, Data]> & Promise<[number, Data][]>;

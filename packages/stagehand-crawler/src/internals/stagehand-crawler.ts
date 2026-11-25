@@ -247,14 +247,17 @@ export interface StagehandCrawlerOptions<
         GetUserDataFromRequest<StagehandCrawlingContext['request']>
     >,
     StatisticStateExtension extends object = {},
-> extends BrowserCrawlerOptions<
-    StagehandPage,
-    Response,
-    StagehandCrawlingContext,
-    ContextExtension,
-    ExtendedContext,
-    Routes,
-    StatisticStateExtension
+> extends Omit<
+    BrowserCrawlerOptions<
+        StagehandPage,
+        Response,
+        StagehandCrawlingContext,
+        ContextExtension,
+        ExtendedContext,
+        Routes,
+        StatisticStateExtension
+    >,
+    'ignoreShadowRoots' | 'ignoreIframes'
 > {
     /**
      * Stagehand-specific configuration options.
@@ -418,6 +421,12 @@ export class StagehandCrawler<
     /** @internal */
     protected static override optionsSchema = z.strictObject(StagehandCrawler.optionsShape);
 
+    /** Only `parseWithCheerio` reads the omitted options, and the Stagehand context has no such helper. */
+    static #constructorOptionsSchema = StagehandCrawler.optionsSchema.omit({
+        ignoreShadowRoots: true,
+        ignoreIframes: true,
+    });
+
     /**
      * Creates a new instance of StagehandCrawler.
      *
@@ -426,7 +435,11 @@ export class StagehandCrawler<
     constructor(
         options: StagehandCrawlerOptions<ContextExtension, ExtendedContext, Routes, StatisticStateExtension> = {},
     ) {
-        const parsedOptions = parseArgument(options, StagehandCrawler.optionsSchema, 'StagehandCrawlerOptions');
+        const parsedOptions = parseArgument(
+            options,
+            StagehandCrawler.#constructorOptionsSchema,
+            'StagehandCrawlerOptions',
+        );
 
         const { stagehandOptions, launchContext, headless, configuration, ...browserCrawlerOptions } = parsedOptions;
 

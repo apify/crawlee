@@ -451,9 +451,8 @@ export class RecoverableState<TStateModel = Record<string, unknown>, TPersistedS
     }
 
     async #withTimeout<T>(operation: () => Promise<T>, description: string): Promise<T> {
-        // `@apify/timeout` shares one `AbortController` across nested frames and `KeyValueStore` checks it on
-        // every operation, so a teardown-time persist running inside an already-expired request handler timeout
-        // would be aborted before it started. Hence a fresh timeout context.
+        // `KeyValueStore` checks for cancellation on every operation, so a teardown-time persist running inside an
+        // already-expired request handler timeout would be aborted before it started. Hence a fresh timeout context.
         return timeoutStorage.exit(async () =>
             addTimeoutToPromise(
                 operation,

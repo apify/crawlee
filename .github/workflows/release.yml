@@ -66,7 +66,7 @@ jobs:
                     restore-keys: |
                         turbo-${{ github.job }}-${{ github.ref_name }}-
 
-            -   uses: apify/actions/pnpm-install@v1.7.0
+            -   uses: apify/actions/pnpm-install@v1.9.0
 
             -   name: Install Playwright browsers
                 run: pnpm exec playwright install --with-deps
@@ -82,7 +82,9 @@ jobs:
         if: (!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, 'docs:'))
         needs: build_and_test
         runs-on: ubuntu-26.04
-        environment: npm
+        environment:
+            name: npm
+            deployment: false
         permissions:
             contents: read
             # Starts publish-to-npm.yml and waits for it with the job token.
@@ -110,7 +112,7 @@ jobs:
                     restore-keys: |
                         turbo-${{ github.job }}-${{ github.ref_name }}-
 
-            -   uses: apify/actions/pnpm-install@v1.7.0
+            -   uses: apify/actions/pnpm-install@v1.9.0
 
             -   name: Build
                 run: pnpm ci:build
@@ -150,7 +152,7 @@ jobs:
                   pull: '--rebase --autostash'
 
             -   name: Publish packages
-                uses: apify/actions/execute-workflow@v1.7.0
+                uses: apify/actions/execute-workflow@v1.9.0
                 with:
                     workflow: publish-to-npm.yml
                     inputs: >
@@ -169,7 +171,9 @@ jobs:
     version-docs:
         needs: release
         runs-on: ubuntu-26.04
-        environment: npm
+        environment:
+            name: npm
+            deployment: false
         # docs snapshots are only ever generated from master — maintenance branches must not trigger them
         if: github.ref == 'refs/heads/master' && (github.event.inputs.version == 'minor' || github.event.inputs.version == 'major')
 
@@ -190,7 +194,7 @@ jobs:
             -   name: Install jq
                 run: sudo apt-get install jq
 
-            -   uses: apify/actions/pnpm-install@v1.7.0
+            -   uses: apify/actions/pnpm-install@v1.9.0
 
             -   name: Snapshot the current version
                 run: |

@@ -1,4 +1,5 @@
 import type { Server } from 'node:http';
+import { createServer as createHttpsServer } from 'node:https';
 import type { AddressInfo } from 'node:net';
 import { Duplex, finished, pipeline as pipelineWithCallbacks, Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
@@ -8,8 +9,9 @@ import { setTimeout } from 'node:timers/promises';
 import { FileDownload } from '@crawlee/http';
 import { FetchHttpClient } from '@crawlee/http-client';
 import express from 'express';
+import { generate } from 'selfsigned';
 import { startExpressAppPromise } from '../../shared/_helper.js';
-import { afterAll, beforeAll, expect, test } from 'vitest';
+import { afterAll, beforeAll, expect, test, vi } from 'vitest';
 
 class ReadableStreamGenerator {
     static async #generateRandomData(size: number, seed: number): Promise<Uint8Array> {
@@ -57,7 +59,9 @@ class ReadableStreamGenerator {
 }
 
 let url = 'http://localhost';
+let httpsUrl = 'https://localhost';
 let server: Server;
+let httpsServer: Server;
 beforeAll(async () => {
     const app = express();
 
@@ -78,10 +82,16 @@ beforeAll(async () => {
 
     server = await startExpressAppPromise(app, 0);
     url = `http://localhost:${(server.address() as AddressInfo).port}`;
+
+    const pems = await generate([{ name: 'commonName', value: 'localhost' }], { keyType: 'ec' });
+    httpsServer = createHttpsServer({ key: pems.private, cert: pems.cert }, app);
+    await new Promise<void>((done) => httpsServer.listen(0, done));
+    httpsUrl = `https://localhost:${(httpsServer.address() as AddressInfo).port}`;
 });
 
 afterAll(async () => {
     server.close();
+    httpsServer.close();
 });
 
 test('requestHandler - reading bytes synchronously', async () => {
@@ -207,7 +217,7 @@ test('verifies TLS certificates by default', async () => {
         requestHandler: async () => {},
     });
 
-    const stats = await crawler.run(['https://self-signed.badssl.com/']);
+    const stats = await crawler.run([new URL('/file', httpsUrl).toString()]);
 
     expect(stats.requestsFailed).toBe(1);
 });
@@ -223,8 +233,88 @@ test('ignoreTlsErrors: true accepts invalid certificates', async () => {
         },
     });
 
-    const stats = await crawler.run(['https://self-signed.badssl.com/']);
+    const stats = await crawler.run([new URL('/file', httpsUrl).toString()]);
 
     expect(stats.requestsFailed).toBe(0);
     expect(status).toBe(200);
 });
+
+test('passes an abort signal to the HTTP client', async () => {
+    // Without a signal, `ImpitHttpClient` keeps impit's own 30 s timeout, which cuts longer downloads short.
+    const httpClient = new FetchHttpClient();
+    const sendRequest = vi.spyOn(httpClient, 'sendRequest');
+
+    const crawler = new FileDownload({
+        maxRequestRetries: 0,
+        httpClient,
+        requestHandler: async ({ response }) => {
+            await response.arrayBuffer();
+        },
+    });
+
+    const stats = await crawler.run([new URL('/file?size=1024&seed=111', url).toString()]);
+
+    expect(stats.requestsFailed).toBe(0);
+    expect(sendRequest.mock.calls[0][1]?.signal).toBeInstanceOf(AbortSignal);
+});
+
+test('a failed request stops its download', async () => {
+    const crawler = new FileDownload({
+        maxRequestRetries: 0,
+        httpClient: new FetchHttpClient(),
+        requestHandler: async ({ response }) => {
+            await response.body!.getReader().read();
+            throw new Error('gave up after the first chunk');
+        },
+    });
+
+    // A second per kilobyte, so the whole file would take 30 s.
+    const fileUrl = new URL(`/file?size=${30 * 1024}&seed=222&throttle=1000`, url).toString();
+    const start = Date.now();
+    const stats = await crawler.run([fileUrl]);
+
+    expect(stats.requestsFailed).toBe(1);
+    expect(Date.now() - start).toBeLessThan(10_000);
+});
+
+const httpClients = [
+    ['fetch', () => new FetchHttpClient()],
+    ['the default client', () => undefined],
+] as const;
+
+test.each(httpClients)(
+    'a failed request does not wait for its unread body (%s)',
+    async (_name, httpClient) => {
+        const crawler = new FileDownload({
+            maxRequestRetries: 0,
+            httpClient: httpClient(),
+            requestHandler: async () => {
+                throw new Error('gave up before reading');
+            },
+        });
+
+        const stats = await crawler.run([new URL(`/file?size=${512 * 1024}&seed=333`, url).toString()]);
+
+        expect(stats.requestsFailed).toBe(1);
+    },
+    10_000,
+);
+
+test.each(httpClients)(
+    'a failed request does not wait for the rest of its body (%s)',
+    async (_name, httpClient) => {
+        const crawler = new FileDownload({
+            maxRequestRetries: 0,
+            httpClient: httpClient(),
+            requestHandler: async ({ response }) => {
+                await response.body!.getReader().read();
+                throw new Error('gave up after the first chunk');
+            },
+        });
+
+        const stats = await crawler.run([new URL(`/file?size=${512 * 1024}&seed=444`, url).toString()]);
+
+        expect(stats.requestsFailed).toBe(1);
+    },
+    10_000,
+);

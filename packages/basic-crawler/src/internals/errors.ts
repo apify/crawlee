@@ -93,6 +93,12 @@ export class RequestHandlerError extends Error {
 export class NavigationSkippedError extends NonRetryableError {}
 
 /**
+ * Thrown when a navigation turned into a file download. Keeps the browser's message; it says nothing about the
+ * session, so the session is not penalized for it.
+ */
+export class DownloadStartedError extends Error {}
+
+/**
  * Wraps a `skipNavigation` request so that reading `loadedUrl` throws a {@apilink NavigationSkippedError}.
  * @internal
  */

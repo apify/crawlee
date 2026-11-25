@@ -64,3 +64,46 @@ export function expandShadowRoots(document: Document): string {
 
     return root.outerHTML;
 }
+
+/**
+ * Serializes the page and collects its `iframe` elements. Runs in the browser, in a single call, so the HTML
+ * and the elements describe the same state of the page. In the HTML, every collected iframe carries its index
+ * in the `data-crawlee-iframe-id` attribute.
+ * @ignore
+ */
+export function snapshotPageWithIframes(
+    document: Document,
+    serialize: ((document: Document) => string) | null,
+): { html: string; iframes: Element[] } {
+    const attribute = 'data-crawlee-iframe-id';
+    const iframes: Element[] = [];
+
+    // Shadow roots are only searched when their content gets into the snapshot.
+    function collect(root: Document | ShadowRoot) {
+        for (const element of root.querySelectorAll(serialize ? '*' : 'iframe')) {
+            if (element.localName === 'iframe') {
+                iframes.push(element);
+            }
+
+            if (element.shadowRoot) {
+                collect(element.shadowRoot);
+            }
+        }
+    }
+
+    collect(document);
+    iframes.forEach((iframe, index) => iframe.setAttribute(attribute, String(index)));
+
+    let html: string;
+    if (serialize) {
+        html = serialize(document);
+    } else {
+        // Same output as `page.content()`.
+        const doctype = document.doctype ? new XMLSerializer().serializeToString(document.doctype) : '';
+        html = doctype + document.documentElement.outerHTML;
+    }
+
+    iframes.forEach((iframe) => iframe.removeAttribute(attribute));
+
+    return { html, iframes };
+}

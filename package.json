@@ -59,7 +59,7 @@
     },
     "devDependencies": {
         "@apify/log": "^3.0.2",
-        "@apify/oxlint-config": "^0.4.0",
+        "@apify/oxlint-config": "^0.4.1",
         "@apify/tsconfig": "^0.2.0",
         "@crawlee/basic": "workspace:*",
         "@crawlee/cheerio": "workspace:*",
@@ -109,17 +109,18 @@
         "globby": "^15.0.0",
         "husky": "^9.1.7",
         "iconv-lite": "^0.7.3",
-        "lerna": "^10.1.2",
+        "lerna": "^10.1.3",
         "lint-staged": "^17.6.1",
         "nock": "^14.0.17",
-        "oxfmt": "^0.79.0",
+        "oxfmt": "^0.80.0",
         "oxlint": "^1.94.0",
-        "oxlint-tsgolint": "^7.0.2007",
+        "oxlint-tsgolint": "^7.0.2008",
         "playwright": "catalog:",
         "portastic": "^1.0.1",
         "proxy": "^2.2.0",
         "puppeteer": "25.18.1",
         "rimraf": "^6.1.4",
+        "selfsigned": "^5.5.0",
         "tsx": "4.21.0",
         "turbo": "^2.11.13",
         "typescript": "^7.0.2",
@@ -133,16 +134,16 @@
             "oxfmt --write --no-error-on-unmatched-pattern"
         ]
     },
-    "packageManager": "pnpm@12.21.0",
+    "packageManager": "pnpm@12.23.0",
     "devEngines": {
         "packageManager": {
             "name": "pnpm",
-            "version": "12.21.0",
+            "version": "12.23.0",
             "onFail": "error"
         }
     },
     "volta": {
         "node": "24.22.0",
-        "pnpm": "12.21.0"
+        "pnpm": "12.23.0"
     }
 }
