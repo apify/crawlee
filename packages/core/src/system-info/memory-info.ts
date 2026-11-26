@@ -108,7 +108,7 @@ export async function getMemoryInfo(
             }
         } catch (err) {
             logger?.warningOnce(
-                'Your environment is containerized, but your system does not support memory cgroups. ' +
+                'Failed to read the cgroup memory limits, falling back to the host memory. ' +
                     "If you're running containers with limited memory, memory auto-scaling will not work properly.\n\n" +
                     `Cause: ${(err as Error).message}`,
             );
@@ -153,15 +153,16 @@ async function getCgroupMemory({ version, dirs }: CgroupController, machineBytes
  */
 async function getChargedBytes(version: CgroupController['version'], dir: string) {
     const current = Number(await readFile(posix.join(dir, MEMORY_FILE_NAMES.USED[version]), 'utf8'));
-    const statFile = await readFile(posix.join(dir, 'memory.stat'), 'utf8');
+    // gVisor has no `memory.stat`, no cache is credited there.
+    const statFile = await readFile(posix.join(dir, 'memory.stat'), 'utf8').catch(() => '');
     const stat = Object.fromEntries(statFile.split('\n').map((line) => line.split(' ')));
     const keys = MEMORY_FILE_NAMES.STAT[version];
-    const inactive = Number(stat[keys.inactive]);
+    const inactive = Number(stat[keys.inactive] ?? 0);
     if (Number.isNaN(current) || Number.isNaN(inactive)) {
         throw new Error(`Unable to read the memory usage of ${dir}`);
     }
 
     // Old kernels have neither of the keys, the whole inactive cache is credited there.
-    const unflushed = Math.max(Number(stat[keys.dirty] ?? 0), 0) + Math.max(Number(stat[keys.writeback] ?? 0), 0);
+    const unflushed = Number(stat[keys.dirty] ?? 0) + Number(stat[keys.writeback] ?? 0);
     return Math.max(current - Math.max(inactive - unflushed, 0), 0);
 }

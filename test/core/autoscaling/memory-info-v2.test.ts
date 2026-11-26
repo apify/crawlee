@@ -154,7 +154,7 @@ describe('getMemoryInfoV2()', () => {
         const data = await getMemoryInfo({ containerized: true, logger });
 
         expect(logger.warningOnce).toHaveBeenCalledOnce();
-        expect(logger.warningOnce.mock.calls[0][0]).toContain('does not support memory cgroups');
+        expect(logger.warningOnce.mock.calls[0][0]).toContain('Failed to read the cgroup memory limits');
         // Should fall back to host memory
         expect(data).toMatchObject({
             totalBytes: 333,
@@ -186,6 +186,24 @@ describe('getMemoryInfoV2()', () => {
             freeBytes: 222,
             usedBytes: 111,
         });
+    });
+
+    test('keeps the limit without memory.stat (e.g. in gVisor)', async () => {
+        getCgroupControllerSpy.mockResolvedValueOnce({ version: 'V1', dirs: ['/sys/fs/cgroup/memory'] });
+        const files: Record<string, string> = {
+            '/sys/fs/cgroup/memory/memory.limit_in_bytes': '333\n',
+            '/sys/fs/cgroup/memory/memory.usage_in_bytes': '111\n',
+        };
+        readFileSpy.mockImplementation(async (path) => {
+            if (typeof path === 'string' && path in files) return files[path];
+            throw new Error(`ENOENT: ${path}`);
+        });
+
+        const logger = { warningOnce: vitest.fn(), warning: vitest.fn() } as any;
+        const data = await getMemoryInfo({ containerized: true, logger });
+
+        expect(logger.warningOnce).not.toHaveBeenCalled();
+        expect(data).toMatchObject({ totalBytes: 333, freeBytes: 222, usedBytes: 111 });
     });
 
     test('works with cgroup V1 with LIMITED memory', async () => {
