@@ -177,6 +177,11 @@ interface DomainState {
     backoffUntil: number;
     /** Earliest dispatch time imposed by the domain's crawl delay, as a `Date.now()` timestamp. */
     crawlDelayUntil: number;
+    /**
+     * Monotonic token incremented whenever a fetch arms a `crawlDelayUntil` reservation or `purge()` resets it,
+     * so an empty or failed fetch only rolls back its own reservation and never clobbers a newer one.
+     */
+    crawlDelayReservation: number;
     /** Time after which an incoming 429 is treated as a fresh burst rather than a continuation. */
     backoffDecaysAt: number;
     consecutive429Count: number;
@@ -224,6 +229,7 @@ function newDomainState(domain: string): DomainState {
         domain,
         backoffUntil: 0,
         crawlDelayUntil: 0,
+        crawlDelayReservation: 0,
         backoffDecaysAt: 0,
         consecutive429Count: 0,
         declaredCrawlDelayMs: null,
@@ -806,7 +812,9 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
 
             if (state.lastDispatchedAt !== null) {
                 const effectiveDelayMs = crawlDelayMs(state, this.#minCrawlDelayMs);
-                state.crawlDelayUntil = Math.max(state.crawlDelayUntil, state.lastDispatchedAt + effectiveDelayMs);
+                if (effectiveDelayMs > 0) {
+                    state.crawlDelayUntil = Math.max(state.crawlDelayUntil, state.lastDispatchedAt + effectiveDelayMs);
+                }
             }
         }
 
@@ -1084,6 +1092,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
             state.consecutive429Count = 0;
             state.backoffUntil = 0;
             state.crawlDelayUntil = 0;
+            state.crawlDelayReservation += 1;
             state.lastDispatchedAt = null;
             state.backoffDecaysAt = 0;
             state.rateLimitedSince = 0;
@@ -1150,24 +1159,44 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
 
             // Armed while the fetch below is still suspended, so that a concurrent `fetchNextRequest` cannot
             // find the domain fetchable and dispatch into the same window - which would pace each task
-            // rather than the domain.
+            // rather than the domain. `lastDispatchedAt` is updated only once a request is actually dequeued,
+            // so an empty or failed fetch can neither trigger a phantom extension nor clobber a newer dispatch.
             const crawlDelayUntilBefore = state.crawlDelayUntil;
-            const lastDispatchedAtBefore = state.lastDispatchedAt;
             const now = Date.now();
             const delayMs = crawlDelayMs(state, this.#minCrawlDelayMs);
-            state.lastDispatchedAt = now;
+            let reservation: number | undefined;
             if (delayMs > 0) {
-                state.crawlDelayUntil = now + delayMs;
+                state.crawlDelayReservation += 1;
+                reservation = state.crawlDelayReservation;
+                state.crawlDelayUntil = Math.max(state.crawlDelayUntil, now + delayMs);
             }
 
-            const request = await (await this.#subManagers.get(domain)!).fetchNextRequest<R>();
+            let request: Request<R> | null = null;
+            try {
+                request = await (await this.#subManagers.get(domain)!).fetchNextRequest<R>();
+            } finally {
+                if (request) {
+                    state.lastDispatchedAt =
+                        state.lastDispatchedAt === null ? now : Math.max(state.lastDispatchedAt, now);
+                    const currentDelayMs = crawlDelayMs(state, this.#minCrawlDelayMs);
+                    if (currentDelayMs > 0) {
+                        state.crawlDelayUntil = Math.max(state.crawlDelayUntil, now + currentDelayMs);
+                    }
+                } else if (reservation !== undefined && state.crawlDelayReservation === reservation) {
+                    // No dispatch to pace, so release our reservation unless a newer reservation or purge replaced it,
+                    // while keeping any cooldown extension anchored to an earlier confirmed dispatch.
+                    const currentDelayMs = crawlDelayMs(state, this.#minCrawlDelayMs);
+                    const lastDispatchFloor =
+                        state.lastDispatchedAt !== null && currentDelayMs > 0
+                            ? state.lastDispatchedAt + currentDelayMs
+                            : 0;
+                    state.crawlDelayUntil = Math.max(crawlDelayUntilBefore, lastDispatchFloor);
+                }
+            }
+
             if (request) {
                 return request;
             }
-
-            // No dispatch to pace, so the domain keeps its slot.
-            state.crawlDelayUntil = crawlDelayUntilBefore;
-            state.lastDispatchedAt = lastDispatchedAtBefore;
         }
 
         const request = await this.#fetchFromInner<R>();

@@ -1514,6 +1514,281 @@ describe('ThrottlingRequestManager', () => {
             expect((await manager.fetchNextRequest())!.url).toBe('https://api.example.com/1');
             expect(await readyAt(manager)).toBe(Date.now() + 9_000);
         });
+
+        test('an older empty fetch finishing after a newer dispatch preserves lastDispatchedAt for a later Crawl-delay', async () => {
+            let resolveFirstFetch!: () => void;
+            let firstFetchEntered!: () => void;
+            const waitForFirstFetch = new Promise<void>((resolve) => {
+                firstFetchEntered = resolve;
+            });
+            let interceptedFirst = false;
+
+            const manager = new ThrottlingRequestManager({
+                inner: await createQueue(),
+                domains: 'all',
+                throttleBy: 'registrableDomain',
+                minCrawlDelaySecs: 0,
+                requestManagerOpener: async (identifier, options) => {
+                    const queue = await RequestQueue.open(identifier, options);
+                    const originalFetch = queue.fetchNextRequest.bind(queue);
+                    queue.fetchNextRequest = async (...args) => {
+                        if (!interceptedFirst) {
+                            interceptedFirst = true;
+                            firstFetchEntered();
+                            await new Promise<void>((resolve) => {
+                                resolveFirstFetch = resolve;
+                            });
+                            return null;
+                        }
+                        return originalFetch(...args);
+                    };
+                    return queue;
+                },
+            });
+
+            await manager.addRequest({ url: 'https://www.example.com/1' });
+            await manager.addRequest({ url: 'https://api.example.com/2' });
+
+            // F1 starts before any crawl delay is known and suspends while fetching from the domain sub-queue.
+            const firstFetch = manager.fetchNextRequest();
+            await waitForFirstFetch;
+
+            // F2 overlaps at a later timestamp and successfully dequeues a request.
+            advanceClock(1_000);
+            const f2DispatchedAt = Date.now();
+            expect((await manager.fetchNextRequest())!.url).toBe('https://www.example.com/1');
+
+            // F1 then finishes empty — it must not roll back F2's confirmed dispatch timestamp.
+            advanceClock(500);
+            resolveFirstFetch();
+            expect(await firstFetch).toBeNull();
+
+            manager.recordPacingSignal({
+                url: 'https://api.example.com/robots.txt',
+                reason: 'minInterval',
+                intervalMs: 9_000,
+                scope: 'hostname',
+            });
+
+            expect(await readyAt(manager)).toBe(f2DispatchedAt + 9_000);
+            expect(await manager.fetchNextRequest()).toBeNull();
+
+            advanceClock(8_499); // f2DispatchedAt + 8_999
+            expect(await manager.fetchNextRequest()).toBeNull();
+
+            advanceClock(1); // f2DispatchedAt + 9_000
+            expect((await manager.fetchNextRequest())!.url).toBe('https://api.example.com/2');
+        });
+
+        test('an older empty fetch in the same tick does not clobber a newer dispatch or Crawl-delay cooldown', async () => {
+            let resolveFirstFetch!: () => void;
+            let firstFetchEntered!: () => void;
+            const waitForFirstFetch = new Promise<void>((resolve) => {
+                firstFetchEntered = resolve;
+            });
+            let interceptedFirst = false;
+
+            const manager = new ThrottlingRequestManager({
+                inner: await createQueue(),
+                domains: 'all',
+                throttleBy: 'registrableDomain',
+                minCrawlDelaySecs: 0,
+                requestManagerOpener: async (identifier, options) => {
+                    const queue = await RequestQueue.open(identifier, options);
+                    const originalFetch = queue.fetchNextRequest.bind(queue);
+                    queue.fetchNextRequest = async (...args) => {
+                        if (!interceptedFirst) {
+                            interceptedFirst = true;
+                            firstFetchEntered();
+                            await new Promise<void>((resolve) => {
+                                resolveFirstFetch = resolve;
+                            });
+                            return null;
+                        }
+                        return originalFetch(...args);
+                    };
+                    return queue;
+                },
+            });
+
+            await manager.addRequest({ url: 'https://www.example.com/1' });
+            await manager.addRequest({ url: 'https://api.example.com/2' });
+
+            const dispatchedAt = Date.now();
+            const firstFetch = manager.fetchNextRequest();
+            await waitForFirstFetch;
+
+            // F2 starts in the exact same millisecond as F1 and dequeues the first request.
+            expect((await manager.fetchNextRequest())!.url).toBe('https://www.example.com/1');
+
+            // robots.txt arrives while F1 is still in flight, establishing a 9s cooldown from F2.
+            manager.recordPacingSignal({
+                url: 'https://api.example.com/robots.txt',
+                reason: 'minInterval',
+                intervalMs: 9_000,
+                scope: 'hostname',
+            });
+
+            // F1 finishes empty — must not reset crawlDelayUntil or lastDispatchedAt.
+            resolveFirstFetch();
+            expect(await firstFetch).toBeNull();
+
+            expect(await readyAt(manager)).toBe(dispatchedAt + 9_000);
+            expect(await manager.fetchNextRequest()).toBeNull();
+        });
+
+        test('negative control: a single empty fetch rolls back cleanly without imposing a phantom cooldown', async () => {
+            const manager = new ThrottlingRequestManager({
+                inner: await createQueue(),
+                domains: ['example.com'],
+                minCrawlDelaySecs: 5,
+            });
+
+            // Empty sub-queue fetch arms the 5s slot and must release it when nothing is dequeued.
+            expect(await manager.fetchNextRequest()).toBeNull();
+
+            // Even if a longer robots.txt Crawl-delay arrives next, there has been no real dispatch yet.
+            manager.recordPacingSignal({
+                url: 'https://example.com/robots.txt',
+                reason: 'minInterval',
+                intervalMs: 9_000,
+                scope: 'hostname',
+            });
+
+            await manager.addRequest({ url: 'https://example.com/1' });
+            expect((await manager.fetchNextRequest())!.url).toBe('https://example.com/1');
+        });
+
+        test('a failing fetch rolls back its reservation, and a stale slow fetch never clobbers a newer dispatch', async () => {
+            let mode: 'throw' | 'hang' | 'normal' = 'throw';
+            let resolveHungFetch!: () => void;
+            let hungFetchEntered!: () => void;
+            const waitForHungFetch = new Promise<void>((resolve) => {
+                hungFetchEntered = resolve;
+            });
+
+            const manager = new ThrottlingRequestManager({
+                inner: await createQueue(),
+                domains: ['example.com'],
+                minCrawlDelaySecs: 5,
+                requestManagerOpener: async (identifier, options) => {
+                    const queue = await RequestQueue.open(identifier, options);
+                    const originalFetch = queue.fetchNextRequest.bind(queue);
+                    queue.fetchNextRequest = async (...args) => {
+                        if (mode === 'throw') {
+                            mode = 'normal';
+                            throw new Error('transient sub-queue error');
+                        }
+                        if (mode === 'hang') {
+                            mode = 'normal';
+                            hungFetchEntered();
+                            await new Promise<void>((resolve) => {
+                                resolveHungFetch = resolve;
+                            });
+                            return null;
+                        }
+                        return originalFetch(...args);
+                    };
+                    return queue;
+                },
+            });
+
+            await manager.addRequest({ url: 'https://example.com/1' });
+            await manager.addRequest({ url: 'https://example.com/2' });
+
+            // A rejected sub-queue fetch must roll back its armed cooldown so the next fetch succeeds immediately.
+            await expect(manager.fetchNextRequest()).rejects.toThrow('transient sub-queue error');
+            expect(await manager.checkReadiness()).toEqual({ status: 'ready' });
+
+            // Start a hung fetch at t0 (arms t0 + 5s), advance past its reservation so F2 dispatches at t0 + 6s.
+            mode = 'hang';
+            const hungFetch = manager.fetchNextRequest();
+            await waitForHungFetch;
+
+            advanceClock(6_000);
+            const f2DispatchedAt = Date.now();
+            expect((await manager.fetchNextRequest())!.url).toBe('https://example.com/1');
+            expect(await readyAt(manager)).toBe(f2DispatchedAt + 5_000);
+
+            // Hung fetch resolves with null — must not wipe F2's cooldown or lastDispatchedAt.
+            resolveHungFetch();
+            expect(await hungFetch).toBeNull();
+
+            expect(await readyAt(manager)).toBe(f2DispatchedAt + 5_000);
+            expect(await manager.fetchNextRequest()).toBeNull();
+
+            manager.recordPacingSignal({
+                url: 'https://example.com/robots.txt',
+                reason: 'minInterval',
+                intervalMs: 9_000,
+                scope: 'hostname',
+            });
+            expect(await readyAt(manager)).toBe(f2DispatchedAt + 9_000);
+        });
+
+        test('an empty fetch rollback preserves a Crawl-delay extension applied to an earlier real dispatch', async () => {
+            let resolveSecondFetch!: () => void;
+            let secondFetchEntered!: () => void;
+            const waitForSecondFetch = new Promise<void>((resolve) => {
+                secondFetchEntered = resolve;
+            });
+            let fetchCount = 0;
+
+            const manager = new ThrottlingRequestManager({
+                inner: await createQueue(),
+                domains: 'all',
+                throttleBy: 'registrableDomain',
+                requestManagerOpener: async (identifier, options) => {
+                    const queue = await RequestQueue.open(identifier, options);
+                    const originalFetch = queue.fetchNextRequest.bind(queue);
+                    queue.fetchNextRequest = async (...args) => {
+                        fetchCount += 1;
+                        if (fetchCount === 2) {
+                            secondFetchEntered();
+                            await new Promise<void>((resolve) => {
+                                resolveSecondFetch = resolve;
+                            });
+                            return null;
+                        }
+                        return originalFetch(...args);
+                    };
+                    return queue;
+                },
+            });
+
+            manager.recordPacingSignal({
+                url: 'https://www.example.com/robots.txt',
+                reason: 'minInterval',
+                intervalMs: 5_000,
+                scope: 'hostname',
+            });
+            await manager.addRequest({ url: 'https://www.example.com/1' });
+
+            const firstDispatchedAt = Date.now();
+            expect((await manager.fetchNextRequest())!.url).toBe('https://www.example.com/1');
+
+            // Move past the 5s delay; start an empty fetch (arms +5s to firstDispatchedAt + 11s).
+            advanceClock(6_000);
+            const emptyFetch = manager.fetchNextRequest();
+            await waitForSecondFetch;
+
+            // While the empty fetch is in flight, a longer 9s Crawl-delay arrives.
+            manager.recordPacingSignal({
+                url: 'https://api.example.com/robots.txt',
+                reason: 'minInterval',
+                intervalMs: 9_000,
+                scope: 'hostname',
+            });
+
+            // Empty fetch finishes with null: it should release its own +11s reservation while keeping
+            // the 9s cooldown anchored to the earlier real dispatch (firstDispatchedAt + 9s).
+            resolveSecondFetch();
+            expect(await emptyFetch).toBeNull();
+
+            await manager.addRequest({ url: 'https://api.example.com/2' });
+            expect(await readyAt(manager)).toBe(firstDispatchedAt + 9_000);
+            expect(await manager.fetchNextRequest()).toBeNull();
+        });
     });
 
     describe('pacing signal scope', () => {
