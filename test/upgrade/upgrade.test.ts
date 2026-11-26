@@ -10,31 +10,31 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 const projectRoot = fileURLToPath(new URL('../../', import.meta.url));
 const cliRoot = resolve(projectRoot, 'packages/cli');
-const sourceSkill = join(cliRoot, 'src/skills/crawlee-upgrade-v4');
+const upgradeRoot = resolve(projectRoot, 'packages/upgrade');
+const sourceSkill = join(upgradeRoot, 'src/skills/crawlee-upgrade-v4');
 let temporaryRoot: string;
-let commandPath: string;
+let modulePath: string;
 let bundledSkills: string;
 const require = createRequire(import.meta.url);
 
 beforeAll(async () => {
     temporaryRoot = await realpath(await mkdtemp(join(tmpdir(), 'crawlee upgrade $& ')));
     await symlink(join(projectRoot, 'node_modules'), join(temporaryRoot, 'node_modules'), 'junction');
-    const packageRoot = join(temporaryRoot, 'packages/cli');
-    await cp(join(cliRoot, 'scripts'), join(packageRoot, 'scripts'), { recursive: true });
-    await cp(join(cliRoot, 'src/skills'), join(packageRoot, 'src/skills'), { recursive: true });
+    const packageRoot = join(temporaryRoot, 'packages/upgrade');
+    await cp(join(upgradeRoot, 'scripts'), join(packageRoot, 'scripts'), { recursive: true });
+    await cp(join(upgradeRoot, 'src/skills'), join(packageRoot, 'src/skills'), { recursive: true });
     await cp(join(projectRoot, 'docs/upgrading'), join(temporaryRoot, 'docs/upgrading'), { recursive: true });
     execFileSync(process.execPath, [join(packageRoot, 'scripts/copy-skills.mjs')], { cwd: temporaryRoot });
     await rm(join(packageRoot, 'src'), { recursive: true });
     bundledSkills = join(packageRoot, 'dist/skills');
 
-    const command = await readFile(join(cliRoot, 'src/commands/upgrade-command.ts'), 'utf8');
+    const source = await readFile(join(upgradeRoot, 'src/upgrade.ts'), 'utf8');
     const ts = await import('typescript-v6');
-    const { outputText } = ts.transpileModule(command, {
+    const { outputText } = ts.transpileModule(source, {
         compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
     });
-    commandPath = join(packageRoot, 'dist/commands/upgrade-command.mjs');
-    await mkdir(join(packageRoot, 'dist/commands'), { recursive: true });
-    await writeFile(commandPath, outputText);
+    modulePath = join(packageRoot, 'dist/upgrade.mjs');
+    await writeFile(modulePath, outputText);
 });
 
 afterAll(async () => {
@@ -83,24 +83,33 @@ function runUpgrade(options: { from?: number; to?: number; export?: string } = {
         [
             '--input-type=module',
             '-e',
-            'const m = await import(process.argv[1]); await new m.UpgradeCommand().handler(JSON.parse(process.argv[2]));',
-            pathToFileURL(commandPath).href,
+            'const m = await import(process.argv[1]); console.log(await m.createUpgradePrompt(JSON.parse(process.argv[2])));',
+            pathToFileURL(modulePath).href,
             JSON.stringify(options),
         ],
         { cwd, encoding: 'utf8' },
     );
 }
 
+function runSource(entry: string, args: string[], cwd: string) {
+    return spawnSync(process.execPath, ['--import', require.resolve('tsx'), join(projectRoot, entry), ...args], {
+        cwd,
+        encoding: 'utf8',
+        // lets tsx map `@crawlee/upgrade` to its source when the working directory is outside the repository
+        env: { ...process.env, TSX_TSCONFIG_PATH: join(projectRoot, 'tsconfig.json') },
+    });
+}
+
 describe('upgrade', () => {
     it('forwards release flags to the metadata copy script while bundling skill assets', async () => {
         const workspaceRoot = join(temporaryRoot, 'release');
-        const packageRoot = join(workspaceRoot, 'packages/cli');
+        const packageRoot = join(workspaceRoot, 'packages/upgrade');
         await mkdir(join(workspaceRoot, 'scripts'), { recursive: true });
         await mkdir(packageRoot, { recursive: true });
         await cp(join(projectRoot, 'scripts/copy.ts'), join(workspaceRoot, 'scripts/copy.ts'));
-        await cp(join(cliRoot, 'package.json'), join(packageRoot, 'package.json'));
-        await cp(join(cliRoot, 'scripts'), join(packageRoot, 'scripts'), { recursive: true });
-        await cp(join(cliRoot, 'src/skills'), join(packageRoot, 'src/skills'), { recursive: true });
+        await cp(join(upgradeRoot, 'package.json'), join(packageRoot, 'package.json'));
+        await cp(join(upgradeRoot, 'scripts'), join(packageRoot, 'scripts'), { recursive: true });
+        await cp(join(upgradeRoot, 'src/skills'), join(packageRoot, 'src/skills'), { recursive: true });
         await cp(join(projectRoot, 'docs/upgrading'), join(workspaceRoot, 'docs/upgrading'), { recursive: true });
         await symlink(join(projectRoot, 'node_modules'), join(workspaceRoot, 'node_modules'), 'junction');
         await writeFile(join(workspaceRoot, 'package.json'), JSON.stringify({ type: 'module' }));
@@ -112,10 +121,11 @@ describe('upgrade', () => {
         await writeFile(join(workspaceRoot, 'README.md'), 'Fixture');
         await writeFile(join(workspaceRoot, 'LICENSE.md'), 'Fixture');
 
-        execFileSync('pnpm', ['run', 'copy', '--pin-versions'], { cwd: packageRoot, encoding: 'utf8' });
+        const output = execFileSync('pnpm', ['run', 'copy', '--pin-versions'], { cwd: packageRoot, encoding: 'utf8' });
+        expect(output).toContain('pin-versions: version 4.0.0');
 
         const manifest = JSON.parse(await readFile(join(packageRoot, 'dist/package.json'), 'utf8'));
-        expect(manifest.dependencies['@crawlee/templates']).toBe('4.0.0');
+        expect(manifest.bin).toEqual({ 'crawlee-upgrade': './cli.js' });
         expect(await readFile(join(packageRoot, 'dist/skills/crawlee-upgrade-v4/SKILL.md'), 'utf8')).toBe(
             await readFile(join(sourceSkill, 'SKILL.md'), 'utf8'),
         );
@@ -124,13 +134,29 @@ describe('upgrade', () => {
 
     it('prints the source skill with absolute guide links from another working directory', async () => {
         const cwd = await project({ dependencies: { crawlee: '^3.15.0' } });
-        const output = execFileSync(
-            process.execPath,
-            ['--import', require.resolve('tsx'), join(cliRoot, 'src/index.ts'), 'upgrade', '--to', '4'],
-            { cwd, encoding: 'utf8' },
-        );
-        expect(output).not.toContain('{SKILL_ROOT}');
-        checkPrompt(output, sourceSkill);
+        const result = runSource('packages/upgrade/src/cli.ts', ['--to', '4'], cwd);
+        expect(result.status, result.stderr).toBe(0);
+        checkPrompt(result.stdout, sourceSkill);
+    });
+
+    it('keeps `crawlee upgrade` as an alias of the standalone command', async () => {
+        const cwd = await project({ dependencies: { crawlee: '^3.15.0' } });
+        const result = runSource('packages/cli/src/index.ts', ['upgrade', '--from', '3'], cwd);
+        expect(result.status, result.stderr).toBe(0);
+        expect(result.stdout).toBe(runSource('packages/upgrade/src/cli.ts', ['--from', '3'], cwd).stdout);
+        checkPrompt(result.stdout, sourceSkill);
+    });
+
+    it('prints usage for --help and rejects a non-numeric major', async () => {
+        const cwd = await project({ dependencies: { crawlee: '^3.15.0' } });
+        const help = runSource('packages/upgrade/src/cli.ts', ['--help'], cwd);
+        expect(help.status, help.stderr).toBe(0);
+        expect(help.stdout).toContain('Usage: npx @crawlee/upgrade');
+
+        const invalid = runSource('packages/upgrade/src/cli.ts', ['--from', 'three'], cwd);
+        expect(invalid.status).not.toBe(0);
+        expect(invalid.stdout).toBe('');
+        expect(invalid.stderr).toContain('positive major version');
     });
 
     it('copies all skill assets and resolves them in the published layout, including special path characters', async () => {
@@ -228,13 +254,12 @@ describe('upgrade', () => {
         expect(result.stderr).toContain(`Cannot upgrade from v4 to v${options.to}`);
     });
 
-    it('prints only the error message when detection fails through the CLI entry', async () => {
+    it.each([
+        ['packages/upgrade/src/cli.ts', []],
+        ['packages/cli/src/index.ts', ['upgrade']],
+    ])('prints only the error message when detection fails through %s', async (entry, args) => {
         const cwd = await project({ devDependencies: { '@crawlee/cli': '^4' } });
-        const result = spawnSync(
-            process.execPath,
-            ['--import', require.resolve('tsx'), join(cliRoot, 'src/index.ts'), 'upgrade'],
-            { cwd, encoding: 'utf8' },
-        );
+        const result = runSource(entry, args, cwd);
         expect(result.status).not.toBe(0);
         expect(result.stdout).toBe('');
         expect(result.stderr).toContain('No Crawlee runtime dependency');

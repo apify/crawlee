@@ -1,0 +1,49 @@
+{
+    "name": "@crawlee/upgrade",
+    "version": "4.0.0",
+    "description": "Prints an AI migration prompt for upgrading a Crawlee project, one major version at a time.",
+    "engines": {
+        "node": ">=22.13.0"
+    },
+    "bin": {
+        "crawlee-upgrade": "./src/cli.ts"
+    },
+    "type": "module",
+    "exports": {
+        ".": "./dist/index.js",
+        "./package.json": "./package.json"
+    },
+    "keywords": [
+        "apify",
+        "crawlee",
+        "upgrade",
+        "migration"
+    ],
+    "author": {
+        "name": "Apify",
+        "email": "support@apify.com",
+        "url": "https://apify.com"
+    },
+    "license": "Apache-2.0",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/apify/crawlee"
+    },
+    "bugs": {
+        "url": "https://github.com/apify/crawlee/issues"
+    },
+    "homepage": "https://crawlee.dev",
+    "scripts": {
+        "build": "pnpm clean && pnpm compile && pnpm copy",
+        "clean": "rimraf ./dist",
+        "compile": "tsc -p tsconfig.build.json",
+        "copy": "node scripts/copy-skills.mjs && tsx ../../scripts/copy.ts"
+    },
+    "publishConfig": {
+        "access": "public"
+    },
+    "dependencies": {
+        "semver": "^7.8.5",
+        "tslib": "^2.9.1"
+    }
+}
