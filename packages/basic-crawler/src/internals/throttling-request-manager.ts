@@ -180,8 +180,10 @@ interface DomainState {
     /** Time after which an incoming 429 is treated as a fresh burst rather than a continuation. */
     backoffDecaysAt: number;
     consecutive429Count: number;
-    /** The `Crawl-delay` this domain's robots.txt asked for, if any - a floor, not the whole story. */
+    /** The longest `Crawl-delay` this domain's robots.txt asked for, if any - a floor, not the whole story. */
     declaredCrawlDelayMs: number | null;
+    /** When the domain last dispatched a request, as a `Date.now()` timestamp, or `null` if it never has. */
+    lastDispatchedAt: number | null;
     /**
      * When the current unbroken run of 429s began, as a `Date.now()` timestamp, or `0` if the domain is not
      * currently rate-limiting us. Cleared the moment a request gets through, so it measures how long we have
@@ -225,6 +227,7 @@ function newDomainState(domain: string): DomainState {
         backoffDecaysAt: 0,
         consecutive429Count: 0,
         declaredCrawlDelayMs: null,
+        lastDispatchedAt: null,
         rateLimitedSince: 0,
         lastRateLimitedAt: 0,
     };
@@ -779,7 +782,9 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
      * Records a declared minimum interval for a domain, which becomes its crawl delay unless
      * {@apilink ThrottlingRequestManagerOptions.minCrawlDelaySecs|`minCrawlDelaySecs`} asks for longer.
      *
-     * The first value wins, so a robots.txt re-fetch cannot change the cadence mid-crawl.
+     * The longest value wins, so a site with different delays across covered origins (e.g. subdomains
+     * sharing one domain clock) is paced by the most conservative `Crawl-delay`, and any active cooldown
+     * from the last dispatch is extended to match.
      *
      * @returns `false` if the domain is not throttled, in which case this is a no-op.
      */
@@ -794,9 +799,15 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         // the sub-queue it will end up pacing.
         const state = this.#ensureDomainState(domain);
 
-        if (state.declaredCrawlDelayMs === null) {
+        if (state.declaredCrawlDelayMs === null || intervalMs > state.declaredCrawlDelayMs) {
+            const verb = state.declaredCrawlDelayMs === null ? 'Set' : 'Raised';
             state.declaredCrawlDelayMs = intervalMs;
-            this.#log.debug(`Set crawl-delay for domain "${state.domain}" to ${(intervalMs / 1000).toFixed(1)}s`);
+            this.#log.debug(`${verb} crawl-delay for domain "${state.domain}" to ${(intervalMs / 1000).toFixed(1)}s`);
+
+            if (state.lastDispatchedAt !== null) {
+                const effectiveDelayMs = crawlDelayMs(state, this.#minCrawlDelayMs);
+                state.crawlDelayUntil = Math.max(state.crawlDelayUntil, state.lastDispatchedAt + effectiveDelayMs);
+            }
         }
 
         return true;
@@ -1073,6 +1084,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
             state.consecutive429Count = 0;
             state.backoffUntil = 0;
             state.crawlDelayUntil = 0;
+            state.lastDispatchedAt = null;
             state.backoffDecaysAt = 0;
             state.rateLimitedSince = 0;
             state.lastRateLimitedAt = 0;
@@ -1140,9 +1152,12 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
             // find the domain fetchable and dispatch into the same window - which would pace each task
             // rather than the domain.
             const crawlDelayUntilBefore = state.crawlDelayUntil;
+            const lastDispatchedAtBefore = state.lastDispatchedAt;
+            const now = Date.now();
             const delayMs = crawlDelayMs(state, this.#minCrawlDelayMs);
+            state.lastDispatchedAt = now;
             if (delayMs > 0) {
-                state.crawlDelayUntil = Date.now() + delayMs;
+                state.crawlDelayUntil = now + delayMs;
             }
 
             const request = await (await this.#subManagers.get(domain)!).fetchNextRequest<R>();
@@ -1152,6 +1167,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
 
             // No dispatch to pace, so the domain keeps its slot.
             state.crawlDelayUntil = crawlDelayUntilBefore;
+            state.lastDispatchedAt = lastDispatchedAtBefore;
         }
 
         const request = await this.#fetchFromInner<R>();

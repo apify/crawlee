@@ -1306,6 +1306,216 @@ describe('ThrottlingRequestManager', () => {
         expect(req2.url).toBe('https://example.com/2');
     });
 
+    describe('multiple robots.txt Crawl-delay signals for one domain', () => {
+        beforeEach(() => {
+            freezeClock();
+        });
+
+        test('throttleBy: registrableDomain keeps the longest Crawl-delay regardless of arrival order', async () => {
+            const manager = new ThrottlingRequestManager({
+                inner: await createQueue(),
+                domains: 'all',
+                throttleBy: 'registrableDomain',
+            });
+
+            // Shorter delay read first, longer delay second.
+            expect(
+                manager.recordPacingSignal({
+                    url: 'https://www.example.com/robots.txt',
+                    reason: 'minInterval',
+                    intervalMs: 5_000,
+                    scope: 'hostname',
+                }),
+            ).toBe(true);
+            expect(
+                manager.recordPacingSignal({
+                    url: 'https://api.example.com/robots.txt',
+                    reason: 'minInterval',
+                    intervalMs: 9_000,
+                    scope: 'hostname',
+                }),
+            ).toBe(true);
+
+            await manager.addRequest({ url: 'https://www.example.com/1' });
+            await manager.addRequest({ url: 'https://api.example.com/1' });
+
+            expect((await manager.fetchNextRequest())!.url).toBe('https://www.example.com/1');
+            expect(await readyAt(manager)).toBe(Date.now() + 9_000);
+
+            advanceClock(5_000);
+            expect(await manager.fetchNextRequest()).toBeNull();
+
+            advanceClock(4_000);
+            expect((await manager.fetchNextRequest())!.url).toBe('https://api.example.com/1');
+        });
+
+        test('shorter Crawl-delay arriving later does not downgrade a longer one', async () => {
+            const manager = new ThrottlingRequestManager({
+                inner: await createQueue(),
+                domains: 'all',
+                throttleBy: 'registrableDomain',
+            });
+
+            manager.recordPacingSignal({
+                url: 'https://api.example.com/robots.txt',
+                reason: 'minInterval',
+                intervalMs: 9_000,
+                scope: 'hostname',
+            });
+            manager.recordPacingSignal({
+                url: 'https://www.example.com/robots.txt',
+                reason: 'minInterval',
+                intervalMs: 5_000,
+                scope: 'hostname',
+            });
+
+            await manager.addRequest({ url: 'https://www.example.com/1' });
+            await manager.addRequest({ url: 'https://api.example.com/1' });
+
+            await manager.fetchNextRequest();
+            expect(await readyAt(manager)).toBe(Date.now() + 9_000);
+        });
+
+        test('throttleBy: hostname keeps the longest Crawl-delay across schemes and ports', async () => {
+            const manager = new ThrottlingRequestManager({
+                inner: await createQueue(),
+                domains: 'all',
+            });
+
+            manager.recordPacingSignal({
+                url: 'http://example.com/robots.txt',
+                reason: 'minInterval',
+                intervalMs: 5_000,
+                scope: 'hostname',
+            });
+            manager.recordPacingSignal({
+                url: 'https://example.com:8443/robots.txt',
+                reason: 'minInterval',
+                intervalMs: 9_000,
+                scope: 'hostname',
+            });
+
+            await manager.addRequest({ url: 'http://example.com/1' });
+            await manager.addRequest({ url: 'https://example.com:8443/1' });
+
+            await manager.fetchNextRequest();
+            expect(await readyAt(manager)).toBe(Date.now() + 9_000);
+        });
+
+        test('a longer Crawl-delay arriving mid-cooldown extends the active cooldown from the last dispatch', async () => {
+            const manager = new ThrottlingRequestManager({
+                inner: await createQueue(),
+                domains: 'all',
+                throttleBy: 'registrableDomain',
+            });
+
+            manager.recordPacingSignal({
+                url: 'https://www.example.com/robots.txt',
+                reason: 'minInterval',
+                intervalMs: 5_000,
+                scope: 'hostname',
+            });
+            await manager.addRequest({ url: 'https://www.example.com/1' });
+            await manager.addRequest({ url: 'https://api.example.com/1' });
+
+            const dispatchedAt = Date.now();
+            expect((await manager.fetchNextRequest())!.url).toBe('https://www.example.com/1');
+            expect(await readyAt(manager)).toBe(dispatchedAt + 5_000);
+
+            advanceClock(1_000);
+            manager.recordPacingSignal({
+                url: 'https://api.example.com/robots.txt',
+                reason: 'minInterval',
+                intervalMs: 9_000,
+                scope: 'hostname',
+            });
+
+            expect(await readyAt(manager)).toBe(dispatchedAt + 9_000);
+
+            advanceClock(4_000); // dispatchedAt + 5_000
+            expect(await manager.fetchNextRequest()).toBeNull();
+
+            advanceClock(4_000); // dispatchedAt + 9_000
+            expect((await manager.fetchNextRequest())!.url).toBe('https://api.example.com/1');
+        });
+
+        test('a Crawl-delay arriving after an unthrottled dispatch paces from that dispatch', async () => {
+            const manager = new ThrottlingRequestManager({
+                inner: await createQueue(),
+                domains: 'all',
+                throttleBy: 'registrableDomain',
+            });
+
+            await manager.addRequest({ url: 'https://www.example.com/1' });
+            await manager.addRequest({ url: 'https://api.example.com/1' });
+
+            const dispatchedAt = Date.now();
+            expect((await manager.fetchNextRequest())!.url).toBe('https://www.example.com/1');
+
+            advanceClock(1_000);
+            manager.recordPacingSignal({
+                url: 'https://api.example.com/robots.txt',
+                reason: 'minInterval',
+                intervalMs: 9_000,
+                scope: 'hostname',
+            });
+
+            expect(await readyAt(manager)).toBe(dispatchedAt + 9_000);
+        });
+
+        test('negative control: minCrawlDelaySecs floor still wins when longer than all Crawl-delay values', async () => {
+            const manager = new ThrottlingRequestManager({
+                inner: await createQueue(),
+                domains: 'all',
+                throttleBy: 'registrableDomain',
+                minCrawlDelaySecs: 12,
+            });
+
+            manager.recordPacingSignal({
+                url: 'https://www.example.com/robots.txt',
+                reason: 'minInterval',
+                intervalMs: 5_000,
+                scope: 'hostname',
+            });
+            manager.recordPacingSignal({
+                url: 'https://api.example.com/robots.txt',
+                reason: 'minInterval',
+                intervalMs: 9_000,
+                scope: 'hostname',
+            });
+
+            await manager.addRequest({ url: 'https://www.example.com/1' });
+            await manager.addRequest({ url: 'https://api.example.com/1' });
+
+            await manager.fetchNextRequest();
+            expect(await readyAt(manager)).toBe(Date.now() + 12_000);
+        });
+
+        test('purge resets lastDispatchedAt so a new run dispatches immediately while keeping longest Crawl-delay', async () => {
+            const manager = new ThrottlingRequestManager({
+                inner: await createQueue(),
+                domains: 'all',
+                throttleBy: 'registrableDomain',
+            });
+
+            await manager.addRequest({ url: 'https://www.example.com/1' });
+            await manager.fetchNextRequest();
+            await manager.purge();
+
+            manager.recordPacingSignal({
+                url: 'https://api.example.com/robots.txt',
+                reason: 'minInterval',
+                intervalMs: 9_000,
+                scope: 'hostname',
+            });
+            await manager.addRequest({ url: 'https://api.example.com/1' });
+            await manager.addRequest({ url: 'https://api.example.com/2' });
+
+            expect((await manager.fetchNextRequest())!.url).toBe('https://api.example.com/1');
+            expect(await readyAt(manager)).toBe(Date.now() + 9_000);
+        });
+    });
+
     describe('pacing signal scope', () => {
         test('a signal narrower than the grouping is honoured across the whole group', async () => {
             // robots.txt is per-origin, so a `Crawl-delay` read from one subdomain is hostname-scoped - and the
