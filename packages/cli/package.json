@@ -39,16 +39,16 @@
         "build": "pnpm clean && pnpm compile && pnpm copy",
         "clean": "rimraf ./dist",
         "compile": "tsc -p tsconfig.build.json",
-        "copy": "node scripts/copy-skills.mjs && tsx ../../scripts/copy.ts"
+        "copy": "tsx ../../scripts/copy.ts"
     },
     "publishConfig": {
         "access": "public"
     },
     "dependencies": {
         "@crawlee/templates": "workspace:*",
+        "@crawlee/upgrade": "workspace:*",
         "@inquirer/prompts": "^8.8.1",
         "ansi-colors": "^4.1.3",
-        "semver": "^7.8.5",
         "tslib": "^2.9.1",
         "yargs": "^18.2.0"
     }

@@ -5,7 +5,7 @@ description: Plan and perform a Crawlee upgrade using the bundled migration guid
 
 # Crawlee upgrade plan: v{FROM_MAJOR} to v{TO_MAJOR}
 
-Inspect this project and confirm its Crawlee versions before changing files. The guides below link local files; if they are unreadable from here, run the same `crawlee upgrade` command again with `--export <dir>` pointing to a readable directory and use the prompt it prints instead. The CLI selected v{FROM_MAJOR} as the starting major from the project or an explicit `--from` override. Dependencies that are already on v{TO_MAJOR} do not show whether the code was migrated, so the CLI then assumes it was not. If that does not match the code and dependencies, resolve the discrepancy with the user.
+Inspect this project and confirm its Crawlee versions before changing files. The guides below link local files; if they are unreadable from here, run the command that printed this prompt again with `--export <dir>` pointing to a readable directory and use the prompt it prints instead. The CLI selected v{FROM_MAJOR} as the starting major from the project or an explicit `--from` override. Dependencies that are already on v{TO_MAJOR} do not show whether the code was migrated, so the CLI then assumes it was not. If that does not match the code and dependencies, resolve the discrepancy with the user.
 
 ## Migration sequence
 

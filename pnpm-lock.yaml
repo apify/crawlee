@@ -653,15 +653,15 @@ importers:
       '@crawlee/templates':
         specifier: workspace:*
         version: link:../templates
+      '@crawlee/upgrade':
+        specifier: workspace:*
+        version: link:../upgrade
       '@inquirer/prompts':
         specifier: ^8.8.1
         version: 8.8.1(@types/node@24.19.2)
       ansi-colors:
         specifier: ^4.1.3
         version: 4.1.3
-      semver:
-        specifier: ^7.8.5
-        version: 7.8.5
       tslib:
         specifier: ^2.9.1
         version: 2.9.1
@@ -1036,6 +1036,15 @@ importers:
 
   packages/types:
     dependencies:
+      tslib:
+        specifier: ^2.9.1
+        version: 2.9.1
+
+  packages/upgrade:
+    dependencies:
+      semver:
+        specifier: ^7.8.5
+        version: 7.8.5
       tslib:
         specifier: ^2.9.1
         version: 2.9.1

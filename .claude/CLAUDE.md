@@ -86,6 +86,7 @@ Crawlee is a **pnpm workspaces monorepo** with Turbo build orchestration. All pa
 
 @crawlee/otel           # OpenTelemetry instrumentation
 
+@crawlee/upgrade        # `npx @crawlee/upgrade`: AI migration prompt + bundled upgrade guides
 @crawlee/templates      # Project templates
        ↓
 @crawlee/cli            # `crawlee` CLI (create/run projects, install Playwright browsers)
