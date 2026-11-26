@@ -158,6 +158,7 @@ If you implemented a custom `StorageBackend`, you need to:
 1. Remove your `*CollectionClient` classes.
 2. Replace the six getter methods (`dataset`, `datasets`, `keyValueStore`, `keyValueStores`, `requestQueue`, `requestQueues`) with three async factory methods (`createDatasetBackend`, `createKeyValueStoreBackend`, `createRequestQueueBackend`). Each factory should handle both opening an existing storage and creating a new one.
 3. Apply the sub-backend renames listed above (`get` → `getMetadata`, `delete` → `drop`, etc.) and implement the new `purge()` method.
+4. Retry transient failures and time out stalled calls inside the backend. Crawlers no longer retry or time out individual storage calls, so a rejection is final.
 
 ## Storage internals are no longer part of the public API
 

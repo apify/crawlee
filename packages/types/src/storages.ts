@@ -436,6 +436,10 @@ export type StorageIdentifier =
  *
  * The `StorageBackend` acts as an async factory: each `create*` method either opens an existing
  * storage or creates a new one, returning a sub-backend bound to that storage instance.
+ *
+ * Backends own the reliability of their calls: they retry transient failures and bound each call in
+ * time, as suits the underlying storage. Callers (the storage classes, the crawlers) neither retry nor
+ * time out individual calls, so a rejection is final and a call that never settles stalls its caller.
  */
 export interface StorageBackend {
     /**

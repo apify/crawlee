@@ -2327,34 +2327,6 @@ describe('BasicCrawler', () => {
         );
     });
 
-    test('a skipped request whose markRequestAsHandled times out does not crash the crawler', async () => {
-        serviceLocator.reset();
-        serviceLocator.setStorageBackend(new MemoryStorageBackend());
-        serviceLocator.setConfiguration(new Configuration({ internalTimeoutMillis: 100 }));
-
-        const requestQueue = await RequestQueue.open();
-
-        // the whole backend is down, so the safety-net reclaim cannot rescue the request either
-        vitest.spyOn(requestQueue, 'markRequestAsHandled').mockImplementation(() => new Promise<never>(() => {}));
-        vitest.spyOn(requestQueue, 'reclaimRequest').mockImplementation(() => new Promise<never>(() => {}));
-
-        const crawler = new BasicCrawler({
-            requestQueue,
-            // the request is never handled, so the queue never finishes; `stop()` lets the in-flight request wind down
-            extendContext: () => {
-                crawler.stop();
-                throw new ContextPipelineInterruptedError('manual', 'skipped by the test');
-            },
-            requestHandler: async () => {},
-        });
-        const warningSpy = vitest.spyOn(crawler.log, 'warning');
-
-        await expect(crawler.run(['https://example.com'])).resolves.toBeDefined();
-        expect(warningSpy).toHaveBeenCalledWith(
-            expect.stringMatching(/^Handling request failure of .* timed out after 0\.1 seconds\.$/),
-        );
-    });
-
     test('warns when the internal timeout is shorter than the phase timeouts', async () => {
         serviceLocator.reset();
         serviceLocator.setStorageBackend(new MemoryStorageBackend());

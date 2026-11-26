@@ -1494,11 +1494,7 @@ export class BasicCrawler<
      * `markRequestAsHandled`, so nothing observes the difference.
      */
     async #resolveRequest(): Promise<CrawlingRequest | null> {
-        const fetched = await this.#timeoutAndRetry(
-            this.#fetchNextRequest.bind(this),
-            this.internalTimeoutMillis,
-            `Fetching next request timed out after ${this.internalTimeoutMillis / 1e3} seconds.`,
-        );
+        const fetched = await this.#fetchNextRequest();
 
         if (!fetched) {
             return null;
@@ -2647,13 +2643,7 @@ export class BasicCrawler<
         // Opened by `runInStorageTransaction`; absent when disabled or when the subclass opens its own.
         await currentStorageTransaction()?.commit();
 
-        await this.#timeoutAndRetry(
-            async () => requestSource.markRequestAsHandled(request),
-            this.internalTimeoutMillis,
-            `Marking request ${request.url} (${request.id}) as handled timed out after ${
-                this.internalTimeoutMillis / 1e3
-            } seconds.`,
-        );
+        await requestSource.markRequestAsHandled(request);
 
         this.statistics.recordRequestSuccess(request.id || request.uniqueKey, request.retryCount);
 
@@ -2743,11 +2733,7 @@ export class BasicCrawler<
             // Safety net - the error handler neither marked the request as handled nor reclaimed it (e.g. after a
             // CriticalError). Reclaiming a request that is no longer in progress is a harmless no-op on the storage backend.
             try {
-                await addTimeoutToPromise(
-                    async () => requestSource.reclaimRequest(request),
-                    this.internalTimeoutMillis,
-                    `Reclaiming request ${request.url} (${request.id}) timed out.`,
-                );
+                await requestSource.reclaimRequest(request);
             } catch {
                 // The request was never in progress, or could not be reclaimed. Either way it's fine.
             }
@@ -2957,13 +2943,7 @@ export class BasicCrawler<
             );
             request.state = RequestState.SKIPPED;
             request.noRetry = true;
-            await this.#timeoutAndRetry(
-                async () => source.markRequestAsHandled(request),
-                this.internalTimeoutMillis,
-                `Marking request ${request.url} (${request.id}) as handled timed out after ${
-                    this.internalTimeoutMillis / 1e3
-                } seconds.`,
-            );
+            await source.markRequestAsHandled(request);
             this.statistics.discardRequestRecord(request.id || request.uniqueKey);
             return undefined;
         } catch (settleError) {
