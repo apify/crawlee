@@ -393,6 +393,19 @@ describe('playwrightUtils', () => {
             expect([...text.matchAll(/\[GOOD]/g)]).toHaveLength(2);
             expect([...text.matchAll(/\[BAD]/g)]).toHaveLength(0);
         });
+
+        test('expansion works when the page replaces Array.from with a version that ignores the map function', async () => {
+            const page = await browser.newPage();
+            await page.goto(`${serverAddress}/special/shadow-root`);
+            await page.evaluate(() => {
+                // Prototype.js does the same with `Array.from = $A`.
+                Array.from = ((items: ArrayLike<unknown>) => Array.prototype.slice.call(items)) as typeof Array.from;
+            });
+
+            const result = await playwrightUtils.parseWithCheerio(page);
+
+            expect(result('#open-container').text()).toContain('[GOOD] This is inside the OPEN shadow DOM.');
+        });
     });
 
     describe('infiniteScroll()', () => {

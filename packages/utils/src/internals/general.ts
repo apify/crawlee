@@ -45,18 +45,16 @@ export function expandShadowRoots(document: Document): string {
 
     // Appends the content of every open shadow root to the copy of its host.
     function expand(original: Element, clone: Element) {
-        const children = Array.from(original.children, (child, index) => [child, clone.children[index]]);
+        for (let index = 0; index < original.children.length; index++) {
+            expand(original.children[index], clone.children[index]);
+        }
 
-        for (const node of Array.from(original.shadowRoot?.childNodes ?? [])) {
+        for (const node of original.shadowRoot?.childNodes ?? []) {
             const imported = clone.appendChild(copy.importNode(node, true));
 
             if (node.nodeType === Node.ELEMENT_NODE) {
-                children.push([node as Element, imported as Element]);
+                expand(node as Element, imported as Element);
             }
-        }
-
-        for (const [child, childClone] of children) {
-            expand(child, childClone);
         }
     }
 
