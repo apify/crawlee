@@ -177,6 +177,21 @@ export async function sampleCpuUsage(cGroupsVersion: string, dir: string): Promi
     return { containerUsage, systemUsage };
 }
 
+/**
+ * Counts the cpus the process can run on, e.g. as narrowed by a cpuset.
+ * Unlike `os.availableParallelism()`, this ignores the cgroup cpu quota, which libuv rounds down.
+ */
+async function getAllowedCpuCount(): Promise<number> {
+    const status = await readFile('/proc/self/status', 'utf8');
+    // e.g. `Cpus_allowed_list:	0-3,8`
+    const list = /^Cpus_allowed_list:\s*(\S+)/m.exec(status)?.[1];
+    if (list === undefined) return os.cpus().length;
+    return list.split(',').reduce((count, range) => {
+        const [first, last = first] = range.split('-').map(Number);
+        return count + last - first + 1;
+    }, 0);
+}
+
 let previousSample: CpuSample = { containerUsage: 0, systemUsage: 0 };
 let previousSampleDir: string | undefined;
 
@@ -206,7 +221,7 @@ export async function getCurrentCpuTicksV2(
         }
         // The tightest quota on the cgroup chain applies. The cpus available to the process (e.g. a cpuset) can narrow
         // it further, these are measured on the process cgroup.
-        let cpuAllowance = os.availableParallelism();
+        let cpuAllowance = await getAllowedCpuCount();
         let limitLevel = 0;
         for (const [level, dir] of cgroup.dirs.entries()) {
             const quota = await getCpuQuota(cgroup.version, dir).catch(() => null);

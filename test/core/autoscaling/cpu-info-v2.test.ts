@@ -285,6 +285,7 @@ describe('getCpuInfo()', () => {
         //   For system usage, simulate a /proc/stat line with 300 total ticks,
         //   so systemUsage = (300 * 1e9) / 100 = 3000000000.
         readFileSpy
+            .mockResolvedValueOnce('Cpus_allowed_list:\t0-1\n') // for getAllowedCpuCount
             .mockResolvedValueOnce('100000\n') // for getCpuQuota
             .mockResolvedValueOnce('100000\n') // for getCpuPeriod
             .mockResolvedValueOnce('1000000000\n') // for getContainerCpuUsage
@@ -322,6 +323,7 @@ describe('getCpuInfo()', () => {
             .mockResolvedValueOnce({ version: 'V1', dirs: ['/sys/fs/cgroup/cpu'] })
             .mockResolvedValueOnce({ version: 'V1', dirs: ['/sys/fs/cgroup/cpuacct'] });
         readFileSpy
+            .mockResolvedValueOnce('Cpus_allowed_list:\t0\n') // for getAllowedCpuCount
             .mockResolvedValueOnce('50000\n') // for getCpuQuota
             .mockResolvedValueOnce('100000\n') // for getCpuPeriod
             .mockRejectedValue(new Error('permission denied'));
@@ -341,7 +343,9 @@ describe('getCpuInfo()', () => {
     test('returns bare metal cpu ticks when containerized but no cgroup quota', async () => {
         getCgroupControllerSpy.mockResolvedValueOnce({ version: 'V1', dirs: ['/sys/fs/cgroup/cpu'] });
         // For V1, a quota of "-1" signals no limit → quota becomes null.
-        readFileSpy.mockResolvedValueOnce('-1\n'); // getCpuQuota returns null
+        readFileSpy
+            .mockResolvedValueOnce('Cpus_allowed_list:\t0\n') // for getAllowedCpuCount
+            .mockResolvedValueOnce('-1\n'); // getCpuQuota returns null
         // In this branch, getCpuInfo falls back to getCurrentCpuTicks.
         const cpusMock = vitest
             .spyOn(os, 'cpus')
@@ -362,6 +366,7 @@ describe('getCpuInfo()', () => {
         let usageUsec = 0;
         let systemTicks = 0;
         readFileSpy.mockImplementation(async (path) => {
+            if (path === '/proc/self/status') return 'Cpus_allowed_list:\t0-1\n';
             if (path === '/sys/fs/cgroup/user.slice/run-u1.scope/cpu.max') return 'max 100000\n';
             if (path === '/sys/fs/cgroup/user.slice/cpu.max') return '100000 100000\n';
             if (path === '/sys/fs/cgroup/user.slice/cpu.stat') return `usage_usec ${(usageUsec += 1_000_000)}\n`;
@@ -386,6 +391,7 @@ describe('getCpuInfo()', () => {
     test('returns bare metal cpu ticks when the quota covers all cpus of the machine', async () => {
         getCgroupControllerSpy.mockResolvedValueOnce({ version: 'V2', dirs: ['/sys/fs/cgroup'] });
         readFileSpy.mockImplementation(async (path) => {
+            if (path === '/proc/self/status') return 'Cpus_allowed_list:\t0-1\n';
             if (path === '/sys/fs/cgroup/cpu.max') return '300000 100000\n';
             if (path === '/sys/fs/cgroup/cpu.stat') return 'usage_usec 1000000\n';
             if (path === '/proc/stat') return 'cpu 300 0 0 0 0 0 0\n';
@@ -409,12 +415,12 @@ describe('getCpuInfo()', () => {
         let usageUsec = 0;
         let systemTicks = 0;
         readFileSpy.mockImplementation(async (path) => {
+            if (path === '/proc/self/status') return 'Cpus_allowed_list:\t1\n';
             if (path === '/sys/fs/cgroup/cpu.max') return 'max 100000\n';
             if (path === '/sys/fs/cgroup/cpu.stat') return `usage_usec ${(usageUsec += 1_000_000)}\n`;
             if (path === '/proc/stat') return `cpu ${(systemTicks += 300)} 0 0 0 0 0 0\n`;
             throw new Error(`ENOENT: ${path}`);
         });
-        vitest.spyOn(os, 'availableParallelism').mockReturnValue(1);
         const cpusMock = vitest
             .spyOn(os, 'cpus')
             .mockReturnValue([
@@ -429,6 +435,33 @@ describe('getCpuInfo()', () => {
         cpusMock.mockRestore();
     });
 
+    test('gauges the load against a fractional quota', async () => {
+        getCgroupControllerSpy.mockResolvedValue({ version: 'V2', dirs: ['/sys/fs/cgroup'] });
+        let usageUsec = 0;
+        let systemTicks = 0;
+        readFileSpy.mockImplementation(async (path) => {
+            if (path === '/proc/self/status') return 'Cpus_allowed_list:\t0-1\n';
+            if (path === '/sys/fs/cgroup/cpu.max') return '150000 100000\n';
+            if (path === '/sys/fs/cgroup/cpu.stat') return `usage_usec ${(usageUsec += 1_000_000)}\n`;
+            if (path === '/proc/stat') return `cpu ${(systemTicks += 300)} 0 0 0 0 0 0\n`;
+            throw new Error(`ENOENT: ${path}`);
+        });
+        // libuv caps os.availableParallelism() by the cgroup quota, rounded down.
+        vitest.spyOn(os, 'availableParallelism').mockReturnValue(1);
+        const cpusMock = vitest
+            .spyOn(os, 'cpus')
+            .mockReturnValue([
+                { times: { user: 200, nice: 0, sys: 100, idle: 100, irq: 0 } },
+                { times: { user: 200, nice: 0, sys: 100, idle: 100, irq: 0 } },
+            ] as os.CpuInfo[]);
+
+        await getCurrentCpuTicksV2();
+        const result = await getCurrentCpuTicksV2();
+        // 1 s of cgroup cpu time per 3 s of system cpu time on 2 CPUs, against an allowance of 1.5 cores.
+        expect(result).toBeCloseTo(4 / 9, 4);
+        cpusMock.mockRestore();
+    });
+
     test('reads the usage from a separately mounted cpuacct hierarchy', async () => {
         getCgroupControllerSpy.mockImplementation(async (name) => ({
             version: 'V1',
@@ -437,6 +470,7 @@ describe('getCpuInfo()', () => {
         let usageNs = 0;
         let systemTicks = 0;
         readFileSpy.mockImplementation(async (path) => {
+            if (path === '/proc/self/status') return 'Cpus_allowed_list:\t0-1\n';
             if (path === '/sys/fs/cgroup/cpu/a.scope/cpu.cfs_quota_us') return '-1\n';
             if (path === '/sys/fs/cgroup/cpu/cpu.cfs_quota_us') return '100000\n';
             if (path === '/sys/fs/cgroup/cpu/cpu.cfs_period_us') return '100000\n';
@@ -464,6 +498,7 @@ describe('getCpuInfo()', () => {
         });
         let resized = false;
         readFileSpy.mockImplementation(async (path) => {
+            if (path === '/proc/self/status') return 'Cpus_allowed_list:\t0-1\n';
             if (path === '/sys/fs/cgroup/pod/container/cpu.max') return resized ? 'max 100000\n' : '100000 100000\n';
             if (path === '/sys/fs/cgroup/pod/cpu.max') return resized ? '100000 100000\n' : 'max 100000\n';
             if (path === '/sys/fs/cgroup/pod/container/cpu.stat') return 'usage_usec 5000000\n';
