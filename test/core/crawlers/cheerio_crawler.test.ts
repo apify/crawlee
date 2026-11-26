@@ -143,6 +143,16 @@ describe('CheerioCrawler', () => {
         expect(processed).toHaveLength(1);
     });
 
+    test('should reject an invalid requestManager option', () => {
+        expect(
+            () =>
+                new CheerioCrawler({
+                    requestManager: {} as any,
+                    requestHandler: () => {},
+                }),
+        ).toThrow(/IRequestManager interface/);
+    });
+
     test('should work with implicit router', async () => {
         const requestList = await getRequestListForMirror();
         const processed: Request[] = [];
