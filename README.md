@@ -144,6 +144,10 @@ Crawlee is open-source and runs anywhere, but since it's developed by [Apify](ht
 
 If you find any bug or issue with Crawlee, please [submit an issue on GitHub](https://github.com/apify/crawlee/issues). For questions, you can ask on [Stack Overflow](https://stackoverflow.com/questions/tagged/apify), in GitHub Discussions or you can join our [Discord server](https://discord.com/invite/jyEM2PRvMU).
 
+## Supported versions
+
+New features and bug fixes land in the latest major version. The previous major version keeps receiving fixes for high and critical severity vulnerabilities for 12 months after the next major is released, and reaches end of life after that. See the [security policy](https://github.com/apify/crawlee/security/policy) for the current status of each version and for how to report a vulnerability.
+
 ## Contributing
 
 Your code contributions are welcome, and you'll be praised to eternity! If you have any ideas for improvements, either submit an issue or create a pull request. For contribution guidelines and the code of conduct, see [CONTRIBUTING.md](https://github.com/apify/crawlee/blob/master/CONTRIBUTING.md).
