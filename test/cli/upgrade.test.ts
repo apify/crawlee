@@ -1,4 +1,5 @@
 import { spawnSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { delimiter, join, resolve } from 'node:path';
@@ -34,8 +35,8 @@ beforeAll(async () => {
         fakeNpx,
         [
             `#!${process.execPath}`,
-            `require('node:fs').writeFileSync(${JSON.stringify(recordedArgs)}, JSON.stringify(process.argv.slice(2)));`,
-            `console.log('fake v4 CLI');`,
+            `require('node:fs').writeFileSync(${JSON.stringify(recordedArgs)}, JSON.stringify({ args: process.argv.slice(2), handover: process.env.CRAWLEE_UPGRADE_HANDOVER }));`,
+            `console.log('fake latest CLI');`,
             `process.exit(Number(process.env.FAKE_NPX_EXIT_CODE ?? 0));`,
         ].join('\n'),
     );
@@ -51,17 +52,20 @@ afterAll(async () => {
 });
 
 describe.skipIf(process.platform === 'win32')('crawlee upgrade', () => {
-    it('hands over to the v4 CLI and forwards the arguments', async () => {
+    it('hands over to the latest CLI and forwards the arguments', async () => {
         const args = ['--from', '3', '--to=4', '--export', 'some dir/skill'];
         const result = runCli(['upgrade', ...args], { PATH: `${fakeBin}${delimiter}${process.env.PATH}` });
 
         expect(result.stderr).not.toContain('Unknown argument');
-        expect(result.stdout).toContain('fake v4 CLI');
+        expect(result.stdout).toContain('fake latest CLI');
         expect(result.status).toBe(0);
-        expect(JSON.parse(await readFile(recordedArgs, 'utf8'))).toEqual(['crawlee@4', 'upgrade', ...args]);
+        expect(JSON.parse(await readFile(recordedArgs, 'utf8'))).toEqual({
+            args: ['crawlee@latest', 'upgrade', ...args],
+            handover: '1',
+        });
     });
 
-    it('propagates the exit code of the v4 CLI', () => {
+    it('propagates the exit code of the latest CLI', () => {
         const result = runCli(['upgrade'], {
             PATH: `${fakeBin}${delimiter}${process.env.PATH}`,
             FAKE_NPX_EXIT_CODE: '3',
@@ -71,11 +75,23 @@ describe.skipIf(process.platform === 'win32')('crawlee upgrade', () => {
         expect(result.stderr).not.toContain('Usage: crawlee');
     });
 
-    it('tells the user to run the v4 CLI themselves when `npx` cannot be spawned', () => {
+    it('does not spawn again when the latest CLI is this same command', () => {
+        const result = runCli(['upgrade'], {
+            PATH: `${fakeBin}${delimiter}${process.env.PATH}`,
+            CRAWLEE_UPGRADE_HANDOVER: '1',
+        });
+
+        expect(result.status).toBe(1);
+        expect(result.stderr).toContain('does not have the `upgrade` command yet');
+        expect(result.stdout).not.toContain('fake latest CLI');
+        expect(existsSync(recordedArgs)).toBe(false);
+    });
+
+    it('tells the user to run the latest CLI themselves when `npx` cannot be spawned', () => {
         const result = runCli(['upgrade'], { PATH: emptyBin });
 
         expect(result.status).toBe(1);
-        expect(result.stderr).toContain('npx crawlee@4 upgrade');
+        expect(result.stderr).toContain('npx crawlee@latest upgrade');
         expect(result.stderr).not.toContain('Usage: crawlee');
         expect(result.stdout).not.toContain('Usage: crawlee');
     });
