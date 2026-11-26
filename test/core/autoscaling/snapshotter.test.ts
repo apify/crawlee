@@ -8,6 +8,11 @@ import { sleep } from '@crawlee/utils';
 
 import log from '@apify/log';
 
+// The OS metrics must not depend on the cgroups of the machine running the tests.
+vitest.mock('../../../packages/core/src/system-info/cgroup.js', () => ({
+    getCgroupController: vitest.fn(async () => null),
+}));
+
 const toBytes = (x: number) => x * 1024 * 1024;
 const noop = () => {};
 
