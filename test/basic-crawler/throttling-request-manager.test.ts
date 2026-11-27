@@ -686,6 +686,153 @@ describe('ThrottlingRequestManager', () => {
         expect(Date.now() - start).toBeLessThan(1000);
     });
 
+    describe('post-backoff pacing', () => {
+        beforeEach(() => {
+            freezeClock();
+        });
+
+        test('paces concurrent fetches when a 429 backoff ends instead of releasing the whole burst at once', async () => {
+            const manager = new ThrottlingRequestManager({
+                inner: await createQueue(),
+                requestManagerOpener: async (identifier, options) => {
+                    const queue = await RequestQueue.open(identifier, options);
+                    const fetch = queue.fetchNextRequest.bind(queue);
+                    queue.fetchNextRequest = async (...args) => {
+                        await sleep(20);
+                        return fetch(...args);
+                    };
+                    return queue;
+                },
+                domains: ['example.com'],
+                baseDelaySecs: 4,
+            });
+
+            for (let i = 0; i < 5; i++) {
+                await manager.addRequest({ url: `https://example.com/${i}` });
+            }
+
+            manager.recordPacingSignal({ url: 'https://example.com/0', reason: 'rateLimited' });
+            advanceClock(4_000);
+
+            // Every idle slot wakes when `backoffUntil` expires; only one request may go out immediately.
+            const fetched = await Promise.all(Array.from({ length: 5 }, async () => manager.fetchNextRequest()));
+
+            expect(fetched.filter(Boolean)).toHaveLength(1);
+            expect(await manager.checkReadiness()).toEqual({ status: 'waiting', readyAt: Date.now() + 1_000 });
+        });
+
+        test('relaxes the post-backoff interval across handled dispatches until full concurrency resumes', async () => {
+            const manager = new ThrottlingRequestManager({
+                inner: await createQueue(),
+                domains: ['example.com'],
+                baseDelaySecs: 0.2,
+            });
+
+            for (let i = 0; i < 20; i++) {
+                await manager.addRequest({ url: `https://example.com/${i}` });
+            }
+
+            // Two requests were already in flight before the 429 arrived.
+            const preBackoff1 = (await manager.fetchNextRequest())!;
+            const preBackoff2 = (await manager.fetchNextRequest())!;
+
+            manager.recordPacingSignal({ url: 'https://example.com/2', reason: 'rateLimited' });
+
+            // Completing pre-backoff in-flight work must not wipe out the post-backoff interval before it even starts.
+            advanceClock(50);
+            await manager.markRequestAsHandled(preBackoff1);
+
+            // Jump to the end of the 200ms backoff (initial recovery interval = 50ms).
+            advanceClock(150);
+            const firstPostBackoff = (await manager.fetchNextRequest())!;
+            expect(firstPostBackoff).not.toBeNull();
+            expect(await manager.fetchNextRequest()).toBeNull();
+            expect(await readyAt(manager)).toBe(Date.now() + 50);
+
+            // Even if both the paced probe and a straggling pre-backoff request finish in the same step,
+            // the interval relaxes only once per paced dispatch.
+            await manager.markRequestAsHandled(firstPostBackoff);
+            await manager.markRequestAsHandled(preBackoff2);
+
+            let previousInterval = 50;
+            let steps = 0;
+            while (steps < 15) {
+                const nextReadyAt = await readyAt(manager);
+                if (nextReadyAt === undefined) {
+                    break;
+                }
+                advanceClock(nextReadyAt - Date.now());
+
+                const beforeDispatch = Date.now();
+                const req = (await manager.fetchNextRequest())!;
+                const afterDispatchReadyAt = await readyAt(manager);
+                await manager.markRequestAsHandled(req);
+                steps += 1;
+
+                if (afterDispatchReadyAt === undefined) {
+                    break;
+                }
+
+                const currentInterval = afterDispatchReadyAt - beforeDispatch;
+                expect(currentInterval).toBeLessThan(previousInterval);
+                previousInterval = currentInterval;
+            }
+
+            // Once relaxed all the way to zero, concurrent slots can dispatch together again.
+            const burst = await Promise.all(Array.from({ length: 3 }, async () => manager.fetchNextRequest()));
+            expect(burst.filter(Boolean)).toHaveLength(3);
+        });
+
+        test('tightens the post-backoff interval when another 429 hits mid-recovery and clears it on purge', async () => {
+            const manager = new ThrottlingRequestManager({
+                inner: await createQueue(),
+                domains: ['example.com'],
+                baseDelaySecs: 4,
+                maxDelaySecs: 5,
+            });
+
+            for (let i = 0; i < 6; i++) {
+                await manager.addRequest({ url: `https://example.com/${i}` });
+            }
+
+            manager.recordPacingSignal({ url: 'https://example.com/0', reason: 'rateLimited' });
+            advanceClock(4_000);
+
+            // First post-backoff probe (1000ms interval) succeeds, relaxing the interval to 750ms.
+            const first = (await manager.fetchNextRequest())!;
+            expect(await readyAt(manager)).toBe(Date.now() + 1_000);
+            await manager.markRequestAsHandled(first);
+
+            // Next request hits 429 again, proving that ~750ms/req is still too fast for the target site.
+            advanceClock(1_000);
+            const second = (await manager.fetchNextRequest())!;
+            manager.recordPacingSignal({ url: second.url, reason: 'rateLimited' });
+            await manager.reclaimRequest(second, { forefront: true });
+
+            // After the new 4s backoff, the recovery interval has doubled from 750ms to 1500ms (> initial 1000ms).
+            advanceClock(4_000);
+            expect(await manager.fetchNextRequest()).not.toBeNull();
+            expect(await readyAt(manager)).toBe(Date.now() + 1_500);
+
+            // Repeated 429s keep doubling the recovery interval, capped at `maxDelaySecs` (5000ms).
+            advanceClock(1_500);
+            manager.recordPacingSignal({ url: 'https://example.com/0', reason: 'rateLimited' }); // 1500 -> 3000
+            advanceClock(5_000);
+            manager.recordPacingSignal({ url: 'https://example.com/0', reason: 'rateLimited' }); // min(5000, 6000) -> 5000
+            advanceClock(5_000);
+            expect(await manager.fetchNextRequest()).not.toBeNull();
+            expect(await readyAt(manager)).toBe(Date.now() + 5_000);
+
+            // Purging resets the recovery pacing along with the rest of the transient rate-limit state.
+            await manager.purge();
+            await manager.addRequest({ url: 'https://example.com/fresh-1' });
+            await manager.addRequest({ url: 'https://example.com/fresh-2' });
+
+            const freshBurst = await Promise.all([manager.fetchNextRequest(), manager.fetchNextRequest()]);
+            expect(freshBurst.filter(Boolean)).toHaveLength(2);
+        });
+    });
+
     test('picks up requests left in per-domain sub-queues by a previous run (if purgeOnStart is not enabled)', async () => {
         const domains = ['example.com'];
 
