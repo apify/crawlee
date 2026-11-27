@@ -826,6 +826,52 @@ In v4, only the **first** crawler instance uses the default request queue. Each 
 
 If you explicitly pass a `requestQueue` (or `requestManager`) to the crawler, that queue is used as-is regardless of instance order.
 
+### Multiple crawler instances no longer share `useState()` state
+
+In v3, `crawler.useState()` and the `useState()` context helper of every crawler read and wrote the same `CRAWLEE_STATE` record, so two crawlers in one process shared a single state object.
+
+In v4, each crawler has its own state, stored under `CRAWLEE_STATE_{id}`. The `{id}` is the crawler's `id` option. Without one, the crawler uses its creation index, such as `'0'`. Nothing fails when two crawlers that used to share the state stop doing so - each one silently works with its own object.
+
+To share state between crawlers, use the standalone `useState()` function. It is not tied to a crawler, and every call with the same name returns the same auto-saved object:
+
+```typescript
+import { CheerioCrawler, PlaywrightCrawler, useState } from 'crawlee';
+
+interface SharedState {
+    productUrls: string[];
+}
+
+const getSharedState = async () => useState<SharedState>('SHARED_STATE', { productUrls: [] });
+
+const listingCrawler = new CheerioCrawler({
+    async requestHandler({ $ }) {
+        const state = await getSharedState();
+
+        for (const link of $('a.product').toArray()) {
+            state.productUrls.push(new URL($(link).attr('href')!, 'https://example.com').href);
+        }
+    },
+});
+
+const productCrawler = new PlaywrightCrawler({
+    async requestHandler({ request, page, pushData }) {
+        // The same object the listing crawler wrote to.
+        const state = await getSharedState();
+
+        await pushData({ url: request.url, title: await page.title(), productCount: state.productUrls.length });
+    },
+});
+
+await listingCrawler.run(['https://example.com/products']);
+
+const { productUrls } = await getSharedState();
+await productCrawler.run(productUrls);
+```
+
+Don't give two crawlers the same `id` to share state. They would get the same `useState()` object, but the `id` also names their statistics and session pool records, so the two crawlers would overwrite each other's.
+
+A crawler without an `id` finds its state after a restart or an Actor migration only when the script creates its crawlers in the same order every time. If it runs more than one crawler, give each a stable `id`.
+
 ### Repeated `run()` calls no longer empty the request queue
 
 In v3, calling `crawler.run()` again on the same instance dropped the default request queue and created a fresh one, so the same URLs were crawled again — but only for a queue actually named `default`, which the Apify platform's default queue is not, so on the platform the second run silently crawled nothing.
@@ -1206,12 +1252,15 @@ Crawlee keeps its internal state in the default key-value store. These records n
 
 | Record | v3 key | v4 key |
 | --- | --- | --- |
+| `crawler.useState()` | `CRAWLEE_STATE` | `CRAWLEE_STATE_{id}` |
 | Crawler statistics | `SDK_CRAWLER_STATISTICS_{id}` | `CRAWLEE_CRAWLER_STATISTICS_{id}` |
 | Session pool | `SDK_SESSION_POOL_STATE` | `CRAWLEE_SESSION_POOL_STATE_{id}` |
 | Request list progress | `SDK_{name}-REQUEST_LIST_STATE` | `CRAWLEE_REQUEST_LIST_STATE_{name}` |
 | Request list requests | `SDK_{name}-REQUEST_LIST_REQUESTS` | `CRAWLEE_REQUEST_LIST_REQUESTS_{name}` |
 | Sitemap request loader | `SITEMAP_REQUEST_LIST_STATE` | `CRAWLEE_SITEMAP_REQUEST_LOADER_STATE` |
 | Rendering type predictor | `rendering-type-predictor-state` | `CRAWLEE_RENDERING_TYPE_PREDICTOR_STATE_{id}` |
+
+The `{id}` of `crawler.useState()` is the crawler's `id` option, or its creation index without one - see [Multiple crawler instances no longer share `useState()` state](#multiple-crawler-instances-no-longer-share-usestate-state).
 
 A `persistStateKey` or `persistRequestsKey` you pass to `RequestList` is used as it is, without the `SDK_` prefix v3 added, so a v4 run doesn't find the v3 record under `SDK_{key}`. The `{id}` of the statistics, the session pool, the rendering type predictor and the `ThrottlingRequestManager` comes from their `id` option. Without one, each class numbers its instances in creation order. The ones a crawler creates take the crawler's `id` option when it is set. Adaptive crawlers no longer share one rendering type model. The `ThrottlingRequestManager` stores its domain list under `CRAWLEE_THROTTLED_DOMAINS_{id}` and opens its per-domain queues under the alias `throttled-{id}-{domain}`.
 
