@@ -334,7 +334,7 @@ importers:
         specifier: ^2.4.0
         version: 2.4.0(supports-color@8.1.1)
       camoufox:
-        specifier: ^0.5.8
+        specifier: ^0.5.9
         version: 0.5.9(playwright-core@1.65.1)
       crawlee:
         specifier: workspace:*

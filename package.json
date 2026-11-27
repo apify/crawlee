@@ -100,7 +100,7 @@
         "apify-node-curl-impersonate": "^1.0.33",
         "basic-auth-parser": "^0.0.2",
         "body-parser": "^2.4.0",
-        "camoufox": "^0.5.8",
+        "camoufox": "^0.5.9",
         "crawlee": "workspace:*",
         "cross-env": "^10.1.0",
         "express": "^5.3.0",

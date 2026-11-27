@@ -40,6 +40,9 @@ RUN npm --quiet set progress=false \
     && echo "NPM version:" \
     && npm --version
 
+# Download the Camoufox browser build the camoufox package is paired with, unless the base image already ships it.
+RUN npx camoufox fetch
+
 # Copy the source files and directories.
 COPY --chown=myuser . ./
 
