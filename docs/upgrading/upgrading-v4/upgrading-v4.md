@@ -47,6 +47,7 @@ Adjust the command to your situation:
 - **Cookies behave.** `sendRequest` finally [respects your `Cookie` header](#cookie-handling-in-httpcrawler-and-sendrequest), and browser cookies set inside the handler are [persisted to the session](#browser-cookies-are-also-persisted-after-requesthandler).
 - **No half-written results.** Storage writes in a request handler are [transactional](#storage-writes-in-request-handlers-are-transactional) — a handler that throws leaves nothing behind, and its retry does not duplicate data.
 - **Simpler storage backend contract.** A custom storage backend is now [4 classes instead of 7](./storage-backends.md#storagebackend-interface-simplified).
+- **Remote browsers.** The new `remoteBrowser` option connects `PlaywrightCrawler` or `PuppeteerCrawler` to a [remote browser service](../guides/remote-browser) instead of launching a local browser, while the crawler keeps managing sessions and the request lifecycle.
 
 ## Rename cheat sheet
 
@@ -112,11 +113,26 @@ await concurrencySystem.start();
 await Promise.all([a.run(), b.run()]);
 ```
 
-The hook calls the same `stop()` / `teardown()` / `destroy()` method as before, and those stay — `await using` needs Node.js 24, and v4 supports Node.js 22.
+The hook calls the same `stop()` / `teardown()` / `destroy()` method as before, and those stay — untranspiled `await using` needs Node.js 24, and v4 supports Node.js 22.
 
 ### TypeScript 5.8+ required
 
 Support for older TypeScript versions was dropped. Crawlee ships compiled JavaScript, so this only affects type-checking against its type declaration files — plain JavaScript projects are unaffected. In particular, a CJS TypeScript project needs TypeScript 5.8+ to type-check a `require()` of an ESM package like Crawlee; older versions might still work if your project is also ESM.
+
+### `CheerioRoot`, `CheerioAPI` and `Dictionary` are no longer exported from `crawlee`
+
+After the bump, TypeScript reports `Module '"crawlee"' has no exported member 'CheerioRoot'` (or `CheerioAPI`, `Dictionary`). `CheerioRoot` was an alias for cheerio's `CheerioAPI`; import the types from the packages that own them:
+
+```ts
+import type { CheerioAPI } from 'cheerio';
+import type { Dictionary } from '@crawlee/types';
+```
+
+Add `cheerio` and `@crawlee/types` to your dependencies if they are not there already. See [`@crawlee/utils` and `@crawlee/types`](./utils-and-types.md#crawleetypes-symbols-are-no-longer-re-exported) for the other types that moved.
+
+### DOM globals in `page.evaluate()` callbacks need the `DOM` lib
+
+In a TypeScript project, `document`, `HTMLElement` and other DOM globals used in `page.evaluate()` or `page.waitForFunction()` callbacks may stop resolving after the upgrade. In v3 the `crawlee` meta-package depended on `@crawlee/jsdom`, whose `@types/jsdom` dependency pulled the DOM typings in; v4 [no longer includes it](#only-if-you-use-jsdomcrawler-or-linkedomcrawler). Add `"DOM"` to `compilerOptions.lib` in your `tsconfig.json`.
 
 ### Cheerio v1
 
@@ -167,6 +183,8 @@ One behavioral change: options validated against class interfaces (`httpClient`,
 Crawlee v4 relies on more native, prebuilt dependencies than v3 did — notably the `impit` HTTP client and the `@crawlee/fs-storage-native` package backing `@crawlee/fs-storage`. Like other napi-rs-based packages, these ship one platform-specific binary per OS/architecture, distributed as `optionalDependencies` so that npm installs only the one matching your platform.
 
 Running `npm install --omit=optional` (or the equivalent `yarn`/`pnpm` flag) skips all optional dependencies, including these platform binaries, so the native dependencies fail to install correctly. If your Dockerfile or install scripts carried over `--omit=optional` from a v3 project template, remove it — it is no longer safe to use with Crawlee v4.
+
+On Windows, the native binaries also need the [Microsoft Visual C++ Redistributable](https://learn.microsoft.com/en-US/cpp/windows/latest-supported-vc-redist?view=msvc-170); `impit` fails to load without it.
 
 ### Deprecated crawler options are removed
 
@@ -866,7 +884,7 @@ Disposing is optional — a finished run leaves no browsers open and no timer ho
 
 :::info
 
-The `await using` syntax needs Node.js 24 or later. On Node.js 22 call <ApiLink to="basic-crawler/class/BasicCrawler#destroy">`destroy()`</ApiLink> yourself instead — it is what the disposal hook calls anyway, as with the [collaborators you own](#collaborators-you-own-are-disposable).
+Untranspiled, the `await using` syntax needs Node.js 24 or later; TypeScript compiles it down unless `target` is `ESNext`, and the result runs on Node.js 22. In plain JavaScript on Node.js 22 call <ApiLink to="basic-crawler/class/BasicCrawler#destroy">`destroy()`</ApiLink> yourself instead — it is what the disposal hook calls anyway, as with the [collaborators you own](#collaborators-you-own-are-disposable).
 
 :::
 
