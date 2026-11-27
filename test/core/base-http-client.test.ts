@@ -316,6 +316,16 @@ describe('BaseHttpClient TLS error handling', () => {
         await client.sendRequest(new Request(url));
         expect(warningOnce).not.toHaveBeenCalled();
     });
+
+    test('FetchHttpClient refuses to send proxied requests', async () => {
+        const client = new FetchHttpClient();
+        const session = { proxyInfo: { url: 'http://proxy.example.com:8000' } } as any;
+
+        await expect(
+            client.sendRequest(new Request(url), { proxyUrl: 'http://proxy.example.com:8000' }),
+        ).rejects.toThrow(/does not support proxies/);
+        await expect(client.sendRequest(new Request(url), { session })).rejects.toThrow(/does not support proxies/);
+    });
 });
 
 describe('BaseHttpClient redirects that keep the request body', () => {

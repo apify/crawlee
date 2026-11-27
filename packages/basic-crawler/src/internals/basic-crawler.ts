@@ -127,7 +127,7 @@ class LazyDefaultHttpClient extends BaseHttpClient {
             .catch(() => {
                 (options?.logger ?? log).warning(
                     'Optional dependency @crawlee/impit-client is not installed. ' +
-                        'Falling back to native fetch — proxy support and browser fingerprinting are unavailable.',
+                        'Falling back to native fetch — proxies are not supported and browser fingerprinting is unavailable.',
                 );
                 return new FetchHttpClient(options);
             });
