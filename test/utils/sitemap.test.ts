@@ -504,6 +504,52 @@ describe('Sitemap', () => {
         expect(logger.warningOnce).not.toHaveBeenCalled();
     });
 
+    it('does not retry a sitemap that answers with a client error', async () => {
+        const scope = nock('http://missing-sitemap.com').get('/sitemap.xml').times(4).reply(404);
+        const logger = { warning: vi.fn(), debug: vi.fn() } as any;
+
+        const sitemap = await Sitemap.load('http://missing-sitemap.com/sitemap.xml', undefined, {
+            httpClient: new FetchHttpClient(),
+            logger,
+        });
+
+        expect(sitemap.urls).toHaveLength(0);
+        expect(scope.pendingMocks()).toHaveLength(1);
+        expect(logger.warning).toHaveBeenCalledTimes(1);
+        expect(logger.warning.mock.calls[0][0]).toContain('no retries left');
+    });
+
+    it('fetches each common sitemap name once when autodetection finds nothing', async () => {
+        const scope = nock('http://no-sitemaps.com')
+            .get('/sitemap.xml')
+            .times(4)
+            .reply(404)
+            .get('/sitemap.txt')
+            .times(4)
+            .reply(404);
+
+        const sitemap = await Sitemap.tryCommonNames('http://no-sitemaps.com/', undefined, {
+            httpClient: new FetchHttpClient(),
+        });
+
+        expect(sitemap.urls).toHaveLength(0);
+        expect(scope.pendingMocks()).toHaveLength(2);
+    });
+
+    it('retries a sitemap after a server error', async () => {
+        nock('http://flaky-sitemap.com')
+            .get('/sitemap.txt')
+            .reply(503)
+            .get('/sitemap.txt')
+            .reply(200, 'http://flaky-sitemap.com/page\n', { 'content-type': 'text/plain' });
+
+        const sitemap = await Sitemap.load('http://flaky-sitemap.com/sitemap.txt', undefined, {
+            httpClient: new FetchHttpClient(),
+        });
+
+        expect(sitemap.urls).toEqual(['http://flaky-sitemap.com/page']);
+    });
+
     it('loads a gzipped XML sitemap whose name has no inner extension', async () => {
         nock('http://gzipped.com')
             .get('/sitemap.gz')

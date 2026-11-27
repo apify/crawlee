@@ -261,6 +261,10 @@ export interface ParseSitemapOptions {
     logger?: CrawleeLogger;
 }
 
+function isPermanentSitemapFailure(status: number): boolean {
+    return status >= 400 && status < 500 && status !== 408 && status !== 429;
+}
+
 export async function* parseSitemap<T extends ParseSitemapOptions>(
     initialSources: SitemapSource[],
     proxyUrl?: string,
@@ -389,6 +393,12 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
                                 `Failed to fetch sitemap: ${sitemapUrl}, status code: ${sitemapResponse?.status}`,
                             ),
                         };
+
+                        // A client error such as 404 or 410 won't change on a retry, so spend no more requests on it.
+                        // Network errors, server errors, 408 and 429 can be transient and keep their retries.
+                        if (sitemapResponse && isPermanentSitemapFailure(sitemapResponse.status)) {
+                            retriesLeft = 0;
+                        }
                     }
 
                     if (error !== null) {
