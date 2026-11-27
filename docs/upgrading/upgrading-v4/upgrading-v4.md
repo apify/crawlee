@@ -868,7 +868,7 @@ const { productUrls } = await getSharedState();
 await productCrawler.run(productUrls);
 ```
 
-Giving two crawlers the same `id` is not a way to share state: the `id` also names their statistics and session pool records, so the two crawlers would overwrite each other's.
+Don't give two crawlers the same `id` to share state. They would get the same `useState()` object, but the `id` also names their statistics and session pool records, so the two crawlers would overwrite each other's.
 
 A crawler without an `id` finds its state after a restart or an Actor migration only when the script creates its crawlers in the same order every time. If it runs more than one crawler, give each a stable `id`.
 
