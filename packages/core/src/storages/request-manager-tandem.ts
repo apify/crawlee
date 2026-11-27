@@ -1,4 +1,4 @@
-import type { Dictionary } from '@crawlee/types';
+import type { AbortableOptions, Dictionary } from '@crawlee/types';
 
 import type { CrawleeLogger } from '../log.js';
 import type { Request, Source } from '../request.js';
@@ -79,8 +79,8 @@ export class RequestManagerTandem implements IRequestManager {
      * @returns `true` if a request was successfully transferred (or there was nothing to transfer), and `false` if a
      *  transfer was attempted but failed - in which case the caller should not fetch from the manager this round.
      */
-    async #transferNextRequestToQueue(): Promise<boolean> {
-        const request = await this.#requestLoader.fetchNextRequest();
+    async #transferNextRequestToQueue(options?: AbortableOptions): Promise<boolean> {
+        const request = await this.#requestLoader.fetchNextRequest(options);
 
         if (request === null) {
             return true;
@@ -108,19 +108,19 @@ export class RequestManagerTandem implements IRequestManager {
      * Fetches the next request, transferring one from the loader first if the loader still has work.
      * @inheritdoc
      */
-    async fetchNextRequest<T extends Dictionary = Dictionary>(): Promise<Request<T> | null> {
+    async fetchNextRequest<T extends Dictionary = Dictionary>(options?: AbortableOptions): Promise<Request<T> | null> {
         // Only the loader's own state decides this: a manager waiting out a backoff must not freeze the
         // loader's unrelated requests for the length of it.
         if ((await this.#requestLoader.checkReadiness()).status === 'ready') {
             // If the transfer failed, the request was dropped; don't fetch from the manager this round (matching
             // crawlee-python behaviour). The next `fetchNextRequest()` call will pick up where we left off.
-            if (!(await this.#transferNextRequestToQueue())) {
+            if (!(await this.#transferNextRequestToQueue(options))) {
                 return null;
             }
         }
 
         // Try to fetch from manager after the transfer
-        return (await this.#getRequestManager()).fetchNextRequest<T>();
+        return (await this.#getRequestManager()).fetchNextRequest<T>(options);
     }
 
     /**
@@ -184,8 +184,11 @@ export class RequestManagerTandem implements IRequestManager {
     /**
      * @inheritdoc
      */
-    async markRequestAsHandled(request: Request): Promise<RequestQueueOperationInfo | void | null> {
-        return (await this.#getRequestManager()).markRequestAsHandled(request);
+    async markRequestAsHandled(
+        request: Request,
+        options?: AbortableOptions,
+    ): Promise<RequestQueueOperationInfo | void | null> {
+        return (await this.#getRequestManager()).markRequestAsHandled(request, options);
     }
 
     /**
@@ -193,7 +196,7 @@ export class RequestManagerTandem implements IRequestManager {
      */
     async reclaimRequest(
         request: Request,
-        options?: RequestQueueOperationOptions,
+        options?: RequestQueueOperationOptions & AbortableOptions,
     ): Promise<RequestQueueOperationInfo | null> {
         return (await this.#getRequestManager()).reclaimRequest(request, options);
     }

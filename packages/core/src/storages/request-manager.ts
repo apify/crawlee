@@ -1,3 +1,4 @@
+import type { AbortableOptions } from '@crawlee/types';
 import type { LiteralUnion } from 'type-fest';
 
 import type { Request, Source } from '../request.js';
@@ -19,8 +20,13 @@ export interface IRequestManager extends IRequestLoader {
     /**
      * Reclaims request to the provider if its processing failed.
      * The request will be returned by some subsequent `fetchNextRequest()` call.
+     *
+     * @param options.signal Aborts when the caller stops waiting; the manager should stop the work in flight.
      */
-    reclaimRequest(request: Request, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo | null>;
+    reclaimRequest(
+        request: Request,
+        options?: RequestQueueOperationOptions & AbortableOptions,
+    ): Promise<RequestQueueOperationInfo | null>;
 
     addRequest(requestLike: Source, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo>;
 

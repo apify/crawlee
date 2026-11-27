@@ -1494,9 +1494,8 @@ export class BasicCrawler<
      * `markRequestAsHandled`, so nothing observes the difference.
      */
     async #resolveRequest(): Promise<CrawlingRequest | null> {
-        const fetched = await addTimeoutToPromise(
-            this.#fetchNextRequest.bind(this),
-            this.internalTimeoutMillis,
+        const fetched = await this.#withDeadline(
+            (signal) => this.#fetchNextRequest(signal),
             `Fetching next request timed out after ${this.internalTimeoutMillis / 1e3} seconds.`,
         );
 
@@ -1512,7 +1511,7 @@ export class BasicCrawler<
     }
 
     async #resolveSession({ request }: { request: CrawlingRequest }) {
-        const session = await this.#timeoutAndRetry(
+        const session = await this.#withDeadline(
             async () => {
                 const existingSession = await this.sessionPool.getSession(request.sessionId);
 
@@ -1522,7 +1521,6 @@ export class BasicCrawler<
 
                 return existingSession;
             },
-            this.internalTimeoutMillis,
             `Fetching session timed out after ${this.internalTimeoutMillis / 1e3} seconds.`,
         );
 
@@ -2614,12 +2612,12 @@ export class BasicCrawler<
     /**
      * Fetches the next request to process from the underlying request provider.
      */
-    async #fetchNextRequest() {
+    async #fetchNextRequest(signal?: AbortSignal) {
         if (this.requestManager === undefined) {
             throw new Error(`fetchNextRequest called on an uninitialized crawler`);
         }
 
-        return this.requestManager.fetchNextRequest();
+        return this.requestManager.fetchNextRequest({ signal });
     }
 
     /** Runs the request handler and marks the request as handled. Failures are left to `handleRequestFailure`. */
@@ -2647,13 +2645,7 @@ export class BasicCrawler<
         // Opened by `runInStorageTransaction`; absent when disabled or when the subclass opens its own.
         await currentStorageTransaction()?.commit();
 
-        await this.#timeoutAndRetry(
-            async () => requestSource.markRequestAsHandled(request),
-            this.internalTimeoutMillis,
-            `Marking request ${request.url} (${request.id}) as handled timed out after ${
-                this.internalTimeoutMillis / 1e3
-            } seconds.`,
-        );
+        await this.#markRequestAsHandled(requestSource, request);
 
         this.statistics.recordRequestSuccess(request.id || request.uniqueKey, request.retryCount);
 
@@ -2743,11 +2735,7 @@ export class BasicCrawler<
             // Safety net - the error handler neither marked the request as handled nor reclaimed it (e.g. after a
             // CriticalError). Reclaiming a request that is no longer in progress is a harmless no-op on the storage backend.
             try {
-                await addTimeoutToPromise(
-                    async () => requestSource.reclaimRequest(request),
-                    this.internalTimeoutMillis,
-                    `Reclaiming request ${request.url} (${request.id}) timed out.`,
-                );
+                await this.#reclaimRequest(requestSource, request);
             } catch {
                 // The request was never in progress, or could not be reclaimed. Either way it's fine.
             }
@@ -2787,27 +2775,33 @@ export class BasicCrawler<
     }
 
     /**
-     * Run async callback with given timeout and retry. Returns the result of the callback.
-     * @ignore
+     * Runs a call under the internal timeout, handing it the signal that aborts when the timeout fires. The call
+     * is not retried - for request manager calls that is up to the manager and its storage backend.
      */
-    async #timeoutAndRetry<T>(
-        handler: () => Promise<T>,
-        timeout: number,
-        error: Error | string,
-        maxRetries = 3,
-        retried = 1,
-    ): Promise<T> {
-        try {
-            return await addTimeoutToPromise(handler, timeout, error);
-        } catch (e) {
-            if (retried <= maxRetries) {
-                // we retry on any error, not just timeout
-                this.log.warning(`${(e as Error).message} (retrying ${retried}/${maxRetries})`);
-                return this.#timeoutAndRetry(handler, timeout, error, maxRetries, retried + 1);
-            }
+    async #withDeadline<T>(call: (signal: AbortSignal) => Promise<T>, timeoutMessage: string): Promise<T> {
+        return addTimeoutToPromise(
+            async () => call(timeoutStorage.getStore()!.cancelTask.signal),
+            this.internalTimeoutMillis,
+            timeoutMessage,
+        );
+    }
 
-            throw e;
-        }
+    async #markRequestAsHandled(source: IRequestManager, request: CrawlingRequest) {
+        await this.#withDeadline(
+            (signal) => source.markRequestAsHandled(request, { signal }),
+            `Marking request ${request.url} (${request.id}) as handled timed out after ${
+                this.internalTimeoutMillis / 1e3
+            } seconds.`,
+        );
+    }
+
+    async #reclaimRequest(source: IRequestManager, request: CrawlingRequest, forefront = false) {
+        await this.#withDeadline(
+            (signal) => source.reclaimRequest(request, { forefront, signal }),
+            `Reclaiming request ${request.url} (${request.id}) timed out after ${
+                this.internalTimeoutMillis / 1e3
+            } seconds.`,
+        );
     }
 
     /**
@@ -2861,7 +2855,7 @@ export class BasicCrawler<
                 id: request.id,
                 url: request.url,
             });
-            await source.reclaimRequest(request, { forefront: true });
+            await this.#reclaimRequest(source, request, true);
             return;
         }
 
@@ -2915,7 +2909,7 @@ export class BasicCrawler<
                     retryCount,
                 });
 
-                await source.reclaimRequest(request);
+                await this.#reclaimRequest(source, request);
                 return;
             }
         }
@@ -2937,7 +2931,7 @@ export class BasicCrawler<
         // If we get here, the request is either not retryable
         // or failed more than retryCount times and will not be retried anymore.
         // Mark the request as failed and do not retry.
-        await source.markRequestAsHandled(request);
+        await this.#markRequestAsHandled(source, request);
         this.statistics.recordRequestFailure(request.id || request.uniqueKey, request.retryCount);
 
         await this.handleFailedRequestHandler(crawlingContext, error); // This function prints an error message.
@@ -2957,13 +2951,7 @@ export class BasicCrawler<
             );
             request.state = RequestState.SKIPPED;
             request.noRetry = true;
-            await this.#timeoutAndRetry(
-                async () => source.markRequestAsHandled(request),
-                this.internalTimeoutMillis,
-                `Marking request ${request.url} (${request.id}) as handled timed out after ${
-                    this.internalTimeoutMillis / 1e3
-                } seconds.`,
-            );
+            await this.#markRequestAsHandled(source, request);
             this.statistics.discardRequestRecord(request.id || request.uniqueKey);
             return undefined;
         } catch (settleError) {

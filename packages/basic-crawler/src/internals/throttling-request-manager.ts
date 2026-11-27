@@ -1,5 +1,5 @@
 import { URL } from 'node:url';
-import type { Dictionary } from '@crawlee/types';
+import type { AbortableOptions, Dictionary } from '@crawlee/types';
 import { getDomain } from 'tldts';
 import { z } from 'zod';
 
@@ -908,18 +908,21 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
 
     async reclaimRequest(
         request: Request,
-        options?: RequestQueueOperationOptions,
+        options?: RequestQueueOperationOptions & AbortableOptions,
     ): Promise<RequestQueueOperationInfo | null> {
         const manager = await this.#managerHolding(request);
 
         return manager.reclaimRequest(request, options);
     }
 
-    async markRequestAsHandled(request: Request): Promise<RequestQueueOperationInfo | void | null> {
+    async markRequestAsHandled(
+        request: Request,
+        options?: AbortableOptions,
+    ): Promise<RequestQueueOperationInfo | void | null> {
         const manager = await this.#managerHolding(request);
         // Reached whether the request succeeded or ran out of retries; either way the domain answered us.
         this.#recordProgress(request.url);
-        return manager.markRequestAsHandled(request);
+        return manager.markRequestAsHandled(request, options);
     }
 
     /**
@@ -1130,7 +1133,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
      * {@apilink ThrottlingRequestManager.checkReadiness|`checkReadiness()`} reports `waiting` meanwhile so the
      * crawler's task loop idles rather than spins.
      */
-    async fetchNextRequest<R extends Dictionary = Dictionary>(): Promise<Request<R> | null> {
+    async fetchNextRequest<R extends Dictionary = Dictionary>(options?: AbortableOptions): Promise<Request<R> | null> {
         await this.#ensureSubManagers();
 
         for (const domain of this.#fetchableDomains()) {
@@ -1145,7 +1148,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
                 state.crawlDelayUntil = Date.now() + delayMs;
             }
 
-            const request = await (await this.#subManagers.get(domain)!).fetchNextRequest<R>();
+            const request = await (await this.#subManagers.get(domain)!).fetchNextRequest<R>(options);
             if (request) {
                 return request;
             }
@@ -1154,7 +1157,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
             state.crawlDelayUntil = crawlDelayUntilBefore;
         }
 
-        const request = await this.#fetchFromInner<R>();
+        const request = await this.#fetchFromInner<R>(options);
 
         if (request !== null) {
             this.#inFlightFromInner.add(request.id ?? request.uniqueKey);
@@ -1185,11 +1188,11 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
      * it would have the crawler hammer the domain that just told us to wait, and putting it back would have
      * every later fetch walk past it again.
      */
-    async #fetchFromInner<R extends Dictionary = Dictionary>(): Promise<Request<R> | null> {
+    async #fetchFromInner<R extends Dictionary = Dictionary>(options?: AbortableOptions): Promise<Request<R> | null> {
         const inner = await this.#getInner();
 
         for (let migrated = 0; migrated < MAX_INNER_MIGRATIONS; migrated++) {
-            const request = await inner.fetchNextRequest<R>();
+            const request = await inner.fetchNextRequest<R>(options);
 
             if (request === null) {
                 return null;

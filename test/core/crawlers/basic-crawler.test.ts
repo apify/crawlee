@@ -31,6 +31,7 @@ import {
     EventType,
     KeyValueStore,
     MissingRouteError,
+    MissingSessionError,
     NonRetryableError,
     ProxyConfiguration,
     Request,
@@ -1787,8 +1788,8 @@ describe('BasicCrawler', () => {
 
         await basicCrawler.run();
 
-        expect(markRequestAsHandled).toBeCalledWith(request0);
-        expect(markRequestAsHandled).toBeCalledWith(request1);
+        expect(markRequestAsHandled).toBeCalledWith(request0, expect.anything());
+        expect(markRequestAsHandled).toBeCalledWith(request1, expect.anything());
         expect(isFinishedFunctionCalled).toBe(true);
         expect(isTaskReadyFunctionCalled).toBe(true);
 
@@ -1833,8 +1834,8 @@ describe('BasicCrawler', () => {
 
         await basicCrawler.run();
 
-        expect(markRequestAsHandled).toBeCalledWith(request0);
-        expect(markRequestAsHandled).toBeCalledWith(request1);
+        expect(markRequestAsHandled).toBeCalledWith(request0, expect.anything());
+        expect(markRequestAsHandled).toBeCalledWith(request1, expect.anything());
 
         expect(processed.map((request) => request.url)).toContain(request0.url);
 
@@ -2349,7 +2350,9 @@ describe('BasicCrawler', () => {
         const requestQueue = await RequestQueue.open();
 
         // the whole backend is down, so the safety-net reclaim cannot rescue the request either
-        vitest.spyOn(requestQueue, 'markRequestAsHandled').mockImplementation(() => new Promise<never>(() => {}));
+        const markRequestAsHandled = vitest
+            .spyOn(requestQueue, 'markRequestAsHandled')
+            .mockImplementation(() => new Promise<never>(() => {}));
         vitest.spyOn(requestQueue, 'reclaimRequest').mockImplementation(() => new Promise<never>(() => {}));
 
         const crawler = new BasicCrawler({
@@ -2364,9 +2367,37 @@ describe('BasicCrawler', () => {
         const warningSpy = vitest.spyOn(crawler.log, 'warning');
 
         await expect(crawler.run(['https://example.com'])).resolves.toBeDefined();
-        expect(warningSpy).toHaveBeenCalledWith(
-            expect.stringMatching(/^Handling request failure of .* timed out after 0\.1 seconds\.$/),
-        );
+        expect(warningSpy).toHaveBeenCalledWith(expect.stringContaining('timed out'));
+        // once when skipping and once when failing the request, each told to stop when the crawler gave up on it
+        expect(markRequestAsHandled.mock.calls.map(([, options]) => options?.signal?.aborted)).toEqual([true, true]);
+    });
+
+    test('a stalled storage backend call is aborted at the internal timeout and the request is retried', async () => {
+        serviceLocator.reset();
+        serviceLocator.setStorageBackend(new MemoryStorageBackend());
+        serviceLocator.setConfiguration(new Configuration({ internalTimeoutMillis: 100 }));
+
+        const requestQueue = await RequestQueue.open();
+
+        // Stalls like an unresponsive API would, and only gives up when told to - without the signal it hangs forever.
+        const stalledCallAborted = vitest.fn();
+        vitest.spyOn(requestQueue.backend, 'markRequestAsHandled').mockImplementationOnce(async (_request, options) => {
+            const { promise, reject } = Promise.withResolvers<undefined>();
+            options?.signal?.addEventListener('abort', () => {
+                stalledCallAborted();
+                reject(options.signal!.reason);
+            });
+            return promise;
+        });
+
+        const requestHandler = vitest.fn(async () => {});
+        const crawler = new BasicCrawler({ requestQueue, requestHandler });
+
+        await crawler.run(['https://example.com']);
+
+        expect(stalledCallAborted).toHaveBeenCalledTimes(1);
+        expect(requestHandler).toHaveBeenCalledTimes(2);
+        expect(await requestQueue.getHandledCount()).toBe(1);
     });
 
     test('warns when the internal timeout is shorter than the phase timeouts', async () => {
@@ -2739,6 +2770,32 @@ describe('BasicCrawler', () => {
 
             expect(teardownSpy).not.toHaveBeenCalled();
             await sharedPool.teardown();
+        });
+
+        it('retries a request whose named session is missing once errorHandler recreates it', async () => {
+            const requestList = await RequestList.open({
+                sources: [{ url: 'https://example.com', sessionId: 'named' }],
+            });
+            const sessionPool = new SessionPool();
+            const errors: Error[] = [];
+            const handledWith: string[] = [];
+
+            const crawler = new BasicCrawler({
+                requestList,
+                sessionPool,
+                requestHandler: async ({ session }) => {
+                    handledWith.push(session.id);
+                },
+                errorHandler: async (_context, error) => {
+                    errors.push(error);
+                    await sessionPool.addSession({ id: 'named' });
+                },
+            });
+            await crawler.run();
+
+            expect(errors).toEqual([expect.any(MissingSessionError)]);
+            expect(handledWith).toEqual(['named']);
+            await sessionPool.teardown();
         });
 
         it('should share sessions across crawlers using the same SessionPool', async () => {

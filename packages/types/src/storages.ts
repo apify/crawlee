@@ -232,10 +232,22 @@ export interface RequestQueueInfo {
 }
 
 /**
+ * Options of storage backend calls the caller may cut short.
+ */
+export interface AbortableOptions {
+    /**
+     * Aborts when the caller stops waiting for the call. The backend should then end the work in flight, stop
+     * retrying and reject with the signal's `reason`. An aborted call must not leave anything half-done that
+     * calling it again would not put right.
+     */
+    signal?: AbortSignal;
+}
+
+/**
  * Options for request-queue operations that add or return requests to the queue
  * ({@link RequestQueueBackend.addBatchOfRequests}, {@link RequestQueueBackend.reclaimRequest}).
  */
-export interface RequestQueueOperationOptions {
+export interface RequestQueueOperationOptions extends AbortableOptions {
     /** Place the affected request(s) at the beginning of the queue so they are processed sooner. */
     forefront?: boolean;
 }
@@ -329,7 +341,7 @@ export interface RequestQueueBackend {
      * requests right now. Use {@link isEmpty} (together with the frontend's knowledge of pending
      * add operations) to determine whether the queue is truly finished.
      */
-    fetchNextRequest(): Promise<UpdateRequestSchema | undefined>;
+    fetchNextRequest(options?: AbortableOptions): Promise<UpdateRequestSchema | undefined>;
 
     /**
      * Mark a request previously returned by {@link fetchNextRequest} as handled.
@@ -343,7 +355,10 @@ export interface RequestQueueBackend {
      * already-handled request is idempotent and still returns operation info with `wasAlreadyHandled: true`
      * rather than `undefined`.)
      */
-    markRequestAsHandled(request: UpdateRequestSchema): Promise<QueueOperationInfo | undefined>;
+    markRequestAsHandled(
+        request: UpdateRequestSchema,
+        options?: AbortableOptions,
+    ): Promise<QueueOperationInfo | undefined>;
 
     /**
      * Reclaim a failed request back to the queue so it can be processed again by a later call to
@@ -436,6 +451,9 @@ export type StorageIdentifier =
  *
  * The `StorageBackend` acts as an async factory: each `create*` method either opens an existing
  * storage or creates a new one, returning a sub-backend bound to that storage instance.
+ *
+ * Backends own the retries of their calls: they retry transient failures as suits the underlying storage,
+ * and callers do not, so a rejection is final. The deadline is the caller's - see {@link AbortableOptions}.
  */
 export interface StorageBackend {
     /**

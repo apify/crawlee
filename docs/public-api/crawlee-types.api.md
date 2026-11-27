@@ -6,6 +6,11 @@
 
 import type { Readable } from 'node:stream';
 
+// @public
+export interface AbortableOptions {
+    signal?: AbortSignal;
+}
+
 // @public (undocumented)
 export type AllowedHttpMethods = 'GET' | 'HEAD' | 'POST' | 'PUT' | 'DELETE' | 'TRACE' | 'OPTIONS' | 'CONNECT' | 'PATCH' | 'get' | 'head' | 'post' | 'put' | 'delete' | 'trace' | 'options' | 'connect' | 'patch';
 
@@ -349,12 +354,12 @@ export interface RequestQueueBackend {
     addBatchOfRequests(requests: RequestSchema[], options?: RequestQueueOperationOptions): Promise<BatchAddRequestsResult>;
     drop(): Promise<void>;
     extendRequestProcessingTime?(requestId: string, extensionSecs: number): Promise<boolean>;
-    fetchNextRequest(): Promise<UpdateRequestSchema | undefined>;
+    fetchNextRequest(options?: AbortableOptions): Promise<UpdateRequestSchema | undefined>;
     getMetadata(): Promise<RequestQueueInfo>;
     getRequest(uniqueKey: string): Promise<UpdateRequestSchema | undefined>;
     isEmpty(): Promise<boolean>;
     isFinished(): Promise<boolean>;
-    markRequestAsHandled(request: UpdateRequestSchema): Promise<QueueOperationInfo | undefined>;
+    markRequestAsHandled(request: UpdateRequestSchema, options?: AbortableOptions): Promise<QueueOperationInfo | undefined>;
     purge(): Promise<void>;
     reclaimRequest(request: UpdateRequestSchema, options?: RequestQueueOperationOptions): Promise<QueueOperationInfo | undefined>;
     setExpectedRequestProcessingTime?(processingTimeSecs: number): Promise<void>;
@@ -381,7 +386,7 @@ export interface RequestQueueInfo {
 }
 
 // @public
-export interface RequestQueueOperationOptions {
+export interface RequestQueueOperationOptions extends AbortableOptions {
     forefront?: boolean;
 }
 

@@ -4,6 +4,7 @@
 
 ```ts
 
+import type { AbortableOptions } from '@crawlee/types';
 import type { AllowedHttpMethods } from '@crawlee/types';
 import { ArgumentValidationError } from '@crawlee/utils';
 import { AsyncEventEmitter } from '@vladfrangu/async_event_emitter';
@@ -379,11 +380,11 @@ export interface IProxyConfiguration {
 export interface IRequestLoader {
     [Symbol.asyncIterator](): AsyncGenerator<Request_2>;
     checkReadiness(): Promise<RequestSourceStatus>;
-    fetchNextRequest<T extends Dictionary = Dictionary>(): Promise<Request_2<T> | null>;
+    fetchNextRequest<T extends Dictionary = Dictionary>(options?: AbortableOptions): Promise<Request_2<T> | null>;
     getHandledCount(): Promise<number>;
     getPendingCount(): Promise<number>;
     getTotalCount(): Promise<number>;
-    markRequestAsHandled(request: Request_2): Promise<RequestQueueOperationInfo | void | null>;
+    markRequestAsHandled(request: Request_2, options?: AbortableOptions): Promise<RequestQueueOperationInfo | void | null>;
     toTandem?(requestManager?: IRequestManager): Promise<IRequestManager>;
 }
 
@@ -395,7 +396,7 @@ export interface IRequestManager extends IRequestLoader {
     addRequestsBatched(requests: RequestsLike, options?: AddRequestsBatchedOptions): Promise<AddRequestsBatchedResult>;
     extendRequestProcessingTime?(request: Request_2, extensionSecs: number): Promise<boolean>;
     purge?(): Promise<void>;
-    reclaimRequest(request: Request_2, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo | null>;
+    reclaimRequest(request: Request_2, options?: RequestQueueOperationOptions & AbortableOptions): Promise<RequestQueueOperationInfo | null>;
     recordPacingSignal(signal: PacingSignal): boolean;
     setExpectedRequestProcessingTime?(processingTimeSecs: number): Promise<void>;
 }
@@ -721,7 +722,7 @@ export class RequestManagerTandem implements IRequestManager {
     checkReadiness(): Promise<RequestSourceStatus>;
     // (undocumented)
     extendRequestProcessingTime(request: Request_2, extensionSecs: number): Promise<boolean>;
-    fetchNextRequest<T extends Dictionary = Dictionary>(): Promise<Request_2<T> | null>;
+    fetchNextRequest<T extends Dictionary = Dictionary>(options?: AbortableOptions): Promise<Request_2<T> | null>;
     // (undocumented)
     getHandledCount(): Promise<number>;
     // (undocumented)
@@ -729,10 +730,10 @@ export class RequestManagerTandem implements IRequestManager {
     // (undocumented)
     getTotalCount(): Promise<number>;
     // (undocumented)
-    markRequestAsHandled(request: Request_2): Promise<RequestQueueOperationInfo | void | null>;
+    markRequestAsHandled(request: Request_2, options?: AbortableOptions): Promise<RequestQueueOperationInfo | void | null>;
     purge(): Promise<void>;
     // (undocumented)
-    reclaimRequest(request: Request_2, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo | null>;
+    reclaimRequest(request: Request_2, options?: RequestQueueOperationOptions & AbortableOptions): Promise<RequestQueueOperationInfo | null>;
     recordPacingSignal(signal: PacingSignal): boolean;
     setExpectedRequestProcessingTime(processingTimeSecs: number): Promise<void>;
 }
@@ -768,7 +769,7 @@ export class RequestQueue implements IStorage, IRequestManager {
     checkReadiness(): Promise<RequestLoaderStatus>;
     drop(): Promise<void>;
     extendRequestProcessingTime(request: Request_2, extensionSecs: number): Promise<boolean>;
-    fetchNextRequest<T extends Dictionary = Dictionary>(): Promise<Request_2<T> | null>;
+    fetchNextRequest<T extends Dictionary = Dictionary>(options?: AbortableOptions): Promise<Request_2<T> | null>;
     getHandledCount(): Promise<number>;
     getInfo(): Promise<RequestQueueInfo>;
     getPendingCount(): Promise<number>;
@@ -778,12 +779,12 @@ export class RequestQueue implements IStorage, IRequestManager {
     readonly id: string;
     // (undocumented)
     readonly log: CrawleeLogger;
-    markRequestAsHandled(request: Request_2): Promise<RequestQueueOperationInfo | null>;
+    markRequestAsHandled(request: Request_2, options?: AbortableOptions): Promise<RequestQueueOperationInfo | null>;
     // (undocumented)
     readonly name?: string;
     static open(identifier?: string | StorageIdentifier | null, options?: StorageOpenOptions): Promise<RequestQueue>;
     purge(): Promise<void>;
-    reclaimRequest(request: Request_2, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo | null>;
+    reclaimRequest(request: Request_2, options?: RequestQueueOperationOptions & AbortableOptions): Promise<RequestQueueOperationInfo | null>;
     recordPacingSignal(_signal: PacingSignal): boolean;
     setExpectedRequestProcessingTime(processingTimeSecs: number): Promise<void>;
     get stats(): RequestQueueStats;

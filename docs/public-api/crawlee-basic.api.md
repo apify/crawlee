@@ -4,6 +4,7 @@
 
 ```ts
 
+import type { AbortableOptions } from '@crawlee/types';
 import type { AddRequestsBatchedOptions } from '@crawlee/core';
 import type { AddRequestsBatchedResult } from '@crawlee/core';
 import type { Awaitable } from '@crawlee/types';
@@ -1022,7 +1023,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     addRequestsBatched(requests: RequestsLike, options?: AddRequestsBatchedOptions): Promise<AddRequestsBatchedResult>;
     checkReadiness(): Promise<RequestSourceStatus>;
     extendRequestProcessingTime(request: Request_2, extensionSecs: number): Promise<boolean>;
-    fetchNextRequest<R extends Dictionary = Dictionary>(): Promise<Request_2<R> | null>;
+    fetchNextRequest<R extends Dictionary = Dictionary>(options?: AbortableOptions): Promise<Request_2<R> | null>;
     // (undocumented)
     getHandledCount(): Promise<number>;
     // (undocumented)
@@ -1031,10 +1032,10 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     getTotalCount(): Promise<number>;
     readonly id: string;
     // (undocumented)
-    markRequestAsHandled(request: Request_2): Promise<RequestQueueOperationInfo | void | null>;
+    markRequestAsHandled(request: Request_2, options?: AbortableOptions): Promise<RequestQueueOperationInfo | void | null>;
     purge(): Promise<void>;
     // (undocumented)
-    reclaimRequest(request: Request_2, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo | null>;
+    reclaimRequest(request: Request_2, options?: RequestQueueOperationOptions & AbortableOptions): Promise<RequestQueueOperationInfo | null>;
     recordPacingSignal(signal: PacingSignal): boolean;
     // (undocumented)
     setExpectedRequestProcessingTime(processingTimeSecs: number): Promise<void>;
