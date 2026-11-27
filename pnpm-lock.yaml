@@ -533,8 +533,8 @@ importers:
         specifier: ^2.9.1
         version: 2.9.1
       type-fest:
-        specifier: ^4.41.0
-        version: 4.41.0
+        specifier: ^6.0.0
+        version: 6.0.3
       zod:
         specifier: 'catalog:'
         version: 4.6.7
@@ -726,8 +726,8 @@ importers:
         specifier: ^2.9.1
         version: 2.9.1
       type-fest:
-        specifier: ^4.41.0
-        version: 4.41.0
+        specifier: ^6.0.0
+        version: 6.0.3
       zod:
         specifier: 'catalog:'
         version: 4.6.7
@@ -849,8 +849,8 @@ importers:
         specifier: ^2.9.1
         version: 2.9.1
       type-fest:
-        specifier: ^4.41.0
-        version: 4.41.0
+        specifier: ^6.0.0
+        version: 6.0.3
       zod:
         specifier: 'catalog:'
         version: 4.6.7
@@ -11826,6 +11826,10 @@ packages:
   type-fest@5.10.0:
     resolution: {integrity: sha512-NoSdpq/WEiAg5sjmBkmV/hfxv6HJH4NqPNrqjtSO5CwRmpsDfaf4begxW34KdJykH/l1yHtwBWQkCRdoXO8mPA==}
     engines: {node: '>=20'}
+
+  type-fest@6.0.3:
+    resolution: {integrity: sha512-MOJXegkac3h+sWdVb6VY/ACclsa71z3BprNpedGV8ljIzYCo+LRWgyIkWhidKNoiNJOb6kUds1pNCyzQ2p6hJQ==}
+    engines: {node: '>=22'}
 
   type-is@1.6.18:
     resolution: {integrity: sha512-TkRKr9sUTxEH8MdfuCSP7VizJyzRNMjj2J2do2Jr3Kym598JVdEksuzPQCnlFPW4ky9Q+iA+ma9BGm06XQBy8g==}
@@ -25630,6 +25634,10 @@ snapshots:
   type-fest@4.41.0: {}
 
   type-fest@5.10.0:
+    dependencies:
+      tagged-tag: 1.0.0
+
+  type-fest@6.0.3:
     dependencies:
       tagged-tag: 1.0.0
 
