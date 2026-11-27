@@ -1511,7 +1511,7 @@ export class BasicCrawler<
     }
 
     async #resolveSession({ request }: { request: CrawlingRequest }) {
-        const session = await this.#timeoutAndRetry(
+        const session = await this.#withDeadline(
             async () => {
                 const existingSession = await this.sessionPool.getSession(request.sessionId);
 
@@ -1521,7 +1521,6 @@ export class BasicCrawler<
 
                 return existingSession;
             },
-            this.internalTimeoutMillis,
             `Fetching session timed out after ${this.internalTimeoutMillis / 1e3} seconds.`,
         );
 
@@ -2776,32 +2775,8 @@ export class BasicCrawler<
     }
 
     /**
-     * Run async callback with given timeout and retry. Returns the result of the callback.
-     * @ignore
-     */
-    async #timeoutAndRetry<T>(
-        handler: () => Promise<T>,
-        timeout: number,
-        error: Error | string,
-        maxRetries = 3,
-        retried = 1,
-    ): Promise<T> {
-        try {
-            return await addTimeoutToPromise(handler, timeout, error);
-        } catch (e) {
-            if (retried <= maxRetries) {
-                // we retry on any error, not just timeout
-                this.log.warning(`${(e as Error).message} (retrying ${retried}/${maxRetries})`);
-                return this.#timeoutAndRetry(handler, timeout, error, maxRetries, retried + 1);
-            }
-
-            throw e;
-        }
-    }
-
-    /**
-     * Runs a request manager call under the internal timeout, handing it the signal that aborts when the timeout
-     * fires. The call is not retried - that is up to the request manager and its storage backend.
+     * Runs a call under the internal timeout, handing it the signal that aborts when the timeout fires. The call
+     * is not retried - for request manager calls that is up to the manager and its storage backend.
      */
     async #withDeadline<T>(call: (signal: AbortSignal) => Promise<T>, timeoutMessage: string): Promise<T> {
         return addTimeoutToPromise(

@@ -31,6 +31,7 @@ import {
     EventType,
     KeyValueStore,
     MissingRouteError,
+    MissingSessionError,
     NonRetryableError,
     ProxyConfiguration,
     Request,
@@ -2755,6 +2756,32 @@ describe('BasicCrawler', () => {
 
             expect(teardownSpy).not.toHaveBeenCalled();
             await sharedPool.teardown();
+        });
+
+        it('retries a request whose named session is missing once errorHandler recreates it', async () => {
+            const requestList = await RequestList.open({
+                sources: [{ url: 'https://example.com', sessionId: 'named' }],
+            });
+            const sessionPool = new SessionPool();
+            const errors: Error[] = [];
+            const handledWith: string[] = [];
+
+            const crawler = new BasicCrawler({
+                requestList,
+                sessionPool,
+                requestHandler: async ({ session }) => {
+                    handledWith.push(session.id);
+                },
+                errorHandler: async (_context, error) => {
+                    errors.push(error);
+                    await sessionPool.addSession({ id: 'named' });
+                },
+            });
+            await crawler.run();
+
+            expect(errors).toEqual([expect.any(MissingSessionError)]);
+            expect(handledWith).toEqual(['named']);
+            await sessionPool.teardown();
         });
 
         it('should share sessions across crawlers using the same SessionPool', async () => {
