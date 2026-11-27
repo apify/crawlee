@@ -5,10 +5,10 @@
 ```ts
 
 import { ArgumentValidationError } from '@apify/validations';
-import type { BaseHttpClient } from '@crawlee/http-client';
 import type { CheerioAPI } from 'cheerio';
 import type { CrawleeLogger } from '@crawlee/types';
 import type { Dictionary } from '@crawlee/types';
+import type { IHttpClient } from '@crawlee/types';
 import type { ISession } from '@crawlee/types';
 
 export { ArgumentValidationError }
@@ -25,7 +25,7 @@ export function discoverValidSitemaps(urls: string[], options?: {
     timeoutMillis?: number;
     signal?: AbortSignal;
     requestTimeoutMillis?: number;
-    httpClient?: BaseHttpClient;
+    httpClient?: IHttpClient;
     logger?: CrawleeLogger;
 }): AsyncIterable<string>;
 
@@ -35,7 +35,7 @@ export function downloadListOfUrls(options: DownloadListOfUrlsOptions): Promise<
 // @public (undocumented)
 export interface DownloadListOfUrlsOptions {
     encoding?: BufferEncoding;
-    httpClient?: BaseHttpClient;
+    httpClient?: IHttpClient;
     proxyUrl?: string;
     url: string;
     urlRegExp?: RegExp;
@@ -134,7 +134,7 @@ export function parseOpenGraph($: CheerioAPI, additionalProperties?: OpenGraphPr
 export interface ParseSitemapOptions {
     emitNestedSitemaps?: true | false;
     enqueueStrategy?: EnqueueStrategy | `${EnqueueStrategy}`;
-    httpClient?: BaseHttpClient;
+    httpClient?: IHttpClient;
     logger?: CrawleeLogger;
     maxDepth?: number;
     nestedSitemapFilter?: (sitemapUrl: string) => boolean;
@@ -161,7 +161,7 @@ export class RobotsTxtFile {
         signal?: AbortSignal;
         timeoutMillis?: number;
         proxyUrl?: string;
-        httpClient?: BaseHttpClient;
+        httpClient?: IHttpClient;
         session?: ISession;
         logger?: CrawleeLogger;
     }): Promise<RobotsTxtFile>;

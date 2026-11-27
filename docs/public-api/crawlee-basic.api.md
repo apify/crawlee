@@ -7,7 +7,6 @@
 import type { AddRequestsBatchedOptions } from '@crawlee/core';
 import type { AddRequestsBatchedResult } from '@crawlee/core';
 import type { Awaitable } from '@crawlee/types';
-import { BaseHttpClient } from '@crawlee/http-client';
 import { Configuration } from '@crawlee/core';
 import { CookieJar } from 'tough-cookie';
 import type { CrawleeLogger } from '@crawlee/core';
@@ -17,6 +16,7 @@ import type { DatasetExportOptions } from '@crawlee/core';
 import { Dictionary } from '@crawlee/types';
 import { EnqueueStrategy } from '@crawlee/utils';
 import type { EnqueueStrategyOption } from '@crawlee/core';
+import type { IHttpClient } from '@crawlee/types';
 import { IProxyConfiguration } from '@crawlee/core';
 import { IRequestLoader } from '@crawlee/core';
 import { IRequestManager } from '@crawlee/core';
@@ -74,7 +74,7 @@ export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, Con
     getRequestQueue(): Promise<IRequestManager>;
     get hasFinishedBefore(): boolean;
     // (undocumented)
-    protected readonly httpClient: BaseHttpClient;
+    protected readonly httpClient: IHttpClient;
     protected init(): Promise<void>;
     // (undocumented)
     protected readonly internalTimeoutMillis: number;
@@ -117,7 +117,7 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = CrawlingC
     errorHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
     extendContext?: ContextMiddleware<CrawlingContext, ContextExtension>;
     failedRequestHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
-    httpClient?: BaseHttpClient;
+    httpClient?: IHttpClient;
     id?: string;
     ignoreHttpErrorStatusCodes?: number[];
     initialConcurrency?: number;
@@ -834,7 +834,7 @@ export class SitemapRequestLoader implements IRequestLoader {
 export interface SitemapRequestLoaderOptions extends UrlConstraints {
     concurrency?: number;
     enqueueStrategy?: EnqueueStrategy | `${EnqueueStrategy}`;
-    httpClient?: BaseHttpClient;
+    httpClient?: IHttpClient;
     maxBufferSize?: number;
     parseSitemapOptions?: Omit<ParseSitemapOptions, 'emitNestedSitemaps' | 'maxDepth'>;
     persistenceOptions?: {

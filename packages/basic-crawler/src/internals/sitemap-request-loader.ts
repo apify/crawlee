@@ -1,6 +1,6 @@
 import { Transform } from 'node:stream';
 
-import type { BaseHttpClient } from '@crawlee/http-client';
+import type { IHttpClient } from '@crawlee/types';
 import type { ParseSitemapOptions } from '@crawlee/utils';
 import { EnqueueStrategy } from '@crawlee/utils';
 import { parseArgument, parseSitemap, schemas } from '@crawlee/utils/internal';
@@ -118,7 +118,7 @@ export interface SitemapRequestLoaderOptions extends UrlConstraints {
     /**
      * Custom HTTP client to be used for sitemap loading.
      */
-    httpClient?: BaseHttpClient;
+    httpClient?: IHttpClient;
     /**
      * Maximum number of sitemaps to load in parallel.
      * This includes both the initial sitemaps and any nested sitemaps discovered during parsing.

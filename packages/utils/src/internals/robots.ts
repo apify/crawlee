@@ -1,6 +1,5 @@
 import { FetchHttpClient } from '@crawlee/http-client';
-import type { BaseHttpClient } from '@crawlee/http-client';
-import type { CrawleeLogger, ISession } from '@crawlee/types';
+import type { CrawleeLogger, IHttpClient, ISession } from '@crawlee/types';
 import type { Robot } from 'robots-parser';
 import robotsParser from 'robots-parser';
 
@@ -67,7 +66,7 @@ export class RobotsTxtFile {
             signal?: AbortSignal;
             timeoutMillis?: number;
             proxyUrl?: string;
-            httpClient?: BaseHttpClient;
+            httpClient?: IHttpClient;
             session?: ISession;
             logger?: CrawleeLogger;
         },
@@ -96,7 +95,7 @@ export class RobotsTxtFile {
             signal?: AbortSignal;
             timeoutMillis?: number;
             proxyUrl?: string;
-            httpClient?: BaseHttpClient;
+            httpClient?: IHttpClient;
             session?: ISession;
             logger?: CrawleeLogger;
         },

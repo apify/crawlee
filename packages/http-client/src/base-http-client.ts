@@ -1,10 +1,4 @@
-import type {
-    BaseHttpClient as BaseHttpClientInterface,
-    CookieJar,
-    CrawleeLogger,
-    SendRequestOptions,
-    SessionFingerprint,
-} from '@crawlee/types';
+import type { CookieJar, CrawleeLogger, IHttpClient, SendRequestOptions, SessionFingerprint } from '@crawlee/types';
 
 /**
  * Per-request options handed to a concrete client's `fetch` implementation.
@@ -49,7 +43,7 @@ export interface CustomFetchOptions {
  * behaviors (redirect handling, proxy and cookie handling). Concrete clients
  * implement only the low-level network call in `fetch`.
  */
-export abstract class BaseHttpClient implements BaseHttpClientInterface {
+export abstract class BaseHttpClient implements IHttpClient {
     #log?: CrawleeLogger;
 
     constructor(options?: { logger?: CrawleeLogger }) {

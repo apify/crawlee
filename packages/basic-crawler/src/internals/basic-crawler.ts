@@ -44,6 +44,7 @@ import { BaseHttpClient, FetchHttpClient } from '@crawlee/http-client';
 import type {
     Awaitable,
     Dictionary,
+    IHttpClient,
     ISession,
     ISessionPool,
     SetStatusMessageOptions,
@@ -560,7 +561,7 @@ export interface BasicCrawlerOptions<
      * HTTP client implementation for the `sendRequest` context helper and for plain HTTP crawling.
      * Defaults to {@apilink ImpitHttpClient} when `@crawlee/impit-client` is installed, otherwise {@apilink FetchHttpClient}.
      */
-    httpClient?: BaseHttpClient;
+    httpClient?: IHttpClient;
 
     /**
      * If set, the crawler will be configured for all connections to use
@@ -901,7 +902,7 @@ export class BasicCrawler<
      * settable here.
      */
     #taskLoopOptions: Omit<AutoscaledPoolOptions, 'concurrencySystem' | 'consumer'>;
-    protected readonly httpClient: BaseHttpClient;
+    protected readonly httpClient: IHttpClient;
     protected readonly retryOnBlocked: boolean;
     #respectRobotsTxtFile: boolean | { userAgent?: string };
     /** Whether `runInStorageTransaction()` opens a transaction at all. */

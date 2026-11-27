@@ -14,7 +14,6 @@ import {
     withDirectStorageAccess,
     withStorageTransaction,
 } from '@crawlee/core';
-import { BaseHttpClient } from '@crawlee/http-client';
 import type { DatasetBackend } from '@crawlee/types';
 
 import { storage as timeoutStorage } from '@apify/timeout';
@@ -986,14 +985,13 @@ describe('RequestQueue in a transaction', () => {
             'http://example.com/list-1': ['https://example.com/a', 'https://example.com/b'],
             'http://example.com/list-2': ['https://example.com/c'],
         };
-        // Carries the BaseHttpClient prototype so the queue's `z.instanceof` validation accepts it.
         const sendRequest = vitest.fn(async (request: { url: string }) => {
             return new Response(lists[request.url]?.join('\n') ?? '');
         });
-        const httpClient = Object.assign(Object.create(BaseHttpClient.prototype) as BaseHttpClient, {
+        const httpClient = {
             sendRequest,
             stream: vitest.fn(async () => new Response()),
-        });
+        };
 
         // There is no `enqueuedUrlLists` on the view - the list is downloaded at call time and the
         // *fetched* URLs are journaled, under either policy.

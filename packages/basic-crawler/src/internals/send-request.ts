@@ -1,8 +1,7 @@
 import { Readable } from 'node:stream';
 
 import type { Request as CrawleeRequest } from '@crawlee/core';
-import type { BaseHttpClient } from '@crawlee/http-client';
-import type { ISession, SendRequestOptions, SendRequestOverrides } from '@crawlee/types';
+import type { IHttpClient, ISession, SendRequestOptions, SendRequestOverrides } from '@crawlee/types';
 import { processHttpRequestOptions } from '@crawlee/utils/internal';
 
 /**
@@ -13,7 +12,7 @@ import { processHttpRequestOptions } from '@crawlee/utils/internal';
  * @param originRequest The crawling request being processed.
  * @param session The user session associated with the current request.
  */
-export function createSendRequest(httpClient: BaseHttpClient, originRequest: CrawleeRequest, session: ISession) {
+export function createSendRequest(httpClient: IHttpClient, originRequest: CrawleeRequest, session: ISession) {
     return async (
         overrideRequest: SendRequestOverrides = {},
         overrideOptions: SendRequestOptions = {},

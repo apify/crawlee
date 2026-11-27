@@ -11,7 +11,6 @@ import {
     serviceLocator,
     StateValidationError,
 } from '@crawlee/core';
-import { BaseHttpClient } from '@crawlee/http-client';
 import { sleep } from '@crawlee/utils';
 import { beforeAll, type MockedFunction } from 'vitest';
 
@@ -29,13 +28,9 @@ function shuffle(array: unknown[]): unknown[] {
     return out;
 }
 
-// `vitest.mockObject` clones the object and drops its prototype, so build the mock manually to
-// keep it an `instanceof BaseHttpClient`.
-const createMockHttpClient = () =>
-    Object.assign(Object.create(BaseHttpClient.prototype) as BaseHttpClient, {
-        sendRequest: vitest.fn(async (_request?: any, _options?: any) => new Response()),
-        stream: vitest.fn(async () => new Response()),
-    });
+const createMockHttpClient = () => ({
+    sendRequest: vitest.fn(async (_request?: any, _options?: any) => new Response()),
+});
 
 let mockHttpClient = createMockHttpClient();
 

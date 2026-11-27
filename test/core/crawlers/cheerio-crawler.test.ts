@@ -15,7 +15,6 @@ import {
 } from '@crawlee/cheerio';
 import { type ConcurrencySystem, SessionPool } from '@crawlee/basic';
 import { BaseCrawleeLogger, MemoryStorageBackend, serviceLocator } from '@crawlee/core';
-import { BaseHttpClient } from '@crawlee/http-client';
 import { ImpitHttpClient } from '@crawlee/impit-client';
 import type { Dictionary, ISession, ProxyInfo, SendRequestOptions } from '@crawlee/types';
 import { sleep } from '@crawlee/utils';
@@ -201,13 +200,12 @@ describe('CheerioCrawler', () => {
     test('forwards ignoreTlsErrors to the http client', async () => {
         const captured: (boolean | undefined)[] = [];
         const fetchClient = new FetchHttpClient();
-        // Carries the BaseHttpClient prototype so the crawler's `z.instanceof` validation accepts it.
-        const capturingClient = Object.assign(Object.create(BaseHttpClient.prototype) as BaseHttpClient, {
+        const capturingClient = {
             sendRequest: async (request: globalThis.Request, options?: { ignoreTlsErrors?: boolean }) => {
                 captured.push(options?.ignoreTlsErrors);
                 return fetchClient.sendRequest(request, options);
             },
-        });
+        };
 
         const defaultCrawler = new CheerioCrawler({
             httpClient: capturingClient,
@@ -345,16 +343,15 @@ describe('CheerioCrawler', () => {
                 processed.push(request);
             };
 
-            // a client that always outlives the navigation window; carries the BaseHttpClient prototype so
-            // the crawler's `z.instanceof` validation accepts it
-            const slowClient = Object.assign(Object.create(BaseHttpClient.prototype) as BaseHttpClient, {
+            // a client that always outlives the navigation window
+            const slowClient = {
                 sendRequest: async () => {
                     await sleep(300);
                     return new Response('<html><head></head><body>Body</body></html>', {
                         headers: { 'content-type': 'text/html' },
                     });
                 },
-            });
+            };
 
             const cheerioCrawler = new CheerioCrawler({
                 requestList,
@@ -1078,7 +1075,7 @@ describe('CheerioCrawler', () => {
 
                 proxyConfiguration,
                 requestHandler: () => {},
-                httpClient: Object.assign(Object.create(BaseHttpClient.prototype) as BaseHttpClient, {
+                httpClient: {
                     sendRequest: async (request: globalThis.Request, opts?: SendRequestOptions) => {
                         const proxyUrl = opts?.session?.proxyInfo?.url;
                         check({ ...opts, proxyUrl });
@@ -1089,7 +1086,7 @@ describe('CheerioCrawler', () => {
 
                         throw new Error('Proxy responded with 400 - Bad request');
                     },
-                }),
+                },
             });
 
             await expect(crawler.run([serverAddress])).resolves.not.toThrow();
@@ -1112,7 +1109,7 @@ describe('CheerioCrawler', () => {
                 maxRequestRetries: 5,
                 requestHandler: async () => {},
                 failedRequestHandler,
-                httpClient: Object.assign(Object.create(BaseHttpClient.prototype) as BaseHttpClient, {
+                httpClient: {
                     sendRequest: async (request: globalThis.Request, opts?: SendRequestOptions) => {
                         const { session } = opts ?? {};
                         if (session?.proxyInfo?.url.includes('localhost')) {
@@ -1121,7 +1118,7 @@ describe('CheerioCrawler', () => {
                         }
                         return await impit.sendRequest(request);
                     },
-                }),
+                },
             });
 
             await crawler.run([serverAddress]);
@@ -1141,7 +1138,7 @@ describe('CheerioCrawler', () => {
                 proxyConfiguration,
                 maxRequestRetries: 1,
                 requestHandler: async () => {},
-                httpClient: Object.assign(Object.create(BaseHttpClient.prototype) as BaseHttpClient, {
+                httpClient: {
                     sendRequest: async (request: globalThis.Request, opts?: SendRequestOptions) => {
                         const { session } = opts ?? {};
                         if (session?.proxyInfo?.url.includes('localhost')) {
@@ -1149,7 +1146,7 @@ describe('CheerioCrawler', () => {
                         }
                         return impit.sendRequest(request);
                     },
-                }),
+                },
             });
 
             const spy = vitest.spyOn((crawler as any).log, 'warning' as any).mockImplementation(() => {});

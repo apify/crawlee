@@ -4,14 +4,14 @@
 
 ```ts
 
-import type { BaseHttpClient as BaseHttpClient_2 } from '@crawlee/types';
 import type { CookieJar } from '@crawlee/types';
 import type { CrawleeLogger } from '@crawlee/types';
+import type { IHttpClient } from '@crawlee/types';
 import type { SendRequestOptions } from '@crawlee/types';
 import type { SessionFingerprint } from '@crawlee/types';
 
 // @public
-export abstract class BaseHttpClient implements BaseHttpClient_2 {
+export abstract class BaseHttpClient implements IHttpClient {
     constructor(options?: {
         logger?: CrawleeLogger;
     });

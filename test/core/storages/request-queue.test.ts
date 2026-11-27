@@ -5,17 +5,12 @@ import { resolve } from 'node:path';
 import type { LoadedRequest } from '@crawlee/basic';
 import { CrawlingRequest, NavigationSkippedError, skippedNavigationRequest } from '@crawlee/basic';
 import { MemoryStorageBackend, ProxyConfiguration, Request, RequestQueue, serviceLocator } from '@crawlee/core';
-import { BaseHttpClient } from '@crawlee/http-client';
 import { FileSystemStorageBackend } from '@crawlee/fs-storage';
 import { sleep } from '@crawlee/utils';
 
-// `vitest.mockObject` clones the object and drops its prototype, so build the mock manually to
-// keep it an `instanceof BaseHttpClient`.
-const createMockHttpClient = () =>
-    Object.assign(Object.create(BaseHttpClient.prototype) as BaseHttpClient, {
-        sendRequest: vitest.fn(async (_request?: any, _options?: any) => new Response()),
-        stream: vitest.fn(async () => new Response()),
-    });
+const createMockHttpClient = () => ({
+    sendRequest: vitest.fn(async (_request?: any, _options?: any) => new Response()),
+});
 
 let mockHttpClient = createMockHttpClient();
 

@@ -1,10 +1,10 @@
 import { inspect } from 'node:util';
 
-import type { BaseHttpClient } from '@crawlee/http-client';
 import type {
     BatchAddRequestsResult,
     Constructor,
     Dictionary,
+    IHttpClient,
     ProcessedRequest,
     QueueOperationInfo,
     RequestQueueBackend,
@@ -155,7 +155,7 @@ export class RequestQueue implements IStorage, IRequestManager {
      */
     #expectedRequestProcessingSecs = 0;
 
-    #httpClient?: BaseHttpClient;
+    #httpClient?: IHttpClient;
 
     readonly #events: EventManager;
 
