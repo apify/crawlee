@@ -21,6 +21,7 @@ import {
     ProxyConfiguration,
     Request,
     RequestList,
+    RequestQueue,
     Session,
 } from '@crawlee/cheerio';
 import type { Dictionary } from '@crawlee/utils';
@@ -123,6 +124,33 @@ describe('CheerioCrawler', () => {
             expect(typeof request.userData.body).toBe('string');
             expect((request.userData.body as string).length).not.toBe(0);
         });
+    });
+
+    test('should accept the requestManager option', async () => {
+        const requestManager = await RequestQueue.open();
+        await requestManager.addRequests([{ url: `${serverAddress}/special/mirror?a=1` }]);
+        const processed: Request[] = [];
+
+        const cheerioCrawler = new CheerioCrawler({
+            requestManager,
+            requestHandler: ({ request }) => {
+                processed.push(request);
+            },
+        });
+
+        await cheerioCrawler.run();
+
+        expect(processed).toHaveLength(1);
+    });
+
+    test('should reject an invalid requestManager option', () => {
+        expect(
+            () =>
+                new CheerioCrawler({
+                    requestManager: {} as any,
+                    requestHandler: () => {},
+                }),
+        ).toThrow(/IRequestManager interface/);
     });
 
     test('should work with implicit router', async () => {
