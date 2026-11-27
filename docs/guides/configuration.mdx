@@ -82,7 +82,7 @@ Run-scoped storage directories (the default storage and any opened with an `alia
 
 #### `CRAWLEE_CONTAINERIZED`
 
-Changes how crawlee measures its CPU and Memory usage and limits. If unset, crawlee will determine if it is containerised using common features of containerized environments using the `isContainerized` utility function.
+Crawlee reads the CPU and memory limits from the cgroups of the process regardless of this variable, it only decides whether crawlee warns when the cgroups are not available. If unset, crawlee will determine if it is containerised using common features of containerized environments using the `isContainerized` utility function.
  - A file at `/.dockerenv`.
  - A file at `/proc/self/cgroup` containing `docker`.
  - A value for the `KUBERNETES_SERVICE_HOST` environment variable.

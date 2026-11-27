@@ -392,7 +392,7 @@ export class KeyValueStore {
 
             for (const [key, value] of this.#cache) {
                 promises.push(
-                    this.setValue(key, value).catch((error) =>
+                    withDirectStorageAccess(async () => this.setValue(key, value)).catch((error) =>
                         serviceLocator.getLogger().warning(`Failed to persist the state value to ${key}`, { error }),
                     ),
                 );

@@ -34,6 +34,18 @@ Search the project for what the guide's sections name. Plan the changes around t
 
 Apply the Node.js and optional-dependency requirements everywhere the project sets them: every Dockerfile build and runtime stage, base images selected through `ARG`, Compose or CI variables, install and prune scripts, and package-manager configuration. Preserve the image family, browser support, dev-dependency omission and frozen-lockfile behavior.
 
+## Behavior changes that compile
+
+A passing type check does not cover these. Check each one against the project, then handle it or raise it with the user:
+
+- TLS certificates are verified by default: "`ignoreSslErrors` is renamed to `ignoreTlsErrors` and defaults to `false`".
+- `SessionError` and `retryOnBlocked` retries count toward `maxRequestRetries`: "`maxSessionRotations` and `request.sessionRotationCount` are removed".
+- Storage writes commit only when the request handler succeeds: "Storage writes in request handlers are transactional". For Actors, also check charged `Actor.pushData(item, eventName)` calls in request handlers against the Apify SDK v4 upgrade guide.
+- Navigation hooks share `navigationTimeoutSecs` with the navigation: "Navigation and the request handler are timed separately".
+- HTTP crawlers and `sendRequest` use a different client: "The default HTTP client is now `impit`".
+- Queue reuse: "Repeated `run()` calls no longer empty the request queue" and "Multiple crawler instances use separate default request queues".
+- `--omit=optional` in Dockerfiles and install scripts: "Installing with `--omit=optional` breaks native dependencies".
+
 ## Git
 
 For a Git project, inspect the branch and working tree. Ask once for permission to create a migration branch and make incremental commits, unless both are already authorized. Wait for approval before those Git actions.
