@@ -6,7 +6,7 @@
     "description": "This is an example of a Crawlee project.",
     "dependencies": {
         "@crawlee/impit-client": "^4.0.0-rc.1",
-        "camoufox-js": "^0.13.0",
+        "camoufox": "^0.5.9",
         "crawlee": "^4.0.0-rc.1",
         "playwright": "1.60.0"
     },
@@ -23,9 +23,7 @@
         "start:prod": "node dist/main.js",
         "start:dev": "tsx src/main.ts",
         "build": "tsc",
-        "test": "echo \"Error: oops, the actor has no tests yet, sad!\" && exit 1",
-        "get-binaries": "camoufox-js fetch",
-        "postinstall": "npm run get-binaries"
+        "test": "echo \"Error: oops, the actor has no tests yet, sad!\" && exit 1"
     },
     "author": "It's not you it's me",
     "license": "ISC"

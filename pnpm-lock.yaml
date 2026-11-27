@@ -333,9 +333,9 @@ importers:
       body-parser:
         specifier: ^2.4.0
         version: 2.4.0(supports-color@8.1.1)
-      camoufox-js:
-        specifier: ^0.13.0
-        version: 0.13.0(playwright-core@1.65.1)
+      camoufox:
+        specifier: ^0.5.9
+        version: 0.5.9(playwright-core@1.65.1)
       crawlee:
         specifier: workspace:*
         version: link:packages/crawlee
@@ -5876,10 +5876,6 @@ packages:
   before-after-hook@4.0.0:
     resolution: {integrity: sha512-q6tR3RPqIB1pMiTRMFcZwuG5T8vwp+vUvEG0vuI6B+Rikh5BfPp2fQ82c925FOs+b0lcFQ8CFrL+KbilfZFhOQ==}
 
-  better-sqlite3@13.2.0:
-    resolution: {integrity: sha512-Z8Q/9x/uNyKxA1v4FNodyItRVRw1TeKBrmj32JhxhR0ceNcBY+wMobt/Bv7M7TzwPAXjnZRtNaEsATnUZSKWZQ==}
-    engines: {node: '>=22'}
-
   big.js@5.2.2:
     resolution: {integrity: sha512-vyL2OymJxmarO8gxMr0mhChsO9QGwhynfuu4+MHTAW6czfq9humCB7rKpUjDd9YUiDPU4mzpyupFSvOClAwbmQ==}
 
@@ -6029,9 +6025,9 @@ packages:
     resolution: {integrity: sha512-xlx1yCK2Oc1APsPXDL2LdlNP6+uu8OCDdhOBSVT279M/S+y75O30C2VuD8T2ogdePBBl7PfPF4504tnLgX3zfw==}
     engines: {node: '>=14.16'}
 
-  camoufox-js@0.13.0:
-    resolution: {integrity: sha512-XVT9ErgpLaDyUKA/R/mGsDhiVtcE14TaJHELmKNZxGCCwkXBjFdyx6JG3D2KX+MwdGnfKGWE96otSO3FfVh44w==}
-    engines: {node: '>= 22'}
+  camoufox@0.5.9:
+    resolution: {integrity: sha512-DxtuJhEb2ZI9Fv42irJhypMuf51X0BMVM5hM/+hBBj34E/YRL8AWyU7cpgTmlLfsyHZ2FFNTj01O9cGiACIyvQ==}
+    engines: {node: '>= 22.15'}
     hasBin: true
     peerDependencies:
       playwright-core: 1.65.1
@@ -7613,6 +7609,10 @@ packages:
   forwarded@0.2.0:
     resolution: {integrity: sha512-buRG0fpBtRHSTCOASe6hD258tEubFoRLb4ZNA6NxMVHNw2gOcwHo9wyablzMzOA5z9xA9L1KNjk/Nt6MT9aYow==}
     engines: {node: '>= 0.6'}
+
+  fpgen-js@1.3.0:
+    resolution: {integrity: sha512-cdtYmaO+jxJiakTAuOnPKxY+tIFSINKNwB5SiaK6hbqkX9aLJeIyvyu+37pwT9Qac4QMQoedjIfDFsfdpfVhFQ==}
+    engines: {node: '>=22.15'}
 
   fraction.js@5.3.4:
     resolution: {integrity: sha512-1X1NTtiJphryn/uLQz3whtY6jK3fTqoE3ohKs0tT+Ujr1W59oopxmoEh7Lu5p6vBaPbgoM0bzveAW4Qi5RyWDQ==}
@@ -9535,10 +9535,6 @@ packages:
     resolution: {integrity: sha512-EjRr1weMa4ALQX35AgZTEnP+weJJjlW1KGDiNM2IQC2069YDHas4f4B4UUYR+TTLyKWxJvOz2wObDKQs/LNreA==}
     engines: {node: '>=18.20.0 <20 || >=20.12.1'}
 
-  node-addon-api@8.9.2:
-    resolution: {integrity: sha512-VijLXbi3UACN69I0JVXJsX4tjACjNoQDgv2gTF6sx2wWEi8tkSg2eX8p5gSIFi8z2+DL3oHmY6OyKce38SDolg==}
-    engines: {node: ^18 || ^20 || >= 21}
-
   node-domexception@1.0.0:
     resolution: {integrity: sha512-/jKZoMpw0F8GRwl4/eLROPA3cfcXtLApP0QzLmUT/HuPCZWyB7IY9ZrMeKw2O/nFIqPQB3PVM9aYm0F312AXDQ==}
     engines: {node: '>=10.5.0'}
@@ -10710,6 +10706,10 @@ packages:
   pvutils@1.2.0:
     resolution: {integrity: sha512-BbubeCEyTuQjVMakvJQ/Sxbc93F2pwmbsxONT/ZRrwU7Ua38d8unYTwXpTVLAKJ4BDuH9IGztCjQcd/N/39Dvg==}
     engines: {node: '>=16.0.0'}
+
+  python-random@1.0.0:
+    resolution: {integrity: sha512-Ly4XXYXpdKmdFH90XprDx+rd2fjo60WkVXQs0J0Lkd82x5kud5ePAwNSHjThFpIpNE+tdFj0eHl1Q+NsZ7Hirg==}
+    engines: {node: '>=20'}
 
   qs@6.16.2:
     resolution: {integrity: sha512-VYdnB5S7/0IeXzBacUtwNAaM6d7Y/PgYnNC7bJCI6meqA/OgnsQbZMtVW8Dt2D1PHgbHGtYmhSoEIgvt7xZ2ZA==}
@@ -18367,10 +18367,6 @@ snapshots:
 
   before-after-hook@4.0.0: {}
 
-  better-sqlite3@13.2.0:
-    dependencies:
-      node-addon-api: 8.9.2
-
   big.js@5.2.2: {}
 
   bignumber.js@9.3.1: {}
@@ -18575,21 +18571,21 @@ snapshots:
 
   camelcase@7.0.1: {}
 
-  camoufox-js@0.13.0(playwright-core@1.65.1):
+  camoufox@0.5.9(playwright-core@1.65.1):
     dependencies:
       adm-zip: 0.6.1
-      better-sqlite3: 13.2.0
       cli-progress: 3.12.0
       commander: 14.0.3
-      fingerprint-generator: 2.1.90
-      glob: 13.0.7
+      fpgen-js: 1.3.0
       impit: 0.14.9
       language-tags: 2.1.0
       maxmind: 5.1.0
       playwright-core: 1.65.1
       pretty-bytes: 7.2.0
+      python-random: 1.0.0
       ua-parser-js: 2.0.10
       xml2js: 0.6.2
+      yaml: 2.9.1
 
   caniuse-api@3.0.0:
     dependencies:
@@ -20488,6 +20484,8 @@ snapshots:
       fetch-blob: 3.2.0
 
   forwarded@0.2.0: {}
+
+  fpgen-js@1.3.0: {}
 
   fraction.js@5.3.4: {}
 
@@ -22879,8 +22877,6 @@ snapshots:
       json-stringify-safe: 5.0.1
       propagate: 2.0.1
 
-  node-addon-api@8.9.2: {}
-
   node-domexception@1.0.0: {}
 
   node-emoji@2.2.0:
@@ -24356,6 +24352,8 @@ snapshots:
       tslib: 2.9.1
 
   pvutils@1.2.0: {}
+
+  python-random@1.0.0: {}
 
   qs@6.16.2:
     dependencies:

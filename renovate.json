@@ -25,7 +25,7 @@
 			"automergeType": "branch"
 		},
 		{
-			"description": "camoufox-js dictates the compatible Playwright/Firefox build; do not bump Playwright in the Camoufox template until Camoufox supports the newer version",
+			"description": "camoufox dictates the compatible Playwright/Firefox build; do not bump Playwright in the Camoufox template until Camoufox supports the newer version",
 			"matchFileNames": [
 				"packages/templates/templates/camoufox-ts/package.json"
 			],
