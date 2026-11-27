@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { z } from 'zod';
 
 import {
+    createStorageTransaction,
     EventType,
     KeyValueStore,
     MemoryStorageBackend,
@@ -551,6 +552,67 @@ describe('RecoverableState', () => {
 
             await recoverableState.persistState();
             expect(await store.getValue('test-key')).toEqual({ counter: 7 });
+        });
+    });
+
+    describe('storage transactions', () => {
+        test('should persist outside an active storage transaction', async () => {
+            const store = await KeyValueStore.open();
+            const recoverableState = new RecoverableState({
+                defaultState,
+                persistStateKey: 'test-key',
+                persistenceEnabled: true,
+            });
+            await recoverableState.initialize();
+            recoverableState.currentValue.counter = 42;
+
+            const transaction = createStorageTransaction();
+            await transaction.run(async () => recoverableState.persistState());
+            transaction.rollback();
+            transaction.dispose();
+
+            expect(await store.getValue('test-key')).toEqual({ ...defaultState, counter: 42 });
+        });
+
+        test('should persist on a PERSIST_STATE event emitted inside a storage transaction', async () => {
+            const store = await KeyValueStore.open();
+            const recoverableState = new RecoverableState({
+                defaultState,
+                persistStateKey: 'test-key',
+                persistenceEnabled: true,
+            });
+            await recoverableState.initialize();
+            recoverableState.currentValue.counter = 42;
+
+            const transaction = createStorageTransaction();
+            await transaction.run(async () => {
+                serviceLocator.getEventManager().emit(EventType.PERSIST_STATE, { isMigrating: true });
+                await serviceLocator.getEventManager().waitForAllListenersToComplete();
+            });
+            transaction.rollback();
+            transaction.dispose();
+
+            expect(await store.getValue('test-key')).toEqual({ ...defaultState, counter: 42 });
+        });
+
+        test('should restore the committed record, not a write buffered in the active transaction', async () => {
+            const store = await KeyValueStore.open();
+            await store.setValue('test-key', { ...defaultState, counter: 42 });
+
+            const transaction = createStorageTransaction();
+            await transaction.run(async () => {
+                await store.setValue('test-key', { ...defaultState, counter: 1 });
+
+                const recoverableState = new RecoverableState({
+                    defaultState,
+                    persistStateKey: 'test-key',
+                    persistenceEnabled: true,
+                });
+
+                expect(await recoverableState.initialize()).toEqual({ ...defaultState, counter: 42 });
+            });
+            transaction.rollback();
+            transaction.dispose();
         });
     });
 
