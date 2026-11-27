@@ -30,11 +30,11 @@ The simplest form is a static connection URL. Use this when the service exposes 
 
 `maxOpenBrowsers` caps the number of concurrent remote browsers — set it to the service's concurrent-session limit to avoid 429 errors. The pool enforces it inside `newPage()`, which waits for a free slot rather than overshooting.
 
-### Attach to an already running browser
+### Attach Playwright to a running browser
 
-Some endpoints are tied to a particular Chromium instance. Start or resume that browser before the crawl, then pass its full browser-level WebSocket URL as `remoteBrowser.endpoint`. Keep the URL in a secret environment variable if it includes a credential. For an example of obtaining a browser-scoped CDP URL for an already running desktop, see the [Cloudbrowser virtual browser guide](https://cloudbrowser.tv/virtual-browser).
+Some CDP endpoints are tied to a particular Chromium instance. Start or resume that browser before the crawl, then pass its full browser-level WebSocket URL as `remoteBrowser.endpoint` to `PlaywrightCrawler`. Keep the URL in a secret environment variable if it includes a credential.
 
-For a static CDP endpoint tied to one browser, set `maxOpenBrowsers: 1`. Crawlee disconnects when its pool closes. The service still controls the browser's lifetime. Crawlee's remote Playwright plugin opens separate contexts, so pages created by the crawl do not inherit the browser's default context cookies or reuse its open tabs.
+For a static endpoint tied to one browser, set `maxOpenBrowsers: 1`. The remote Playwright plugin disconnects when the pool closes. It opens separate contexts, so crawl pages start without the cookies and open tabs from the browser's default context.
 
 ### Self-hosted
 
