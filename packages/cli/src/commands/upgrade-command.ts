@@ -144,12 +144,12 @@ export class UpgradeCommand<T> implements CommandModule<T, UpgradeArgs> {
         }
         if (!migrations.size) throw new Error('No migration guides are bundled with this CLI.');
 
-        const from = args.from ?? (await detectProjectMajor());
         const to = args.to ?? Math.max(...migrations.keys());
+        let from = args.from ?? (await detectProjectMajor());
+        // Bumping the dependencies is usually the first migration step, so the code may still be on the previous major.
+        if (args.from === undefined && from === to) from = to - 1;
         if (from >= to) {
-            throw new Error(
-                `The project is already on Crawlee v${from}; the target must be newer. Use --from to explicitly review an earlier migration.`,
-            );
+            throw new Error(`Cannot upgrade from v${from} to v${to}; the target must be newer.`);
         }
 
         const steps: string[] = [];

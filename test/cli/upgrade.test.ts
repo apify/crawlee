@@ -192,12 +192,30 @@ describe('upgrade', () => {
         [{ dependencies: { crawlee: '3 || 5' } }, 'Cannot determine'],
         [{ dependencies: { crawlee: '^3', '@crawlee/core': '^4' } }, 'different majors'],
         [{ devDependencies: { '@crawlee/cli': '^4' } }, 'No Crawlee runtime dependency'],
-        [{ dependencies: { crawlee: '4.0.0-rc.1' } }, 'already on Crawlee v4'],
-    ])('rejects unresolved or already-current project versions: %j', async (manifest, message) => {
+    ])('rejects unresolved project versions: %j', async (manifest, message) => {
         const result = runUpgrade({}, await project(manifest));
         expect(result.status).not.toBe(0);
         expect(result.stdout).toBe('');
         expect(result.stderr).toContain(message);
+    });
+
+    it.each([['4.0.0-rc.1'], ['^4.0.0']])(
+        'prints the newest migration for a project whose dependencies are already on it: %s',
+        async (specifier) => {
+            const result = runUpgrade({}, await project({ dependencies: { crawlee: specifier } }));
+            expect(result.status, result.stderr).toBe(0);
+            checkPrompt(result.stdout, join(bundledSkills, 'crawlee-upgrade-v4'));
+        },
+    );
+
+    it('rejects a project newer than the target', async () => {
+        const cwd = await project({ dependencies: { crawlee: '^5.0.0' } });
+        for (const options of [{}, { to: 4 }]) {
+            const result = runUpgrade(options, cwd);
+            expect(result.status).not.toBe(0);
+            expect(result.stdout).toBe('');
+            expect(result.stderr).toContain('Cannot upgrade from v5 to v4');
+        }
     });
 
     it.each([
@@ -207,7 +225,7 @@ describe('upgrade', () => {
         const result = runUpgrade(options);
         expect(result.status).not.toBe(0);
         expect(result.stdout).toBe('');
-        expect(result.stderr).toContain('already on Crawlee v4');
+        expect(result.stderr).toContain(`Cannot upgrade from v4 to v${options.to}`);
     });
 
     it('prints only the error message when detection fails through the CLI entry', async () => {
