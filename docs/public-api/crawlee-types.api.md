@@ -12,11 +12,6 @@ export type AllowedHttpMethods = 'GET' | 'HEAD' | 'POST' | 'PUT' | 'DELETE' | 'T
 // @public (undocumented)
 export type Awaitable<T> = T | PromiseLike<T>;
 
-// @public
-export interface BaseHttpClient {
-    sendRequest(request: Request, options?: SendRequestOptions): Promise<Response>;
-}
-
 // @public (undocumented)
 export interface BatchAddRequestsResult {
     // (undocumented)
@@ -189,6 +184,11 @@ export interface IBrowserPool<Page = unknown> {
     extractPageState(page: Page): Promise<PageState>;
     injectPageState(page: Page, state: PageState): Promise<void>;
     newPage(options?: NewPageOptions): Promise<Page>;
+}
+
+// @public
+export interface IHttpClient {
+    sendRequest(request: Request, options?: SendRequestOptions): Promise<Response>;
 }
 
 // @public

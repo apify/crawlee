@@ -1,5 +1,5 @@
 import { FetchHttpClient } from '@crawlee/http-client';
-import type { BaseHttpClient } from '@crawlee/http-client';
+import type { IHttpClient } from '@crawlee/types';
 import { z } from 'zod';
 
 import { URL_NO_COMMAS_REGEX } from './general.js';
@@ -44,7 +44,7 @@ export interface DownloadListOfUrlsOptions {
     /**
      * Custom HTTP client to use for downloading the file.
      */
-    httpClient?: BaseHttpClient;
+    httpClient?: IHttpClient;
 }
 
 /**

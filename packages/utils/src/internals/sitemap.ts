@@ -5,8 +5,7 @@ import { StringDecoder } from 'node:string_decoder';
 import { createGunzip } from 'node:zlib';
 
 import { FetchHttpClient } from '@crawlee/http-client';
-import type { BaseHttpClient } from '@crawlee/http-client';
-import type { CrawleeLogger } from '@crawlee/types';
+import type { CrawleeLogger, IHttpClient } from '@crawlee/types';
 // Imported as a type only so `sax` (a fairly heavy parser) isn't loaded eagerly with @crawlee/utils.
 import type * as sax from 'sax';
 import { MIMEType } from 'whatwg-mimetype';
@@ -240,7 +239,7 @@ export interface ParseSitemapOptions {
     /**
      * Custom HTTP client to be used for fetching sitemaps.
      */
-    httpClient?: BaseHttpClient;
+    httpClient?: IHttpClient;
     /**
      * Optional filter for nested sitemap URLs discovered in sitemap index files.
      * Called with the URL of each child sitemap before it is fetched.
@@ -624,7 +623,7 @@ export async function* discoverValidSitemaps(
         /**
          * HTTP client to be used for network requests.
          */
-        httpClient?: BaseHttpClient;
+        httpClient?: IHttpClient;
         /**
          * Optional logger for reporting warnings during sitemap discovery.
          */

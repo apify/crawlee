@@ -47,7 +47,7 @@ import {
 } from '@crawlee/basic';
 import type { StorageTransaction } from '@crawlee/core';
 import { currentStorageTransaction, MemoryStorageBackend } from '@crawlee/core';
-import { BaseHttpClient, FetchHttpClient } from '@crawlee/http-client';
+import { FetchHttpClient } from '@crawlee/http-client';
 import { FileSystemStorageBackend } from '@crawlee/fs-storage';
 import type { Dictionary, ISession, ProxyInfo } from '@crawlee/types';
 import { RobotsTxtFile, sleep } from '@crawlee/utils';
@@ -3192,13 +3192,12 @@ describe('BasicCrawler', () => {
             const captured: (boolean | undefined)[] = [];
 
             const crawler = new BasicCrawler({
-                // Carries the BaseHttpClient prototype so the crawler's `z.instanceof` validation accepts it.
-                httpClient: Object.assign(Object.create(BaseHttpClient.prototype) as BaseHttpClient, {
+                httpClient: {
                     async sendRequest(_request: globalThis.Request, options?: { ignoreTlsErrors?: boolean }) {
                         captured.push(options?.ignoreTlsErrors);
                         return new Response('ok');
                     },
-                }),
+                },
                 async requestHandler({ sendRequest }) {
                     await sendRequest({}, { ignoreTlsErrors: true });
                 },
@@ -3213,12 +3212,12 @@ describe('BasicCrawler', () => {
             const captured: (string | undefined)[] = [];
 
             const crawler = new BasicCrawler({
-                httpClient: Object.assign(Object.create(BaseHttpClient.prototype) as BaseHttpClient, {
+                httpClient: {
                     async sendRequest(_request: globalThis.Request, options?: { proxyUrl?: string }) {
                         captured.push(options?.proxyUrl);
                         return new Response('ok');
                     },
-                }),
+                },
                 async requestHandler({ sendRequest }) {
                     await sendRequest({}, { proxyUrl: 'http://options-proxy.com' });
                     await sendRequest({ proxyUrl: 'http://request-proxy.com' });
@@ -3245,7 +3244,7 @@ describe('BasicCrawler', () => {
 
             const crawler = new BasicCrawler({
                 maxRequestRetries: 0,
-                httpClient: Object.assign(Object.create(BaseHttpClient.prototype) as BaseHttpClient, {
+                httpClient: {
                     async sendRequest(request: globalThis.Request) {
                         captured.push({
                             url: request.url,
@@ -3255,7 +3254,7 @@ describe('BasicCrawler', () => {
                         });
                         return new Response('ok');
                     },
-                }),
+                },
                 async requestHandler({ sendRequest }) {
                     await sendRequest({ searchParams: { foo: 'bar' } });
                     await sendRequest({ method: 'POST', json: { foo: 'bar' } });
@@ -3283,12 +3282,12 @@ describe('BasicCrawler', () => {
 
             const crawler = new BasicCrawler({
                 maxRequestRetries: 0,
-                httpClient: Object.assign(Object.create(BaseHttpClient.prototype) as BaseHttpClient, {
+                httpClient: {
                     async sendRequest(request: globalThis.Request) {
                         captured.push(request.redirect);
                         return new Response('ok');
                     },
-                }),
+                },
                 async requestHandler({ sendRequest }) {
                     await sendRequest();
                     await sendRequest({ followRedirect: true });
@@ -3306,12 +3305,12 @@ describe('BasicCrawler', () => {
 
             const crawler = new BasicCrawler({
                 maxRequestRetries: 0,
-                httpClient: Object.assign(Object.create(BaseHttpClient.prototype) as BaseHttpClient, {
+                httpClient: {
                     async sendRequest(request: globalThis.Request) {
                         captured.push({ method: request.method, body: await request.text() });
                         return new Response('ok');
                     },
-                }),
+                },
                 async requestHandler({ sendRequest }) {
                     await sendRequest();
                 },
@@ -3329,7 +3328,7 @@ describe('BasicCrawler', () => {
 
             const crawler = new BasicCrawler({
                 maxRequestRetries: 0,
-                httpClient: Object.assign(Object.create(BaseHttpClient.prototype) as BaseHttpClient, {
+                httpClient: {
                     async sendRequest(
                         _request: globalThis.Request,
                         options?: { timeoutMillis?: number; signal?: AbortSignal; cookieJar?: unknown },
@@ -3341,7 +3340,7 @@ describe('BasicCrawler', () => {
                         });
                         return new Response('ok');
                     },
-                }),
+                },
                 async requestHandler({ sendRequest }) {
                     await sendRequest({ timeout: 1000, signal, cookieJar });
                 },

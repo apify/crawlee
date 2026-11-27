@@ -1,4 +1,3 @@
-import { BaseHttpClient } from '@crawlee/http-client';
 import type { Dictionary } from '@crawlee/types';
 import { z } from 'zod';
 
@@ -50,10 +49,13 @@ export function objectWithKeys(keys: string[], message?: string): z.ZodType<Dict
 }
 
 /**
- * Accepts only instances of {@link BaseHttpClient} (all Crawlee HTTP clients extend it).
+ * Accepts any object implementing the IHttpClient interface.
  * @internal
  */
-export const httpClient = z.instanceof(BaseHttpClient);
+export const httpClient = objectWithKeys(
+    ['sendRequest'],
+    "Expected an object implementing the IHttpClient interface (missing 'sendRequest'), got something else.",
+);
 
 /**
  * Accepts any object implementing the CrawleeLogger interface.

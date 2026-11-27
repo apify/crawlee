@@ -14,7 +14,7 @@ import {
     SessionPool,
     ThrottlingRequestManager,
 } from '@crawlee/http';
-import { BaseHttpClient, ResponseWithUrl } from '@crawlee/http-client';
+import { ResponseWithUrl } from '@crawlee/http-client';
 import type { ProxyInfo, SendRequestOptions } from '@crawlee/types';
 import { sleep } from '@crawlee/utils';
 import iconv from 'iconv-lite';
@@ -793,7 +793,7 @@ test('works with a custom HttpClient', async () => {
 
             results.push(await (await sendRequest()).text());
         },
-        httpClient: Object.assign(Object.create(BaseHttpClient.prototype) as BaseHttpClient, {
+        httpClient: {
             async sendRequest(request: Request) {
                 return new ResponseWithUrl('<html><head><title>Schmexample Domain</title></head></html>', {
                     url: request.url.toString(),
@@ -801,7 +801,7 @@ test('works with a custom HttpClient', async () => {
                     headers: { 'content-type': 'text/html; charset=utf-8' },
                 });
             },
-        }),
+        },
     });
 
     await crawler.run([url]);
@@ -822,7 +822,7 @@ test('forwards the context proxyInfo url to the HttpClient', async () => {
             },
         ],
         requestHandler: async () => {},
-        httpClient: Object.assign(Object.create(BaseHttpClient.prototype) as BaseHttpClient, {
+        httpClient: {
             async sendRequest(request: Request, options?: SendRequestOptions) {
                 proxyUrls.push(options?.proxyUrl);
                 return new ResponseWithUrl('<html></html>', {
@@ -831,7 +831,7 @@ test('forwards the context proxyInfo url to the HttpClient', async () => {
                     headers: { 'content-type': 'text/html; charset=utf-8' },
                 });
             },
-        }),
+        },
     });
 
     await crawler.run([url]);

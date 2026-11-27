@@ -15,7 +15,6 @@ import {
 } from '@crawlee/core';
 import { sleep } from '@crawlee/utils';
 import { FileSystemStorageBackend } from '@crawlee/fs-storage';
-import { BaseHttpClient } from '@crawlee/http-client';
 
 describe('ThrottlingRequestManager', () => {
     beforeEach(() => {
@@ -251,10 +250,10 @@ describe('ThrottlingRequestManager', () => {
 
         // The inner queue downloads the lists, so serve them locally: whatever a live host returns (an empty
         // list, an error) would be logged through the same spied logger.
-        const httpClient = Object.assign(Object.create(BaseHttpClient.prototype) as BaseHttpClient, {
+        const httpClient = {
             sendRequest: vitest.fn(async () => new Response('https://example.com/1\nhttps://example.com/2')),
             stream: vitest.fn(async () => new Response()),
-        });
+        };
 
         const manager = new ThrottlingRequestManager({
             inner: await RequestQueue.open({ name: 'inner-queue' }, { httpClient }),

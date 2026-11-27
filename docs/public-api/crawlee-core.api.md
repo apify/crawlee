@@ -8,7 +8,6 @@ import type { AllowedHttpMethods } from '@crawlee/types';
 import { ArgumentValidationError } from '@crawlee/utils';
 import { AsyncEventEmitter } from '@vladfrangu/async_event_emitter';
 import type { Awaitable } from '@crawlee/types';
-import { BaseHttpClient } from '@crawlee/http-client';
 import type { BatchAddRequestsResult } from '@crawlee/types';
 import type { BetterIntervalID } from '@apify/utilities';
 import type { Constructor } from '@crawlee/types';
@@ -18,6 +17,7 @@ import type { DatasetBackend } from '@crawlee/types';
 import type { DatasetInfo } from '@crawlee/types';
 import { Dictionary } from '@crawlee/types';
 import { EnqueueStrategy } from '@crawlee/utils';
+import type { IHttpClient } from '@crawlee/types';
 import type { KeyValueStoreBackend } from '@crawlee/types';
 import type { LiteralUnion } from 'type-fest';
 import { Log } from '@apify/log';
@@ -681,7 +681,7 @@ export class RequestList implements IRequestLoader {
 
 // @public (undocumented)
 export interface RequestListOptions {
-    httpClient?: BaseHttpClient;
+    httpClient?: IHttpClient;
     keepDuplicateUrls?: boolean;
     persistRequestsKey?: string;
     persistStateKey?: string;
@@ -941,7 +941,7 @@ export class StorageInstanceManager {
 // @public
 export interface StorageOpenOptions {
     configuration?: Configuration;
-    httpClient?: BaseHttpClient;
+    httpClient?: IHttpClient;
     proxyConfiguration?: IProxyConfiguration;
     storageBackend?: StorageBackend;
 }

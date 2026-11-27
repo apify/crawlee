@@ -1,7 +1,6 @@
 import crypto from 'node:crypto';
 
-import type { BaseHttpClient } from '@crawlee/http-client';
-import type { Dictionary, StorageBackend } from '@crawlee/types';
+import type { Dictionary, IHttpClient, StorageBackend } from '@crawlee/types';
 
 import { Configuration } from '../configuration.js';
 import type { IProxyConfiguration } from '../proxy-configuration.js';
@@ -252,5 +251,5 @@ export interface StorageOpenOptions {
     /**
      * HTTP client to be used to download the list of URLs in `RequestQueue`.
      */
-    httpClient?: BaseHttpClient;
+    httpClient?: IHttpClient;
 }

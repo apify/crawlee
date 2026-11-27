@@ -172,7 +172,7 @@ try {
 }
 ```
 
-One behavioral change: options validated against class interfaces (`httpClient`, `configuration`) now require actual instances (`instanceof BaseHttpClient`, …) rather than duck-typed plain objects — extend the class (or `Object.create(BaseHttpClient.prototype)` in tests) instead of passing an object literal.
+One behavioral change: `configuration` is now validated with `instanceof Configuration` rather than by its shape — pass a real `Configuration` instance instead of an object literal.
 
 ### Zod 4 required
 

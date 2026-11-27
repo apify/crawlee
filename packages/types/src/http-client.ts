@@ -83,7 +83,7 @@ export interface SendRequestOptions {
 /**
  * Interface for user-defined HTTP clients to be used for plain HTTP crawling and for sending additional requests during a crawl.
  */
-export interface BaseHttpClient {
+export interface IHttpClient {
     /**
      * Perform an HTTP Request and return the complete response.
      */

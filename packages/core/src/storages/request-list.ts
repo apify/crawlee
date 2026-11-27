@@ -1,5 +1,4 @@
-import type { BaseHttpClient } from '@crawlee/http-client';
-import type { Dictionary } from '@crawlee/types';
+import type { Dictionary, IHttpClient } from '@crawlee/types';
 import { downloadListOfUrls } from '@crawlee/utils';
 import { z } from 'zod';
 
@@ -280,7 +279,7 @@ export interface RequestListOptions {
      *
      * If not specified the `RequestList` will use the default HTTP client.
      */
-    httpClient?: BaseHttpClient;
+    httpClient?: IHttpClient;
 }
 
 /**
@@ -394,7 +393,7 @@ export class RequestList implements IRequestLoader {
     #sources: RequestListSource[];
     #sourcesFunction?: RequestListSourcesFunction;
     #proxyConfiguration?: IProxyConfiguration;
-    #httpClient?: BaseHttpClient;
+    #httpClient?: IHttpClient;
 
     /**
      * To create new instance of `RequestList` we need to use `RequestList.open()` factory method.
@@ -504,7 +503,6 @@ export class RequestList implements IRequestLoader {
         // We don't need the sources so we purge them to
         // prevent them from hanging in memory.
         for (let i = 0; i < this.#sources.length; i++) {
-            // oxlint-disable-next-line typescript/no-array-delete -- intentional, drop the slot so V8 can collect the object
             delete this.#sources[i];
         }
         this.#sources = [];
@@ -529,7 +527,6 @@ export class RequestList implements IRequestLoader {
             const source = this.#sources[i];
             // Using delete here to drop the original object ASAP to free memory
             // .pop would reverse the array and .shift is SLOW.
-            // oxlint-disable-next-line typescript/no-array-delete
             delete this.#sources[i];
 
             if (typeof source === 'object' && (source as Dictionary).requestsFromUrl) {
@@ -549,7 +546,6 @@ export class RequestList implements IRequestLoader {
                 const sourcesFromFunctionCount = sourcesFromFunction.length;
                 for (let i = 0; i < sourcesFromFunctionCount; i++) {
                     const source = sourcesFromFunction[i];
-                    // oxlint-disable-next-line typescript/no-array-delete -- intentional, drop the slot so V8 can collect the object
                     delete sourcesFromFunction[i];
                     this.#addRequest(source);
                 }
