@@ -44,6 +44,7 @@ A passing type check does not cover these. Check each one against the project, t
 - Navigation hooks share `navigationTimeoutSecs` with the navigation: "Navigation and the request handler are timed separately".
 - HTTP crawlers and `sendRequest` use a different client: "The default HTTP client is now `impit`".
 - Queue reuse: "Repeated `run()` calls no longer empty the request queue" and "Multiple crawler instances use separate default request queues".
+- Several crawlers in one process each get their own `useState()` state: "Multiple crawler instances no longer share `useState()` state".
 - `--omit=optional` in Dockerfiles and install scripts: "Installing with `--omit=optional` breaks native dependencies".
 
 ## Git
