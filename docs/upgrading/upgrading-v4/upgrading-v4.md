@@ -28,12 +28,20 @@ The prompt only contains instructions. They ask the tool to inspect the project,
 Adjust the command to your situation:
 
 - **Your tool can only read files inside the project.** The prompt links guides in the npx cache. Run `npx crawlee@4 upgrade --export <dir>` to copy them into a directory of your choice and have the prompt link that copy.
-- **The project is a package in a workspace.** Run the command from that package's directory, not the workspace root.
+- **The project is a package in a workspace.** Follow the [workspace migration order](#upgrade-a-monorepo).
 - **The command cannot tell which major you are on.** It reads the Crawlee runtime dependencies from the nearest `package.json`, preferring installed versions that match the declared ranges. When that is ambiguous, name the starting major: `npx crawlee@4 upgrade --from 3`.
 - **The project already uses v4 and you want to revisit the migration.** Run `npx crawlee@4 upgrade --from 3`.
 - **A bare `crawlee upgrade` says the command does not exist.** A v3 project runs its local v3 CLI, which has no `upgrade`. Use `npx crawlee@4 upgrade`.
 
 `--to` defaults to the newest bundled migration, and only v3 to v4 is bundled for now. As guides for later majors are added, the command completes and verifies each major before starting the next, and rejects a path with a missing guide rather than skipping a major.
+
+### Upgrade a monorepo
+
+Before you start, identify the Actors and shared packages that use Crawlee, including packages that bring it in through the Apify SDK. A shared package that still requires Crawlee v3 blocks every Actor that uses it from completing the migration. Upgrade or replace that dependency before upgrading its consumers.
+
+1. Upgrade the shared packages first, working from dependencies to dependents. If you use `npx crawlee@4 upgrade` to generate a migration prompt, run it from each package's directory so it reads that package's `package.json`.
+2. Upgrade the Actors that depend on those packages. For example, if `actor-a` and `actor-b` both use `shared-crawler`, migrate `shared-crawler` first, then migrate both Actors. Upgrade the [Apify SDK to v4](#actor-projects-need-apify-sdk-v4) in the packages that use it.
+3. Install dependencies from the workspace root and check the resolved tree. Run `npm ls @crawlee/core --all` for npm or `pnpm -r why @crawlee/core` for pnpm. If both v3 and v4 appear in an upgraded Actor's dependency tree, follow the reported dependency path to the package that still needs v3. Finish moving that dependency chain to v4 before running the Actors' tests.
 
 ## What v4 does better
 
