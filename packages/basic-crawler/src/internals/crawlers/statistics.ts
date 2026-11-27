@@ -123,9 +123,9 @@ function buildStatisticStateCodec(statistics: {
             crawlerStartedAt: record.crawlerStartedAt === null ? null : new Date(record.crawlerStartedAt),
             crawlerFinishedAt: record.crawlerFinishedAt === null ? null : new Date(record.crawlerFinishedAt),
             statsPersistedAt: new Date(record.statsPersistedAt),
-            // Rebased so that the runtime reported by `calculate()` spans the migration instead of restarting.
-            instanceStart:
-                Date.now() - (new Date(record.statsPersistedAt).getTime() - record.crawlerLastStartTimestamp),
+            // Rebased so that the runtime reported by `calculate()` spans the migration instead of restarting. The
+            // runtime the record carries leaves out the time between runs, which the persisted timestamps do not.
+            instanceStart: Date.now() - record.crawlerRuntimeMillis,
         }),
         encode: (state) => {
             // The per-minute rates fall through into `counters` and are overwritten below by `calculate()`'s,
@@ -545,7 +545,12 @@ export class Statistics<
             requestTotalFailedDurationMillis,
             requestTotalSucceededDurationMillis,
         } = this.state;
-        const totalMillis = Date.now() - this.state.instanceStart;
+        // Between runs the runtime stays where the last run left it, so that the time the crawler sits idle is
+        // not counted - and neither is the time between a run and a restore of what it persisted.
+        const totalMillis =
+            this.#logInterval || this.state.crawlerFinishedAt === null
+                ? Date.now() - this.state.instanceStart
+                : this.state.crawlerRuntimeMillis;
         const totalMinutes = totalMillis / 1000 / 60;
 
         return {
@@ -578,6 +583,10 @@ export class Statistics<
             this.state.crawlerStartedAt = new Date();
         }
 
+        // The runtime adds up the runs - continue from the runtime of the previous ones (or of a restored record)
+        // instead of counting the time before this run started.
+        this.state.instanceStart = Date.now() - this.state.crawlerRuntimeMillis;
+
         this.#logInterval = setInterval(() => {
             this.#log.info(this.#logMessage, {
                 ...this.calculate(),
@@ -590,6 +599,8 @@ export class Statistics<
      * Stops logging and remove event listeners, then persist
      */
     async stopCapturing() {
+        // Banked before logging stops, while `calculate()` still measures the run in progress.
+        this.state.crawlerRuntimeMillis = this.calculate().crawlerRuntimeMillis;
         this.#stopLogging();
 
         this.state.crawlerFinishedAt = new Date();
@@ -951,8 +962,10 @@ export interface StatisticState {
     requestRetryHistogram: number[];
 
     /**
-     * When the current capture window started, as a `Date.now()` timestamp. Rebased on load so that the runtime
-     * reported by {@apilink Statistics.calculate} spans a migration rather than restarting from zero.
+     * When the current capture window started, as a `Date.now()` timestamp. Moved back by the runtime of the earlier
+     * runs (or of a restored record) when capturing starts, so that the runtime reported by
+     * {@apilink Statistics.calculate} adds up the runs rather than restarting from zero or counting the time between
+     * them.
      */
     instanceStart: number;
 }

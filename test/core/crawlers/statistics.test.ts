@@ -47,13 +47,12 @@ describe('Statistics', () => {
         });
 
         test('should persist the state to KV and load again', async () => {
+            await stats.startCapturing();
             vitest.advanceTimersByTime(1000);
             stats.recordRequestStart(0);
             vitest.advanceTimersByTime(100);
             stats.recordRequestSuccess(0, 1);
             stats.registerStatusCode(200);
-
-            await stats.startCapturing();
             await stats.stopCapturing();
 
             const restored = new Statistics({ id: stats.id });
@@ -74,6 +73,32 @@ describe('Statistics', () => {
             // The gap between the two runs is not counted, but the first run's runtime is.
             expect(restored.calculate().crawlerRuntimeMillis).toEqual(1100);
 
+            await restored.stopCapturing();
+        });
+
+        test('should add up the runtime of the capture windows', async () => {
+            // Time before the first capture is not counted.
+            vitest.advanceTimersByTime(500);
+            await stats.startCapturing();
+            vitest.advanceTimersByTime(100);
+            await stats.stopCapturing();
+            expect(stats.calculate().crawlerRuntimeMillis).toEqual(100);
+
+            // Neither is the time between captures.
+            vitest.advanceTimersByTime(5000);
+            expect(stats.calculate().crawlerRuntimeMillis).toEqual(100);
+
+            await stats.startCapturing();
+            vitest.advanceTimersByTime(50);
+            expect(stats.calculate().crawlerRuntimeMillis).toEqual(150);
+            await stats.stopCapturing();
+
+            // A record persisted after the captures carries their runtime, not the time since the first one began.
+            const restored = new Statistics({ id: stats.id });
+            vitest.advanceTimersByTime(5000);
+            await restored.startCapturing();
+            vitest.advanceTimersByTime(10);
+            expect(restored.calculate().crawlerRuntimeMillis).toEqual(160);
             await restored.stopCapturing();
         });
 
@@ -152,12 +177,11 @@ describe('Statistics', () => {
         });
 
         test('should keep the shape of the persisted record', async () => {
+            await stats.startCapturing();
             stats.recordRequestStart(0);
             vitest.advanceTimersByTime(100);
             stats.recordRequestSuccess(0, 0);
             stats.registerStatusCode(200);
-
-            await stats.startCapturing();
             await stats.persistState();
 
             const record = (await store.getValue<StatisticPersistedState>(persistStateKey(stats)))!;
@@ -172,7 +196,7 @@ describe('Statistics', () => {
                 requestMaxDurationMillis: 100,
                 requestTotalFailedDurationMillis: 0,
                 requestTotalSucceededDurationMillis: 100,
-                crawlerStartedAt: '1970-01-01T00:00:00.100Z',
+                crawlerStartedAt: '1970-01-01T00:00:00.000Z',
                 crawlerFinishedAt: null,
                 statsPersistedAt: '1970-01-01T00:00:00.100Z',
                 crawlerRuntimeMillis: 100,
@@ -377,7 +401,7 @@ describe('Statistics', () => {
         expect(logged).toHaveLength(1);
         expect(logged[0][0]).toBe('Statistics');
         expect(logged[0][1]).toEqual({
-            crawlerRuntimeMillis: 60001,
+            crawlerRuntimeMillis: 60000,
             requestAvgFailedDurationMillis: Infinity,
             requestAvgSucceededDurationMillis: 1,
             requestTotalDurationMillis: 1,
@@ -391,7 +415,7 @@ describe('Statistics', () => {
         expect(logged).toHaveLength(1);
         expect(logged[0][0]).toBe('Statistics');
         expect(logged[0][1]).toEqual({
-            crawlerRuntimeMillis: 60001,
+            crawlerRuntimeMillis: 60000,
             requestAvgFailedDurationMillis: Infinity,
             requestAvgSucceededDurationMillis: 1,
             requestTotalDurationMillis: 1,

@@ -532,9 +532,9 @@ export interface BasicCrawlerOptions<
     onSkippedRequest?: SkippedRequestCallback;
 
     /**
-     * A preconfigured statistics instance. When provided, the crawler records into it instead of building its own and
-     * will not `reset()` it between `run()` calls. Accepts the built-in {@apilink Statistics} or any object
-     * implementing {@apilink IStatistics}.
+     * A preconfigured statistics instance. When provided, the crawler records into it instead of building its own.
+     * Like the crawler's own, it is not `reset()` between `run()` calls. Accepts the built-in
+     * {@apilink Statistics} or any object implementing {@apilink IStatistics}.
      *
      * Custom fields declared via {@apilink StatisticsOptions.stateExtension|`stateExtension`} are carried over to
      * {@apilink BasicCrawler.statistics|`crawler.statistics.state`}:
@@ -1682,8 +1682,9 @@ export class BasicCrawler<
      * running {@apilink BasicCrawler.addRequests|`crawler.addRequests()`} before {@apilink BasicCrawler.run|`crawler.run()`}.
      *
      * Calling `run()` again on the same instance keeps crawling the same request manager - requests the previous
-     * run handled (a failed one counts as handled) are not processed again. Purge the queue or open a fresh one
-     * if that is what you want.
+     * run handled (a failed one counts as handled) are not processed again. The statistics and the session pool carry
+     * over as well, so {@apilink BasicCrawlerOptions.maxRequestsPerCrawl|`maxRequestsPerCrawl`} limits the whole
+     * crawl rather than each run. To start over, create a new crawler and purge the queue or open a fresh one.
      *
      * @param [requests] The requests to add.
      * @param [options] Options for adding the initial requests.
@@ -1710,20 +1711,13 @@ export class BasicCrawler<
 
                 this.#run = run;
 
-                try {
-                    if (this.#hasFinishedBefore) {
-                        // A supplied statistics instance keeps whatever state it was handed - only wipe a default we built.
-                        await this.#statisticsDep.ifOwned(async (stats) => {
-                            stats.reset();
-                            await stats.resetStore();
-                        });
-                        // A session pool the crawler built follows the same blank-slate rule as its statistics.
-                        await this.#sessionPoolDep.ifOwned(async (pool) => {
-                            pool.reset();
-                            await pool.resetStore();
-                        });
-                    }
+                // The statistics carry over between runs, so this run's share is what they gain from here on.
+                let processedBefore = 0;
 
+                try {
+                    // A repeated run continues the crawl - the request manager, the statistics and the session pool
+                    // carry over, whether the crawler built them or they were passed in, the same as when a new
+                    // process resumes the crawl from its persisted state.
                     await purgeDefaultStorages({
                         onlyPurgeOnce: true,
                         storageBackend: serviceLocator.getStorageBackend(),
@@ -1739,6 +1733,7 @@ export class BasicCrawler<
                     await this.#concurrencySystem.ifOwned((system) => system.start());
                     await this.init();
                     await this.statistics.startCapturing();
+                    processedBefore = this.statistics.state.requestsSucceeded + this.statistics.state.requestsFailed;
                 } catch (error) {
                     // Clean up here before propagating, otherwise a failed startup would leave the process hanging.
                     await this.teardown().catch((teardownError) => {
@@ -1796,7 +1791,7 @@ export class BasicCrawler<
                     // A crawl that did nothing while the manager holds only handled requests is a mistake whoever
                     // handled them - this run, another crawler on the same queue, or a previous process. Starting
                     // against handled requests is not: that is what resuming a crawl looks like.
-                    if (stats.requestsSucceeded + stats.requestsFailed === 0) {
+                    if (stats.requestsSucceeded + stats.requestsFailed === processedBefore) {
                         // Never let the diagnostic itself break the run.
                         const alreadyHandled = (await this.requestManager?.getHandledCount().catch(() => 0)) ?? 0;
 

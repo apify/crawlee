@@ -827,6 +827,8 @@ await requestManager.purge?.();
 await crawler.run(['https://example.com/a', 'https://example.com/c']);
 ```
 
+The statistics and the session pool carry over as well, the same as when a new process resumes the crawl from its persisted state. `maxRequestsPerCrawl` therefore limits the whole crawl, not each run, and the second `run()` above returns the statistics of both runs. To count from zero, create a new crawler instead.
+
 `purge()` — empty the storage, keep its id and name — is new in v4 and available on `Dataset`, `KeyValueStore` and `RequestQueue`, as well as being an optional method on the `IRequestManager` interface. The Apify platform is the exception. Its API has no in-place empty, so all three throw there. The error points you at `drop()` or a fresh storage.
 
 This has nothing to do with `purgeOnStart` / `CRAWLEE_PURGE_ON_START`, which still wipes the default storages once per process before the first run.

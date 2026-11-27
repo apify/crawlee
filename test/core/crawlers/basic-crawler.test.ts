@@ -491,37 +491,6 @@ describe('BasicCrawler', () => {
 
             expect(outcome).toBe('resolved');
         });
-
-        test('settles a repeated run() torn down while it resets the previous run state', async () => {
-            const crawler = new BasicCrawler({ keepAlive: true, requestHandler: async () => {} });
-            const firstRun = crawler.run();
-            await vitest.waitFor(() => expect(crawler.running).toBe(true));
-            await crawler.teardown();
-            await firstRun;
-
-            const resetStarted = Promise.withResolvers<void>();
-            const resumeReset = Promise.withResolvers<void>();
-            vitest.spyOn(crawler.statistics as Statistics, 'resetStore').mockImplementation(async () => {
-                resetStarted.resolve();
-                await resumeReset.promise;
-            });
-
-            const runPromise = crawler.run().then(
-                () => 'resolved',
-                (error: Error) => `rejected: ${error.message}`,
-            );
-
-            await resetStarted.promise;
-            await crawler.teardown();
-            resumeReset.resolve();
-
-            const outcome = await Promise.race([runPromise, sleep(500).then(() => 'still pending')]);
-
-            // Without this, a regression would leak the pool interval into the following tests.
-            if (outcome === 'still pending') await crawler.teardown();
-
-            expect(outcome).toBe('resolved');
-        });
     });
 
     test('teardown before run() does not cancel the next run', async () => {
@@ -560,7 +529,7 @@ describe('BasicCrawler', () => {
         expect(processed).toEqual(['https://example.com/2']);
     });
 
-    test('should process 4 requests total when calling run() twice with maxRequestsPerCrawl: 2', async () => {
+    test('should process 2 requests total when calling run() twice with maxRequestsPerCrawl: 2', async () => {
         const processed: { url: string }[] = [];
 
         const requestHandler: RequestHandler = async ({ request }) => {
@@ -582,21 +551,16 @@ describe('BasicCrawler', () => {
         // Make sure no extra requests were enqueued
         await expect(requestQueueBackend.listItems()).resolves.toEqual([]);
 
-        // Second run should process 2 more requests
+        // The limit covers the whole crawl, so the second run has nothing left to process
         await crawler.run([...Array(5).keys()].map((index) => `https://example.com/second/${index}`));
-        expect(processed).toHaveLength(4);
+        expect(processed).toHaveLength(2);
 
         // Make sure no extra requests were enqueued
         await expect(requestQueueBackend.listItems()).resolves.toEqual([]);
 
         const processedUrls = processed.map((p) => p.url);
 
-        expect(processedUrls).toEqual([
-            'https://example.com/first/0',
-            'https://example.com/first/1',
-            'https://example.com/second/0',
-            'https://example.com/second/1',
-        ]);
+        expect(processedUrls).toEqual(['https://example.com/first/0', 'https://example.com/first/1']);
     });
 
     describe('a crawl that processes nothing', () => {
@@ -2609,6 +2573,17 @@ describe('BasicCrawler', () => {
     });
 
     describe('Uses SessionPool', () => {
+        it('keeps the session pool it built across runs, even when it was used in between', async () => {
+            const crawler = new BasicCrawler({ requestHandler: async () => {} });
+
+            await crawler.run([{ url: 'https://example.com', uniqueKey: 'first' }]);
+            const session = await crawler.sessionPool.getSession();
+
+            await crawler.run([{ url: 'https://example.com', uniqueKey: 'second' }]);
+
+            expect(await crawler.sessionPool.getSession(session!.id)).toBe(session);
+        });
+
         it('persists statistics and the session pool once when finishing', async () => {
             const setValue = vitest.spyOn(KeyValueStore.prototype, 'setValue');
             const crawler = new BasicCrawler({
@@ -2857,7 +2832,7 @@ describe('BasicCrawler', () => {
             void crawler.statistics.state.categoriesFound;
         });
 
-        it('does not reset a supplied instance between runs, but does reset a default', async () => {
+        it('keeps both a supplied instance and its own default across runs', async () => {
             const stats = new Statistics({ persistenceOptions: { enable: false } });
             const injectingCrawler = new BasicCrawler({
                 statistics: stats,
@@ -2880,11 +2855,57 @@ describe('BasicCrawler', () => {
             const ownedResetSpy = vitest.spyOn(owningCrawler.statistics as Statistics, 'reset');
 
             await owningCrawler.run([{ url: 'https://example.com', uniqueKey: 'owned-1' }]);
-            await owningCrawler.run([{ url: 'https://example.com', uniqueKey: 'owned-2' }]);
+            const second = await owningCrawler.run([{ url: 'https://example.com', uniqueKey: 'owned-2' }]);
 
-            // A crawler-owned default is wiped at the start of each run.
-            expect(ownedResetSpy).toHaveBeenCalled();
-            expect(owningCrawler.statistics.state.requestsSucceeded).toBe(1);
+            // A repeated run continues the crawl, so the default the crawler built carries over just the same.
+            expect(ownedResetSpy).not.toHaveBeenCalled();
+            expect(owningCrawler.statistics.state.requestsSucceeded).toBe(2);
+            expect(second.requestsSucceeded).toBe(2);
+        });
+
+        it.each([
+            ['its own statistics', () => undefined],
+            ['supplied statistics', () => new Statistics({ persistenceOptions: { enable: false } })],
+        ])('applies maxRequestsPerCrawl to the whole crawl across runs with %s', async (_, makeStatistics) => {
+            const requestQueue = await RequestQueue.open();
+            // Filled directly - the crawler's own `addRequests()` would stop at the limit.
+            await requestQueue.addRequests(
+                Array.from({ length: 10 }, (_v, i) => ({ url: `https://example.com/${i}` })),
+            );
+
+            let handled = 0;
+            const crawler = new BasicCrawler({
+                requestQueue,
+                statistics: makeStatistics(),
+                maxRequestsPerCrawl: 3,
+                maxConcurrency: 1,
+                requestHandler: async () => {
+                    handled += 1;
+                },
+            });
+
+            const first = await crawler.run();
+            const second = await crawler.run();
+
+            expect(handled).toBe(3);
+            expect(first.requestsSucceeded).toBe(3);
+            expect(second.requestsSucceeded).toBe(3);
+        });
+
+        it('adds up the runtime of the runs and leaves out the time between them', async () => {
+            const crawler = new BasicCrawler({ requestHandler: async () => {} });
+
+            await crawler.run([{ url: 'https://example.com', uniqueKey: 'first' }]);
+            const afterFirst = crawler.statistics.calculate().crawlerRuntimeMillis;
+
+            await sleep(300);
+            // Not counted while no run is in progress.
+            expect(crawler.statistics.calculate().crawlerRuntimeMillis).toBe(afterFirst);
+
+            const second = await crawler.run([{ url: 'https://example.com', uniqueKey: 'second' }]);
+
+            expect(second.crawlerRuntimeMillis).toBeGreaterThanOrEqual(afterFirst);
+            expect(second.crawlerRuntimeMillis).toBeLessThan(afterFirst + 300);
         });
     });
 
