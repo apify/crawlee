@@ -49,7 +49,11 @@ flowchart TD
 - **Predicted client-only:** the handler runs in the browser.
 - **Detection:** on some requests, the handler runs in the browser *and* over HTTP. The browser result is committed, the two are compared with the [`resultComparator`](#comparing-results-during-detection), and the verdict trains the predictor.
 
-Each attempt runs in its own storage transaction (see [Result storage](./result-storage)). The writes of an attempt that loses — a failed HTTP run, or the HTTP run of a detection — are rolled back, and its log messages are dropped with it. The HTTP run of a detection also sees `useState()` as it was before the browser run, so both runs start from the same state.
+Each attempt runs in its own storage transaction (see [Result storage](./result-storage)). The writes of an attempt that loses — a failed HTTP run, or the HTTP run of a detection — are rolled back, and its log messages are dropped with it.
+
+The same goes for the `request` object and the `useState()` state, which are not covered by the transaction: the crawler records the changes an attempt makes to them and undoes those of a losing attempt. A browser run that fails keeps its changes, so `userData` stashed for the retry survives, as it does in the other crawlers. The HTTP run of a detection works on copies of both, as they were before the browser run, so both runs start from the same conditions.
+
+The state is shared with concurrently running handlers. If one of them wrote the same property while the losing attempt was running, the newer value is kept rather than overwritten.
 
 :::caution The request handler may run twice
 

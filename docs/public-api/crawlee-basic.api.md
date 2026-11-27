@@ -17,8 +17,6 @@ import type { DatasetExportOptions } from '@crawlee/core';
 import { Dictionary } from '@crawlee/types';
 import { EnqueueStrategy } from '@crawlee/utils';
 import type { EnqueueStrategyOption } from '@crawlee/core';
-import { EventManager } from '@crawlee/core';
-import type { HttpRequestOptions } from '@crawlee/types';
 import { IProxyConfiguration } from '@crawlee/core';
 import { IRequestLoader } from '@crawlee/core';
 import { IRequestManager } from '@crawlee/core';
@@ -40,6 +38,7 @@ import type { RequestSchema } from '@crawlee/types';
 import type { RequestsLike } from '@crawlee/core';
 import type { RequestSourceStatus } from '@crawlee/core';
 import type { SendRequestOptions } from '@crawlee/types';
+import type { SendRequestOverrides } from '@crawlee/types';
 import type { SessionFingerprint } from '@crawlee/types';
 import type { SetStatusMessageOptions } from '@crawlee/types';
 import { Source } from '@crawlee/core';
@@ -116,8 +115,7 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = CrawlingC
     configuration?: Configuration;
     contextPipelineBuilder?: () => ContextPipeline<CrawlingContext, Context>;
     errorHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
-    eventManager?: EventManager;
-    extendContext?: (context: CrawlingContext) => Awaitable<ContextExtension>;
+    extendContext?: ContextMiddleware<CrawlingContext, ContextExtension>;
     failedRequestHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
     httpClient?: BaseHttpClient;
     id?: string;
@@ -278,7 +276,7 @@ export interface CrawlingContext<UserData extends Dictionary = Dictionary> exten
     afterStorageCommit(callback: (error?: Error) => Awaitable<void>): void;
     extendTimeout(secs: number): void;
     registerDeferredCleanup(cleanup: () => Promise<unknown>): void;
-    sendRequest: (requestOverrides?: Partial<HttpRequestOptions>, optionsOverrides?: SendRequestOptions) => Promise<Response>;
+    sendRequest: (requestOverrides?: SendRequestOverrides, optionsOverrides?: SendRequestOptions) => Promise<Response>;
 }
 
 // @public
@@ -319,6 +317,10 @@ export const defaultRoute: unique symbol;
 export type DefaultRouteUserData<Routes, Fallback extends Dictionary> = Routes extends {
     [defaultRoute]: infer DefaultUserData extends Dictionary;
 } ? DefaultUserData : Fallback;
+
+// @public
+export class DownloadStartedError extends Error {
+}
 
 // @public
 export type EnqueueLinksOptions = ExtractLinksOptions & EnqueueUrlsOptions;
@@ -474,6 +476,7 @@ export interface IStatistics<StateExtension extends object = {}> {
     recordRequestFailure(id: number | string, retryCount: number): void;
     recordRequestStart(id: number | string): void;
     recordRequestSuccess(id: number | string, retryCount: number): void;
+    registerRetry?(retryCount: number): void;
     registerStatusCode(code: number): void;
     readonly requestRetryHistogram: number[];
     startCapturing(): Promise<void>;
@@ -829,6 +832,7 @@ export class SitemapRequestLoader implements IRequestLoader {
 
 // @public (undocumented)
 export interface SitemapRequestLoaderOptions extends UrlConstraints {
+    concurrency?: number;
     enqueueStrategy?: EnqueueStrategy | `${EnqueueStrategy}`;
     httpClient?: BaseHttpClient;
     maxBufferSize?: number;
@@ -897,6 +901,7 @@ export class Statistics<StateExtension extends object = {}, PersistedStateExtens
     readonly errorTrackerRetry: ErrorTracker;
     readonly id: string;
     persistState(): Promise<void>;
+    registerRetry(retryCount: number): void;
     registerStatusCode(code: number): void;
     get requestRetryHistogram(): number[];
     reset(): void;
@@ -1011,12 +1016,12 @@ export interface TaskLoopPredicates {
 export class ThrottlingRequestManager<T extends IRequestManager = IRequestManager> implements IRequestManager {
     // (undocumented)
     [Symbol.asyncIterator](): AsyncGenerator<Request_2<Dictionary>, void, unknown>;
-    constructor(options: ThrottlingRequestManagerOptions<T>, config?: Configuration);
+    constructor(options: ThrottlingRequestManagerOptions<T>, configuration?: Configuration);
     // (undocumented)
     addRequest(requestLike: Source, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo>;
     addRequestsBatched(requests: RequestsLike, options?: AddRequestsBatchedOptions): Promise<AddRequestsBatchedResult>;
     checkReadiness(): Promise<RequestSourceStatus>;
-    extendRequestProcessingTimeSecs(request: Request_2, secs: number): Promise<boolean>;
+    extendRequestProcessingTime(request: Request_2, extensionSecs: number): Promise<boolean>;
     fetchNextRequest<R extends Dictionary = Dictionary>(): Promise<Request_2<R> | null>;
     // (undocumented)
     getHandledCount(): Promise<number>;
@@ -1024,6 +1029,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     getPendingCount(): Promise<number>;
     // (undocumented)
     getTotalCount(): Promise<number>;
+    readonly id: string;
     // (undocumented)
     markRequestAsHandled(request: Request_2): Promise<RequestQueueOperationInfo | void | null>;
     purge(): Promise<void>;
@@ -1031,13 +1037,14 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     reclaimRequest(request: Request_2, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo | null>;
     recordPacingSignal(signal: PacingSignal): boolean;
     // (undocumented)
-    setExpectedRequestProcessingTimeSecs(secs: number): Promise<void>;
+    setExpectedRequestProcessingTime(processingTimeSecs: number): Promise<void>;
 }
 
 // @public
 export interface ThrottlingRequestManagerOptions<T extends IRequestManager = IRequestManager> {
     baseDelaySecs?: number;
     domains: string[] | 'all';
+    id?: string | number;
     inner?: T | (() => T | Promise<T>);
     maxDelaySecs?: number;
     maxDomainStallSecs?: number;

@@ -58,6 +58,44 @@ describe('RequestQueue in-progress requests', () => {
         expect(await queue.fetchNextRequest()).toBeUndefined();
     });
 
+    test('marking a request that is not in progress as handled still applies, but returns undefined', async () => {
+        const storage = new MemoryStorageBackend();
+        const queue: RequestQueueBackend = await storage.createRequestQueueBackend({ name: 'handle-not-in-progress' });
+
+        await queue.addBatchOfRequests([{ url: 'http://example.com/1', uniqueKey: '1' }]);
+        const pending = await queue.getRequest('1');
+
+        expect(await queue.markRequestAsHandled({ ...pending!, id: pending!.id as string })).toBeUndefined();
+
+        const metadata = await queue.getMetadata();
+        expect(metadata.handledRequestCount).toBe(1);
+        expect(metadata.pendingRequestCount).toBe(0);
+        expect(await queue.isFinished()).toBe(true);
+
+        // An already-handled request is the documented exception: marking it again is reported, not `undefined`.
+        expect(await queue.markRequestAsHandled({ ...pending!, id: pending!.id as string })).toMatchObject({
+            wasAlreadyHandled: true,
+        });
+    });
+
+    test('reclaiming a request that is not in progress still applies, but returns undefined', async () => {
+        const storage = new MemoryStorageBackend();
+        const queue: RequestQueueBackend = await storage.createRequestQueueBackend({ name: 'reclaim-not-in-progress' });
+
+        await queue.addBatchOfRequests([
+            { url: 'http://example.com/1', uniqueKey: '1' },
+            { url: 'http://example.com/2', uniqueKey: '2' },
+        ]);
+        const second = await queue.getRequest('2');
+
+        expect(
+            await queue.reclaimRequest({ ...second!, id: second!.id as string }, { forefront: true }),
+        ).toBeUndefined();
+
+        // The forefront reorder was honored even though the request was never fetched.
+        expect((await queue.fetchNextRequest())?.uniqueKey).toBe('2');
+    });
+
     test('multiple requests are each handed out only once while in progress', async () => {
         const storage = new MemoryStorageBackend();
         const queue: RequestQueueBackend = await storage.createRequestQueueBackend({ name: 'multi' });

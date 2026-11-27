@@ -1,6 +1,9 @@
+import { Readable } from 'node:stream';
+
 import type { Request as CrawleeRequest } from '@crawlee/core';
 import type { BaseHttpClient } from '@crawlee/http-client';
-import type { HttpRequestOptions, ISession, SendRequestOptions } from '@crawlee/types';
+import type { ISession, SendRequestOptions, SendRequestOverrides } from '@crawlee/types';
+import { processHttpRequestOptions } from '@crawlee/utils/internal';
 
 /**
  * Prepares a function to be used as the `sendRequest` context helper.
@@ -12,31 +15,39 @@ import type { HttpRequestOptions, ISession, SendRequestOptions } from '@crawlee/
  */
 export function createSendRequest(httpClient: BaseHttpClient, originRequest: CrawleeRequest, session: ISession) {
     return async (
-        overrideRequest: Partial<HttpRequestOptions> = {},
+        overrideRequest: SendRequestOverrides = {},
         overrideOptions: SendRequestOptions = {},
     ): Promise<Response> => {
         const baseRequest = originRequest.intoFetchAPIRequest();
-        const mergedUrl = overrideRequest.url ?? baseRequest.url;
-        const mergedMethod = overrideRequest.method ?? baseRequest.method;
 
         const mergedHeaders = new Headers(baseRequest.headers);
-        if (overrideRequest.headers) {
-            overrideRequest.headers.forEach((value, key) => {
-                mergedHeaders.set(key, value);
-            });
-        }
+        new Headers(overrideRequest.headers).forEach((value, key) => {
+            mergedHeaders.set(key, value);
+        });
 
-        const request = new Request(mergedUrl, {
-            method: mergedMethod,
+        const opts = processHttpRequestOptions({
+            ...overrideRequest,
+            url: overrideRequest.url ?? baseRequest.url,
+            method: overrideRequest.method ?? originRequest.method,
             headers: mergedHeaders,
-            body: overrideRequest.body ?? baseRequest.body,
+            body: overrideRequest.body === undefined ? undefined : Readable.from(overrideRequest.body),
+        });
+
+        const request = new Request(opts.url, {
+            method: opts.method,
+            headers: opts.headers,
+            body: opts.body ? Readable.toWeb(opts.body) : baseRequest.body,
+            redirect: opts.followRedirect === false ? 'manual' : 'follow',
+            // Node-specific option to make the request body work with streams
+            duplex: 'half',
         } as RequestInit);
 
         return httpClient.sendRequest(request, {
             session,
-            cookieJar: overrideOptions?.cookieJar ?? session.cookieJar,
-            timeoutMillis: overrideOptions.timeoutMillis,
-            signal: overrideOptions.signal,
+            cookieJar: overrideOptions.cookieJar ?? opts.cookieJar ?? session.cookieJar,
+            proxyUrl: overrideOptions.proxyUrl ?? opts.proxyUrl,
+            timeoutMillis: overrideOptions.timeoutMillis ?? opts.timeout,
+            signal: overrideOptions.signal ?? opts.signal,
             ignoreTlsErrors: overrideOptions.ignoreTlsErrors,
         });
     };

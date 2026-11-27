@@ -4,7 +4,7 @@ import { getDomain } from 'tldts';
 
 import type { EnqueueStrategyOption, RequestQueueOperationOptions } from '@crawlee/core';
 
-import type { RequestTransform, SkippedRequestCallback, UrlPatternInput, UrlPatternObject } from './shared.js';
+import type { RequestTransform, SkippedRequestCallback, UrlPatternInput } from './shared.js';
 
 /**
  * Options shared by the `extractLinks()` context helper across crawler types.
@@ -200,50 +200,4 @@ export interface ResolveBaseUrl {
     enqueueStrategy?: EnqueueStrategyOption;
     originalRequestUrl: string;
     finalRequestUrl?: string;
-}
-
-/**
- * @internal
- * Builds the glob patterns a URL must match to satisfy the given enqueue `strategy`, anchored at `baseUrl`.
- */
-export function buildEnqueueStrategyPatterns(baseUrl: string, strategy: EnqueueStrategyOption): UrlPatternObject[] {
-    const url = new URL(baseUrl);
-
-    switch (strategy) {
-        case EnqueueStrategy.SameHostname:
-            // We need to get the origin of the passed in domain in the event someone sets baseUrl
-            // to an url like https://example.com/deep/default/path and one of the found urls is an
-            // absolute relative path (/path/to/page)
-            return [{ glob: ignoreHttpSchema(`${url.origin}/**`) }];
-        case EnqueueStrategy.SameDomain: {
-            // Get the actual hostname from the base url
-            const baseUrlHostname = getDomain(url.hostname, { mixedInputs: false });
-
-            if (baseUrlHostname) {
-                // We have a hostname, so we can use it to match all links on the page that point to it and any subdomains of it
-                url.hostname = baseUrlHostname;
-                return [
-                    { glob: ignoreHttpSchema(`${url.origin.replace(baseUrlHostname, `*.${baseUrlHostname}`)}/**`) },
-                    { glob: ignoreHttpSchema(`${url.origin}/**`) },
-                ];
-            }
-
-            // We don't have a hostname (can happen for ips for instance), so reproduce the same behavior
-            // as SameDomainAndSubdomain
-            return [{ glob: ignoreHttpSchema(`${url.origin}/**`) }];
-        }
-        case EnqueueStrategy.SameOrigin:
-            // The same behavior as SameHostname, but respecting the protocol of the URL
-            return [{ glob: `${url.origin}/**` }];
-        case EnqueueStrategy.All:
-        default:
-            return [{ glob: `http{s,}://**` }];
-    }
-}
-
-/**
- * Internal function that changes the enqueue glob patterns to match both http and https
- */
-function ignoreHttpSchema(pattern: string): string {
-    return pattern.replace(/^(https?):\/\//, 'http{s,}://');
 }

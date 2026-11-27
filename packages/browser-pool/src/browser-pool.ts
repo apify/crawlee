@@ -1,5 +1,5 @@
 import { type CrawleeLogger, SessionError, serviceLocator } from '@crawlee/core';
-import type { IBrowserPool, NewPageOptions, PageState } from '@crawlee/types';
+import type { IBrowserPool, ISession, NewPageOptions, PageState } from '@crawlee/types';
 import { parseArgument, schemas } from '@crawlee/utils/internal';
 import type { BrowserFingerprintWithHeaders } from 'fingerprint-generator';
 import { FingerprintGenerator } from 'fingerprint-generator';
@@ -10,7 +10,7 @@ import QuickLRU from 'quick-lru';
 import { TypedEmitter } from 'tiny-typed-emitter';
 import { z } from 'zod';
 
-import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
+import { addTimeoutToPromise, storage as timeoutStorage, tryCancel } from '@apify/timeout';
 
 import type { BrowserController } from './abstract-classes/browser-controller.js';
 import type { BrowserPlugin } from './abstract-classes/browser-plugin.js';
@@ -481,14 +481,14 @@ export class BrowserPool<
      * or their page limits have been exceeded.
      *
      * **Session injection (best-effort):** When a {@apilink NewPageOptions.session|session} is
-     * provided, this implementation uses it as a cache key for browser fingerprints (when
-     * fingerprinting is enabled) and reads
+     * provided, this implementation uses it as a cache key for browser fingerprints and applies
+     * its `fingerprint` hints when launching a new browser (when fingerprinting is enabled) and reads
      * {@apilink ProxyInfo.url|session.proxyInfo.url} /
      * {@apilink ProxyInfo.ignoreTlsErrors|session.proxyInfo.ignoreTlsErrors} as defaults
      * for `proxyUrl` and `ignoreTlsErrors` respectively. Explicit `proxyUrl` /
      * `ignoreTlsErrors` values in the options take precedence.
      *
-     * Beyond fingerprint caching and proxy configuration, no other session
+     * Beyond fingerprinting and proxy configuration, no other session
      * properties are consumed — cookie and header injection remain the
      * crawler's responsibility.
      */
@@ -520,7 +520,7 @@ export class BrowserPool<
                 browserController = this.#pickBrowserWithFreeCapacity(browserPlugin, { proxyUrl });
             }
 
-            browserController ??= await this.#launchBrowser(id, { browserPlugin, proxyUrl, ignoreTlsErrors });
+            browserController ??= await this.#launchBrowser(id, { browserPlugin, proxyUrl, ignoreTlsErrors, session });
             tryCancel();
 
             return await this.#createPageForBrowser(id, browserController, pageOptions, proxyUrl, ignoreTlsErrors);
@@ -725,8 +725,9 @@ export class BrowserPool<
 
         // The bound on this lives in `overridePageClose`, where it covers the pool's own
         // bookkeeping as well. Wrapping it here instead would time out the override and abandon
-        // that bookkeeping, leaving the browser holding a slot it can never get back.
-        await page.close();
+        // that bookkeeping, leaving the browser holding a slot it can never get back. A fresh timeout
+        // context, as the close hooks would start out cancelled under a caller whose timeout already fired.
+        await timeoutStorage.exit(async () => page.close());
     }
 
     /**
@@ -833,7 +834,7 @@ export class BrowserPool<
     }
 
     async #launchBrowser(pageId: string, options: InternalLaunchBrowserOptions<BrowserPlugins[number]>) {
-        const { browserPlugin, launchOptions, proxyUrl, ignoreTlsErrors } = options;
+        const { browserPlugin, launchOptions, proxyUrl, ignoreTlsErrors, session } = options;
 
         const browserController = browserPlugin.createController() as BrowserControllerReturn;
         this.#startingBrowserControllers.add(browserController);
@@ -843,6 +844,8 @@ export class BrowserPool<
             launchOptions,
             proxyUrl,
         });
+
+        if (session) launchContext.extend({ session });
 
         // Disable SSL verification for MITM proxies
         if (ignoreTlsErrors) {
@@ -955,50 +958,31 @@ export class BrowserPool<
             // this never settles and the page's own `close` event never fires either (Chromium
             // 536385539). Bound the whole sequence so nothing here can hang the caller, then
             // reconcile the pool regardless of the outcome, so a page that refuses to close cannot
-            // leave the pool believing it is still open. `Promise.race` rather than
-            // `addTimeoutToPromise`: the latter inherits its AbortController from the calling frame,
-            // so a timeout here would cancel the task of whoever awaited `page.close()`.
+            // leave the pool believing it is still open.
             let pageClosed = false;
 
-            const closing = (async () => {
-                await this.#executeHooks(this.#prePageCloseHooks, page, browserController);
+            await addTimeoutToPromise(
+                async () => {
+                    await this.#executeHooks(this.#prePageCloseHooks, page, browserController);
 
-                await originalPageClose.apply(page, args).catch((err: Error) => {
-                    this.#log.debug(`Could not close page.\nCause:${err.message}`, { id: browserController.id });
+                    await originalPageClose.apply(page, args).catch((err: Error) => {
+                        this.#log.debug(`Could not close page.\nCause:${err.message}`, { id: browserController.id });
+                    });
+
+                    // Whether the page itself is gone. Tracked separately from the sequence finishing,
+                    // so that a slow hook does not get the browser retired.
+                    pageClosed = true;
+
+                    await this.#executeHooks(this.#postPageCloseHooks, pageId, browserController);
+                },
+                PAGE_CLOSE_TIMEOUT_MILLIS,
+                `Closing a page did not finish within ${PAGE_CLOSE_TIMEOUT_MILLIS / 1000} seconds.`,
+            ).catch((err: Error) => {
+                this.#log.warning(`Closing a page failed, releasing it from the pool anyway.\nCause:${err.message}`, {
+                    id: browserController.id,
+                    pageId,
                 });
-
-                // Whether the page itself is gone. Tracked separately from the sequence finishing,
-                // so that a slow hook does not get the browser retired.
-                pageClosed = true;
-
-                await this.#executeHooks(this.#postPageCloseHooks, pageId, browserController);
-            })();
-
-            let timeout: NodeJS.Timeout | undefined;
-            const finished = await Promise.race([
-                closing.then(
-                    () => true,
-                    (err: Error) => {
-                        this.#log.warning(
-                            `Closing a page failed, releasing it from the pool anyway.\nCause:${err.message}`,
-                            { id: browserController.id, pageId },
-                        );
-                        return true;
-                    },
-                ),
-                new Promise<boolean>((resolve) => {
-                    timeout = setTimeout(() => resolve(false), PAGE_CLOSE_TIMEOUT_MILLIS);
-                }),
-            ]);
-            clearTimeout(timeout);
-
-            if (!finished) {
-                this.#log.warning(
-                    `Closing a page did not finish within ${PAGE_CLOSE_TIMEOUT_MILLIS / 1000} seconds, ` +
-                        'releasing it from the pool anyway.',
-                    { id: browserController.id, pageId },
-                );
-            }
+            });
 
             if (!pageClosed) {
                 // The page is still attached, so this browser cannot be trusted with more work.
@@ -1160,4 +1144,5 @@ interface InternalLaunchBrowserOptions<BP extends BrowserPlugin> {
     launchOptions?: BP['launchOptions'];
     proxyUrl?: string;
     ignoreTlsErrors?: boolean;
+    session?: ISession;
 }

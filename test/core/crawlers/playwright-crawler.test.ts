@@ -11,6 +11,7 @@ import {
     playwrightBrowserPool,
     RequestList,
     RequestValidationError,
+    SessionPool,
 } from '@crawlee/playwright';
 import type { Cheerio, CheerioAPI } from 'cheerio';
 import type { Element } from 'domhandler';
@@ -21,7 +22,7 @@ import { z } from 'zod';
 
 import log from '@apify/log';
 
-import { startExpressAppPromise } from '../../shared/_helper.js';
+import { runExampleComServer, startExpressAppPromise } from '../../shared/_helper.js';
 
 if (os.platform() === 'win32') vitest.setConfig({ testTimeout: 2 * 60 * 1e3 });
 
@@ -133,6 +134,89 @@ describe('PlaywrightCrawler', () => {
                 expect(request.userData.title).toBe('Example Domain');
             });
         });
+    });
+
+    describe('retryOnBlocked', () => {
+        let exampleComServer: Server;
+        let exampleComUrl: string;
+
+        beforeAll(async () => {
+            let exampleComPort: number;
+            [exampleComServer, exampleComPort] = await runExampleComServer();
+            exampleComUrl = `http://${HOSTNAME}:${exampleComPort}`;
+        });
+
+        afterAll(() => {
+            exampleComServer.close();
+        });
+
+        test.each(['chromium', 'firefox'] as const)(
+            'waits for an AWS WAF challenge to resolve with %s',
+            async (browser) => {
+                const handled: { title: string; status?: number; body?: string }[] = [];
+                const errorMessages: string[] = [];
+
+                const crawler = new PlaywrightCrawler({
+                    browserPool: playwrightBrowserPool({
+                        launchContext: { launcher: playwright[browser] },
+                        useFingerprints: false,
+                    }),
+                    retryOnBlocked: true,
+                    maxRequestRetries: 0,
+                    requestHandler: async ({ page, response }) => {
+                        handled.push({
+                            title: await page.title(),
+                            status: response?.status(),
+                            body: await response?.text(),
+                        });
+                    },
+                    failedRequestHandler: ({ request }) => {
+                        errorMessages.push(...request.errorMessages);
+                    },
+                });
+
+                await crawler.run([`${exampleComUrl}/special/awsWafChallengePassed`]);
+
+                expect(errorMessages).toHaveLength(0);
+                expect(handled).toStrictEqual([
+                    {
+                        title: 'Example Domain',
+                        status: 200,
+                        body: expect.stringContaining('<title>Example Domain</title>'),
+                    },
+                ]);
+            },
+        );
+
+        test.each(['chromium', 'firefox'] as const)(
+            'retries an AWS WAF challenge that ends in a CAPTCHA with %s',
+            async (browser) => {
+                let processed = false;
+                const errorMessages: string[] = [];
+
+                const crawler = new PlaywrightCrawler({
+                    browserPool: playwrightBrowserPool({
+                        launchContext: { launcher: playwright[browser] },
+                        useFingerprints: false,
+                    }),
+                    retryOnBlocked: true,
+                    maxRequestRetries: 0,
+                    requestHandler: async () => {
+                        processed = true;
+                    },
+                    failedRequestHandler: ({ request }) => {
+                        errorMessages.push(...request.errorMessages);
+                    },
+                });
+
+                await crawler.run([`${exampleComUrl}/special/awsWafChallengeFailed`]);
+
+                expect(processed).toBe(false);
+                expect(errorMessages).toHaveLength(1);
+                expect(errorMessages[0]).toContain('AWS WAF challenge failed');
+                expect(errorMessages[0]).toContain('#captcha-container');
+            },
+        );
     });
 
     // https://github.com/apify/crawlee/issues/3670
@@ -304,6 +388,77 @@ describe('PlaywrightCrawler', () => {
         expect(countAfter).toBe(1);
         expect(suggestedFilename).toBe('hello.txt');
     });
+
+    test('lists a download that started on navigation in errorHandler', async () => {
+        let suggestedFilenames: string[] | undefined;
+
+        const playwrightCrawler = new PlaywrightCrawler({
+            maxRequestRetries: 1,
+            maxConcurrency: 1,
+            requestHandler: async () => {},
+            errorHandler: async ({ listDownloads }) => {
+                suggestedFilenames = (await listDownloads!()).map((download) => download.suggestedFilename());
+            },
+        });
+
+        await playwrightCrawler.run([`http://${HOSTNAME}:${port}/download-file`]);
+
+        expect(suggestedFilenames).toEqual(['hello.txt']);
+    });
+
+    test('a navigation that starts a download does not count against the session', async () => {
+        const sessions: PlaywrightCrawlingContext['session'][] = [];
+        const errorMessages: string[] = [];
+
+        const playwrightCrawler = new PlaywrightCrawler({
+            sessionPool: new SessionPool({ sessionOptions: { maxErrorScore: 1 } }),
+            maxRequestRetries: 2,
+            maxConcurrency: 1,
+            requestHandler: async () => {},
+            errorHandler: async ({ session }, error) => {
+                sessions.push(session);
+                errorMessages.push(error.message);
+            },
+        });
+
+        await playwrightCrawler.run([`http://${HOSTNAME}:${port}/download-file`]);
+
+        // With `maxErrorScore: 1`, a single penalty would retire the session, and its browser with it.
+        expect(sessions.map((session) => session.isUsable())).toEqual([true, true]);
+        expect(errorMessages).toEqual([
+            expect.stringContaining('Download is starting'),
+            expect.stringContaining('Download is starting'),
+        ]);
+    });
+
+    test.each([{ retryOnBlocked: false }, { retryOnBlocked: true }])(
+        'reading response throws when the navigation produced none (retryOnBlocked: $retryOnBlocked)',
+        async ({ retryOnBlocked }) => {
+            let responseError: string | undefined;
+
+            const playwrightCrawler = new PlaywrightCrawler({
+                retryOnBlocked,
+                // The crawler's `goto()` to the same URL with a hash is then a same-document navigation without a response
+                preNavigationHooks: [
+                    async ({ page, request }) => {
+                        await page.goto(request.url.split('#')[0]);
+                    },
+                ],
+                maxRequestRetries: 0,
+                requestHandler: async (context) => {
+                    try {
+                        void context.response;
+                    } catch (error) {
+                        responseError = (error as Error).message;
+                    }
+                },
+            });
+
+            await playwrightCrawler.run([`http://${HOSTNAME}:${port}/#fragment`]);
+
+            expect(responseError).toContain('The `response` property is not available');
+        },
+    );
 
     test('should have correct types in crawling context', async () => {
         const requestHandler = async (crawlingContext: PlaywrightCrawlingContext) => {

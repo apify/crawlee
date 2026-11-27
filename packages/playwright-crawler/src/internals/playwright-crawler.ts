@@ -1,3 +1,5 @@
+import { setTimeout as delay } from 'node:timers/promises';
+
 import type {
     BrowserCrawlerOptions,
     BrowserCrawlingContext,
@@ -10,7 +12,7 @@ import type {
     RouteSchemas,
     RoutesFromSchemas,
 } from '@crawlee/browser';
-import { BrowserCrawler, RequestState, Router, serviceLocator } from '@crawlee/browser';
+import { BrowserCrawler, DownloadStartedError, RequestState, Router, serviceLocator } from '@crawlee/browser';
 import type { Dictionary } from '@crawlee/types';
 import { assertBrowserPoolNotConfigured, parseArgument, schemas } from '@crawlee/utils/internal';
 import type { Download, Page, Response } from 'playwright';
@@ -266,7 +268,23 @@ export class PlaywrightCrawler<
         crawlingContext: PlaywrightCrawlingContext,
         gotoOptions: DirectNavigationOptions,
     ) {
-        return gotoExtended(crawlingContext.page, crawlingContext.request, gotoOptions);
+        const { page } = crawlingContext;
+        const { promise: downloadStarted, resolve } = Promise.withResolvers<void>();
+        const onDownload = () => resolve();
+        page.once('download', onDownload);
+        try {
+            return await gotoExtended(page, crawlingContext.request, gotoOptions);
+        } catch (error) {
+            // `goto` can reject before the `download` event arrives, and `listDownloads()` would miss it.
+            // ponytail: fixed 5 s bound, tie it to the navigation window if downloads start slower than that
+            if ((error as Error).message?.includes('Download is starting')) {
+                await Promise.race([downloadStarted, delay(5_000, undefined, { ref: false })]);
+                throw new DownloadStartedError((error as Error).message, { cause: error });
+            }
+            throw error;
+        } finally {
+            page.off('download', onDownload);
+        }
     }
 
     async #enhanceContext(context: BrowserCrawlingContext<Page, Response, Dictionary>) {
@@ -332,7 +350,13 @@ export class PlaywrightCrawler<
                 }),
             compileScript: (scriptString: string, ctx?: Dictionary) => compileScript(scriptString, ctx),
             handleCloudflareChallenge: async (options?: HandleCloudflareChallengeOptions) => {
-                return handleCloudflareChallenge(context.page, context.request.url, options);
+                let response: Response | undefined;
+                try {
+                    response = context.response;
+                } catch {
+                    // the getter throws before navigation, with `skipNavigation`, and when navigation produced no response
+                }
+                return handleCloudflareChallenge(context.page, context.request.url, options, response);
             },
         };
     }
@@ -341,6 +365,11 @@ export class PlaywrightCrawler<
 /**
  * Returns a `postNavigationHooks`-ready hook that runs {@apilink PlaywrightContextUtils.handleCloudflareChallenge}
  * and propagates the post-challenge {@apilink Response} back into the crawling context via its return value.
+ *
+ * Cloudflare serves its challenge pages with a 403 status, which is part of the default `blockedStatusCodes`.
+ * Keep it there - the hook runs before the blocked-status check and replaces the response on a solved
+ * challenge, so solved requests pass it, while unsolved or undetected challenges keep the 403 and get
+ * retried with a fresh session.
  *
  * **Example usage**
  * ```ts

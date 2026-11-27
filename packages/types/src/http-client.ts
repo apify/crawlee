@@ -19,9 +19,11 @@ export interface HttpRequest {
     timeout?: number;
 
     cookieJar?: CookieJar;
-    followRedirect?: boolean | ((response: any) => boolean); // TODO BC with got - specify type better in 4.0
-
-    encoding?: BufferEncoding;
+    /**
+     * Set to `false` to get the redirect response back instead of following it.
+     * @default true
+     */
+    followRedirect?: boolean;
 
     proxyUrl?: string;
 }
@@ -44,12 +46,24 @@ export interface HttpRequestOptions extends HttpRequest {
     password?: string;
 }
 
+/**
+ * Request overrides accepted by the `sendRequest` context helper. Unlike {@apilink HttpRequestOptions}, headers may be any
+ * `HeadersInit` and the body may be a string or a `Buffer`.
+ */
+export type SendRequestOverrides = Omit<Partial<HttpRequestOptions>, 'headers' | 'body'> & {
+    headers?: HeadersInit;
+    body?: string | Buffer | Readable;
+};
+
 export interface SendRequestOptions {
     session?: ISession;
     cookieJar?: CookieJar;
     /** Timeout for the HTTP request in milliseconds. */
     timeoutMillis?: number;
-    /** An AbortSignal to cancel the HTTP request. */
+    /**
+     * An AbortSignal to cancel the HTTP request. When set, it replaces the HTTP client's default timeout, so pair it
+     * with `timeoutMillis` to keep the request bounded.
+     */
     signal?: AbortSignal;
     /**
      * Overrides the proxy URL set in the `session` for this request.

@@ -2,7 +2,8 @@ import { rm } from 'node:fs/promises';
 import { resolve } from 'node:path';
 /* eslint-disable dot-notation */
 
-import { CrawlingRequest } from '@crawlee/basic';
+import type { LoadedRequest } from '@crawlee/basic';
+import { CrawlingRequest, NavigationSkippedError, skippedNavigationRequest } from '@crawlee/basic';
 import { MemoryStorageBackend, ProxyConfiguration, Request, RequestQueue, serviceLocator } from '@crawlee/core';
 import { BaseHttpClient } from '@crawlee/http-client';
 import { FileSystemStorageBackend } from '@crawlee/fs-storage';
@@ -376,30 +377,44 @@ describe('RequestQueue remote', () => {
         expect(r3.userData.__crawlee).toEqual({ maxRetries: 2 });
     });
 
-    describe('setExpectedRequestProcessingTimeSecs', () => {
+    test('requests created from the same userData object do not share it', () => {
+        // With a `__crawlee` bag, like a `userData` taken from another request.
+        const userData: Record<string, unknown> = { label: 'DETAIL', tags: ['docs'], __crawlee: {} };
+        const first = new CrawlingRequest({ url: 'http://example.com/1', userData });
+        const second = new CrawlingRequest({ url: 'http://example.com/2', userData });
+
+        first.userData.canonicalUrl = 'http://example.com/canonical';
+        (first.userData.tags as string[]).push('first');
+        first.sessionId = 'first-session';
+
+        expect(second.userData).toEqual({ label: 'DETAIL', tags: ['docs'] });
+        expect(second.sessionId).toBeUndefined();
+    });
+
+    describe('setExpectedRequestProcessingTime', () => {
         test('forwards the value to the client, but only ever raises it', async () => {
             const queue = await RequestQueue.open();
             // The in-memory client does not implement this optional hint (it has no request locking to
             // tune), so attach a stub to verify the frontend's raise-only forwarding logic in isolation.
             const spy = vitest.fn();
-            (queue.backend as any).setExpectedRequestProcessingTimeSecs = spy;
+            (queue.backend as any).setExpectedRequestProcessingTime = spy;
 
             // First hint is forwarded.
-            await queue.setExpectedRequestProcessingTimeSecs(60);
+            await queue.setExpectedRequestProcessingTime(60);
             expect(spy).toHaveBeenLastCalledWith(60);
 
             // A larger hint is forwarded.
-            await queue.setExpectedRequestProcessingTimeSecs(120);
+            await queue.setExpectedRequestProcessingTime(120);
             expect(spy).toHaveBeenLastCalledWith(120);
 
             // A smaller (or equal) hint must not shorten the reservation, so it is not forwarded.
-            await queue.setExpectedRequestProcessingTimeSecs(30);
-            await queue.setExpectedRequestProcessingTimeSecs(120);
+            await queue.setExpectedRequestProcessingTime(30);
+            await queue.setExpectedRequestProcessingTime(120);
             expect(spy).toHaveBeenCalledTimes(2);
         });
     });
 
-    describe('extendRequestProcessingTimeSecs', () => {
+    describe('extendRequestProcessingTime', () => {
         test('forwards the request id and extension to the backend', async () => {
             // The file-system backend actually locks fetched requests; the spy observes
             // the real forwarding and the real lock extension.
@@ -412,9 +427,9 @@ describe('RequestQueue remote', () => {
                 const fetched = await queue.fetchNextRequest();
                 expect(fetched).not.toBeNull();
 
-                const stub = vitest.spyOn(queue.backend, 'extendRequestProcessingTimeSecs');
+                const stub = vitest.spyOn(queue.backend, 'extendRequestProcessingTime');
 
-                await expect(queue.extendRequestProcessingTimeSecs(fetched!, 30)).resolves.toBe(true);
+                await expect(queue.extendRequestProcessingTime(fetched!, 30)).resolves.toBe(true);
                 expect(stub).toHaveBeenCalledExactlyOnceWith(fetched!.id, 30);
             } finally {
                 await rm(tmpLocation, { force: true, recursive: true });
@@ -427,7 +442,7 @@ describe('RequestQueue remote', () => {
             const fetched = await queue.fetchNextRequest();
             expect(fetched).not.toBeNull();
 
-            await expect(queue.extendRequestProcessingTimeSecs(fetched!, 30)).resolves.toBe(false);
+            await expect(queue.extendRequestProcessingTime(fetched!, 30)).resolves.toBe(false);
         });
     });
 
@@ -519,34 +534,6 @@ describe('RequestQueue with requestsFromUrl', () => {
 
         expect(mockHttpClient.sendRequest).toHaveBeenCalled();
         expect(mockHttpClient.sendRequest.mock.calls[0][0].url).toBe('http://example.com/list-1');
-    });
-
-    test('should fix gdoc sharing url in `requestsFromUrl` automatically (GH issue #639)', async () => {
-        const list = ['https://example.com', 'https://google.com', 'https://wired.com'];
-        const wrongUrls = [
-            'https://docs.google.com/spreadsheets/d/11UGSBOSXy5Ov2WEP9nr4kSIxQJmH18zh-5onKtBsovU',
-            'https://docs.google.com/spreadsheets/d/11UGSBOSXy5Ov2WEP9nr4kSIxQJmH18zh-5onKtBsovU/',
-            'https://docs.google.com/spreadsheets/d/11UGSBOSXy5Ov2WEP9nr4kSIxQJmH18zh-5onKtBsovU/edit?usp=sharing',
-            'https://docs.google.com/spreadsheets/d/11UGSBOSXy5Ov2WEP9nr4kSIxQJmH18zh-5onKtBsovU/123123132',
-            'https://docs.google.com/spreadsheets/d/11UGSBOSXy5Ov2WEP9nr4kSIxQJmH18zh-5onKtBsovU/?q=blablabla',
-            'https://docs.google.com/spreadsheets/d/11UGSBOSXy5Ov2WEP9nr4kSIxQJmH18zh-5onKtBsovU/edit#gid=0',
-        ];
-        const correctUrl =
-            'https://docs.google.com/spreadsheets/d/11UGSBOSXy5Ov2WEP9nr4kSIxQJmH18zh-5onKtBsovU/gviz/tq?tqx=out:csv';
-
-        mockHttpClient.sendRequest.mockImplementation(async () => new Response(list.join('\n'), { status: 200 }));
-
-        const queue = await RequestQueue.open(null, {
-            httpClient: mockHttpClient,
-        });
-        await queue.addRequests(wrongUrls.map((requestsFromUrl) => ({ requestsFromUrl })));
-
-        expect(await queue.fetchNextRequest()).toMatchObject({ method: 'GET', url: list[0] });
-        expect(await queue.fetchNextRequest()).toMatchObject({ method: 'GET', url: list[1] });
-        expect(await queue.fetchNextRequest()).toMatchObject({ method: 'GET', url: list[2] });
-
-        expect(mockHttpClient.sendRequest.mock.calls[0][0].url).toBe(correctUrl);
-        await queue.drop();
     });
 
     test('should handle requestsFromUrl with no URLs', async () => {
@@ -742,6 +729,32 @@ describe('RequestQueue background batches', () => {
         await queue.markRequestAsHandled(req!);
         expect((await queue.checkReadiness()).status).toBe('finished');
     }, 10_000);
+});
+
+describe('RequestQueue bookkeeping with a skipNavigation request', () => {
+    beforeEach(async () => {
+        serviceLocator.setStorageBackend(new MemoryStorageBackend());
+        vitest.clearAllMocks();
+    });
+
+    test.each([{ method: 'markRequestAsHandled' }, { method: 'reclaimRequest' }] as const)(
+        '$method accepts the proxied request',
+        async ({ method }) => {
+            const queue = await RequestQueue.open();
+            await queue.addRequest({ url: 'http://example.com/', userData: { foo: 'bar' }, skipNavigation: true });
+            const fetched = (await queue.fetchNextRequest())!;
+            const proxied = skippedNavigationRequest(fetched) as LoadedRequest<Request>;
+
+            await expect(queue[method](proxied)).resolves.not.toBeNull();
+
+            // Hiding `loadedUrl` from enumeration must not disarm the guard for user code.
+            expect(() => proxied.loadedUrl).toThrow(NavigationSkippedError);
+            expect(await queue.getRequest(fetched.uniqueKey)).toMatchObject({
+                url: 'http://example.com/',
+                userData: { foo: 'bar' },
+            });
+        },
+    );
 });
 
 describe('MemoryStorageBackend request queue', () => {

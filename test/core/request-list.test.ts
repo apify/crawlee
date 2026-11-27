@@ -8,9 +8,7 @@ import {
     ProxyConfiguration,
     Request,
     RequestList,
-    REQUESTS_PERSISTENCE_KEY,
     serviceLocator,
-    STATE_PERSISTENCE_KEY,
     StateValidationError,
 } from '@crawlee/core';
 import { BaseHttpClient } from '@crawlee/http-client';
@@ -216,33 +214,6 @@ describe('RequestList', () => {
         expect(mockHttpClient.sendRequest.mock.calls[0][0].url).toBe('http://example.com/list-1');
     });
 
-    test('should fix gdoc sharing url in `requestsFromUrl` automatically (GH issue #639)', async () => {
-        const list = ['https://example.com', 'https://google.com', 'https://wired.com'];
-        const wrongUrls = [
-            'https://docs.google.com/spreadsheets/d/11UGSBOSXy5Ov2WEP9nr4kSIxQJmH18zh-5onKtBsovU',
-            'https://docs.google.com/spreadsheets/d/11UGSBOSXy5Ov2WEP9nr4kSIxQJmH18zh-5onKtBsovU/',
-            'https://docs.google.com/spreadsheets/d/11UGSBOSXy5Ov2WEP9nr4kSIxQJmH18zh-5onKtBsovU/edit?usp=sharing',
-            'https://docs.google.com/spreadsheets/d/11UGSBOSXy5Ov2WEP9nr4kSIxQJmH18zh-5onKtBsovU/123123132',
-            'https://docs.google.com/spreadsheets/d/11UGSBOSXy5Ov2WEP9nr4kSIxQJmH18zh-5onKtBsovU/?q=blablabla',
-            'https://docs.google.com/spreadsheets/d/11UGSBOSXy5Ov2WEP9nr4kSIxQJmH18zh-5onKtBsovU/edit#gid=0',
-        ];
-        const correctUrl =
-            'https://docs.google.com/spreadsheets/d/11UGSBOSXy5Ov2WEP9nr4kSIxQJmH18zh-5onKtBsovU/gviz/tq?tqx=out:csv';
-
-        mockHttpClient.sendRequest.mockImplementation(async () => new Response(list.join('\n')));
-
-        const requestList = await RequestList.open({
-            sources: wrongUrls.map((requestsFromUrl) => ({ requestsFromUrl })),
-            httpClient: mockHttpClient,
-        });
-
-        expect(await requestList.fetchNextRequest()).toMatchObject({ method: 'GET', url: list[0] });
-        expect(await requestList.fetchNextRequest()).toMatchObject({ method: 'GET', url: list[1] });
-        expect(await requestList.fetchNextRequest()).toMatchObject({ method: 'GET', url: list[2] });
-
-        expect(mockHttpClient.sendRequest.mock.calls[0][0]?.url).toBe(correctUrl);
-    });
-
     test('should handle requestsFromUrl with no URLs', async () => {
         mockHttpClient.sendRequest.mockResolvedValueOnce(new Response(''));
 
@@ -350,7 +321,7 @@ describe('RequestList', () => {
         serviceLocator.getEventManager().emit(EventType.PERSIST_STATE);
         await sleep(20);
         expect(setValueSpy).toHaveBeenCalledTimes(1);
-        expect(setValueSpy).toHaveBeenLastCalledWith(`CRAWLEE_${PERSIST_STATE_KEY}`, requestList.getState());
+        expect(setValueSpy).toHaveBeenLastCalledWith(PERSIST_STATE_KEY, requestList.getState());
 
         // Do some other changes and persist it again.
         const request2 = await requestList.fetchNextRequest();
@@ -359,7 +330,7 @@ describe('RequestList', () => {
         serviceLocator.getEventManager().emit(EventType.PERSIST_STATE);
         await sleep(20);
         expect(setValueSpy).toHaveBeenCalledTimes(2);
-        expect(setValueSpy).toHaveBeenLastCalledWith(`CRAWLEE_${PERSIST_STATE_KEY}`, requestList.getState());
+        expect(setValueSpy).toHaveBeenLastCalledWith(PERSIST_STATE_KEY, requestList.getState());
 
         // Now initiate new request list from saved state and check that it's same as state
         // of original request list.
@@ -371,7 +342,7 @@ describe('RequestList', () => {
     test('a persisted record that does not match the sources fails validation', async () => {
         const sources = [1, 2, 3].map((i) => ({ url: `https://example.com/${i}` }));
         const store = await KeyValueStore.open();
-        await store.setValue('CRAWLEE_state-key', {
+        await store.setValue('state-key', {
             nextIndex: 1,
             nextUniqueKey: 'https://example.com/3',
             inProgress: [],
@@ -383,7 +354,7 @@ describe('RequestList', () => {
     test('a persisted record takes precedence over the state option', async () => {
         const sources = [1, 2, 3].map((i) => ({ url: `https://example.com/${i}` }));
         const store = await KeyValueStore.open();
-        await store.setValue('CRAWLEE_state-key', {
+        await store.setValue('state-key', {
             nextIndex: 2,
             nextUniqueKey: 'https://example.com/3',
             inProgress: [],
@@ -611,7 +582,6 @@ describe('RequestList', () => {
             const setValueSpy = vitest.spyOn(KeyValueStore.prototype, 'setValue');
 
             const name = 'xxx';
-            const CRAWLEE_KEY = `CRAWLEE_${name}`;
             const sources = [{ url: 'https://example.com' }];
 
             const rl = await RequestList.open(name, sources);
@@ -621,10 +591,10 @@ describe('RequestList', () => {
 
             // The persistence keys are derived from the list name, which shows in the keys it reads and writes.
             expect(keysPassedTo(getValueSpy)).toEqual([
-                `${CRAWLEE_KEY}-${REQUESTS_PERSISTENCE_KEY}`,
-                `${CRAWLEE_KEY}-${STATE_PERSISTENCE_KEY}`,
+                'CRAWLEE_REQUEST_LIST_REQUESTS_xxx',
+                'CRAWLEE_REQUEST_LIST_STATE_xxx',
             ]);
-            expect(keysPassedTo(setValueSpy)).toEqual([`${CRAWLEE_KEY}-${REQUESTS_PERSISTENCE_KEY}`]);
+            expect(keysPassedTo(setValueSpy)).toEqual(['CRAWLEE_REQUEST_LIST_REQUESTS_xxx']);
         });
 
         test('should work with string sources', async () => {
@@ -632,7 +602,6 @@ describe('RequestList', () => {
             const setValueSpy = vitest.spyOn(KeyValueStore.prototype, 'setValue');
 
             const name = 'xxx';
-            const CRAWLEE_KEY = `CRAWLEE_${name}`;
             const sources = ['https://example.com'];
             const requests = sources.map((url) => ({ url, uniqueKey: url }));
 
@@ -642,10 +611,10 @@ describe('RequestList', () => {
             await expect(rl.checkReadiness()).resolves.toEqual({ status: 'ready' });
 
             expect(keysPassedTo(getValueSpy)).toEqual([
-                `${CRAWLEE_KEY}-${REQUESTS_PERSISTENCE_KEY}`,
-                `${CRAWLEE_KEY}-${STATE_PERSISTENCE_KEY}`,
+                'CRAWLEE_REQUEST_LIST_REQUESTS_xxx',
+                'CRAWLEE_REQUEST_LIST_STATE_xxx',
             ]);
-            expect(keysPassedTo(setValueSpy)).toEqual([`${CRAWLEE_KEY}-${REQUESTS_PERSISTENCE_KEY}`]);
+            expect(keysPassedTo(setValueSpy)).toEqual(['CRAWLEE_REQUEST_LIST_REQUESTS_xxx']);
         });
 
         test('should correctly pass options', async () => {
@@ -653,7 +622,6 @@ describe('RequestList', () => {
             const setValueSpy = vitest.spyOn(KeyValueStore.prototype, 'setValue');
 
             const name = 'xxx';
-            const CRAWLEE_KEY = `CRAWLEE_${name}`;
             let counter = 0;
             const sources = [{ url: 'https://example.com' }];
             const requests = sources.map(({ url }) => ({ url, uniqueKey: `${url}-${counter++}` }));
@@ -670,10 +638,10 @@ describe('RequestList', () => {
 
             // The list name wins over the `persistStateKey` option.
             expect(keysPassedTo(getValueSpy)).toEqual([
-                `${CRAWLEE_KEY}-${REQUESTS_PERSISTENCE_KEY}`,
-                `${CRAWLEE_KEY}-${STATE_PERSISTENCE_KEY}`,
+                'CRAWLEE_REQUEST_LIST_REQUESTS_xxx',
+                'CRAWLEE_REQUEST_LIST_STATE_xxx',
             ]);
-            expect(keysPassedTo(setValueSpy)).toEqual([`${CRAWLEE_KEY}-${REQUESTS_PERSISTENCE_KEY}`]);
+            expect(keysPassedTo(setValueSpy)).toEqual(['CRAWLEE_REQUEST_LIST_REQUESTS_xxx']);
         });
 
         test('should work with null name', async () => {
@@ -746,5 +714,39 @@ describe('Request', () => {
 
     test('alwaysEnqueue throws when combined with a custom uniqueKey', () => {
         expect(() => new Request({ url: 'https://example.com', uniqueKey: 'custom', alwaysEnqueue: true })).toThrow();
+    });
+
+    test('fromSchema treats null fields of a stored request as unset', () => {
+        const request = Request.fromSchema({
+            id: 'id',
+            url: 'https://example.com',
+            uniqueKey: 'https://example.com',
+            method: 'GET',
+            payload: null,
+            noRetry: null,
+            retryCount: 0,
+            errorMessages: null,
+            headers: null,
+            userData: {},
+            handledAt: null,
+            loadedUrl: null,
+        });
+
+        expect(request).toMatchObject({ payload: undefined, noRetry: false, errorMessages: [], headers: {} });
+        expect(request).toMatchObject({ handledAt: undefined, loadedUrl: undefined });
+    });
+
+    test('fromSchema accepts what storages and the constructor accept beyond the declared types', () => {
+        const request = Request.fromSchema({
+            url: 'https://example.com',
+            uniqueKey: 'https://example.com',
+            method: 'POST',
+            payload: new Uint8Array([1]) as unknown as string,
+            errorMessages: [null] as unknown as string[],
+            handledAt: new Date('2026-01-01T00:00:00.000Z') as unknown as string,
+        });
+
+        expect(request).toMatchObject({ errorMessages: [null], handledAt: '2026-01-01T00:00:00.000Z' });
+        expect(request.payload).toBeInstanceOf(Uint8Array);
     });
 });

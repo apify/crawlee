@@ -171,6 +171,8 @@ export class CriticalError extends NonRetryableError {
 export class Dataset<Data extends Dictionary = Dictionary> {
     [Symbol.asyncIterator](): AsyncGenerator<Data, void, undefined>;
     // (undocumented)
+    readonly backend: DatasetBackend<Data>;
+    // (undocumented)
     readonly configuration: Configuration;
     drop(): Promise<void>;
     entries(options?: DatasetIteratorOptions): AsyncIterable<[number, Data]> & Promise<[number, Data][]>;
@@ -391,11 +393,11 @@ export interface IRequestManager extends IRequestLoader {
     addRequest(requestLike: Source, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo>;
     // (undocumented)
     addRequestsBatched(requests: RequestsLike, options?: AddRequestsBatchedOptions): Promise<AddRequestsBatchedResult>;
-    extendRequestProcessingTimeSecs?(request: Request_2, secs: number): Promise<boolean>;
+    extendRequestProcessingTime?(request: Request_2, extensionSecs: number): Promise<boolean>;
     purge?(): Promise<void>;
     reclaimRequest(request: Request_2, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo | null>;
     recordPacingSignal(signal: PacingSignal): boolean;
-    setExpectedRequestProcessingTimeSecs?(secs: number): Promise<void>;
+    setExpectedRequestProcessingTime?(processingTimeSecs: number): Promise<void>;
 }
 
 // @public
@@ -480,10 +482,10 @@ export interface LoadSignalInfo {
 // @public (undocumented)
 export class LocalEventManager extends EventManager {
     constructor(options: LocalEventManagerOptions);
-    // (undocumented)
-    close(): Promise<void>;
     static fromConfiguration(configuration?: Configuration): LocalEventManager;
-    init(): Promise<void>;
+    // (undocumented)
+    off(event: EventTypeName, listener?: (...args: any[]) => any): void;
+    on(event: EventTypeName, listener: (...args: any[]) => any): void;
 }
 
 // @public (undocumented)
@@ -718,7 +720,7 @@ export class RequestManagerTandem implements IRequestManager {
     addRequestsBatched(requests: RequestsLike, options?: AddRequestsBatchedOptions): Promise<AddRequestsBatchedResult>;
     checkReadiness(): Promise<RequestSourceStatus>;
     // (undocumented)
-    extendRequestProcessingTimeSecs(request: Request_2, secs: number): Promise<boolean>;
+    extendRequestProcessingTime(request: Request_2, extensionSecs: number): Promise<boolean>;
     fetchNextRequest<T extends Dictionary = Dictionary>(): Promise<Request_2<T> | null>;
     // (undocumented)
     getHandledCount(): Promise<number>;
@@ -732,7 +734,7 @@ export class RequestManagerTandem implements IRequestManager {
     // (undocumented)
     reclaimRequest(request: Request_2, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo | null>;
     recordPacingSignal(signal: PacingSignal): boolean;
-    setExpectedRequestProcessingTimeSecs(secs: number): Promise<void>;
+    setExpectedRequestProcessingTime(processingTimeSecs: number): Promise<void>;
 }
 
 // @public
@@ -765,7 +767,7 @@ export class RequestQueue implements IStorage, IRequestManager {
     readonly backend: RequestQueueBackend;
     checkReadiness(): Promise<RequestLoaderStatus>;
     drop(): Promise<void>;
-    extendRequestProcessingTimeSecs(request: Request_2, secs: number): Promise<boolean>;
+    extendRequestProcessingTime(request: Request_2, extensionSecs: number): Promise<boolean>;
     fetchNextRequest<T extends Dictionary = Dictionary>(): Promise<Request_2<T> | null>;
     getHandledCount(): Promise<number>;
     getInfo(): Promise<RequestQueueInfo>;
@@ -783,7 +785,7 @@ export class RequestQueue implements IStorage, IRequestManager {
     purge(): Promise<void>;
     reclaimRequest(request: Request_2, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo | null>;
     recordPacingSignal(_signal: PacingSignal): boolean;
-    setExpectedRequestProcessingTimeSecs(secs: number): Promise<void>;
+    setExpectedRequestProcessingTime(processingTimeSecs: number): Promise<void>;
     get stats(): RequestQueueStats;
 }
 
@@ -857,7 +859,7 @@ export class ServiceConflictError extends Error {
 
 // @public
 export class ServiceLocator implements ServiceLocatorInterface {
-    constructor(configuration?: Configuration, eventManager?: EventManager, storageBackend?: StorageBackend, logger?: CrawleeLogger);
+    constructor(configuration?: Configuration, storageBackend?: StorageBackend, logger?: CrawleeLogger);
     // (undocumented)
     getChildLog(prefix: string): CrawleeLogger;
     // (undocumented)

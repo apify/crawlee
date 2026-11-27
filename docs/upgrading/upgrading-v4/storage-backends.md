@@ -74,7 +74,7 @@ The request queue backend's surface was reshaped. The frontend-owned distributed
 | `updateRequest(request, opts?)` | `markRequestAsHandled(request)` / `reclaimRequest(request, opts?)` |
 | `listHead(opts?)` | `fetchNextRequest()` (returns a single request, marks it in progress) |
 | `listAndLockHead(opts)` | Removed (locking is internal to the client) |
-| `prolongRequestLock(id, opts)` | `extendRequestProcessingTimeSecs(requestId, secs)` (optional — per-request lock extension for locking backends; wired to `context.extendTimeout`) |
+| `prolongRequestLock(id, opts)` | `extendRequestProcessingTime(requestId, extensionSecs)` (optional — per-request lock extension for locking backends; wired to `context.extendTimeout`) |
 | `deleteRequestLock(id, opts?)` | Removed |
 | `deleteRequest(id)` | Removed |
 | _(n/a)_ | `isEmpty()` (new — `true` when no pending requests are left to fetch) |
@@ -82,7 +82,7 @@ The request queue backend's surface was reshaped. The frontend-owned distributed
 
 The lifecycle is now: `fetchNextRequest()` hands out a pending request and marks it in progress; once processed, call `markRequestAsHandled(request)`; on failure call `reclaimRequest(request, { forefront? })` to return it to the queue.
 
-Methods that may have "nothing" to return now consistently resolve to `undefined` rather than `null`. `fetchNextRequest()` resolves to `undefined` when there is nothing to fetch, and `markRequestAsHandled()` / `reclaimRequest()` resolve to `undefined` when the request is not something the backend is currently processing (a no-op, not an error). This matches the `undefined` already returned by `getRequest()`, `KeyValueStoreBackend.getValue()`, and `getPublicUrl()`, so the whole backend family uses a single "absent" sentinel. If you implemented a custom backend that returned `null` from these methods, return `undefined` instead.
+Methods that may have "nothing" to return now consistently resolve to `undefined` rather than `null`. `fetchNextRequest()` resolves to `undefined` when there is nothing to fetch, and `markRequestAsHandled()` / `reclaimRequest()` resolve to `undefined` when the request is not something the backend is currently processing (not an error; a backend may still apply the operation, as the memory backend does, but the result stays `undefined`). This matches the `undefined` already returned by `getRequest()`, `KeyValueStoreBackend.getValue()`, and `getPublicUrl()`, so the whole backend family uses a single "absent" sentinel. If you implemented a custom backend that returned `null` from these methods, return `undefined` instead.
 
 `RequestQueueBackend.isEmpty()` and `RequestQueueBackend.isFinished()` answer two different questions:
 
@@ -108,13 +108,13 @@ The `requestLocking` crawler experiment has been removed, along with the `experi
 
 The `RequestQueue.requestLockSecs` property has been removed. Because request locking is now internal to the storage backend, the lock duration is no longer configured on the queue. When you run a crawler, it automatically tells the queue how long it expects to hold a request (based on `requestHandlerTimeoutMillis`), so a long-running request handler will not have its request handed out a second time — you usually don't need to configure anything.
 
-If you use a `RequestQueue` outside of a crawler and your processing may exceed the 3-minute default lock, call `setExpectedRequestProcessingTimeSecs(secs)` on the queue to raise it:
+If you use a `RequestQueue` outside of a crawler and your processing may exceed the 3-minute default lock, call `setExpectedRequestProcessingTime(processingTimeSecs)` on the queue to raise it:
 
 ```typescript
 import { RequestQueue } from 'crawlee';
 
 const queue = await RequestQueue.open();
-await queue.setExpectedRequestProcessingTimeSecs(600);
+await queue.setExpectedRequestProcessingTime(600);
 ```
 
 The `RequestQueue.internalTimeoutMillis` property and the associated "stuck queue" self-recovery have been removed. In v3 the `RequestQueue` frontend kept its own copy of the queue head and in-progress set, which could drift out of sync with the backing storage (an eventual-consistency hazard on the Apify platform); `isFinished()` watched for inactivity exceeding `internalTimeoutMillis` and reset that frontend state to recover. In v4 the frontend no longer holds any such bookkeeping — the storage backend is the single source of truth — so there is nothing for a reset to fix, and stuck request locks now self-heal on expiry. Any consistency-recovery logic that is genuinely specific to the Apify platform's distributed storage belongs in the Apify SDK's client implementation instead, and is tracked in [apify/crawlee#3328](https://github.com/apify/crawlee/issues/3328).
@@ -165,6 +165,6 @@ If you implemented a custom `StorageBackend`, you need to:
 
 ## `Dataset` field visibility now matches its siblings
 
-- `Dataset.backend` is private, matching `KeyValueStore.backend`. Use the `Dataset` methods (`pushData`, `getData`, `getInfo`, `drop`, ...) rather than reaching for the backend client.
+- `Dataset.client` is now `Dataset.backend`, matching `KeyValueStore.backend` and `RequestQueue.backend`. Prefer the `Dataset` methods (`pushData`, `getData`, `getInfo`, `drop`, ...) over reaching for the backend.
 - `Dataset.id` and `Dataset.name` are `readonly`, matching `KeyValueStore` and `RequestQueue`.
 - `Dataset.log` has been removed. It was never read by Crawlee and `KeyValueStore` never had it; use your own logger, or `crawler.log` inside a request handler.

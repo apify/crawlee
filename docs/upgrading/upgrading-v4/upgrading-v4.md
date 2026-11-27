@@ -9,10 +9,31 @@ import ApiLink from '@site/src/components/ApiLink';
 This page summarizes the breaking changes in Crawlee v4. There are many, so the guide is organized to let you stop reading as early as possible:
 
 - [What v4 does better](#what-v4-does-better) — why the migration is worth the trouble.
+- [Upgrade with an AI coding tool](#upgrade-with-an-ai-coding-tool) — generate a migration prompt for your project.
 - [Rename cheat sheet](#rename-cheat-sheet) — the purely mechanical renames, in one table.
 - [Changes most users will hit](#changes-most-users-will-hit) — read this part in full.
 - The **Only if you…** sections — each applies only if you use what its title says. Skim the titles and skip what doesn't concern you. The longer ones only summarize the changes here and link to a separate page with the details.
 - [Appendix: removed symbols](./removed-symbols.md) — for when the compiler hands you a missing name and you want to know where it went.
+
+## Upgrade with an AI coding tool
+
+The v4 CLI prints a migration prompt for an AI coding tool. Run it with the v4 version of the CLI from the directory of the project you are migrating, then paste the output into a tool that can read your project:
+
+```sh
+npx crawlee@4 upgrade
+```
+
+The prompt only contains instructions. They ask the tool to inspect the project, plan, migrate and verify, and to ask once before creating a Git branch and making incremental commits.
+
+Adjust the command to your situation:
+
+- **Your tool can only read files inside the project.** The prompt links guides in the npx cache. Run `npx crawlee@4 upgrade --export <dir>` to copy them into a directory of your choice and have the prompt link that copy.
+- **The project is a package in a workspace.** Run the command from that package's directory, not the workspace root.
+- **The command cannot tell which major you are on.** It reads the Crawlee runtime dependencies from the nearest `package.json`, preferring installed versions that match the declared ranges. When that is ambiguous, name the starting major: `npx crawlee@4 upgrade --from 3`.
+- **The project already uses v4 and you want to revisit the migration.** Run `npx crawlee@4 upgrade --from 3`.
+- **A bare `crawlee upgrade` says the command does not exist.** A v3 project runs its local v3 CLI, which has no `upgrade`. Use `npx crawlee@4 upgrade`.
+
+`--to` defaults to the newest bundled migration, and only v3 to v4 is bundled for now. As guides for later majors are added, the command completes and verifies each major before starting the next, and rejects a path with a missing guide rather than skipping a major.
 
 ## What v4 does better
 
@@ -39,7 +60,7 @@ The purely mechanical renames, collected in one place. Where a row links to a se
 | `persistCookiesPerSession` | `saveResponseCookies` |
 | `config` (option / property name) | `configuration` ([details](#config-is-renamed-to-configuration-everywhere)) |
 | `Configuration.getGlobalConfig()` | `Configuration.getGlobalConfiguration()` |
-| `LocalEventManager.fromConfig()` | `LocalEventManager.fromConfiguration()` |
+| `new LocalEventManager(config)` | `LocalEventManager.fromConfiguration(configuration)` |
 | `StorageClient` | `StorageBackend` ([reshaped](./storage-backends.md#storagebackend-interface-simplified)) |
 | `MemoryStorage` (`@crawlee/memory-storage`) | `MemoryStorageBackend` (`@crawlee/core`, [now memory-only](#memorystorage-split-into-filesystemstoragebackend-and-memorystoragebackend)) |
 | `RequestQueueV1` / `RequestQueueV2` / `RequestProvider` | `RequestQueue` |
@@ -49,18 +70,19 @@ The purely mechanical renames, collected in one place. Where a row links to a se
 | `markRequestHandled()` | `markRequestAsHandled()` |
 | `requestList.length()` / `requestList.handledCount()` | `await getTotalCount()` / `await getHandledCount()` |
 | `requestList.isEmpty()` / `requestList.isFinished()` | `await checkReadiness()` ([details](./request-loaders.md#isempty--isfinished-replaced-by-checkreadiness)) |
-| `Dataset.listItems()` | `Dataset.getData()` / `Dataset.values()` ([details](./storage-backends.md#datasetlistitems-replaced-by-datasetgetdata-and-datasetvalues)) |
+| `dataset.client.listItems()` | `Dataset.getData()` / `Dataset.values()` ([details](./storage-backends.md#datasetclientlistitems-replaced-by-datasetgetdata-and-datasetvalues)) |
 | crawler options `requestList` / `requestQueue` | `requestManager` ([details](./request-loaders.md#crawler-requestlist--requestqueue-options-deprecated-in-favor-of-requestmanager)) |
-| `enqueueLinks({ requestQueue })` | `enqueueLinks({ requestManager })` |
+| standalone `enqueueLinks({ urls, requestQueue })` | removed; `context.enqueueLinks()` or `addRequests()` ([details](./request-loaders.md#standalone-enqueuelinks-removed-enqueuelinksbyclickingelements-takes-requestmanager)) |
+| `enqueueLinksByClickingElements({ requestQueue })` | `enqueueLinksByClickingElements({ requestManager })` |
 | `enqueueLinks({ globs, regexps, pseudoUrls })` | `enqueueLinks({ include })` ([details](#globs-regexps-and-pseudourls-replaced-by-include)) |
 | `(await enqueueLinks()).processedRequests` | `(await enqueueLinks()).addedRequests` ([details](#enqueuelinks-return-value-reshaped-addrequestsbatchedresult-instead-of-batchaddrequestsresult)) |
 | `autoscaledPoolOptions` | `taskLoopOptions` ([narrowed](./autoscaling.md#autoscaledpooloptions-is-now-taskloopoptions-and-no-longer-carries-concurrency-config)) |
 | `crawler.stats` | `crawler.statistics` ([retyped](./statistics.md#statisticsoptions-is-replaced-by-a-statistics-instance)) |
 | `statistics.state.requestsFinished` (and the other `*Finished*` counters) | `requestsSucceeded` ([details](#finished-request-counters-are-renamed-to-succeeded)) |
-| `statistics.startJob()` / `finishJob()` / `failJob()` / `discardJob()` | `recordRequestStart()` / `recordRequestSuccess()` / `recordRequestFailure()` / `discardRequestRecord()` ([details](./statistics.md#the-request-recording-methods-are-renamed)) |
+| `statistics.startJob()` / `finishJob()` / `failJob()` | `recordRequestStart()` / `recordRequestSuccess()` / `recordRequestFailure()` ([details](./statistics.md#the-request-recording-methods-are-renamed)) |
 | `browserPoolOptions` | `browserPool` + a `*BrowserPool()` factory ([details](#browserpooloptions-is-removed)) |
 | `gotScraping` (from `@crawlee/utils`) | `GotScrapingHttpClient` (`@crawlee/got-scraping-client`) |
-| `SDK_`-prefixed internal KVS keys | `CRAWLEE_`-prefixed ([details](#internal-kvs-keys-renamed)) |
+| Internal KVS keys (`SDK_*` and others) | `CRAWLEE_*` keys ([details](#internal-kvs-keys-renamed)) |
 | `ArgumentError` (from `ow`) | `ArgumentValidationError` ([details](#argument-validation-errors-use-zod)) |
 
 ## Changes most users will hit
@@ -74,6 +96,10 @@ Crawlee v4 is a native ESM package now. It can be still consumed from a CJS proj
 ### Node 22.13+ required
 
 Support for older node versions was dropped.
+
+### Actor projects need Apify SDK v4
+
+Apify SDK 3.x does not run on `@crawlee/core@4`. Projects that depend on `apify` upgrade to `apify@4` together with Crawlee. The SDK has its own breaking changes to go through after the bump, see its [v4 upgrade guide](https://docs.apify.com/sdk/js/docs/next/upgrading/upgrading-to-v4).
 
 ### Collaborators you own are disposable
 
@@ -94,7 +120,7 @@ Support for older TypeScript versions was dropped. Crawlee ships compiled JavaSc
 
 ### Cheerio v1
 
-Previously, we kept the dependency on cheerio locked to the latest RC version, since there were many breaking changes introduced in v1.0. This release bumps cheerio to the stable v1. Also, we now use the default `parse5` internally.
+Previously, we kept the dependency on cheerio locked to the latest RC version, since there were many breaking changes introduced in v1.0. This release bumps cheerio to the stable v1. `CheerioCrawler`, `HttpCrawler` and `htmlToText` keep parsing with `htmlparser2` through `cheerio/slim`; the `parseWithCheerio` helper on the browser crawlers loads full cheerio, which parses with `parse5`.
 
 ### Argument validation errors use zod
 
@@ -130,11 +156,11 @@ try {
 }
 ```
 
-One behavioral change: options validated against class interfaces (`httpClient`, `configuration`, `eventManager`) now require actual instances (`instanceof BaseHttpClient`, …) rather than duck-typed plain objects — extend the class (or `Object.create(BaseHttpClient.prototype)` in tests) instead of passing an object literal.
+One behavioral change: options validated against class interfaces (`httpClient`, `configuration`) now require actual instances (`instanceof BaseHttpClient`, …) rather than duck-typed plain objects — extend the class (or `Object.create(BaseHttpClient.prototype)` in tests) instead of passing an object literal.
 
-### Zod 4.1+ required
+### Zod 4 required
 
-`@crawlee/core` used to accept zod 3 as well; it now needs 4.1 or newer, for the codecs it validates persisted state with. Zod is an ordinary dependency rather than a peer, so a project pinned to zod 3 keeps working — it just ends up with both versions installed.
+`@crawlee/core` now depends on zod 4, for the codecs it validates persisted state with. Zod is an ordinary dependency rather than a peer, so a project pinned to zod 3 keeps working — it just ends up with both versions installed.
 
 ### Installing with `--omit=optional` breaks native dependencies
 
@@ -171,7 +197,7 @@ const crawler = new CheerioCrawler({
 });
 ```
 
-Related: `crawler.log` and the crawling context `log` are typed as `CrawleeLogger`, which has no `setLevel()` method - level filtering belongs to the underlying logging library. With the default logger, set the level on the global `@apify/log` instance instead:
+Related: `crawler.log` and the crawling context `log` are typed as `CrawleeLogger`, which has no `setLevel()` method - level filtering belongs to the underlying logging library. With the default logger, set the level on the global `@apify/log` instance instead, before constructing the crawler (the crawler's logger copies the level when it is created):
 
 ```ts
 // v3
@@ -179,12 +205,12 @@ crawler.log.setLevel(LogLevel.DEBUG);
 
 // v4
 import log, { LogLevel } from '@apify/log';
-log.setLevel(LogLevel.DEBUG);
+log.setLevel(LogLevel.DEBUG); // before `new CheerioCrawler(...)`
 ```
 
 ### The `utils` bag is removed from the `crawlee` meta-package
 
-The `crawlee` meta-package exported a `utils` object — the last remnant of v2's `Apify.utils` namespace — bundling `utils.puppeteer`, `utils.playwright`, `utils.log`, `utils.enqueueLinks`, `utils.social`, `utils.sleep`, `utils.downloadListOfUrls` and `utils.parseOpenGraph`. It is gone. Every member was already exported from `crawlee` under its own name, so the fix is to import that name directly:
+The `crawlee` meta-package exported a `utils` object — the last remnant of v2's `Apify.utils` namespace — bundling `utils.puppeteer`, `utils.playwright`, `utils.log`, `utils.enqueueLinks`, `utils.social`, `utils.sleep`, `utils.downloadListOfUrls` and `utils.parseOpenGraph`. It is gone. Every member was already exported from `crawlee` under its own name, so the fix is to import that name directly. The exception is `enqueueLinks`: the standalone function is removed too; use `context.enqueueLinks()` in a request handler or `addRequests()` for known URLs:
 
 **Before:**
 ```typescript
@@ -235,7 +261,7 @@ Tooling that reads the persisted record needs the same rename applied. `crawlerF
 
 ### Crawler constructors no longer take a `Configuration` argument
 
-The crawler classes dropped the optional second `config?: Configuration` constructor parameter: `PlaywrightCrawler`, `PuppeteerCrawler`, and `AdaptivePlaywrightCrawler` (the same applies to the other crawlers, which never advertised it publicly). `AdaptivePlaywrightCrawler` additionally now extends `BasicCrawler` rather than `PlaywrightCrawler`. Pass a `Configuration` via the `configuration` option instead (see [Using per-crawler services](#using-per-crawler-services-recommended)).
+The crawler classes dropped the optional second `config?: Configuration` constructor parameter: `PlaywrightCrawler`, `PuppeteerCrawler`, and `AdaptivePlaywrightCrawler` (the same applies to the other crawlers). `AdaptivePlaywrightCrawler` additionally now extends `BasicCrawler` rather than `PlaywrightCrawler`. Pass a `Configuration` via the `configuration` option instead (see [Using per-crawler services](#using-per-crawler-services-recommended)).
 
 **Before:**
 ```typescript
@@ -300,6 +326,10 @@ Reading the run input is an Apify platform concern, so Crawlee no longer has any
 - **`Configuration.inputKey` and the `CRAWLEE_INPUT_KEY` environment variable are removed.** The Apify SDK's `Configuration` defines `inputKey` itself.
 - **The default key-value store is purged in full**, `INPUT` included. Sparing a key, and claiming a bare `<key>` / `<key>.json` file as the record `<key>` (see [Out-of-band key-value files](#out-of-band-key-value-files-eg-a-hand-placed-inputjson)), is left to subclasses of `FileSystemStorageBackend` through its two protected hooks, `keyValueStoreAdoptionCandidates` and `purgeKeyValueStore`. The Apify SDK's `ApifyFileSystemStorageBackend` does this for its run input; plain Crawlee treats a hand-placed `INPUT.json` as any other file.
 
+### Google Sheets sharing links are no longer rewritten
+
+`downloadListOfUrls()` and `requestsFromUrl` sources no longer turn a Google Sheets sharing link into the link of its CSV export. `Actor.getInput()` from `apify` does this for the Actor input now; elsewhere, use the CSV export link (`https://docs.google.com/spreadsheets/d/<id>/gviz/tq?tqx=out:csv`) directly.
+
 ### Service management moved from `Configuration` to `ServiceLocator`
 
 The service management functionality has been extracted from `Configuration` into a new `ServiceLocator` class.
@@ -312,6 +342,8 @@ The following methods and properties have been removed from `Configuration`:
 - `Configuration.getEventManager()` - moved to `ServiceLocator.getEventManager()`
 - `Configuration.useStorageClient()` - use `ServiceLocator.setStorageBackend()` instead
 - `Configuration.useEventManager()` - use `ServiceLocator.setEventManager()` instead
+
+The setters are stricter than the methods they replace. `Configuration.useStorageClient()` swapped the client at any time; `setStorageBackend()`, `setEventManager()` and `setConfiguration()` throw a `ServiceConflictError` once a different instance is in place — including the default one the locator creates the first time a getter runs. Set your services before anything opens a storage or constructs a crawler.
 - `Configuration.resetGlobalState()` - use `serviceLocator.reset()` instead. The method is marked `@internal`: it exists at runtime and is the supported way to tear down global state between tests, but it is not part of the public API and may change without a major version bump.
 - `Configuration.storageManagers` - use `serviceLocator.getStorageInstanceManager()` instead. Also marked `@internal` - available at runtime, but excluded from the documented surface and not covered by semver guarantees. Application code should reach storages through `Dataset.open()` / `KeyValueStore.open()` / `RequestQueue.open()` rather than the instance manager.
 
@@ -344,10 +376,10 @@ const eventManager = serviceLocator.getEventManager();
 
 #### Using per-crawler services (recommended)
 
-The new `ServiceLocator` supports per-crawler service isolation, allowing you to use different storage backends or event managers for different crawlers by passing them via options:
+The new `ServiceLocator` supports per-crawler service isolation, allowing you to use a different configuration, storage backend or logger for different crawlers by passing them via options:
 
 ```typescript
-import { BasicCrawler, Configuration, LocalEventManager, MemoryStorageBackend } from 'crawlee';
+import { BasicCrawler, Configuration, MemoryStorageBackend } from 'crawlee';
 
 const crawler = new BasicCrawler({
     requestHandler: async ({ request, log }) => {
@@ -355,7 +387,6 @@ const crawler = new BasicCrawler({
     },
     configuration: new Configuration({ headless: false }),
     storageBackend: new MemoryStorageBackend(),
-    eventManager: LocalEventManager.fromConfiguration(),
 });
 
 await crawler.run(['https://example.com']);
@@ -400,7 +431,7 @@ Renamed methods:
 | Before | After |
 | --- | --- |
 | `Configuration.getGlobalConfig()` | `Configuration.getGlobalConfiguration()` |
-| `LocalEventManager.fromConfig()` | `LocalEventManager.fromConfiguration()` |
+| `new LocalEventManager(config)` | `LocalEventManager.fromConfiguration(configuration)` |
 
 Renamed options — pass `configuration` instead of `config`:
 
@@ -408,7 +439,9 @@ Renamed options — pass `configuration` instead of `config`:
 - `useState()` (`UseStateOptions`)
 - `purgeDefaultStorages()` (both the options object and the legacy positional argument)
 - `saveSnapshot()` in `@crawlee/playwright` and `@crawlee/puppeteer` (`SaveSnapshotOptions`)
-- `RecoverableStateOptions`, `RequestListOptions`, `CpuLoadSignalOptions` and `MemoryLoadSignalOptions`
+- `RecoverableStateOptions` and `RequestListOptions`
+
+`CpuLoadSignalOptions` and `MemoryLoadSignalOptions` no longer take a configuration at all — drop the `config` field.
 
 **Before:**
 ```typescript
@@ -420,9 +453,18 @@ const store = await KeyValueStore.open(null, { config: new Configuration({ persi
 const store = await KeyValueStore.open(null, { configuration: new Configuration({ persistStorage: false }) });
 ```
 
-Renamed properties — `Dataset.config`, `KeyValueStore.config` and `BrowserLauncher.config` (including `PuppeteerLauncher`) are now `.configuration`.
+Renamed properties — `Dataset.config`, `KeyValueStore.config` and `BrowserLauncher.config` (including `PuppeteerLauncher`) are now `.configuration`. The `config` property of the crawlers, `RequestQueue`, `SessionPool` and `EventManager` is removed without a `.configuration` counterpart; use `serviceLocator.getConfiguration()`.
 
 The `configuration` crawler option is unchanged, as are `serviceLocator.getConfiguration()` and `serviceLocator.setConfiguration()`.
+
+### The event manager no longer follows the crawler run
+
+There is a single event manager per process, shared by all crawlers, and `crawler.run()` no longer initializes and closes it. It starts itself with the first listener and emits a final `persistState` event before the process exits, so a `RequestList`, a `SitemapRequestLoader` or a `KeyValueStore.getAutoSavedValue()` used outside of a crawler now persists its state periodically too. A crawler emits `persistState` at the end of every run.
+
+- Calling `init()` yourself takes over the lifecycle, and it is then on you to call `close()`. A custom event manager that needs to await something to start (e.g. a connection) has to be initialized this way.
+- To use a custom event manager, call `serviceLocator.setEventManager()` before anything else resolves one.
+- `persistStateIntervalMillis` and `systemInfoIntervalMillis` are read from the configuration of whoever resolves the event manager first, so set them on the global configuration rather than on the one passed to a crawler.
+- `LocalEventManager` emits `systemInfo` events only while something listens to them.
 
 ### Navigation and the request handler are timed separately
 
@@ -473,7 +515,25 @@ const crawler = new BasicCrawler({
     // useSessionPool: true,
     // sessionPoolOptions: { maxUsageCount: 5 },
     sessionPool: new SessionPool({
-        maxUsageCount: 5,
+        sessionOptions: { maxUsageCount: 5 },
+    }),
+});
+```
+
+Passing both `sessionPool` and `proxyConfiguration` to a crawler throws, since a supplied pool would ignore the proxies. Assign the proxies in the pool's `createSessionFunction` instead:
+
+```typescript
+import { Session, SessionPool } from '@crawlee/basic';
+
+const crawler = new BasicCrawler({
+    // proxyConfiguration is not passed to the crawler anymore
+    sessionPool: new SessionPool({
+        sessionOptions: { maxUsageCount: 5 },
+        createSessionFunction: async (opts) =>
+            new Session({
+                ...opts?.sessionOptions,
+                proxyInfo: await proxyConfiguration.newProxyInfo(opts?.sessionOptions?.proxyInfo),
+            }),
     }),
 });
 ```
@@ -498,7 +558,7 @@ const count = await sessionPool.usableSessionsCount();
 
 ### `SessionPool.persistState()`, `resetStore()` and `teardown()` no longer take options
 
-The `PersistenceOptions` argument of `persistState()` and `resetStore()` and the `{ persistState }` argument of `teardown()` are removed. Neither had any effect, so there is nothing to replace them with.
+The `PersistenceOptions` argument of `persistState()` and `resetStore()` and the `{ persistState }` argument of `teardown()` are removed. They overrode the pool's `persistenceOptions` for a single call; the pool's own `persistenceOptions` now always decide whether the state is written, so there is nothing to replace them with.
 
 `resetStore()` now throws while the pool is running, since the next periodic write would put the record straight back. Call `teardown()` first, or use the new `reset()` to discard the in-memory sessions instead.
 
@@ -506,7 +566,7 @@ The `PersistenceOptions` argument of `persistState()` and `resetStore()` and the
 
 With both `state` and `persistStateKey` set, the record now wins. Previously `state` did. The option is also validated up front: `nextIndex` must be a non-negative integer and `inProgress` an array of unique keys. The `@internal` `isStatePersisted` flag is gone.
 
-Both `SessionPool` and `RequestList` now persist through `RecoverableState`, like `Statistics`. The persisted records keep their shape, so records written by v3 still load.
+Both `SessionPool` and `RequestList` now persist through `RecoverableState`, like `Statistics`. Resuming a v3 crawl on v4 is not supported: `RequestList` stores its records under [new keys](#internal-kvs-keys-renamed), so a v4 run does not find a v3 run's state and starts the list from the beginning. Finish or discard in-flight crawls before upgrading.
 
 ### `retireOnBlockedStatusCodes` is removed from `Session`
 
@@ -544,7 +604,7 @@ The protected `HttpCrawler._applyCookies` method is removed. If you were overrid
 
 #### `Session.getCookies`, `setCookies` and `setCookiesFromResponse` are removed
 
-The public cookie helper methods on `Session` — `getCookies(url)`, `setCookies(cookies, url)`, and `setCookiesFromResponse(response)` — have been removed as part of centralizing cookie assembly in `BaseHttpClient`. Work with the session's `cookieJar` directly, or use the new `Session.getCookieString(url)` to read the assembled `Cookie` header value.
+The public cookie helper methods on `Session` — `getCookies(url)`, `setCookies(cookies, url)`, and `setCookiesFromResponse(response)` — have been removed as part of centralizing cookie assembly in `BaseHttpClient`. Work with the session's `cookieJar` directly, or use `Session.getCookieString(url)` to read the assembled `Cookie` header value. `Session.getCookieString()` and `Session.setCookie()` are now async, so `await` existing calls. Both exist only on the `Session` class; the crawling context's `session` is typed as `ISession`, so use its `cookieJar` there.
 
 **Before:**
 ```typescript
@@ -555,8 +615,8 @@ session.setCookiesFromResponse(response);
 
 **After:**
 ```typescript
-// Read the Cookie header string for a URL:
-const cookieHeader = session.getCookieString(url);
+// Read the Cookie header string for a URL (on a `Session` instance):
+const cookieHeader = await session.getCookieString(url);
 
 // Set / read cookies via the jar directly:
 await session.cookieJar.setCookie('foo=bar', url);
@@ -577,7 +637,7 @@ In v4, when `saveResponseCookies` is enabled (the default), browser cookies are 
 
 `browserPoolOptions` is gone from every browser crawler. It was a second way of configuring the very pool that the `browserPool` option accepts, and the two could not be combined — passing a pool made the options silently disappear.
 
-Build the pool with the factory that matches your crawler instead. Each factory takes every `BrowserPool` option plus the crawler's own `launchContext`, `headless` and `remoteBrowser`, and derives the browser plugin from them, so the pool can never mismatch the crawler it is passed to:
+Build the pool with the factory that matches your crawler instead. Each factory takes every `BrowserPool` option plus the crawler's own `launchContext`, `headless` and `remoteBrowser` (`stagehandOptions` in place of `remoteBrowser` for `stagehandBrowserPool()`), and derives the browser plugin from them, so the pool can never mismatch the crawler it is passed to:
 
 | crawler | factory |
 | --- | --- |
@@ -603,15 +663,17 @@ const crawler = new PlaywrightCrawler({
 });
 ```
 
-Building the pool outside the crawler has one consequence worth knowing: a pool passed as `browserPool` is borrowed, so the crawler never destroys it, and the options that would have configured a pool of the crawler's own — `launchContext`, `headless` and `remoteBrowser` — are now **rejected** instead of silently ignored. Move them into the factory call.
+Building the pool outside the crawler has one consequence worth knowing: a pool passed as `browserPool` is borrowed, so the crawler never destroys it, and the options that would have configured a pool of the crawler's own — `launchContext`, `headless`, `remoteBrowser` and, for `StagehandCrawler`, `stagehandOptions` — are now **rejected** instead of silently ignored. Move them into the factory call.
 
 `remoteBrowser` keeps working on its own for the terse case; pass the same `remoteBrowser` to the factory when you also want to tune the pool, or to share one remote pool between crawlers. Remote connections are owned by the `RemotePlaywrightPlugin` / `RemotePuppeteerPlugin` classes from `@crawlee/browser-pool` — there is no separate `RemoteBrowserPool`; `BrowserPool` itself accepts `maxOpenBrowsers`. `StagehandCrawler` does not support `remoteBrowser` (it throws) — Stagehand manages its own browser via `stagehandOptions.env`.
 
 `headless` is now declared on each concrete crawler rather than on `BrowserCrawler`, so the puppeteer-only `'new'` and `'old'` values are only accepted by `PuppeteerCrawler`.
 
-### `ignoreSslErrors` is renamed to `ignoreTlsErrors`
+### `ignoreSslErrors` is renamed to `ignoreTlsErrors` and defaults to `false`
 
-The crawler option is renamed to `ignoreTlsErrors`, matching the naming used everywhere else in v4 (`session.proxyInfo.ignoreTlsErrors`, the browser pool, the impit client). The old `ignoreSslErrors` name is no longer accepted — rename it in your crawler options. Behavior is unchanged from v3: the option defaults to `true` and HTTP crawlers accept invalid TLS certificates by default.
+The crawler option is renamed to `ignoreTlsErrors`, matching the naming used everywhere else in v4 (`session.proxyInfo.ignoreTlsErrors`, the browser pool, the impit client). The old `ignoreSslErrors` name is no longer accepted — rename it in your crawler options.
+
+The default also changed from `true` to `false`: HTTP crawlers now verify TLS certificates and fail requests to sites with invalid ones. Set `ignoreTlsErrors: true` to restore the v3 behavior. `FileDownload` takes the same option with the same default; see [its section](#filedownload-now-extends-basiccrawler-and-takes-a-slimmer-filedownloadoptions).
 
 Under the hood the crawler now forwards the option to the HTTP client as `SendRequestOptions.ignoreTlsErrors` on every navigation request, and the same flag is enabled automatically for MITM proxy sessions (`session.proxyInfo.ignoreTlsErrors`), matching the browser crawlers.
 
@@ -673,7 +735,7 @@ postNavigationHooks: [
 ],
 ```
 
-If you called the standalone `playwrightUtils.handleCloudflareChallenge(page, url, session, options)` directly, note that the `session` parameter is gone - the v4 signature is `handleCloudflareChallenge(page, url, options)`, so an options object passed in the old fourth position would be silently ignored.
+If you called the standalone `playwrightUtils.handleCloudflareChallenge(page, url, session, options)` directly, note that the `session` parameter is gone - the v4 signature is `handleCloudflareChallenge(page, url, options?, response?)`, so an options object left in the old fourth position would be taken for the navigation response instead of being applied.
 
 ### Removed crawling context properties
 
@@ -687,7 +749,8 @@ This was previously accessible via `context.crawler`. If you want to restore the
 
 ```typescript
 const crawler = new CheerioCrawler({
-  extendContext: () => ({ crawler }),
+  // The return type annotation is required: without it TypeScript cannot infer `crawler` from its own initializer.
+  extendContext: (): { crawler: Pick<CheerioCrawler, 'stop'> } => ({ crawler }),
   requestHandler: async (context) => {
     if (Math.random() < 0.01) {
       context.crawler.stop()
@@ -712,11 +775,11 @@ Previously, the crawling context extended a `Record` type, allowing to access an
 
 The HTTP crawlers (and `sendRequest`) no longer use `got-scraping` by default. The default client is now `ImpitHttpClient` from the optional `@crawlee/impit-client` package (a Rust-based client with TLS fingerprint impersonation); when it is not installed, the crawlers fall back to a plain `fetch`-based client with a logged warning (no proxy support or impersonation). To keep using `got-scraping`, install `@crawlee/got-scraping-client` and pass `httpClient: new GotScrapingHttpClient()` explicitly.
 
-Note that the session's fingerprint drives the impersonation: each new session gets a randomized realistic fingerprint by default, and its `browser` hint overrides the `browser` option passed to the `ImpitHttpClient` constructor. To force a specific browser family, pin the fingerprint on the sessions instead:
+Note that the session's fingerprint drives the impersonation: each new session gets a randomized realistic fingerprint by default, and its `browser` hint picks the browser `impit` impersonates. A `browser` option passed to the `ImpitHttpClient` constructor overrides that hint for every session and logs a warning. To force a specific browser family, leave the option unset and pin the fingerprint on the sessions instead:
 
 ```ts
 const crawler = new CheerioCrawler({
-    httpClient: new ImpitHttpClient({ browser: Browser.Firefox }),
+    httpClient: new ImpitHttpClient(),
     sessionPool: new SessionPool({
         createSessionFunction: async (opts) =>
             new Session({
@@ -813,12 +876,13 @@ The `await using` syntax needs Node.js 24 or later. On Node.js 22 call <ApiLink 
 
 `Dataset.open()`, `KeyValueStore.open()`, and `RequestQueue.open()` previously accepted a single `idOrName?: string` parameter. This was ambiguous — callers couldn't express whether they were opening a storage by its ID or by name.
 
-The first parameter now also accepts a `StorageIdentifier` object with separate `id` and `name` fields:
+The first parameter now also accepts a `StorageIdentifier` object with separate `id`, `name` and `alias` fields (at most one of them):
 
 ```typescript
 interface StorageIdentifier {
     id?: string;
     name?: string;
+    alias?: string; // run-scoped, purged on start; see the request queue section
 }
 ```
 
@@ -836,7 +900,7 @@ You can also use the object form, which additionally allows opening a storage by
 const dataset = await Dataset.open({ name: 'my-dataset' });
 
 // Opening by ID (e.g. on the Apify platform):
-const dataset = await Dataset.open({ id: 'WkzbQMuFYuamGv3YF' });
+const datasetById = await Dataset.open({ id: 'WkzbQMuFYuamGv3YF' });
 ```
 
 Opening the default storage (no arguments or `null`) still works as before:
@@ -933,11 +997,11 @@ const storageBackend = new FileSystemStorageBackend({ localDataDirectory: './sto
 const inMemory = new MemoryStorageBackend();
 ```
 
-`MemoryStorageBackend` no longer takes the `localDataDirectory`, `persistStorage`, or `writeMetadata` options — in-memory storage has nowhere to write, so they had no meaning. `FileSystemStorageBackend` honors `localDataDirectory`; it always persists, so it has no `persistStorage` option, and the `writeMetadata` option has been removed there too (see [`writeMetadata` option removed](#writemetadata-option-removed)).
+`MemoryStorageBackend` no longer takes the `localDataDirectory`, `persistStorage`, or `writeMetadata` options — in-memory storage has nowhere to write, so they had no meaning. `FileSystemStorageBackend` requires `localDataDirectory` (constructed explicitly, it does not fall back to `CRAWLEE_STORAGE_DIR`); it always persists, so it has no `persistStorage` option, and the `writeMetadata` option has been removed there too (see [`writeMetadata` option removed](#writemetadata-option-removed)).
 
 #### No request lock expiry in `MemoryStorageBackend`
 
-Because the in-memory queue lives entirely within a single process and is never shared with another consumer, `MemoryStorageBackend`'s request queue no longer uses an expiring, cross-process lock. A fetched request simply stays *in progress* until it is handled or reclaimed; it never becomes fetchable again on its own after a timeout. `setExpectedRequestProcessingTimeSecs()` is therefore a no-op for in-memory storage. (Disk-backed `FileSystemStorageBackend` keeps the lock-with-expiry behavior.)
+Because the in-memory queue lives entirely within a single process and is never shared with another consumer, `MemoryStorageBackend`'s request queue no longer uses an expiring, cross-process lock. A fetched request simply stays *in progress* until it is handled or reclaimed; it never becomes fetchable again on its own after a timeout. `setExpectedRequestProcessingTime()` is therefore a no-op for in-memory storage. (Disk-backed `FileSystemStorageBackend` keeps the lock-with-expiry behavior.)
 
 #### `writeMetadata` option removed
 
@@ -960,16 +1024,16 @@ Keys are literal. `aaa` and `aaa.json` are two distinct keys, and `FileSystemSto
 
 What v4 does instead is *adopt* value files that turn up in a store directory without the `<key>.__metadata__.json` sidecar that marks a record — the Apify CLI's input, a project template, a v3 store directory, a file you dropped in with an editor. Opening the store writes the missing sidecar (the value bytes are never touched), and from then on the file is an ordinary record: read by `getValue`, enumerated by `listKeys`, removed by `deleteValue`. Two rules decide the key:
 
-- A subclass of `FileSystemStorageBackend` may claim specific files under a key of its own by overriding `keyValueStoreAdoptionCandidates`. The Apify SDK's `ApifyFileSystemStorageBackend` claims a bare `INPUT` or `INPUT.json` in the **default** store (and the same for the configured `ACTOR_INPUT_KEY`) as the record `INPUT`: the file keeps its name, `listKeys` reports `INPUT`, `getValue('INPUT.json')` is `undefined`, and `getPublicUrl('INPUT')` points at `INPUT.json`. If both files are present, opening the store fails instead of guessing which one is the input. Plain Crawlee claims nothing, so there a bare `INPUT.json` is just a file named `INPUT.json`.
+- A subclass of `FileSystemStorageBackend` may claim specific files under a key of its own by overriding `keyValueStoreAdoptionCandidates`. The Apify SDK's `ApifyFileSystemStorageBackend` claims a bare `INPUT` or `INPUT.json` in the **default** store (and the same for the configured `ACTOR_INPUT_KEY`) as the record `INPUT`: the file keeps its name, `listKeys` reports `INPUT`, `getValue('INPUT.json')` is `null`, and `getPublicUrl('INPUT')` points at `INPUT.json`. If both files are present, opening the store fails instead of guessing which one is the input. Plain Crawlee claims nothing, so there a bare `INPUT.json` is just a file named `INPUT.json`.
 - Every other sidecar-less file becomes a record **keyed by its filename**, in every store: a hand-placed `some-key.json` is the key `some-key.json`, and so is an `INPUT.json` in a store other than the default one. Dotfiles are skipped.
 
 A `.json` file is adopted as `application/json; charset=utf-8` and anything else as `application/octet-stream`; there is no content sniffing. Adopted records are subject to the purge of the default store on start like any other record, unless a subclass spares them through `purgeKeyValueStore` — the Apify SDK keeps its run input this way.
 
 Beyond the literal keys, three v3 behaviors are gone:
 
-- **`INPUT.txt` and `INPUT.bin` are no longer the input.** v3 probed those extensions too. In v4 they are adopted under their own names, so `getValue('INPUT')` returns `undefined` and the purge on start deletes them. Rename such an input to `INPUT.json` (or drop the extension) before upgrading.
+- **`INPUT.txt` and `INPUT.bin` are no longer the input.** v3 probed those extensions too. In v4 they are adopted under their own names, so `getValue('INPUT')` returns `null` and the purge on start deletes them. Rename such an input to `INPUT.json` (or drop the extension) before upgrading.
 - **Extensionless input files report `application/octet-stream`.** In v3 a bare value file with no extension was read as `text/plain`. Give the file a `.json` extension if you need a more specific type.
-- **Malformed input files are no longer silently swallowed.** In v3 an `INPUT.json` containing invalid JSON was treated as a missing record (`getValue` returned `undefined`). In v4 the raw bytes are returned verbatim and parsing happens in the `KeyValueStore` frontend, so a malformed value surfaces a parse error at read time instead of looking absent.
+- **Malformed input files are no longer silently swallowed.** In v3 an `INPUT.json` containing invalid JSON was treated as a missing record (`getValue` returned `null`). In v4 the raw bytes are returned verbatim and parsing happens in the `KeyValueStore` frontend, so a malformed value surfaces a parse error at read time instead of looking absent.
 
 ### `globs`, `regexps`, and `pseudoUrls` replaced by `include`
 
@@ -996,7 +1060,7 @@ await enqueueLinks({
 
 #### Migrating `pseudoUrls`
 
-A `PseudoUrl` is equivalent to an anchored regular expression: the text inside `[ ]` is the pattern (a wildcard), everything outside it is matched literally, and the whole URL is anchored. Translate each pseudo-URL to a `RegExp` (or a glob, if the pattern is simple enough):
+A `PseudoUrl` is equivalent to an anchored, case-insensitive regular expression: the text inside `[ ]` is the pattern (a wildcard), everything outside it is matched literally, and the whole URL is anchored. Translate each pseudo-URL to a `RegExp` (or a glob, if the pattern is simple enough):
 
 **Before:**
 ```typescript
@@ -1008,8 +1072,8 @@ await enqueueLinks({
 **After:**
 ```typescript
 await enqueueLinks({
-    // faithful translation — [.*] becomes .*, literal text is escaped and anchored
-    include: [/^https:\/\/crawlee\.dev\/.*$/],
+    // faithful translation — [.*] becomes .*, literal text is escaped and anchored, matching ignores case
+    include: [/^https:\/\/crawlee\.dev\/.*$/i],
     // or, when the pattern is simple, an equivalent glob:
     // include: ['https://crawlee.dev/**'],
 });
@@ -1035,6 +1099,10 @@ await enqueueLinks({
 });
 ```
 
+### Enqueue strategies ignore the port, except `same-origin`
+
+In `enqueueLinks`, `same-hostname` and `same-domain` now compare hostnames only, so `http://example.com:8080/a` matches a base URL of `https://example.com/`. In v3, `enqueueLinks` required the port to match. `same-origin` still requires the same scheme, hostname and port. Hosts without a registrable domain (IP addresses, `localhost`) are matched by `same-domain` like `same-hostname`. Sitemap and robots.txt filtering and the post-redirect strategy check follow the same rules.
+
 ### `transformRequestFunction` precedence in `enqueueLinks`
 
 The `transformRequestFunction` callback in `enqueueLinks` now runs **after** URL pattern filtering (`include`, `exclude`) instead of before. This means it has the highest priority and can overwrite any request options set by the global `label` / `userData` options.
@@ -1056,7 +1124,7 @@ The `transformRequestFunction` callback receives a `RequestOptions` object and c
 | Before (`BatchAddRequestsResult`) | After (`AddRequestsBatchedResult`) |
 | --- | --- |
 | `processedRequests` | `addedRequests` |
-| `unprocessedRequests` (always `[]` — `enqueueLinks()` never actually populated it) | *(removed — retries are handled internally, see "`RequestQueue.addRequestsBatched` no longer retries rejected requests" below)* |
+| `unprocessedRequests` (always `[]` — `enqueueLinks()` never actually populated it) | *(removed — rejected requests are warned about and skipped, see [`RequestQueue.addRequestsBatched` no longer retries rejected requests](./request-loaders.md#requestqueueaddrequestsbatched-no-longer-retries-rejected-requests))* |
 | *(not exposed)* | `waitForAllRequestsToBeAdded` — a promise resolving with the requests added in batches after the first (new) |
 | *(not exposed)* | `requestsOverLimit` — requests dropped because of the `limit` / `maxRequestsPerCrawl` budget (new) |
 
@@ -1086,7 +1154,7 @@ const urls = await extractLinks({ selector: '.product-link' });
 
 `context.addRequests()` also now returns an `AddRequestsBatchedResult` (previously it resolved to `void`).
 
-`BasicCrawler` (and its `BasicCrawlingContext`) no longer has an `enqueueLinks()` method — `BasicCrawler` has no concept of a page to extract links from. `enqueueLinks()` remains available on crawlers with web content (`CheerioCrawler`, `HttpCrawler`-derived crawlers, `PlaywrightCrawler`, `PuppeteerCrawler`, etc.), now implemented in terms of `extractLinks()` + `addRequests()`.
+`BasicCrawler` (and its `BasicCrawlingContext`) no longer has an `enqueueLinks()` method — `BasicCrawler` has no concept of a page to extract links from. `enqueueLinks()` remains available on crawlers with web content (`CheerioCrawler` and the other DOM crawlers, `PlaywrightCrawler`, `PuppeteerCrawler`, etc.; plain `HttpCrawler` has none), now implemented in terms of `extractLinks()` + `addRequests()`.
 
 The `robotsTxtFile` / `respectRobotsTxtFile` per-call options are removed from `enqueueLinks()` — robots.txt filtering is applied by the crawler consistently via `BasicCrawlerOptions.respectRobotsTxtFile`.
 
@@ -1111,12 +1179,25 @@ With `respectRobotsTxtFile` enabled, a site that answers `/robots.txt` with a `5
 `sameDomainDelaySecs` still works and still means what it did in v3 — subdomains included, it paces a whole registrable domain rather than a single host. Underneath, it is now a floor reported to the crawler's request manager as a [pacing signal](./request-loaders.md#irequestmanager-gained-recordpacingsignal); only when nothing there paces does the crawler wrap its manager in a `ThrottlingRequestManager`, which gives each domain a queue of its own so a delayed request waits in storage rather than in an in-memory map. Consequences worth knowing about:
 
 - A crawl that discovers more than `maxThrottledDomains` domains (100 by default) throws instead of quietly running out of steam. Pass your own `ThrottlingRequestManager` as `requestManager` to raise the ceiling — or crawl fewer sites.
-- Combined with a manager that paces on its own, a `ThrottlingRequestManager` with `domains: 'all'` and `throttleBy: 'registrableDomain'` takes the delay as its `minCrawlDelaySecs` floor, wherever it sits in a composition. One that paces only *some* domains throws instead — set `domains: 'all'`, or configure the delay there yourself and drop the option.
+- Combined with a manager that paces on its own, a `ThrottlingRequestManager` with `domains: 'all'` and `throttleBy: 'registrableDomain'` takes the delay as its `minCrawlDelaySecs` floor, wherever it sits in a composition. One that paces only *some* domains, or keeps the default `throttleBy: 'hostname'`, throws instead — set `domains: 'all'` and `throttleBy: 'registrableDomain'`, or configure the delay there yourself and drop the option.
 - Requests that never pass through the request manager — those from a `requestsFromUrl` list — are not paced, and the crawler warns when it hands one out.
 
 ### Internal KVS keys renamed
 
-Several internal Crawlee keys were prefixed with the `SDK_` prefix for legacy reasons — these keys now start with `CRAWLEE_` instead. These are, e.g., `CRAWLEE_SESSION_POOL_STATE` or `CRAWLEE_CRAWLER_STATISTICS_{n}`.
+Crawlee keeps its internal state in the default key-value store. These records now use the `CRAWLEE_` prefix and upper snake case, with the dynamic part at the end. Crawlee for Python uses the same keys.
+
+| Record | v3 key | v4 key |
+| --- | --- | --- |
+| Crawler statistics | `SDK_CRAWLER_STATISTICS_{id}` | `CRAWLEE_CRAWLER_STATISTICS_{id}` |
+| Session pool | `SDK_SESSION_POOL_STATE` | `CRAWLEE_SESSION_POOL_STATE_{id}` |
+| Request list progress | `SDK_{name}-REQUEST_LIST_STATE` | `CRAWLEE_REQUEST_LIST_STATE_{name}` |
+| Request list requests | `SDK_{name}-REQUEST_LIST_REQUESTS` | `CRAWLEE_REQUEST_LIST_REQUESTS_{name}` |
+| Sitemap request loader | `SITEMAP_REQUEST_LIST_STATE` | `CRAWLEE_SITEMAP_REQUEST_LOADER_STATE` |
+| Rendering type predictor | `rendering-type-predictor-state` | `CRAWLEE_RENDERING_TYPE_PREDICTOR_STATE_{id}` |
+
+A `persistStateKey` or `persistRequestsKey` you pass to `RequestList` is used as it is, without the `SDK_` prefix v3 added, so a v4 run doesn't find the v3 record under `SDK_{key}`. The `{id}` of the statistics, the session pool, the rendering type predictor and the `ThrottlingRequestManager` comes from their `id` option. Without one, each class numbers its instances in creation order. The ones a crawler creates take the crawler's `id` option when it is set. Adaptive crawlers no longer share one rendering type model. The `ThrottlingRequestManager` stores its domain list under `CRAWLEE_THROTTLED_DOMAINS_{id}` and opens its per-domain queues under the alias `throttled-{id}-{domain}`.
+
+v4 doesn't read the v3 keys. Resuming a v3 crawl on v4 is not supported, so finish or discard in-flight crawls before upgrading.
 
 ## Only if you subclassed crawlers or touched internals
 
@@ -1152,9 +1233,9 @@ See [Upgrading to v4: HTTP clients](./http-clients.md) for the details.
 
 Applies when you use the `FileDownload` crawler from `@crawlee/http`.
 
-### `FileDownload` now extends `BasicCrawler` and no longer takes `FileDownloadOptions`
+### `FileDownload` now extends `BasicCrawler` and takes a slimmer `FileDownloadOptions`
 
-`FileDownload` was re-based from `HttpCrawler` onto `BasicCrawler`. Its constructor now accepts `BasicCrawlerOptions<FileDownloadCrawlingContext>` instead of the dedicated `FileDownloadOptions` type, which — together with `StreamHandlerContext` — has been **removed** from `@crawlee/http`. In practice this means the HTTP-crawler-specific options (`navigationTimeoutSecs`, `additionalMimeTypes`, `suggestResponseEncoding`, `forceResponseEncoding`, the `gotOptions`-style `preNavigationHooks`, etc.) are no longer accepted by `FileDownload`; downloading is a thin layer over `BasicCrawler` and the request is performed via `sendRequest` / the configured `httpClient`. If you passed any of those HTTP-only options to `FileDownload`, drop them and configure the `httpClient` (or the request itself) directly. The `FileDownloadCrawlingContext` type also lost its extra type parameter and no longer extends the internal HTTP crawling context — it now extends the common `CrawlingContext` with `contentType`, `request`, and `response`.
+`FileDownload` was re-based from `HttpCrawler` onto `BasicCrawler`. `FileDownloadOptions` is now `BasicCrawlerOptions<FileDownloadCrawlingContext>` (minus `contextPipelineBuilder`) plus a single `ignoreTlsErrors` flag; `StreamHandlerContext` has been **removed** from `@crawlee/http`. In practice this means the HTTP-crawler-specific options (`navigationTimeoutSecs`, `additionalMimeTypes`, `suggestResponseEncoding`, `forceResponseEncoding`, the `gotOptions`-style `preNavigationHooks`, etc.) are no longer accepted by `FileDownload`; downloading is a thin layer over `BasicCrawler` and the request is performed via `sendRequest` / the configured `httpClient`. If you passed any of those HTTP-only options to `FileDownload`, drop them and configure the `httpClient` (or the request itself) directly. TLS verification changed too: v3 `FileDownload` inherited `ignoreSslErrors: true`, while v4 verifies certificates by default (`ignoreTlsErrors` defaults to `false`). Sessions with a MITM proxy (`session.proxyInfo.ignoreTlsErrors`) still skip verification automatically. To keep the v3 behavior, pass `ignoreTlsErrors: true`. The `FileDownloadCrawlingContext` type also lost its extra type parameter and no longer extends the internal HTTP crawling context — it now extends the common `CrawlingContext` with `contentType`, `request`, and `response`.
 
 ### Crawling context in the `FileDownload` crawler no longer includes `body` and `stream` properties
 
@@ -1168,7 +1249,7 @@ See [Upgrading to v4: request loaders and managers](./request-loaders.md) for th
 
 ## Only if you implement a storage backend
 
-Applies when you implement your own storage backend, or reach below the `Dataset`, `KeyValueStore` and `RequestQueue` frontends. The `StorageBackend` interface (formerly `StorageClient`) needs four classes instead of seven, with async factory methods and slimmer sub-backends. `RequestQueueV1` / `RequestQueueV2` are merged into `RequestQueue`, the `requestLocking` experiment and `requestLockSecs` are gone, and `Dataset.listItems()` is replaced by `getData()` / `values()`.
+Applies when you implement your own storage backend, or reach below the `Dataset`, `KeyValueStore` and `RequestQueue` frontends. The `StorageBackend` interface (formerly `StorageClient`) needs four classes instead of seven, with async factory methods and slimmer sub-backends. `RequestQueueV1` / `RequestQueueV2` are merged into `RequestQueue`, the `requestLocking` experiment and `requestLockSecs` are gone, and `DatasetClient.listItems()` is replaced by `Dataset.getData()` / `Dataset.values()`.
 
 See [Upgrading to v4: storage backends](./storage-backends.md) for the details.
 
@@ -1199,7 +1280,7 @@ The `crawlee` meta-package no longer re-exports them.
 The crawler-only parts of `@crawlee/core` moved to `@crawlee/basic`, so that `@crawlee/core` carries just the storage, request and configuration layer. The moved exports are:
 
 - autoscaling: `AutoscaledPool`, `Snapshotter`, `SystemStatus`, the `LoadSignal` implementations and their option/snapshot types
-- crawler internals: `Statistics`, `ErrorTracker`, `ErrorSnapshotter`, and the crawling-context types (`CrawlingContext`, `RestrictedCrawlingContext`, `LoadedRequest`, …)
+- crawler internals: `Statistics`, `ErrorTracker`, and the crawling-context types (`CrawlingContext`, `RestrictedCrawlingContext`, `LoadedRequest`, …)
 - `SessionPool`, `Session` and the session-pool constants
 - `Router` (with `RouterHandler`, `RouterRoutes` and `defaultRoute`)
 - the cookie helpers (`mergeCookies`, `getCookiesFromResponse`, …)
@@ -1217,14 +1298,13 @@ A few Stagehand-specific option types were tightened:
 
 - `StagehandGotoOptions` dropped its `Dictionary &` intersection — it is now exactly `NonNullable<Parameters<Page['goto']>[1]>`, so arbitrary extra keys are no longer accepted.
 - The explicit `failedRequestHandler` field was removed from `StagehandCrawlerOptions` (it is inherited from the base crawler options generically, so passing `failedRequestHandler` still works).
-- The `ignoreShadowRoots` and `ignoreIframes` options were removed from `StagehandCrawler`.
 
 ### Removed Stagehand exports and options
 
-- The `StagehandRequestHandler` type was removed. It was never referenced by `StagehandCrawlerOptions.requestHandler`, which uses `RequestHandler<StagehandCrawlingContext>` — use that instead.
+- The `StagehandRequestHandler` type was removed. `StagehandCrawlerOptions.requestHandler` now uses `RequestHandler<StagehandCrawlingContext>` — use that instead.
 - The `stagehandUtils` namespace was removed. Its only member was internal glue that was never part of the documented surface.
 - The `AgentResult` re-export was removed. Import it from `@browserbasehq/stagehand` directly — it is a non-optional peer dependency, so it is already installed.
-- `StagehandLaunchContext.stagehandOptions` was removed. It never had any effect: the value was always overwritten by the `stagehandOptions` option on the crawler and on `stagehandBrowserPool()`. Pass `stagehandOptions` at the top level instead.
+- `StagehandLaunchContext.stagehandOptions` was removed. It never had any effect: the value was always overwritten by the `stagehandOptions` option on the crawler and on `stagehandBrowserPool()`. Pass `stagehandOptions` at the top level of the crawler instead, or of `stagehandBrowserPool()` when you supply a `browserPool`.
 - `StagehandPlugin.stagehandOptions` is now private and `StagehandPlugin.getStagehandForBrowser()` is gone. Reach the `Stagehand` instance through the crawling context's `stagehand` property.
 
 ## Appendix: removed symbols

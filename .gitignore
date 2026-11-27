@@ -28,6 +28,7 @@ crawlee_storage
 storage
 .turbo
 test/e2e/**/packages
+test/e2e/**/.actorignore
 
 .yarn
 

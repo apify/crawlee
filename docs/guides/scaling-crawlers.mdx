@@ -33,7 +33,7 @@ This controls how many total requests can be made per minute. It counts the amou
 
 ## `minConcurrency` and `maxConcurrency`
 
-These control how many parallel requests can be run at any time. By default, crawlers will start with one parallel request at a time and scale up over time to a maximum of 200 requests at a time.
+These control how many parallel requests can be run at any time. By default, crawlers will start with one parallel request at a time and scale up over time to a maximum of 200 requests at a time. `minConcurrency` is a floor: the crawler keeps that many requests running even while the system is overloaded, and only scales further up when there is enough free CPU and memory.
 
 :::caution Don't set `minConcurrency` too high!
 

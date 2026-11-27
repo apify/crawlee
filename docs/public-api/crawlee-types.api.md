@@ -157,10 +157,7 @@ export interface HttpRequest {
     body?: Readable;
     // (undocumented)
     cookieJar?: CookieJar;
-    // (undocumented)
-    encoding?: BufferEncoding;
-    // (undocumented)
-    followRedirect?: boolean | ((response: any) => boolean);
+    followRedirect?: boolean;
     // (undocumented)
     headers?: Headers;
     // (undocumented)
@@ -351,7 +348,7 @@ export interface QueueOperationInfo {
 export interface RequestQueueBackend {
     addBatchOfRequests(requests: RequestSchema[], options?: RequestQueueOperationOptions): Promise<BatchAddRequestsResult>;
     drop(): Promise<void>;
-    extendRequestProcessingTimeSecs?(requestId: string, secs: number): Promise<boolean>;
+    extendRequestProcessingTime?(requestId: string, extensionSecs: number): Promise<boolean>;
     fetchNextRequest(): Promise<UpdateRequestSchema | undefined>;
     getMetadata(): Promise<RequestQueueInfo>;
     getRequest(uniqueKey: string): Promise<UpdateRequestSchema | undefined>;
@@ -360,7 +357,7 @@ export interface RequestQueueBackend {
     markRequestAsHandled(request: UpdateRequestSchema): Promise<QueueOperationInfo | undefined>;
     purge(): Promise<void>;
     reclaimRequest(request: UpdateRequestSchema, options?: RequestQueueOperationOptions): Promise<QueueOperationInfo | undefined>;
-    setExpectedRequestProcessingTimeSecs?(secs: number): Promise<void>;
+    setExpectedRequestProcessingTime?(processingTimeSecs: number): Promise<void>;
 }
 
 // @public (undocumented)
@@ -391,21 +388,21 @@ export interface RequestQueueOperationOptions {
 // @public (undocumented)
 export interface RequestSchema {
     // (undocumented)
-    errorMessages?: string[];
+    errorMessages?: string[] | null;
     // (undocumented)
-    handledAt?: string;
+    handledAt?: string | null;
     // (undocumented)
-    headers?: Dictionary<string>;
+    headers?: Dictionary<string> | null;
     // (undocumented)
     id?: string;
     // (undocumented)
-    loadedUrl?: string;
+    loadedUrl?: string | null;
     // (undocumented)
     method?: AllowedHttpMethods;
     // (undocumented)
-    noRetry?: boolean;
+    noRetry?: boolean | null;
     // (undocumented)
-    payload?: string;
+    payload?: string | null;
     // (undocumented)
     retryCount?: number;
     // (undocumented)
@@ -430,6 +427,12 @@ export interface SendRequestOptions {
     signal?: AbortSignal;
     timeoutMillis?: number;
 }
+
+// @public
+export type SendRequestOverrides = Omit<Partial<HttpRequestOptions>, 'headers' | 'body'> & {
+    headers?: HeadersInit;
+    body?: string | Buffer | Readable;
+};
 
 // @public
 export interface SerializedCookieJar {

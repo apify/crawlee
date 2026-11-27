@@ -31,7 +31,7 @@ export type RequestSourceStatus =
 export type RequestLoaderStatus = Exclude<RequestSourceStatus, { status: 'stalled' }>;
 
 /**
- * Combines two request sources' statuses, with the precedence `ready` > `stalled` > `waiting` > `finished`.
+ * Combines two request sources' statuses, with the precedence `ready` > `waiting` > `stalled` > `finished`.
  *
  * Binary rather than variadic on purpose: it is on the task loop's probe path and folding a pair allocates
  * nothing.
@@ -46,24 +46,22 @@ export function joinRequestSourceStatuses(a: RequestSourceStatus, b: RequestSour
         return b;
     }
 
-    // `ready` outranking `stalled` masks a stalled source while the other still has work. That is parity with
-    // the crawler before this was a single answer: the stall check was only reached from `isFinishedFunction`,
-    // which the task loop calls only when nothing is in flight and nothing is ready. "Fixing" the masking
-    // turns a crawl that is progressing elsewhere into a `PersistentRateLimitError`. `stalled` outranking
-    // `waiting` is the same parity - that call site fired regardless of other domains' clocks.
-    if (a.status === 'stalled') {
-        return a;
-    }
-    if (b.status === 'stalled') {
-        return b;
-    }
-
+    // `ready` and `waiting` outranking `stalled` mask a stalled source while the other still has work, now or
+    // later. The crawler turns `stalled` into a `PersistentRateLimitError`, so "fixing" the masking turns a crawl
+    // that can still progress elsewhere into a failure. The stall surfaces once the other source runs out of work.
     if (a.status === 'waiting') {
         // The earlier of the two known wake-up times - unknown only if neither source announced one.
         if (b.status !== 'waiting' || b.readyAt === undefined) {
             return a;
         }
         return a.readyAt !== undefined && a.readyAt <= b.readyAt ? a : b;
+    }
+    if (b.status === 'waiting') {
+        return b;
+    }
+
+    if (a.status === 'stalled') {
+        return a;
     }
 
     // `a` is finished, so `b` decides.

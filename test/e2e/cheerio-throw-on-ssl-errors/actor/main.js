@@ -1,5 +1,9 @@
+import { createServer as createHttpServer } from 'node:http';
+import { createServer as createHttpsServer } from 'node:https';
+
 import { Actor } from 'apify';
 import { CheerioCrawler, Dataset } from '@crawlee/cheerio';
+import { generate } from 'selfsigned';
 
 const mainOptions = {
     exit: Actor.isAtHome(),
@@ -9,40 +13,37 @@ const mainOptions = {
             : undefined,
 };
 
-// The "bad" links from the badssl.com index page, listed here because that page itself is flaky.
-const badSslUrls = [
-    'https://expired.badssl.com/',
-    'https://wrong.host.badssl.com/',
-    'https://self-signed.badssl.com/',
-    'https://untrusted-root.badssl.com/',
-    'https://revoked.badssl.com/',
-    'https://pinning-test.badssl.com/',
-    'https://client-cert-missing.badssl.com/',
-    'https://mixed-script.badssl.com/',
-    'https://very.badssl.com/',
-    'https://rc4-md5.badssl.com/',
-    'https://rc4.badssl.com/',
-    'https://3des.badssl.com/',
-    'https://null.badssl.com/',
-    'https://mozilla-old.badssl.com/',
-    'https://dh480.badssl.com/',
-    'https://dh512.badssl.com/',
-    'https://dh1024.badssl.com/',
-    'https://dh-small-subgroup.badssl.com/',
-    'https://dh-composite.badssl.com/',
-    'https://no-sct.badssl.com/',
-    'https://subdomain.preloaded-hsts.badssl.com/',
-    'https://superfish.badssl.com/',
-    'https://edellroot.badssl.com/',
-    'https://dsdtestprovider.badssl.com/',
-    'https://preact-cli.badssl.com/',
-    'https://webpack-dev-server.badssl.com/',
-    'https://captive-portal.badssl.com/',
-    'https://mitm-software.badssl.com/',
-    'https://sha1-2017.badssl.com/',
-    'https://sha1-intermediate.badssl.com/',
-    'https://invalid-expected-sct.badssl.com/',
-];
+// Generated on the fly and served locally so the test doesn't depend on badssl.com.
+const localhost = [{ name: 'commonName', value: 'localhost' }];
+const day = 24 * 60 * 60 * 1000;
+const badCerts = {
+    'self-signed': await generate(localhost, { keyType: 'ec' }),
+    'expired': await generate(localhost, {
+        keyType: 'ec',
+        notBeforeDate: new Date(Date.now() - 2 * day),
+        notAfterDate: new Date(Date.now() - day),
+    }),
+    'wrong-host': await generate([{ name: 'commonName', value: 'wrong.host.test' }], { keyType: 'ec' }),
+};
+
+const servers = [];
+
+async function startServer(server, title) {
+    server.on('request', (_req, res) => {
+        res.setHeader('content-type', 'text/html');
+        res.end(`<html><head><title>${title}</title></head><body></body></html>`);
+    });
+    await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+    servers.push(server);
+    return server.address().port;
+}
+
+const badSslUrls = [];
+for (const [name, pems] of Object.entries(badCerts)) {
+    const server = createHttpsServer({ key: pems.private, cert: pems.cert });
+    badSslUrls.push(`https://127.0.0.1:${await startServer(server, name)}/`);
+}
+const validUrl = `http://127.0.0.1:${await startServer(createHttpServer(), 'valid')}/`;
 
 await Actor.main(async () => {
     const crawler = new CheerioCrawler({
@@ -54,5 +55,10 @@ await Actor.main(async () => {
         },
     });
 
-    await crawler.run(badSslUrls);
+    await crawler.run([...badSslUrls, validUrl]);
+
+    for (const server of servers) {
+        server.close();
+        server.closeAllConnections();
+    }
 }, mainOptions);

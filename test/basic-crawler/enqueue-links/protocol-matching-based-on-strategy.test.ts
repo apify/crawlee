@@ -27,7 +27,7 @@ const HTML = `
  * Runs `crawler.addRequests()` against the links extracted from `HTML`, resolved relative to `baseUrl` -
  * the address `enqueueLinks()` would normally anchor the strategy to - and returns the resulting URLs.
  */
-async function enqueuedUrls(strategy: EnqueueStrategy, baseUrl: string): Promise<Set<string>> {
+async function enqueuedUrls(strategy: EnqueueStrategy, baseUrl: string, html = HTML): Promise<Set<string>> {
     const enqueued: Source[] = [];
     const requestQueue = await RequestQueue.open();
     const originalAddRequests = requestQueue.addRequests.bind(requestQueue);
@@ -41,7 +41,7 @@ async function enqueuedUrls(strategy: EnqueueStrategy, baseUrl: string): Promise
     };
 
     const crawler = new CheerioCrawler({ requestManager: requestQueue });
-    const urls = extractUrlsFromCheerio(load(HTML), 'a', baseUrl);
+    const urls = extractUrlsFromCheerio(load(html), 'a', baseUrl);
     await crawler.addRequests(urls, { baseUrl, strategy });
 
     return new Set(enqueued.map((item) => item.url!));
@@ -68,5 +68,16 @@ describe('enqueueLinks() - matching and ignoring http/https protocol differences
         expect(await enqueuedUrls(EnqueueStrategy.SameOrigin, 'https://example.com')).toEqual(
             new Set(['https://example.com/first']),
         );
+    });
+
+    test('only SameOrigin respects the port', async () => {
+        const html = `<a href="http://10.0.0.5:8080/a">a</a><a href="https://10.0.0.5/b">b</a>`;
+
+        for (const strategy of [EnqueueStrategy.SameHostname, EnqueueStrategy.SameDomain]) {
+            expect(await enqueuedUrls(strategy, 'http://10.0.0.5', html)).toEqual(
+                new Set(['http://10.0.0.5:8080/a', 'https://10.0.0.5/b']),
+            );
+        }
+        expect(await enqueuedUrls(EnqueueStrategy.SameOrigin, 'http://10.0.0.5', html)).toEqual(new Set());
     });
 });

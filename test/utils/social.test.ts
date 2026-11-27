@@ -141,6 +141,23 @@ describe('utils.social', () => {
                 ]),
             ).toEqual(['info@example.com', 'info@example.com']);
         });
+
+        test('handles queries, several recipients and percent-encoding', () => {
+            expect(
+                emailsFromUrls([
+                    'mailto:sales@example.com?subject=Hello%20there',
+                    'mailto:alice@example.com,%20bob@example.com?cc=carol@example.com',
+                    'mailto:david%40example.com',
+                    'MAILTO:eva@example.com?',
+                ]),
+            ).toEqual([
+                'sales@example.com',
+                'alice@example.com',
+                'bob@example.com',
+                'david@example.com',
+                'eva@example.com',
+            ]);
+        });
     });
 
     describe('phonesFromText()', () => {
@@ -358,6 +375,27 @@ describe('utils.social', () => {
                     'http://www.example.com',
                 ]),
             ).toEqual(['+42012345678', '+420.123.456']);
+        });
+
+        test('handles country codes, separators, parameters and percent-encoding', () => {
+            expect(
+                phonesFromUrls([
+                    'tel:+1-555-123-4567',
+                    'tel:+1 555 123 4567',
+                    'tel:+1.555.123.4567',
+                    'tel:+1 (555) 123-4567',
+                    'tel:%2B1%20555%20123%204567',
+                    'tel:5551234567;ext=89',
+                    'tel:+1-555',
+                ]),
+            ).toEqual([
+                '+1-555-123-4567',
+                '+1 555 123 4567',
+                '+1.555.123.4567',
+                '+1 (555) 123-4567',
+                '+1 555 123 4567',
+                '5551234567',
+            ]);
         });
     });
 

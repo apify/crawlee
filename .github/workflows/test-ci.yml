@@ -15,6 +15,9 @@ concurrency:
     group: ${{ github.workflow }}-${{ github.ref }}
     cancel-in-progress: true
 
+permissions:
+    contents: read
+
 jobs:
     build_and_test:
         name: Build & Test
@@ -29,35 +32,55 @@ jobs:
             matrix:
                 # tests on windows are extremely unstable
                 # os: [ ubuntu-22.04, windows-2019 ]
-                os: [ ubuntu-22.04 ]
+                os: [ ubuntu-26.04 ]
                 node-version: [ 22, 24, 26 ]
 
         steps:
             -   name: Checkout repository
-                uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+                uses: actions/checkout@v7.0.1
+                with:
+                    persist-credentials: false
 
             -   name: Use Node.js ${{ matrix.node-version }}
-                uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+                uses: actions/setup-node@v7.1.0
                 with:
                     node-version: ${{ matrix.node-version }}
                     package-manager-cache: false
 
             -   name: Turbo cache
                 id: turbo-cache
-                uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+                uses: actions/cache@v6.1.0
                 with:
                     path: .turbo
                     key: turbo-${{ github.job }}-${{ matrix.node-version }}-${{ github.ref_name }}-${{ github.sha }}
                     restore-keys: |
                         turbo-${{ github.job }}-${{ matrix.node-version }}-${{ github.ref_name }}-
 
-            -   uses: apify/actions/pnpm-install@v1.6.2
+            -   uses: apify/actions/pnpm-install@v1.9.0
+
+            # --with-deps pulls ~140 MB of WebKit/Firefox deps from azure.archive.ubuntu.com, which intermittently crawls at ~50 KB/s
+            -   name: Cache Playwright system dependencies
+                uses: actions/cache@v6.1.0
+                with:
+                    path: /tmp/apt-archives/*.deb
+                    key: playwright-apt-${{ matrix.os }}-${{ hashFiles('node_modules/playwright-core/package.json') }}
+                    restore-keys: |
+                        playwright-apt-${{ matrix.os }}-
 
             -   name: Install Playwright browsers
-                run: pnpm exec playwright install --with-deps
+                timeout-minutes: 10
+                run: |
+                    mkdir -p /tmp/apt-archives/partial
+                    printf 'Dir::Cache::Archives "/tmp/apt-archives/";\nAPT::Keep-Downloaded-Packages "true";\nAcquire::Retries "3";\nAcquire::http::Timeout "30";\n' | sudo tee /etc/apt/apt.conf.d/99-playwright-archives
+                    for i in 1 2 3; do timeout 180 pnpm exec playwright install --with-deps && exit 0; echo "Attempt $i stalled, retrying"; done
+                    exit 1
 
             -   name: Install Puppeteer Chrome
                 run: pnpm exec puppeteer browsers install chrome
+
+            # the ubuntu-26.04 runner's AppArmor blocks unprivileged user namespaces, so Puppeteer's sandboxed Chromium fails with "No usable sandbox!"
+            -   name: Allow Chromium sandbox
+                run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
 
             -   name: Build
                 run: pnpm ci:build
@@ -74,28 +97,30 @@ jobs:
 
     api_surface:
         name: Public API surface
-        runs-on: ubuntu-22.04
+        runs-on: ubuntu-26.04
 
         steps:
             -   name: Checkout repository
-                uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+                uses: actions/checkout@v7.0.1
+                with:
+                    persist-credentials: false
 
             -   name: Use Node.js 24
-                uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+                uses: actions/setup-node@v7.1.0
                 with:
                     node-version: 24
                     package-manager-cache: false
 
             -   name: Turbo cache
                 id: turbo-cache
-                uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+                uses: actions/cache@v6.1.0
                 with:
                     path: .turbo
                     key: turbo-${{ github.job }}-${{ github.ref_name }}-${{ github.sha }}
                     restore-keys: |
                         turbo-${{ github.job }}-${{ github.ref_name }}-
 
-            -   uses: apify/actions/pnpm-install@v1.6.2
+            -   uses: apify/actions/pnpm-install@v1.9.0
 
             -   name: Build
                 run: pnpm ci:build
@@ -106,27 +131,29 @@ jobs:
     docs:
         name: Docs build
         if: (!contains(github.event.head_commit.message, '[skip ci]') && github.ref != 'refs/heads/master')
-        runs-on: ubuntu-22.04
+        runs-on: ubuntu-26.04
         steps:
             -   name: Checkout Source code
-                uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+                uses: actions/checkout@v7.0.1
+                with:
+                    persist-credentials: false
 
             -   name: Use Node.js 24
-                uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+                uses: actions/setup-node@v7.1.0
                 with:
                     node-version: 24
                     package-manager-cache: false
 
             -   name: Turbo cache
                 id: turbo-cache
-                uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+                uses: actions/cache@v6.1.0
                 with:
                     path: .turbo
                     key: turbo-${{ github.job }}-${{ github.ref_name }}-${{ github.sha }}
                     restore-keys: |
                         turbo-${{ github.job }}-${{ github.ref_name }}-
 
-            -   uses: apify/actions/pnpm-install@v1.6.2
+            -   uses: apify/actions/pnpm-install@v1.9.0
 
             -   name: Build & deploy docs
                 run: |
@@ -235,28 +262,30 @@ jobs:
 
     lint:
         name: Lint
-        runs-on: ubuntu-22.04
+        runs-on: ubuntu-26.04
 
         steps:
             -   name: Checkout repository
-                uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+                uses: actions/checkout@v7.0.1
+                with:
+                    persist-credentials: false
 
             -   name: Use Node.js 24
-                uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+                uses: actions/setup-node@v7.1.0
                 with:
                     node-version: 24
                     package-manager-cache: false
 
             -   name: Turbo cache
                 id: turbo-cache
-                uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+                uses: actions/cache@v6.1.0
                 with:
                     path: .turbo
                     key: turbo-${{ github.job }}-${{ github.ref_name }}-${{ github.sha }}
                     restore-keys: |
                         turbo-${{ github.job }}-${{ github.ref_name }}-
 
-            -   uses: apify/actions/pnpm-install@v1.6.2
+            -   uses: apify/actions/pnpm-install@v1.9.0
 
             -   name: Oxlint
                 run: pnpm lint
@@ -268,31 +297,38 @@ jobs:
         name: Release @next
         if: github.event_name == 'push' && github.ref == 'refs/heads/master' && (!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, 'docs:'))
         needs: build_and_test
-        runs-on: ubuntu-22.04
+        runs-on: ubuntu-26.04
+        environment:
+            name: npm
+            deployment: false
+        permissions:
+            contents: read
+            # Starts publish-to-npm.yml and waits for it with the job token.
+            actions: write
 
         steps:
             -   name: Checkout repository
-                uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+                uses: actions/checkout@v7.0.1
                 with:
                     token: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
                     fetch-depth: 0
 
             -   name: Use Node.js 24
-                uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+                uses: actions/setup-node@v7.1.0
                 with:
                     node-version: 24
                     package-manager-cache: false
 
             -   name: Turbo cache
                 id: turbo-cache
-                uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+                uses: actions/cache@v6.1.0
                 with:
                     path: .turbo
                     key: turbo-${{ github.job }}-${{ github.ref_name }}-${{ github.sha }}
                     restore-keys: |
                         turbo-${{ github.job }}-${{ github.ref_name }}-
 
-            -   uses: apify/actions/pnpm-install@v1.6.2
+            -   uses: apify/actions/pnpm-install@v1.9.0
 
             -   name: Build
                 run: pnpm ci:build
@@ -314,7 +350,7 @@ jobs:
 
             -   name: Publish packages
                 if: steps.changed-packages.outputs.changed_packages != '0'
-                uses: apify/actions/execute-workflow@v1.6.2
+                uses: apify/actions/execute-workflow@v1.9.0
                 with:
                     workflow: publish-to-npm.yml
                     inputs: >
@@ -333,7 +369,7 @@ jobs:
                     echo "crawlee=$crawlee" | tee -a $GITHUB_OUTPUT
 
             -   name: Trigger Docker image builds
-                uses: peter-evans/repository-dispatch@28959ce8df70de7be546dd1250a005dd32156697 # v4.0.1
+                uses: peter-evans/repository-dispatch@v4.0.1
                 # Trigger next images only if we have something new pushed
                 if: github.ref == 'refs/heads/master' && steps.changed-packages.outputs.changed_packages != '0'
                 with:

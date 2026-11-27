@@ -260,9 +260,9 @@ export class StorageTransaction implements StorageTransactionView {
 
         try {
             // The replay re-drives the frontend write path, which checks for cancellation (`tryCancel`)
-            // on every operation - and `@apify/timeout` shares one `AbortController` across nested
-            // frames, so a request-handler timeout that already fired would abort the commit of a
-            // handler that succeeded. Hence a fresh timeout context, which also provides the time bound.
+            // on every operation, including those of enclosing frames - so a caller whose timeout already
+            // fired would abort the commit of a handler that succeeded. Hence a fresh timeout context,
+            // which also provides the time bound.
             await timeoutStorage.exit(async () =>
                 addTimeoutToPromise(
                     async () => this.#flush(),

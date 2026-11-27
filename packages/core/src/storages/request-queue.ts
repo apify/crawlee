@@ -150,7 +150,7 @@ export class RequestQueue implements IStorage, IRequestManager {
 
     /**
      * The largest expected request-processing time (in seconds) seen so far via
-     * {@link setExpectedRequestProcessingTimeSecs}. Used to ensure that value is only ever raised, never
+     * {@link setExpectedRequestProcessingTime}. Used to ensure that value is only ever raised, never
      * lowered, before being forwarded to the storage backend.
      */
     #expectedRequestProcessingSecs = 0;
@@ -640,6 +640,7 @@ export class RequestQueue implements IStorage, IRequestManager {
             waitBetweenBatchesMillis,
             waitForAllRequestsToBeAdded,
             maxNewRequests,
+            log: this.log,
 
             /**
              * Requests the backend reports as unprocessed are warned about and skipped rather than retried:
@@ -858,26 +859,26 @@ export class RequestQueue implements IStorage, IRequestManager {
      * ever raise the reservation duration, never lower it — otherwise a short-lived consumer could cut
      * short the reservation of a long-lived one and have its in-flight request stolen.
      */
-    async setExpectedRequestProcessingTimeSecs(secs: number): Promise<void> {
-        if (secs <= this.#expectedRequestProcessingSecs) {
+    async setExpectedRequestProcessingTime(processingTimeSecs: number): Promise<void> {
+        if (processingTimeSecs <= this.#expectedRequestProcessingSecs) {
             return;
         }
 
-        this.#expectedRequestProcessingSecs = secs;
-        await this.backend.setExpectedRequestProcessingTimeSecs?.(secs);
+        this.#expectedRequestProcessingSecs = processingTimeSecs;
+        await this.backend.setExpectedRequestProcessingTime?.(processingTimeSecs);
     }
 
     /**
      * @inheritdoc
-     * Unlike {@link RequestQueue.setExpectedRequestProcessingTimeSecs}, which sizes every future lock,
+     * Unlike {@link RequestQueue.setExpectedRequestProcessingTime}, which sizes every future lock,
      * this only touches the one request it is given.
      */
-    async extendRequestProcessingTimeSecs(request: Request, secs: number): Promise<boolean> {
+    async extendRequestProcessingTime(request: Request, extensionSecs: number): Promise<boolean> {
         if (!request.id) {
             return false;
         }
 
-        return (await this.backend.extendRequestProcessingTimeSecs?.(request.id, secs)) ?? false;
+        return (await this.backend.extendRequestProcessingTime?.(request.id, extensionSecs)) ?? false;
     }
 
     /**
@@ -922,7 +923,7 @@ export class RequestQueue implements IStorage, IRequestManager {
         this.#inProgressRequestBatchCount = 0;
 
         // Reset the expected-processing-time high-water mark too, otherwise the monotonic-raise guard
-        // in `setExpectedRequestProcessingTimeSecs` would let a value raised in an earlier run leak into a
+        // in `setExpectedRequestProcessingTime` would let a value raised in an earlier run leak into a
         // later one and silently swallow a lower hint (the queue is meant to be reusable across runs).
         this.#expectedRequestProcessingSecs = 0;
     }
@@ -1165,13 +1166,11 @@ export interface AddRequestsBatchedOptions extends RequestQueueOperationOptions 
 
     /**
      * If set, only this many *actually new* requests (i.e. not already present in the queue) will be added.
-     * Once the budget is reached, remaining requests from the iterable will be collected in
-     * {@apilink AddRequestsBatchedResult.requestsOverLimit|`requestsOverLimit`} instead.
+     * Once the budget is reached, remaining requests from the iterable are left unconsumed, or collected in
+     * {@apilink AddRequestsBatchedResult.requestsOverLimit|`requestsOverLimit`} if
+     * {@apilink AddRequestsBatchedOptions.waitForAllRequestsToBeAdded|`waitForAllRequestsToBeAdded`} is set.
      *
      * This is useful in combination with `maxRequestsPerCrawl` to avoid duplicate URLs consuming the budget.
-     *
-     * **Note:** Setting this option implicitly enables {@apilink AddRequestsBatchedOptions.waitForAllRequestsToBeAdded|`waitForAllRequestsToBeAdded`},
-     * since all batches must complete before leftover requests can be accurately reported.
      */
     maxNewRequests?: number;
 }
@@ -1199,7 +1198,8 @@ export interface AddRequestsBatchedResult {
     /**
      * Requests from the input that were not added to the queue because the
      * {@apilink AddRequestsBatchedOptions.maxNewRequests|`maxNewRequests`} budget was reached.
-     * Empty when `maxNewRequests` is not set.
+     * `undefined` unless both `maxNewRequests` and
+     * {@apilink AddRequestsBatchedOptions.waitForAllRequestsToBeAdded|`waitForAllRequestsToBeAdded`} are set.
      */
     requestsOverLimit?: Source[];
 }

@@ -224,7 +224,15 @@ describe('CheerioCrawler', () => {
         });
         await strictCrawler.run([`${serverAddress}/?tls=strict`]);
 
-        expect(captured).toEqual([true, false]);
+        const lenientCrawler = new CheerioCrawler({
+            httpClient: capturingClient,
+            ignoreTlsErrors: true,
+            maxConcurrency: 1,
+            requestHandler: () => {},
+        });
+        await lenientCrawler.run([`${serverAddress}/?tls=lenient`]);
+
+        expect(captured).toEqual([false, false, true]);
     });
 
     test('should work with skipNavigation', async () => {

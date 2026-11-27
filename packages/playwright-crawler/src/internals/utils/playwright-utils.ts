@@ -27,7 +27,7 @@ import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
 import type { Cheerio, CheerioAPI } from 'cheerio';
 import type { AnyNode } from 'domhandler';
 import { sleep } from '@crawlee/utils';
-import { expandShadowRoots, parseArgument, schemas } from '@crawlee/utils/internal';
+import { expandShadowRoots, parseArgument, schemas, snapshotPageWithIframes } from '@crawlee/utils/internal';
 import type { Download, Page, Response, Route } from 'playwright';
 import { z } from 'zod';
 
@@ -584,42 +584,34 @@ export async function parseWithCheerio(
 ): Promise<CheerioAPI> {
     parseArgument(page, validators.browserPage);
 
-    const html = ignoreShadowRoots
-        ? null
-        : ((await page.evaluate(`(${expandShadowRoots.toString()})(document)`)) as string);
-    const pageContent = html || (await page.content());
+    const snapshot = await page.evaluateHandle(
+        `(${snapshotPageWithIframes.toString()})(document, ${ignoreShadowRoots ? 'null' : expandShadowRoots.toString()})`,
+    );
+    const pageContent = (await (await snapshot.getProperty('html')).jsonValue()) as string;
+
     // Full cheerio (parse5) import for browser compliant parser
     const { load } = await import('cheerio');
     const $ = load(pageContent);
 
     if (page.frames().length > 1 && !ignoreIframes) {
-        const frames = await page.$$('iframe');
-        const cheerioIframes = $('iframe').toArray();
-
-        if (frames.length !== cheerioIframes.length) {
-            serviceLocator
-                .getLogger()
-                .warning(
-                    `parseWithCheerio: iframe count mismatch between live DOM (${frames.length}) and page snapshot (${cheerioIframes.length}). Some iframes may not be expanded.`,
-                );
-        }
+        const iframes = await (await snapshot.getProperty('iframes')).getProperties();
 
         await Promise.all(
-            frames.map(async (frame, index) => {
+            [...iframes].map(async ([id, handle]) => {
                 try {
-                    const iframe = await frame.contentFrame();
+                    const iframe = await handle.asElement()?.contentFrame();
 
-                    if (iframe && cheerioIframes[index]) {
+                    if (iframe) {
                         const getIframeHTML = async (): Promise<string> => {
                             try {
-                                return iframe.locator('body').first().innerHTML();
+                                return await iframe.locator('body').first().innerHTML();
                             } catch {
                                 return iframe.content();
                             }
                         };
 
                         const contents = await getIframeHTML();
-                        $(cheerioIframes[index]).replaceWith(
+                        $(`iframe[data-crawlee-iframe-id="${id}"]`).replaceWith(
                             `<div class="crawlee-iframe-replacement">${contents}</div>`,
                         );
                     }
@@ -629,6 +621,9 @@ export async function parseWithCheerio(
             }),
         );
     }
+
+    await snapshot.dispose();
+    $('[data-crawlee-iframe-id]').removeAttr('data-crawlee-iframe-id');
 
     return $;
 }
@@ -659,43 +654,58 @@ export interface HandleCloudflareChallengeOptions {
  *
  * On a successfully solved challenge the page is reloaded and the new {@apilink Response} is returned, so
  * it can be propagated back to the crawling context via a hook return value (see
- * {@apilink handleCloudflareChallengeHook}).
+ * {@apilink handleCloudflareChallengeHook}). Thanks to that, the 403 status of the challenge page does not
+ * need to be removed from `blockedStatusCodes` - a solved challenge replaces the response before the
+ * blocked-status check runs, and an unsolved one is retried with a fresh session.
  *
  * Works best with camoufox.
  *
  * **Example usage**
  * ```ts
  * postNavigationHooks: [
- *     async (context) => ({ response: await context.handleCloudflareChallenge() }),
+ *     async (context) => {
+ *         const response = await context.handleCloudflareChallenge();
+ *         // `{ response: undefined }` would replace the navigation response and skip the blocked-status check
+ *         return response && { response };
+ *     },
  * ],
  * ```
  *
  * @param page Playwright [`Page`](https://playwright.dev/docs/api/class-page) object
  * @param url current URL for request identification, only used for logging
  * @param [options]
+ * @param [response] navigation response, used to poll for late-rendered challenge markup when it signals a likely challenge
  */
 export async function handleCloudflareChallenge(
     page: Page,
     url: string,
     options: HandleCloudflareChallengeOptions = {},
+    response?: Response,
 ): Promise<Response | undefined> {
-    options.isBlockedCallback ??= async () => {
-        const isBlocked = await page.evaluate(() => {
-            return document.querySelector('h1')?.textContent?.trim().includes('Sorry, you have been blocked');
+    // The options object may outlive this call (the pre-wrapped hook reuses one instance for all
+    // requests and retries), so the defaults are kept local instead of being memoized on `options` -
+    // memoizing them would pin the closed-over `page` of the first call forever.
+    const isBlockedCallback =
+        options.isBlockedCallback ??
+        (async (p: Page) => {
+            const isBlocked = await p.evaluate(() => {
+                return document.querySelector('h1')?.textContent?.trim().includes('Sorry, you have been blocked');
+            });
+            return !!isBlocked;
         });
-        return !!isBlocked;
-    };
 
-    options.isChallengeCallback ??= async () => {
-        return await page.evaluate(async () => {
-            // Cloudflare keeps reshuffling the wrapper elements between `.footer-inner` and `.ray-id`,
-            // so only the stable outer classes are matched.
-            return !!document.querySelector('.footer .footer-inner .ray-id');
+    const isChallengeCallback =
+        options.isChallengeCallback ??
+        (async (p: Page) => {
+            return await p.evaluate(async () => {
+                // Cloudflare keeps reshuffling the wrapper elements between `.footer-inner` and `.ray-id`,
+                // so only the stable outer classes are matched.
+                return !!document.querySelector('.footer .footer-inner .ray-id');
+            });
         });
-    };
 
     const retryBlocked = async () => {
-        const isBlocked = await options.isBlockedCallback!(page).catch(() => false);
+        const isBlocked = await isBlockedCallback(page).catch(() => false);
 
         if (isBlocked) {
             throw new SessionError(`Blocked by Cloudflare when processing ${url}`);
@@ -704,14 +714,30 @@ export async function handleCloudflareChallenge(
 
     // check if we ended up on the CF challenge page
     const isChallenge = async () => {
-        return options.isChallengeCallback!(page).catch(async () => {
+        return isChallengeCallback(page).catch(async () => {
             // the challenge page navigates itself, which destroys the context of an in-flight check
             await page.waitForLoadState('domcontentloaded').catch(() => {});
-            return options.isChallengeCallback!(page).catch(() => false);
+            return isChallengeCallback(page).catch(() => false);
         });
     };
 
-    if (!(await isChallenge())) {
+    // The challenge markup can finish rendering only after the `load` event, so when the response signals
+    // a likely challenge, poll for it instead of checking once. A 403 alone is not enough - it must come
+    // from Cloudflare (the `cf-ray` header), so 403s served by other stacks keep failing fast.
+    const headers = response?.headers() ?? {};
+    const likelyChallenge =
+        headers['cf-mitigated'] === 'challenge' || (response?.status() === 403 && 'cf-ray' in headers);
+
+    let detected = await isChallenge();
+
+    for (let i = 0; !detected && likelyChallenge && i < 10; i++) {
+        // a hard-blocked page never turns into a challenge, so fail fast instead of finishing the poll
+        await retryBlocked();
+        await sleep(500);
+        detected = await isChallenge();
+    }
+
+    if (!detected) {
         await retryBlocked();
         return undefined;
     }
@@ -1005,7 +1031,11 @@ export interface PlaywrightContextUtils {
      * **Example usage**
      * ```ts
      * postNavigationHooks: [
-     *     async (context) => ({ response: await context.handleCloudflareChallenge() }),
+     *     async (context) => {
+     *         const response = await context.handleCloudflareChallenge();
+     *         // `{ response: undefined }` would replace the navigation response and skip the blocked-status check
+     *         return response && { response };
+     *     },
      * ],
      * ```
      *

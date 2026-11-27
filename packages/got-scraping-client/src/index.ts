@@ -35,7 +35,7 @@ export class GotScrapingHttpClient extends BaseHttpClient {
     }
 
     protected override async fetch(request: Request, options?: RequestInit & CustomFetchOptions): Promise<Response> {
-        const { proxyUrl, redirect, ignoreTlsErrors } = options ?? {};
+        const { proxyUrl, redirect, signal, ignoreTlsErrors } = options ?? {};
 
         if (!this.#validateRequest(request)) {
             throw new Error(`The HTTP method CONNECT is not supported by the GotScrapingHttpClient.`);
@@ -47,7 +47,9 @@ export class GotScrapingHttpClient extends BaseHttpClient {
             headers: Object.fromEntries(request.headers.entries()),
             body: request.body ? Readable.fromWeb(request.body as any) : undefined,
             proxyUrl,
-            signal: options?.signal ?? undefined,
+            signal: signal ?? undefined,
+            // The caller's signal carries the deadline, so got-scraping's 60 s default must not cut the request short.
+            ...(signal ? { timeout: { request: undefined } } : {}),
             followRedirect: redirect === 'follow',
             ...(ignoreTlsErrors ? { https: { rejectUnauthorized: false } } : {}),
         });

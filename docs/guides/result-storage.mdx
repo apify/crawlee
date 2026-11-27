@@ -154,7 +154,7 @@ This is **on by default** for every crawler and covers the whole request lifecyc
 
   Under the `deferred` policy, the `requestId` returned by an `addRequests()` call inside a handler is provisional — the real id is assigned by the storage backend when the transaction commits.
 
-- **Shared state.** The object returned by `useState()` / <ApiLink to="core/class/KeyValueStore#getAutoSavedValue">`KeyValueStore.getAutoSavedValue()`</ApiLink> is the sanctioned live channel shared by all handlers, and it stays live: mutations of it are **not** rolled back when a handler fails.
+- **Shared state.** The object returned by `useState()` / <ApiLink to="core/class/KeyValueStore#getAutoSavedValue">`KeyValueStore.getAutoSavedValue()`</ApiLink> is deliberately exempt. It is the live channel shared by all handlers: a write is visible to every other handler the moment it is made, and a counter incremented from several handlers at once stays correct only because of that. Buffering it per request would hide those writes until commit and lose concurrent updates, so mutations of it are **not** rolled back when a handler fails — a failed handler that incremented a counter leaves the increment behind. (<ApiLink to="playwright-crawler/class/AdaptivePlaywrightCrawler">`AdaptivePlaywrightCrawler`</ApiLink> undoes the state writes of a request handler attempt it discards; see [Adaptive crawling](./adaptive-crawling#how-it-works).)
 
 - **Cross-storage atomicity.** The commit spans multiple storages and multiple calls; delivery is *at-least-once*. If a commit fails partway, the request fails and is retried, and the retry may re-apply what already landed.
 

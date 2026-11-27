@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises';
 import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 
@@ -17,6 +18,7 @@ import type {
     AdaptivePlaywrightCrawlerContext,
     AdaptivePlaywrightCrawlerOptions,
     LoadedContext,
+    PlaywrightCrawlingContext,
     Request,
 } from '@crawlee/playwright';
 import {
@@ -33,6 +35,7 @@ import {
 import type { Dictionary } from '@crawlee/types';
 import { sleep } from 'crawlee';
 import express from 'express';
+import playwright from 'playwright';
 import { z } from 'zod';
 
 import { startExpressAppPromise } from '../../shared/_helper.js';
@@ -137,6 +140,25 @@ describe('AdaptivePlaywrightCrawler', () => {
             res.status(302);
             res.setHeader('Location', 'https://google.com');
             res.send('Redirecting...');
+        });
+
+        app.get('/plain', (_req, res) => {
+            res.status(200).type('text/plain').send('hello');
+        });
+
+        app.get('/repeated-headers', (_req, res) => {
+            res.cookie('a', '1');
+            res.cookie('b', '2');
+            res.append('X-Repeated', ['first', 'second']);
+            res.status(200).send('<html><body><h1>Heading</h1></body></html>');
+        });
+
+        app.get('/download', (_req, res) => {
+            res.attachment('file.pdf').send('%PDF-1.4');
+        });
+
+        app.get('/multiple-choices', (_req, res) => {
+            res.status(300).send('<html><body><h1>Heading</h1></body></html>');
         });
     });
     afterAll(async () => {
@@ -679,6 +701,33 @@ describe('AdaptivePlaywrightCrawler', () => {
             });
         });
 
+        test.each([
+            ['/static', 'static'],
+            ['/dynamic', 'clientOnly'],
+        ] as const)('extractLinks returns the links without enqueuing them (%s)', async (path, renderingType) => {
+            const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+                detectionProbabilityRecommendation: 0,
+                renderingType,
+            });
+
+            const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = vi.fn(
+                async ({ extractLinks, pushData }) => {
+                    await pushData({ links: await extractLinks() });
+                },
+            );
+
+            const crawler = await makeOneshotCrawler({ requestHandler, renderingTypePredictor }, [
+                `http://${HOSTNAME}:${port}${path}`,
+            ]);
+
+            await crawler.run();
+
+            expect(requestHandler).toHaveBeenCalledOnce();
+            expect((await Dataset.getData()).items).toEqual([
+                { links: [1, 2, 3, 4, 5].map((q) => `http://${HOSTNAME}:${port}/static?q=${q}`) },
+            ]);
+        });
+
         test.each([['static'], ['clientOnly']] as const)(
             'enqueues nothing when the selector matches nothing (%s)',
             async (renderingType) => {
@@ -771,6 +820,92 @@ describe('AdaptivePlaywrightCrawler', () => {
         expect((await Dataset.getData()).items).toEqual([{ url, hasHeading: true }]);
     });
 
+    test('browser response without a readable body falls back to the rendered page', async () => {
+        const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+            detectionProbabilityRecommendation: 0,
+            renderingType: 'clientOnly',
+        });
+
+        const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = vi.fn(
+            async ({ response, pushData }) => {
+                await pushData({
+                    status: response.status,
+                    hasHeading: (await response.text()).includes('<h1>Heading</h1>'),
+                });
+            },
+        );
+
+        const crawler = await makeOneshotCrawler({ requestHandler, renderingTypePredictor }, [
+            `http://${HOSTNAME}:${port}/multiple-choices`,
+        ]);
+
+        await crawler.run();
+
+        expect(requestHandler).toHaveBeenCalledOnce();
+        expect((await Dataset.getData()).items).toEqual([{ status: 300, hasHeading: true }]);
+    });
+
+    test.each(['static', 'clientOnly'] as const)(
+        'runs the handler for a skipNavigation request (%s)',
+        async (renderingType) => {
+            const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+                detectionProbabilityRecommendation: 0,
+                renderingType,
+            });
+
+            const responseErrors: string[] = [];
+            const crawler = await makeOneshotCrawler(
+                {
+                    requestHandler: async (context) => {
+                        try {
+                            void context.response.status;
+                        } catch (error) {
+                            responseErrors.push((error as Error).message);
+                        }
+                    },
+                    renderingTypePredictor,
+                    requestList: await RequestList.open({
+                        sources: [{ url: `http://${HOSTNAME}:${port}/static`, skipNavigation: true }],
+                    }),
+                },
+                [],
+            );
+
+            await crawler.run();
+
+            expect(responseErrors).toEqual([expect.stringContaining('`skipNavigation` was used')]);
+        },
+    );
+
+    test.each(['chromium', 'firefox'] as const)('browser response keeps repeated headers (%s)', async (browser) => {
+        const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+            detectionProbabilityRecommendation: 0,
+            renderingType: 'clientOnly',
+        });
+        const url = `http://${HOSTNAME}:${port}/repeated-headers`;
+
+        const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = vi.fn(
+            async ({ response, pushData }) => {
+                await pushData({
+                    setCookie: response.headers.getSetCookie(),
+                    repeated: response.headers.get('x-repeated'),
+                });
+            },
+        );
+
+        const crawler = await makeOneshotCrawler(
+            { requestHandler, renderingTypePredictor, launchContext: { launcher: playwright[browser] } },
+            [url],
+        );
+
+        await crawler.run();
+
+        expect(requestHandler).toHaveBeenCalledOnce();
+        expect((await Dataset.getData()).items).toEqual([
+            { setCookie: ['a=1; Path=/', 'b=2; Path=/'], repeated: 'first, second' },
+        ]);
+    });
+
     test('should persist crawler state', async () => {
         const renderingTypePredictor = makeRiggedRenderingTypePredictor({
             detectionProbabilityRecommendation: 0,
@@ -798,6 +933,204 @@ describe('AdaptivePlaywrightCrawler', () => {
         await crawler.run();
         // Reading through the KeyValueStore frontend parses the JSON value for us.
         expect(await (await KeyValueStore.open()).getValue('CRAWLEE_STATE')).toEqual({ count: 3 });
+    });
+
+    describe('writes of a discarded attempt', () => {
+        test('a rejected HTTP-only attempt does not affect retries of the browser attempt', async () => {
+            // The HTTP crawler rejects the content type with `request.noRetry = true` before the handler runs.
+            const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+                detectionProbabilityRecommendation: 0,
+                renderingType: 'static',
+            });
+
+            const requestHandler = vi.fn(async () => {
+                if (requestHandler.mock.calls.length === 1) throw new Error('a transient failure');
+            });
+            const failedRequestHandler = vi.fn();
+
+            const crawler = await makeOneshotCrawler(
+                { requestHandler, renderingTypePredictor, failedRequestHandler, maxRequestRetries: 1 },
+                [`http://${HOSTNAME}:${port}/plain`],
+            );
+            await crawler.run();
+
+            expect(requestHandler).toHaveBeenCalledTimes(2);
+            expect(failedRequestHandler).not.toHaveBeenCalled();
+        });
+
+        test('request and state writes of a failed HTTP-only attempt are not visible to the browser attempt', async () => {
+            const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+                detectionProbabilityRecommendation: 0,
+                renderingType: 'static',
+            });
+
+            const seenUserData: Dictionary[] = [];
+            const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = vi.fn(
+                async ({ request, useState }) => {
+                    seenUserData.push({ ...request.userData });
+                    const state = await useState({ count: 0, visited: [] as string[] });
+                    state.count++;
+                    state.visited.push(request.url);
+                    request.userData.attempts = (request.userData.attempts ?? 0) + 1;
+                    request.label = 'touched';
+                    if (seenUserData.length === 1) throw new Error('a transient failure');
+                },
+            );
+
+            const crawler = await makeOneshotCrawler({ requestHandler, renderingTypePredictor }, [
+                `http://${HOSTNAME}:${port}/static`,
+            ]);
+            await crawler.run();
+
+            expect(seenUserData).toEqual([{}, {}]);
+            expect(await (await KeyValueStore.open()).getValue('CRAWLEE_STATE')).toEqual({
+                count: 1,
+                visited: [`http://${HOSTNAME}:${port}/static`],
+            });
+        });
+
+        test('request writes made during a failed browser attempt are visible to the retry', async () => {
+            const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+                detectionProbabilityRecommendation: 0,
+                renderingType: 'clientOnly',
+            });
+
+            const seenAttempts: unknown[] = [];
+            const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = vi.fn(async ({ request }) => {
+                seenAttempts.push(request.userData.attempt);
+                request.userData.attempt = seenAttempts.length;
+                if (seenAttempts.length === 1) throw new Error('a transient failure');
+            });
+
+            const crawler = await makeOneshotCrawler({ requestHandler, renderingTypePredictor, maxRequestRetries: 1 }, [
+                `http://${HOSTNAME}:${port}/static`,
+            ]);
+            await crawler.run();
+
+            expect(seenAttempts).toEqual([undefined, 1]);
+        });
+
+        test('the detection rerun (HTTP) sees the live state in case the browser attempt never read it', async () => {
+            const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+                detectionProbabilityRecommendation: 1,
+                renderingType: 'clientOnly',
+            });
+            await (await KeyValueStore.open()).setValue('CRAWLEE_STATE', { seeded: true });
+
+            const seen: Dictionary[] = [];
+            const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = async (context) => {
+                // `page` throws in the HTTP-only run; the browser run never touches the state.
+                try {
+                    void context.page;
+                    return;
+                } catch {}
+
+                const state = await context.useState<Dictionary>({ fresh: true });
+                seen.push({ ...state });
+                state.rerun = true;
+                seen.push({ ...(await context.useState({ fresh: true })) });
+            };
+
+            const crawler = await makeOneshotCrawler({ requestHandler, renderingTypePredictor }, [
+                `http://${HOSTNAME}:${port}/static`,
+            ]);
+            await crawler.run();
+
+            expect(seen).toEqual([{ seeded: true }, { seeded: true, rerun: true }]);
+            expect(await (await KeyValueStore.open()).getValue('CRAWLEE_STATE')).toEqual({ seeded: true });
+        });
+
+        test('the detection rerun (HTTP) sees the request as it was before the browser attempt', async () => {
+            const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+                detectionProbabilityRecommendation: 1,
+                renderingType: 'clientOnly',
+            });
+
+            const seenUserData: Dictionary[] = [];
+            let browserRequest: Request | undefined;
+            const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = async (context) => {
+                seenUserData.push({ ...context.request.userData });
+                context.request.userData.attempts = (context.request.userData.attempts ?? 0) + 1;
+                try {
+                    void context.page;
+                    browserRequest = context.request;
+                } catch {}
+            };
+
+            const url = `http://${HOSTNAME}:${port}/static`;
+            const crawler = await makeOneshotCrawler(
+                {
+                    requestHandler,
+                    renderingTypePredictor,
+                    requestList: await RequestList.open({ sources: [{ url, userData: { seeded: true } }] }),
+                },
+                [],
+            );
+            await crawler.run();
+
+            expect(seenUserData).toEqual([{ seeded: true }, { seeded: true }]);
+            expect(browserRequest?.userData).toEqual({ seeded: true, attempts: 1 });
+        });
+
+        test('the detection rerun (HTTP) does not see what the browser attempt wrote in afterStorageCommit', async () => {
+            const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+                detectionProbabilityRecommendation: 1,
+                renderingType: 'clientOnly',
+            });
+
+            const seen: Dictionary[] = [];
+            const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = async ({
+                request,
+                useState,
+                afterStorageCommit,
+            }) => {
+                const state = await useState<Dictionary>();
+                seen.push({ state: { ...state }, userData: { ...request.userData } });
+                afterStorageCommit(() => {
+                    state.stored = true;
+                    request.userData.stored = true;
+                });
+            };
+
+            const crawler = await makeOneshotCrawler({ requestHandler, renderingTypePredictor }, [
+                `http://${HOSTNAME}:${port}/static`,
+            ]);
+            await crawler.run();
+
+            expect(seen).toEqual([
+                { state: {}, userData: {} },
+                { state: {}, userData: {} },
+            ]);
+            expect(await (await KeyValueStore.open()).getValue('CRAWLEE_STATE')).toEqual({ stored: true });
+        });
+
+        test('the detection rerun (HTTP) discards what its deferred cleanups write after it fails', async () => {
+            const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+                detectionProbabilityRecommendation: 1,
+                renderingType: 'clientOnly',
+            });
+
+            const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = async (context) => {
+                try {
+                    void context.page;
+                } catch {
+                    // The HTTP-only detection rerun - its writes, those of its cleanups included, are discarded.
+                    context.registerDeferredCleanup(async () => {
+                        await context.pushData({ run: 'detection' });
+                    });
+                    throw new Error('HTTP-only attempt failed');
+                }
+
+                await context.pushData({ run: 'browser' });
+            };
+
+            const crawler = await makeOneshotCrawler({ requestHandler, renderingTypePredictor }, [
+                `http://${HOSTNAME}:${port}/static`,
+            ]);
+            await crawler.run();
+
+            expect((await Dataset.getData()).items).toEqual([{ run: 'browser' }]);
+        });
     });
 
     test('should return deeply equal but not identical state objects across handler runs', async () => {
@@ -1005,6 +1338,134 @@ describe('AdaptivePlaywrightCrawler', () => {
         expect((await Dataset.getData()).items).toEqual([{ run: 1 }]);
     });
 
+    test('runs deferred cleanups one at a time, newest first, without failing the request on a cleanup error', async () => {
+        const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+            detectionProbabilityRecommendation: 0,
+            renderingType: 'static',
+        });
+
+        const events: string[] = [];
+        const failedRequestHandler = vi.fn();
+
+        const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = async ({
+            pushData,
+            registerDeferredCleanup,
+        }) => {
+            await pushData({ ok: true });
+            registerDeferredCleanup(async () => {
+                events.push('first');
+            });
+            registerDeferredCleanup(async () => {
+                events.push('second');
+                throw new Error('cleanup failed');
+            });
+            // Yields mid-cleanup, so concurrent execution would interleave the others between start and end.
+            registerDeferredCleanup(async () => {
+                events.push('third:start');
+                await Promise.resolve();
+                events.push('third:end');
+            });
+        };
+
+        const crawler = await makeOneshotCrawler(
+            { requestHandler, renderingTypePredictor, maxRequestRetries: 3, failedRequestHandler },
+            [`http://${HOSTNAME}:${port}/static`],
+        );
+
+        await crawler.run();
+
+        expect(events).toEqual(['third:start', 'third:end', 'second', 'first']);
+        expect(failedRequestHandler).not.toHaveBeenCalled();
+        expect((await Dataset.getData()).items).toEqual([{ ok: true }]);
+    });
+
+    test('closes the page only after the deferred cleanups of a browser attempt', async () => {
+        const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+            detectionProbabilityRecommendation: 0,
+            renderingType: 'clientOnly',
+        });
+
+        let pageClosedInCleanup: boolean | undefined;
+
+        const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = async ({
+            page,
+            registerDeferredCleanup,
+        }) => {
+            registerDeferredCleanup(async () => {
+                pageClosedInCleanup = page.isClosed();
+            });
+        };
+
+        const crawler = await makeOneshotCrawler({ requestHandler, renderingTypePredictor }, [
+            `http://${HOSTNAME}:${port}/dynamic`,
+        ]);
+
+        await crawler.run();
+
+        expect(pageClosedInCleanup).toBe(false);
+    });
+
+    test('hands a timed-out browser attempt to the error handlers, then closes its page without waiting for its request handler', async () => {
+        const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+            detectionProbabilityRecommendation: 0,
+            renderingType: 'clientOnly',
+        });
+
+        let pageClosed: Promise<boolean> | undefined;
+        let pageOpenInFailedRequestHandler: boolean | undefined;
+
+        const crawler = await makeOneshotCrawler(
+            {
+                renderingTypePredictor,
+                requestHandlerTimeoutSecs: 3,
+                // Returns only once the page is closed, so `run()` would hang if closing it waited for the handler.
+                requestHandler: async ({ page }) => {
+                    pageClosed = new Promise((resolve) => {
+                        page.once('close', () => resolve(true));
+                    });
+                    await pageClosed;
+                },
+                failedRequestHandler: async ({ page }) => {
+                    pageOpenInFailedRequestHandler = page?.isClosed() === false;
+                },
+            },
+            [`http://${HOSTNAME}:${port}/static`],
+        );
+
+        await crawler.run();
+
+        expect(pageOpenInFailedRequestHandler).toBe(true);
+        expect(await pageClosed).toBe(true);
+    });
+
+    test('exposes the downloads of a failed browser attempt to errorHandler', async () => {
+        const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+            detectionProbabilityRecommendation: 0,
+            renderingType: 'clientOnly',
+        });
+
+        let downloadedContents: string[] | undefined;
+
+        const crawler = await makeOneshotCrawler(
+            {
+                renderingTypePredictor,
+                maxRequestRetries: 1,
+                requestHandler: async () => {},
+                errorHandler: async (context) => {
+                    const downloads = (await (context as Partial<PlaywrightCrawlingContext>).listDownloads?.()) ?? [];
+                    downloadedContents = await Promise.all(
+                        downloads.map(async (download) => readFile(await download.path(), 'utf8')),
+                    );
+                },
+            },
+            [`http://${HOSTNAME}:${port}/download`],
+        );
+
+        await crawler.run();
+
+        expect(downloadedContents).toEqual(['%PDF-1.4']);
+    });
+
     test('should persist RenderingTypePredictor state on PERSIST_STATE events', async () => {
         const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = vi.fn(async ({ pushData }) => {
             await pushData({ content: 'test data' });
@@ -1035,14 +1496,16 @@ describe('AdaptivePlaywrightCrawler', () => {
 
         // Verify that the regression model was actually saved to the key-value store
         const store = await KeyValueStore.open();
-        const storedState = await store.getValue('rendering-type-predictor-state');
+        const storedState = await store.getValue(`CRAWLEE_RENDERING_TYPE_PREDICTOR_STATE_${renderingTypePredictor.id}`);
         expect(storedState).toHaveProperty('logreg');
 
         // Test that the persisted state can be successfully restored
         // by creating a new RenderingTypePredictor and seeing if it initializes without error
         const newPredictor = new RenderingTypePredictor({
             detectionRatio: 0.1,
-            persistenceOptions: { persistStateKey: 'rendering-type-predictor-state' },
+            persistenceOptions: {
+                persistStateKey: `CRAWLEE_RENDERING_TYPE_PREDICTOR_STATE_${renderingTypePredictor.id}`,
+            },
         });
 
         // This should not throw since we've persisted valid state
@@ -1056,6 +1519,7 @@ describe('AdaptivePlaywrightCrawler', () => {
 
         test('initializes the default predictor it built itself', async () => {
             const crawler = new AdaptivePlaywrightCrawler({
+                id: 'own-predictor',
                 requestHandler,
                 // No `renderingTypePredictor` - the crawler builds (and therefore owns) its own.
                 renderingTypeDetectionRatio: 1,
@@ -1073,7 +1537,10 @@ describe('AdaptivePlaywrightCrawler', () => {
             await sleep(100);
 
             const store = await KeyValueStore.open();
-            await expect(store.getValue<string>('rendering-type-predictor-state')).resolves.not.toBeNull();
+            // The crawler passes its `id` to the predictor it builds.
+            await expect(
+                store.getValue<string>('CRAWLEE_RENDERING_TYPE_PREDICTOR_STATE_own-predictor'),
+            ).resolves.not.toBeNull();
         });
 
         test('tears down the predictor it built itself', async () => {
@@ -1130,7 +1597,7 @@ describe('AdaptivePlaywrightCrawler', () => {
 
     test('reserves a request for the longest route timeout override', async () => {
         const requestQueue = await RequestQueue.open(`rq-adaptive-${Math.random() * 10000}`);
-        const hintSpy = vitest.spyOn(requestQueue, 'setExpectedRequestProcessingTimeSecs');
+        const hintSpy = vitest.spyOn(requestQueue, 'setExpectedRequestProcessingTime');
 
         const router = createAdaptivePlaywrightRouter();
         router.addHandler('LIST', async () => {}, { requestHandlerTimeoutSecs: 300 });

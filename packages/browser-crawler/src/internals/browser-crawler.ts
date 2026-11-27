@@ -20,6 +20,7 @@ import {
     cookieStringToToughCookie,
     EnqueueStrategy,
     NavigationSkippedError,
+    skippedNavigationRequest,
     OwnedOrInjected,
     remainingNavigationWindowMillis,
     RequestState,
@@ -36,6 +37,7 @@ import type { CommonPage } from '@crawlee/browser-pool';
 import type { Awaitable, Cookie as CookieObject, Dictionary, IBrowserPool } from '@crawlee/types';
 import {
     assertBrowserPoolNotConfigured,
+    AWS_WAF_RETRY_CSS_SELECTORS,
     CLOUDFLARE_RETRY_CSS_SELECTORS,
     parseArgument,
     RETRY_CSS_SELECTORS,
@@ -514,7 +516,15 @@ export abstract class BrowserCrawler<
     }
 
     async #containsSelectors(page: CommonPage, selectors: string[]): Promise<string[] | null> {
-        const foundSelectors = (await Promise.all(selectors.map((selector) => (page as any).$(selector))))
+        const query = async () => Promise.all(selectors.map((selector) => (page as any).$(selector)));
+
+        // a challenge page navigates itself once it is solved, which destroys the context of an in-flight query
+        const elements = await query().catch(async () => {
+            await sleep(1000);
+            return query();
+        });
+
+        const foundSelectors = elements
             .map((x, i) => [x, selectors[i]] as [any, string])
             .filter(([x]) => x !== null)
             .map(([, selector]) => selector);
@@ -522,19 +532,35 @@ export abstract class BrowserCrawler<
         return foundSelectors.length > 0 ? foundSelectors : null;
     }
 
-    async #isRequestBlocked(crawlingContext: BrowserCrawlingContext<Page, Response>): Promise<string | false> {
-        const { page, response } = crawlingContext;
-
-        // Cloudflare specific heuristic - wait 5 seconds if we get a 403 for the JS challenge to load / resolve.
-        if ((await this.#containsSelectors(page, CLOUDFLARE_RETRY_CSS_SELECTORS)) && response?.status() === 403) {
-            await sleep(5000);
-
-            // here we cannot test for response code, because we only have the original response, not the possible Cloudflare redirect on passed challenge.
-            const foundSelectors = await this.#containsSelectors(page, RETRY_CSS_SELECTORS);
-
-            if (!foundSelectors) return false;
-            return `Cloudflare challenge failed, found selectors: ${foundSelectors.join(', ')}`;
+    /** The getter from `preparePage` throws when navigation produced no response and no hook overrode it. */
+    #navigationResponse(crawlingContext: BrowserCrawlingContext<Page, Response>): Response | undefined {
+        try {
+            return crawlingContext.response;
+        } catch {
+            return undefined;
         }
+    }
+
+    async #detectSelfResolvingChallenge(
+        crawlingContext: BrowserCrawlingContext<Page, Response>,
+    ): Promise<string | null> {
+        const { page } = crawlingContext;
+        const statusCode = this.#navigationResponse(crawlingContext)?.status();
+
+        if (statusCode === 403 && (await this.#containsSelectors(page, CLOUDFLARE_RETRY_CSS_SELECTORS))) {
+            return 'Cloudflare';
+        }
+
+        if (statusCode === 202 && (await this.#containsSelectors(page, AWS_WAF_RETRY_CSS_SELECTORS))) {
+            return 'AWS WAF';
+        }
+
+        return null;
+    }
+
+    async #isRequestBlocked(crawlingContext: BrowserCrawlingContext<Page, Response>): Promise<string | false> {
+        const { page } = crawlingContext;
+        const response = this.#navigationResponse(crawlingContext);
 
         const foundSelectors = await this.#containsSelectors(page, RETRY_CSS_SELECTORS);
         const statusCode = response?.status() ?? 0;
@@ -596,7 +622,7 @@ export abstract class BrowserCrawler<
             page,
             get response(): Response {
                 throw new Error(
-                    "The `response` property is not available. This might mean that you're trying to access it before navigation or that navigation resulted in `null` (this should only happen with `about:` URLs)",
+                    "The `response` property is not available. This might mean that you're trying to access it before navigation or that navigation resulted in `null` (e.g. `about:` URLs, or in Firefox a page that runs `location.replace()` while loading)",
                 );
             },
             get gotoOptions(): Dictionary {
@@ -625,19 +651,7 @@ export abstract class BrowserCrawler<
     async #prepareNavigation(crawlingContext: Context): Promise<Partial<Context>> {
         if (crawlingContext.request.skipNavigation) {
             return {
-                request: new Proxy(crawlingContext.request, {
-                    get(target, propertyName) {
-                        if (propertyName === 'loadedUrl') {
-                            throw new NavigationSkippedError(
-                                'The `request.loadedUrl` property is not available - `skipNavigation` was used',
-                            );
-                        }
-                        // `target` as receiver and bound methods, or `#` members throw on the proxy
-                        const value = Reflect.get(target, propertyName, target);
-                        return typeof value === 'function' ? value.bind(target) : value;
-                    },
-                    set: (target, propertyName, value) => Reflect.set(target, propertyName, value, target),
-                }) as LoadedRequest<CrawlingRequest>,
+                request: skippedNavigationRequest(crawlingContext.request) as LoadedRequest<CrawlingRequest>,
                 get response(): Response {
                     throw new NavigationSkippedError(
                         'The `response` property is not available - `skipNavigation` was used',
@@ -691,19 +705,14 @@ export abstract class BrowserCrawler<
 
         crawlingContext.request.state = RequestState.AFTER_NAV;
 
-        return { response } as Partial<Context>;
+        // Without a response, the throwing getter from `preparePage` stays.
+        return (response ? { response } : {}) as Partial<Context>;
     }
 
     async #finalizeNavigation(crawlingContext: Context): Promise<Partial<Context>> {
         tryCancel();
 
-        let response: Response | undefined;
-        try {
-            response = crawlingContext.response;
-        } catch {
-            // `preparePage` installs a throwing getter for `response`; reaching this branch means
-            // navigation produced no response and no hook overrode it. Treat as undefined.
-        }
+        const response = this.#navigationResponse(crawlingContext);
 
         await this.#processResponse(response, crawlingContext);
         tryCancel();
@@ -760,11 +769,47 @@ export abstract class BrowserCrawler<
         }
     }
 
-    async #handleBlockedRequestByContent(crawlingContext: BrowserCrawlingContext<Page, Response>) {
-        if (this.retryOnBlocked) {
-            const error = await this.#isRequestBlocked(crawlingContext);
-            if (error) throw new SessionError(error);
+    async #handleBlockedRequestByContent(
+        crawlingContext: BrowserCrawlingContext<Page, Response>,
+    ): Promise<{ response?: Response }> {
+        if (!this.retryOnBlocked) return {};
+
+        const page = crawlingContext.page as any;
+
+        // A passed challenge navigates to the actual page, whose response replaces the one of the challenge.
+        let navigationResponse: Response | undefined;
+        const onResponse = (response: any) => {
+            if (response.request().isNavigationRequest() && response.frame() === page.mainFrame()) {
+                navigationResponse = response;
+            }
+        };
+
+        page.on('response', onResponse);
+
+        try {
+            // Cloudflare and AWS WAF serve challenges a browser can pass on its own, with a 403 and a 202 status respectively.
+            // Wait 5 seconds for the JS challenge to load / resolve before judging the page.
+            const challenge = await this.#detectSelfResolvingChallenge(crawlingContext);
+
+            if (challenge) {
+                await sleep(5000);
+
+                const foundSelectors = await this.#containsSelectors(page, RETRY_CSS_SELECTORS);
+
+                if (foundSelectors) {
+                    throw new SessionError(
+                        `${challenge} challenge failed, found selectors: ${foundSelectors.join(', ')}`,
+                    );
+                }
+
+                return navigationResponse ? { response: navigationResponse } : {};
+            }
+        } finally {
+            page.off('response', onResponse);
         }
+
+        const error = await this.#isRequestBlocked(crawlingContext);
+        if (error) throw new SessionError(error);
 
         return {};
     }

@@ -45,6 +45,27 @@ describe('RenderingTypePredictor', () => {
             expect(prediction.renderingType).toBe('static');
         });
 
+        it('persists each predictor under a key derived from its id', async () => {
+            const named = new RenderingTypePredictor({ detectionRatio: 0.1, id: 'my-predictor' });
+            const generated = new RenderingTypePredictor({ detectionRatio: 0.1 });
+            await named.initialize();
+            await generated.initialize();
+            named.storeResult(new Request({ url: 'https://example.com/static-page' }), 'static');
+
+            await named.teardown();
+            await generated.teardown();
+
+            const store = await KeyValueStore.open();
+            const namedState = await store.getValue<{ detectionResults: unknown[] }>(
+                'CRAWLEE_RENDERING_TYPE_PREDICTOR_STATE_my-predictor',
+            );
+            const generatedState = await store.getValue<{ detectionResults: unknown[] }>(
+                `CRAWLEE_RENDERING_TYPE_PREDICTOR_STATE_${generated.id}`,
+            );
+            expect(namedState!.detectionResults).toHaveLength(1);
+            expect(generatedState!.detectionResults).toHaveLength(0);
+        });
+
         it('should initialize with default state when no persisted state exists', async () => {
             const predictor = new RenderingTypePredictor({
                 detectionRatio: 0.5,

@@ -127,6 +127,43 @@ describe('extractMicrodata', () => {
         ]);
     });
 
+    it('counts a property once when itemref reaches it a second time', async () => {
+        // `name` is a child of the item and also referenced, and `details` contains the referenced `price`.
+        const items = await extractMicrodata(`
+            <div itemscope itemref="product-name product-details product-price">
+                <span id="product-name" itemprop="name">Lamp</span>
+            </div>
+            <div id="product-details">
+                <span itemprop="color">Red</span>
+                <span id="product-price" itemprop="price">25</span>
+            </div>`);
+
+        expect(items).toEqual([{ properties: { name: 'Lamp', color: 'Red', price: '25' } }]);
+    });
+
+    it('orders properties reached through itemref in tree order', async () => {
+        // The spec sorts an item's properties in tree order, wherever they were reached from.
+        const items = await extractMicrodata(`
+            <img id="hero" itemprop="image" src="hero.jpg">
+            <div itemscope itemtype="https://schema.org/Product" itemref="specs hero">
+                <img itemprop="image" src="side.jpg">
+            </div>
+            <ul id="specs">
+                <li itemprop="color">Red</li>
+                <li itemprop="color">Blue</li>
+            </ul>
+            <p id="late" itemprop="color">Green</p>
+            <div itemscope itemref="late specs"></div>`);
+
+        expect(items).toEqual([
+            {
+                type: ['https://schema.org/Product'],
+                properties: { image: ['hero.jpg', 'side.jpg'], color: ['Red', 'Blue'] },
+            },
+            { properties: { color: ['Red', 'Blue', 'Green'] } },
+        ]);
+    });
+
     it('stops at an itemref cycle instead of recursing forever', async () => {
         // `loop-a` and `loop-b` reference each other, so the second visit of `loop-a` must be cut short.
         const items = await extractMicrodata(`
@@ -150,6 +187,35 @@ describe('extractMicrodata', () => {
                             self: { properties: { name: 'b', self: { properties: {} } } },
                         },
                     },
+                },
+            },
+        ]);
+    });
+
+    it('ignores the inert content of <template> elements', async () => {
+        // Framework placeholders (Alpine's `x-for`, Vue, Lit) are not part of the document in a browser.
+        const items = await extractMicrodata(`
+            <div itemscope itemtype="https://schema.org/ItemList" itemref="offer-price">
+                <template x-for="product in products">
+                    <div itemprop="itemListElement" itemscope itemtype="https://schema.org/Product">
+                        <span itemprop="name" x-text="product.name"></span>
+                    </div>
+                </template>
+                <div itemprop="itemListElement" itemscope itemtype="https://schema.org/Product">
+                    <span itemprop="name">Rendered</span>
+                </div>
+            </div>
+            <template>
+                <div itemscope itemtype="https://schema.org/Offer">
+                    <span id="offer-price" itemprop="price">{{ price }}</span>
+                </div>
+            </template>`);
+
+        expect(items).toEqual([
+            {
+                type: ['https://schema.org/ItemList'],
+                properties: {
+                    itemListElement: { type: ['https://schema.org/Product'], properties: { name: 'Rendered' } },
                 },
             },
         ]);

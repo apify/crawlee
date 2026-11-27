@@ -102,7 +102,7 @@ export interface DOMParseResult {
 
 // @public
 export class FileDownload extends BasicCrawler<FileDownloadCrawlingContext> {
-    constructor(options?: Omit<BasicCrawlerOptions<FileDownloadCrawlingContext>, 'contextPipelineBuilder'>);
+    constructor(options?: FileDownloadOptions);
 }
 
 // @public (undocumented)
@@ -121,6 +121,11 @@ export interface FileDownloadCrawlingContext<UserData extends Dictionary = any> 
 // @public (undocumented)
 export type FileDownloadErrorHandler<UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
 ContextExtension = Dictionary<never>> = ErrorHandler<CrawlingContext, FileDownloadCrawlingContext<UserData> & ContextExtension>;
+
+// @public (undocumented)
+export interface FileDownloadOptions extends Omit<BasicCrawlerOptions<FileDownloadCrawlingContext>, 'contextPipelineBuilder'> {
+    ignoreTlsErrors?: boolean;
+}
 
 // @public (undocumented)
 export type FileDownloadRequestHandler<UserData extends Dictionary = any> = RequestHandler<FileDownloadCrawlingContext<UserData>>;

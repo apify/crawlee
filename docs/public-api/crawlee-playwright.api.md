@@ -4,6 +4,7 @@
 
 ```ts
 
+import type { AddRequestsBatchedResult } from '@crawlee/core';
 import type { AnyNode } from 'domhandler';
 import type { Awaitable } from '@crawlee/types';
 import { BasicCrawler } from '@crawlee/basic';
@@ -24,10 +25,11 @@ import { CheerioAPI } from 'cheerio';
 import { Configuration } from '@crawlee/browser';
 import type { CrawlerRemoteBrowserOptions } from '@crawlee/browser';
 import type { CrawlingContext } from '@crawlee/basic';
-import type { CrawlingRequest } from '@crawlee/browser';
+import { CrawlingRequest } from '@crawlee/browser';
 import type { Dictionary } from '@crawlee/types';
 import type { Download } from 'playwright';
 import type { EnqueueLinksOptions } from '@crawlee/basic';
+import type { ExtractLinksOptions } from '@crawlee/basic';
 import type { GetUserDataFromRequest } from '@crawlee/browser';
 import type { GetUserDataFromRequest as GetUserDataFromRequest_2 } from '@crawlee/basic';
 import { IRequestManager } from '@crawlee/browser';
@@ -83,8 +85,8 @@ export class AdaptivePlaywrightCrawler<ContextExtension = Dictionary<never>, Ext
 
 // @public (undocumented)
 export interface AdaptivePlaywrightCrawlerContext<UserData extends Dictionary = any> extends CrawlingContext<UserData> {
-    // (undocumented)
-    enqueueLinks(options?: EnqueueLinksOptions): Promise<unknown>;
+    enqueueLinks(options?: EnqueueLinksOptions): Promise<AddRequestsBatchedResult>;
+    extractLinks(options?: ExtractLinksOptions): Promise<string[]>;
     page: Page;
     parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioAPI>;
     querySelectorAll(selector: string, timeoutMs?: number): Promise<Cheerio<AnyNode>>;
@@ -211,7 +213,7 @@ export function fullResultComparator(resultA: StorageTransactionView, resultB: S
 function gotoExtended(page: Page, request: Request_3, gotoOptions?: PlaywrightDirectNavigationOptions): Promise<Response_2 | null>;
 
 // @public
-function handleCloudflareChallenge(page: Page, url: string, options?: HandleCloudflareChallengeOptions): Promise<Response_2 | undefined>;
+function handleCloudflareChallenge(page: Page, url: string, options?: HandleCloudflareChallengeOptions, response?: Response_2): Promise<Response_2 | undefined>;
 
 // @public
 export function handleCloudflareChallengeHook(options?: HandleCloudflareChallengeOptions): PlaywrightHook;
@@ -396,6 +398,7 @@ export class RenderingTypePredictor implements IRenderingTypePredictor {
     // (undocumented)
     [Symbol.asyncDispose](): Promise<void>;
     constructor(input: RenderingTypePredictorOptions);
+    readonly id: string;
     initialize(): Promise<void>;
     predict(input: Request_2): {
         renderingType: RenderingType;
@@ -409,6 +412,7 @@ export class RenderingTypePredictor implements IRenderingTypePredictor {
 // @public (undocumented)
 interface RenderingTypePredictorOptions {
     detectionRatio: number;
+    id?: string | number;
     // (undocumented)
     persistenceOptions?: Partial<RecoverableStatePersistenceOptions>;
 }

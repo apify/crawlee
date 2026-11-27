@@ -135,7 +135,7 @@ export abstract class BrowserPlugin<
         this.log = serviceLocator.getLogger().child({ prefix: 'BrowserPool' });
         this.library = library;
         this.launchOptions = launchOptions;
-        this.proxyUrl = proxyUrl && new URL(proxyUrl).href.slice(0, -1);
+        this.proxyUrl = proxyUrl && new URL(proxyUrl).href.replace(/\/$/, '');
         this.userDataDir = userDataDir;
         this.useIncognitoPages = useIncognitoPages;
         this.browserPerProxy = browserPerProxy;

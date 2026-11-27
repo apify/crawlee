@@ -53,30 +53,27 @@ class SitemapTxtParser extends Transform {
     }
 
     #processBuffer(input: string, finalize: boolean): void {
-        this.#buffer += input;
+        const lines = (this.#buffer + input).split('\n');
 
-        if (finalize || this.#buffer.includes('\n')) {
-            const parts = this.#buffer
-                .split('\n')
-                .map((part) => part.trim())
-                .filter((part) => part.length > 0);
+        // The text after the last line break may be a partial line, so it waits for the next chunk.
+        this.#buffer = finalize ? '' : lines.pop()!;
 
-            if (finalize) {
-                for (const url of parts) {
-                    this.push({ type: 'url', loc: url } satisfies SitemapItem);
-                }
-
-                this.#buffer = '';
-            } else if (parts.length > 0) {
-                for (const url of parts.slice(0, -1)) {
-                    this.push({ type: 'url', loc: url } satisfies SitemapItem);
-                }
-
-                this.#buffer = parts.at(-1)!;
+        for (const line of lines) {
+            const url = line.trim();
+            if (url.length > 0) {
+                this.push({ type: 'url', loc: url } satisfies SitemapItem);
             }
         }
     }
 }
+
+/** Namespaces of the sitemap protocol (https://www.sitemaps.org/protocol.html), including Google's legacy ones. */
+const SITEMAP_NAMESPACES = new Set([
+    'http://www.sitemaps.org/schemas/sitemap/0.9',
+    'https://www.sitemaps.org/schemas/sitemap/0.9',
+    'http://www.google.com/schemas/sitemap/0.9',
+    'http://www.google.com/schemas/sitemap/0.84',
+]);
 
 class SitemapXmlParser extends Transform {
     #decoder: StringDecoder = new StringDecoder('utf8');
@@ -85,6 +82,10 @@ class SitemapXmlParser extends Transform {
     #rootTagName?: 'sitemapindex' | 'urlset';
     #currentTag?: 'loc' | 'lastmod' | 'changefreq' | 'priority' = undefined;
     #url: Partial<SitemapUrl> = {};
+    /** Text of the current `loc`, `lastmod`, `priority` or `changefreq` element, which can arrive in several pieces. */
+    #text = '';
+    /** Prefixes bound to the sitemap namespace, e.g. `ns0` for `<ns0:urlset xmlns:ns0="...">`. */
+    #sitemapPrefixes = new Set<string>();
 
     static async create(): Promise<SitemapXmlParser> {
         const { SAXParser } = (await import('sax')).default;
@@ -119,28 +120,48 @@ class SitemapXmlParser extends Transform {
         this.#parser.onerror = this.destroy.bind(this);
     }
 
+    /**
+     * Returns the local name of a sitemap protocol element, or `undefined` for an element of another
+     * namespace (such as `image:loc`). Unprefixed elements are sitemap elements, as before.
+     */
+    #sitemapTagName(qualifiedName: string): string | undefined {
+        const colon = qualifiedName.indexOf(':');
+        if (colon === -1) return qualifiedName;
+        return this.#sitemapPrefixes.has(qualifiedName.slice(0, colon)) ? qualifiedName.slice(colon + 1) : undefined;
+    }
+
     #onOpenTag(node: sax.Tag | sax.QualifiedTag) {
-        if (this.#rootTagName !== undefined) {
-            if (
-                node.name === 'loc' ||
-                node.name === 'lastmod' ||
-                node.name === 'priority' ||
-                node.name === 'changefreq'
-            ) {
-                this.#currentTag = node.name;
+        for (const [attribute, value] of Object.entries(node.attributes)) {
+            if (attribute.startsWith('xmlns:') && SITEMAP_NAMESPACES.has(String(value).trim())) {
+                this.#sitemapPrefixes.add(attribute.slice('xmlns:'.length));
             }
         }
-        if (node.name === 'urlset') {
+
+        const name = this.#sitemapTagName(node.name);
+
+        if (this.#rootTagName !== undefined) {
+            if (name === 'loc' || name === 'lastmod' || name === 'priority' || name === 'changefreq') {
+                this.#currentTag = name;
+                this.#text = '';
+            }
+        }
+        if (name === 'urlset') {
             this.#rootTagName = 'urlset';
         }
-        if (node.name === 'sitemapindex') {
+        if (name === 'sitemapindex') {
             this.#rootTagName = 'sitemapindex';
         }
     }
 
-    #onCloseTag(name: string) {
+    #onCloseTag(qualifiedName: string) {
+        const name = this.#sitemapTagName(qualifiedName);
+
         if (name === 'loc' || name === 'lastmod' || name === 'priority' || name === 'changefreq') {
+            if (this.#currentTag !== undefined) {
+                this.#onValue(this.#text.trim());
+            }
             this.#currentTag = undefined;
+            this.#text = '';
         }
 
         if (name === 'url') {
@@ -152,9 +173,14 @@ class SitemapXmlParser extends Transform {
     }
 
     #onText(text: string) {
-        text = text.trim();
+        // A CDATA section or a comment splits the element's text into several events, so collect the
+        // pieces and read the value when the element closes.
+        if (this.#currentTag !== undefined) {
+            this.#text += text;
+        }
+    }
 
-        // Whitespace around a CDATA section arrives as separate text events.
+    #onValue(text: string) {
         if (text === '') {
             return;
         }
@@ -253,7 +279,8 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
     } = options ?? {};
 
     const sources = [...initialSources];
-    const visitedSitemapUrls = new Set<string>();
+    // Marked when queued, not when fetched, so a sitemap that is both a source and a nested entry is queued once.
+    const visitedSitemapUrls = new Set(initialSources.flatMap((source) => (source.type === 'url' ? [source.url] : [])));
 
     const createParser = async (contentType = '', url?: URL): Promise<Duplex> => {
         let mimeType: MIMEType | null;
@@ -270,6 +297,11 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
 
         if (mimeType?.essence === 'text/plain' || url?.pathname.endsWith('.txt')) {
             return new SitemapTxtParser();
+        }
+
+        // A name like `sitemap.gz` says nothing about what was compressed. Sitemaps are XML unless named otherwise.
+        if (mimeType?.essence === 'application/gzip') {
+            return SitemapXmlParser.create();
         }
 
         throw new Error(`Unsupported sitemap content type (contentType = ${contentType}, url = ${url?.toString()})`);
@@ -289,7 +321,6 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
 
         if (source.type === 'url') {
             sitemapUrl = new URL(source.url);
-            visitedSitemapUrls.add(sitemapUrl.toString());
             let retriesLeft = sitemapRetries + 1;
 
             while (retriesLeft-- > 0) {
@@ -390,48 +421,72 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
         // the loop (per-entry warnings could flood the log; individual drops are logged at debug level).
         let droppedUrlEntries = 0;
 
-        for await (const item of items) {
-            if (item.type === 'sitemapUrl' && !visitedSitemapUrls.has(item.url)) {
-                if (nestedSitemapFilter && !nestedSitemapFilter(item.url)) {
-                    logger?.debug(`Skipping sitemap ${item.url} due to nestedSitemapFilter.`);
-                    continue;
-                }
+        // The same for every entry of this source, so compute it once.
+        const originSitemapUrl =
+            source.type === 'url'
+                ? source.url
+                : `raw://${createHash('sha256').update(source.content).digest('base64')}`;
 
-                // Keep only nested sitemaps matching the strategy (and using http(s)) relative to the
-                // parent. Raw string sources have no parent URL, so the check is skipped.
-                if (source.type === 'url') {
-                    const { allowed, reason } = filterUrl(item.url, sitemapUrl!, enqueueStrategy);
-                    if (!allowed) {
-                        logger?.warning(`Skipping nested sitemap ${item.url} (parent ${source.url}): ${reason}.`);
+        const iterator = items[Symbol.asyncIterator]();
+        try {
+            while (true) {
+                let next: IteratorResult<SitemapItem>;
+                try {
+                    next = await iterator.next();
+                } catch (e) {
+                    // Parsing failed: give up on this sitemap, keep the others.
+                    // Raw sources already logged the error in their pipeline callback.
+                    if (source.type !== 'raw') {
+                        logger?.warning(`Malformed sitemap content: ${source.url} (${e})`);
+                    }
+                    break;
+                }
+                if (next.done) break;
+                const item = next.value;
+
+                if (item.type === 'sitemapUrl' && !visitedSitemapUrls.has(item.url)) {
+                    if (nestedSitemapFilter && !nestedSitemapFilter(item.url)) {
+                        logger?.debug(`Skipping sitemap ${item.url} due to nestedSitemapFilter.`);
                         continue;
+                    }
+
+                    // Keep only nested sitemaps matching the strategy (and using http(s)) relative to the
+                    // parent. Raw string sources have no parent URL, so the check is skipped.
+                    if (source.type === 'url') {
+                        const { allowed, reason } = filterUrl(item.url, sitemapUrl!, enqueueStrategy);
+                        if (!allowed) {
+                            logger?.warning(`Skipping nested sitemap ${item.url} (parent ${source.url}): ${reason}.`);
+                            continue;
+                        }
+                    }
+
+                    visitedSitemapUrls.add(item.url);
+                    sources.push({ type: 'url', url: item.url, depth: (source.depth ?? 0) + 1 });
+                    if (emitNestedSitemaps) {
+                        yield { loc: item.url, originSitemapUrl: null } as any;
                     }
                 }
 
-                sources.push({ type: 'url', url: item.url, depth: (source.depth ?? 0) + 1 });
-                if (emitNestedSitemaps) {
-                    yield { loc: item.url, originSitemapUrl: null } as any;
-                }
-            }
-
-            if (item.type === 'url') {
-                // Keep only URL entries that match the enqueue strategy relative to the parent (see above).
-                if (source.type === 'url') {
-                    const { allowed, reason } = filterUrl(item.loc, sitemapUrl!, enqueueStrategy);
-                    if (!allowed) {
-                        droppedUrlEntries++;
-                        logger?.debug(`Skipping sitemap URL ${item.loc} (parent ${source.url}): ${reason}.`);
-                        continue;
+                if (item.type === 'url') {
+                    // Keep only URL entries that match the enqueue strategy relative to the parent (see above).
+                    if (source.type === 'url') {
+                        const { allowed, reason } = filterUrl(item.loc, sitemapUrl!, enqueueStrategy);
+                        if (!allowed) {
+                            droppedUrlEntries++;
+                            logger?.debug(`Skipping sitemap URL ${item.loc} (parent ${source.url}): ${reason}.`);
+                            continue;
+                        }
                     }
-                }
 
-                yield {
-                    ...item,
-                    originSitemapUrl:
-                        source.type === 'url'
-                            ? source.url
-                            : `raw://${createHash('sha256').update(source.content).digest('base64')}`,
-                };
+                    yield {
+                        ...item,
+                        originSitemapUrl,
+                    };
+                }
             }
+        } finally {
+            // Mirrors `for await` cleanup: destroys the stream when we stop early or the consumer bails out.
+            await iterator.return?.();
         }
 
         if (droppedUrlEntries > 0 && source.type === 'url') {

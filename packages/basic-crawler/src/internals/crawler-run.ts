@@ -39,9 +39,6 @@ export class CrawlerRun {
     #wakeTimer?: NodeJS.Timeout;
     #wakeAt = 0;
 
-    /** Whether this run initialized the ambient event manager, and is therefore the one that closes it. */
-    ownsEventManager = false;
-
     constructor(setup: CrawlerRunSetup) {
         this.#log = setup.log;
 

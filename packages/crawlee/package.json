@@ -49,18 +49,18 @@
     },
     "dependencies": {
         "@crawlee/basic": "workspace:*",
-        "@crawlee/impit-client": "workspace:*",
         "@crawlee/browser": "workspace:*",
         "@crawlee/cheerio": "workspace:*",
         "@crawlee/cli": "workspace:*",
         "@crawlee/core": "workspace:*",
         "@crawlee/fs-storage": "workspace:*",
         "@crawlee/http": "workspace:*",
+        "@crawlee/impit-client": "workspace:*",
         "@crawlee/playwright": "workspace:*",
         "@crawlee/puppeteer": "workspace:*",
         "@crawlee/utils": "workspace:*",
         "import-local": "^3.2.0",
-        "tslib": "^2.8.1"
+        "tslib": "^2.9.1"
     },
     "peerDependencies": {
         "playwright": "*",

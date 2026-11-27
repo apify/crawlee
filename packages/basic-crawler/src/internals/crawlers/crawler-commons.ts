@@ -1,10 +1,10 @@
 import type {
     Awaitable,
     Dictionary,
-    HttpRequestOptions,
     ISession,
     ProxyInfo,
     SendRequestOptions,
+    SendRequestOverrides,
 } from '@crawlee/types';
 import type { ReadonlyDeep } from 'type-fest';
 
@@ -35,17 +35,16 @@ export type IsAny<T> = 0 extends 1 & T ? true : false;
  */
 export type LabeledSource<Routes extends Record<keyof Routes, Dictionary>> = string extends keyof Routes
     ? string | Source
-    :
-          | string
-          | Request
-          | ({ requestsFromUrl?: string; regex?: RegExp } & (
-                | {
-                      [Label in keyof Routes & string]: Omit<Partial<RequestOptions<Routes[Label]>>, 'label'> & {
-                          label: Label;
-                      };
-                  }[keyof Routes & string]
-                | (Omit<Partial<RequestOptions>, 'label'> & { label?: undefined })
-            ));
+    : | string
+      | Request
+      | ({ requestsFromUrl?: string; regex?: RegExp } & (
+            | {
+                  [Label in keyof Routes & string]: Omit<Partial<RequestOptions<Routes[Label]>>, 'label'> & {
+                      label: Label;
+                  };
+              }[keyof Routes & string]
+            | (Omit<Partial<RequestOptions>, 'label'> & { label?: undefined })
+        ));
 
 /**
  * The iterable/array of {@apilink LabeledSource} inputs accepted by the label-aware `addRequests`/`run`
@@ -204,10 +203,7 @@ export interface CrawlingContext<UserData extends Dictionary = Dictionary> exten
      * },
      * ```
      */
-    sendRequest: (
-        requestOverrides?: Partial<HttpRequestOptions>,
-        optionsOverrides?: SendRequestOptions,
-    ) => Promise<Response>;
+    sendRequest: (requestOverrides?: SendRequestOverrides, optionsOverrides?: SendRequestOptions) => Promise<Response>;
 
     /**
      * Register a function to be called at the very end of the request handling process. This is useful for resources that should be accessible to error handlers, for instance.

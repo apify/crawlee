@@ -298,6 +298,8 @@ async function copyPackages(dirName) {
     const srcPackagesDir = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'packages');
     const destPackagesDir = join(dirName, 'packages');
     await fs.remove(destPackagesDir);
+    // `apify push` skips gitignored files, and the copied packages are gitignored.
+    await fs.writeFile(join(dirName, '.actorignore'), '!packages\n');
 
     // npm (used when building the actor on the platform) understands neither pnpm's `workspace:`
     // protocol nor its `catalog:` protocol. Parse the catalog from pnpm-workspace.yaml so
@@ -412,6 +414,7 @@ async function copyPackages(dirName) {
 export async function clearPackages(dirName) {
     const destPackagesDir = join(dirName, 'actor', 'packages');
     await fs.remove(destPackagesDir);
+    await fs.remove(join(dirName, 'actor', '.actorignore'));
 }
 
 /**

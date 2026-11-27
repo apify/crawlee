@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
+import JSON5 from 'json5';
 import { z } from 'zod';
 
 import { log, LogLevel } from './log.js';
@@ -126,6 +127,9 @@ export interface Configuration extends ResolvedConfigValues {}
  * // Pass the configuration to the crawler
  * const crawler = new BasicCrawler({ configuration: config });
  * ```
+ *
+ * The event manager is shared by the whole process, so `persistStateIntervalMillis` and `systemInfoIntervalMillis`
+ * are taken from the configuration of whoever uses it first - set them on the global configuration to be sure.
  *
  * Configuration is immutable — values are set via the constructor and cannot be changed afterwards.
  * The priority order for resolving values is (highest to lowest):
@@ -275,8 +279,9 @@ export class Configuration {
      */
     static #loadFileOptions(): Record<string, unknown> {
         try {
-            const file = readFileSync(join(process.cwd(), 'crawlee.json'));
-            return JSON.parse(file.toString());
+            const file = readFileSync(join(process.cwd(), 'crawlee.json'), 'utf8');
+            // JSON5 also handles a leading UTF-8 byte order mark, which some Windows tools write
+            return JSON5.parse(file);
         } catch {
             return {};
         }

@@ -54,19 +54,15 @@ export interface DownloadListOfUrlsOptions {
 export async function downloadListOfUrls(options: DownloadListOfUrlsOptions): Promise<string[]> {
     const { url, encoding, urlRegExp, proxyUrl, httpClient } = parseArgument(options, downloadListOfUrlsOptionsSchema);
 
-    // Try to detect wrong urls and fix them. Currently, detects only sharing url instead of csv download one.
-    const match = /^(https:\/\/docs\.google\.com\/spreadsheets\/d\/(?:\w|-)+)\/?/.exec(url);
-    let fixedUrl = url;
-
-    if (match) {
-        fixedUrl = `${match[1]}/gviz/tq?tqx=out:csv`;
-    }
-
-    const response = await httpClient.sendRequest(new Request(fixedUrl, { method: 'GET' }), {
+    const response = await httpClient.sendRequest(new Request(url, { method: 'GET' }), {
         proxyUrl,
     });
 
-    const string = new TextDecoder(encoding).decode(new Uint8Array(await response.arrayBuffer()));
+    // `encoding` is a Node.js `BufferEncoding`, and `TextDecoder` rejects several of those (`utf16le`, `ucs2`, `binary`,
+    // `base64`, ...). Unlike `TextDecoder`, `Buffer` keeps a byte order mark, so drop it here.
+    const string = Buffer.from(await response.arrayBuffer())
+        .toString(encoding)
+        .replace(/^\uFEFF/, '');
 
     return extractUrls({ string, urlRegExp });
 }

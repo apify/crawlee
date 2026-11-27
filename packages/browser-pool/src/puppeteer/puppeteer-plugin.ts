@@ -28,11 +28,7 @@ export class PuppeteerPlugin extends BrowserPlugin<
 > {
     protected async _launch(launchContext: PuppeteerLaunchContext): Promise<PuppeteerTypes.Browser> {
         const oldPuppeteerVersion = await this.isOldPuppeteerVersion();
-        const { launchOptions, userDataDir, experimentalContainers, proxyUrl } = launchContext;
-
-        if (experimentalContainers) {
-            throw new Error('Experimental containers are only available with Playwright');
-        }
+        const { launchOptions, userDataDir, proxyUrl } = launchContext;
 
         launchOptions!.userDataDir = launchOptions!.userDataDir ?? userDataDir;
 

@@ -48,7 +48,7 @@ module.exports = {
                 'guides/avoid-blocking',
                 'guides/cookie-modals',
                 'guides/impit-http-client/impit-http-client',
-                'guides/got-scraping',
+                'guides/send-request',
                 'guides/typescript-project',
                 'guides/public-api',
                 'guides/docker-images',

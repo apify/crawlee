@@ -4,9 +4,11 @@
         "module": "NodeNext",
         "moduleResolution": "NodeNext",
         "target": "ES2022",
+        "rootDir": "src",
         "outDir": "dist",
         "noUnusedLocals": false,
-        "lib": ["DOM"]
+        "skipLibCheck": true,
+        "lib": ["ES2023", "DOM"]
     },
     "include": ["./src/**/*"]
 }
