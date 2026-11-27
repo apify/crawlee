@@ -13,6 +13,8 @@ import { CreateProjectCommand } from './commands/CreateProjectCommand';
 import { InstallPlaywrightBrowsersCommand } from './commands/InstallPlaywrightBrowsersCommand';
 // eslint-disable-next-line
 import { RunProjectCommand } from './commands/RunProjectCommand';
+// eslint-disable-next-line
+import { UpgradeCommand } from './commands/UpgradeCommand';
 
 // eslint-disable-next-line
 import yargs from 'yargs';
@@ -42,6 +44,7 @@ const cli = yargs
     .command(new CreateProjectCommand())
     .command(new RunProjectCommand())
     .command(new InstallPlaywrightBrowsersCommand())
+    .command(new UpgradeCommand())
     .recommendCommands()
     .strict();
 
