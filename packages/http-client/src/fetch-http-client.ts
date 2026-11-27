@@ -18,15 +18,15 @@ export class FetchHttpClient extends BaseHttpClient {
     protected override async fetch(request: Request, options?: RequestInit & CustomFetchOptions): Promise<Response> {
         if (options?.proxyUrl) {
             throw new Error(
-                'FetchHttpClient does not support proxies, refusing to send the request without one. ' +
-                    'Install the optional @crawlee/impit-client dependency or pass an `httpClient` that supports proxies.',
+                'FetchHttpClient does not support proxies and refuses to send requests directly when one is configured. ' +
+                    'Pass an `httpClient` that supports proxies, such as the one from @crawlee/impit-client, or remove the proxy configuration.',
             );
         }
 
         if (options?.ignoreTlsErrors) {
             this.#logger?.warningOnce(
                 'FetchHttpClient cannot disable TLS certificate verification, the `ignoreTlsErrors` option is ignored. ' +
-                    'Install the optional @crawlee/impit-client dependency to make it work.',
+                    'Pass an `httpClient` that can, such as the one from @crawlee/impit-client.',
             );
         }
 
