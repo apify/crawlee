@@ -2,6 +2,7 @@ import { inspect } from 'node:util';
 
 import type { BaseHttpClient } from '@crawlee/http-client';
 import type {
+    AbortableOptions,
     BatchAddRequestsResult,
     Constructor,
     Dictionary,
@@ -54,6 +55,7 @@ const iterableSchema = z.custom((value) => isIterable(value) || isAsyncIterable(
 const operationOptionsSchema = z.strictObject({
     forefront: z.boolean().default(false),
 });
+const reclaimOptionsSchema = operationOptionsSchema.extend({ signal: z.instanceof(AbortSignal).optional() });
 const addRequestsOptionsSchema = z.strictObject({
     forefront: z.boolean().default(false),
     cache: z.boolean().default(true),
@@ -714,7 +716,9 @@ export class RequestQueue implements IStorage, IRequestManager {
      * @returns
      *   Returns the request object or `null` if there are no more pending requests.
      */
-    async fetchNextRequest<T extends Dictionary = Dictionary>(): Promise<Request<T> | null> {
+    async fetchNextRequest<T extends Dictionary = Dictionary>(
+        options: AbortableOptions = {},
+    ): Promise<Request<T> | null> {
         rejectOperationInTransaction(
             'RequestQueue.fetchNextRequest()',
             'it is part of the crawler request-processing bookkeeping, which a transaction must not affect.',
@@ -725,7 +729,7 @@ export class RequestQueue implements IStorage, IRequestManager {
         }
 
         this.#statsTracker.add('headItemReadCount');
-        const schema = await this.backend.fetchNextRequest();
+        const schema = await this.backend.fetchNextRequest({ signal: options.signal });
         if (!schema) return null;
 
         return Request.fromSchema<T>(schema);
@@ -737,7 +741,10 @@ export class RequestQueue implements IStorage, IRequestManager {
      * function as handled after successful processing.
      * Handled requests will never again be returned by the `fetchNextRequest` function.
      */
-    async markRequestAsHandled(request: Request): Promise<RequestQueueOperationInfo | null> {
+    async markRequestAsHandled(
+        request: Request,
+        options: AbortableOptions = {},
+    ): Promise<RequestQueueOperationInfo | null> {
         rejectOperationInTransaction(
             'RequestQueue.markRequestAsHandled()',
             'it is part of the crawler request-processing bookkeeping, which a transaction must not affect.',
@@ -749,10 +756,10 @@ export class RequestQueue implements IStorage, IRequestManager {
 
         const handledAt = request.handledAt ?? new Date().toISOString();
         this.#statsTracker.add('writeCount');
-        const processedRequest = await this.backend.markRequestAsHandled({
-            ...(request as Request & { id: string }),
-            handledAt,
-        });
+        const processedRequest = await this.backend.markRequestAsHandled(
+            { ...(request as Request & { id: string }), handledAt },
+            { signal: options.signal },
+        );
 
         // The request was not in progress (e.g. already handled) — nothing to do.
         if (!processedRequest) {
@@ -780,7 +787,7 @@ export class RequestQueue implements IStorage, IRequestManager {
      */
     async reclaimRequest(
         request: Request,
-        options: RequestQueueOperationOptions = {},
+        options: RequestQueueOperationOptions & AbortableOptions = {},
     ): Promise<RequestQueueOperationInfo | null> {
         rejectOperationInTransaction(
             'RequestQueue.reclaimRequest()',
@@ -788,11 +795,12 @@ export class RequestQueue implements IStorage, IRequestManager {
         );
 
         parseArgument(request, reclaimedRequestSchema);
-        const { forefront } = parseArgument(options, operationOptionsSchema);
+        const { forefront, signal } = parseArgument(options, reclaimOptionsSchema);
 
         this.#statsTracker.add('writeCount');
         const processedRequest = await this.backend.reclaimRequest(request as Request & { id: string }, {
             forefront,
+            signal,
         });
 
         // The request was not in progress — nothing to reclaim.

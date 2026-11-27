@@ -1494,7 +1494,10 @@ export class BasicCrawler<
      * `markRequestAsHandled`, so nothing observes the difference.
      */
     async #resolveRequest(): Promise<CrawlingRequest | null> {
-        const fetched = await this.#fetchNextRequest();
+        const fetched = await this.#withDeadline(
+            (signal) => this.#fetchNextRequest(signal),
+            `Fetching next request timed out after ${this.internalTimeoutMillis / 1e3} seconds.`,
+        );
 
         if (!fetched) {
             return null;
@@ -2610,12 +2613,12 @@ export class BasicCrawler<
     /**
      * Fetches the next request to process from the underlying request provider.
      */
-    async #fetchNextRequest() {
+    async #fetchNextRequest(signal?: AbortSignal) {
         if (this.requestManager === undefined) {
             throw new Error(`fetchNextRequest called on an uninitialized crawler`);
         }
 
-        return this.requestManager.fetchNextRequest();
+        return this.requestManager.fetchNextRequest({ signal });
     }
 
     /** Runs the request handler and marks the request as handled. Failures are left to `handleRequestFailure`. */
@@ -2643,7 +2646,7 @@ export class BasicCrawler<
         // Opened by `runInStorageTransaction`; absent when disabled or when the subclass opens its own.
         await currentStorageTransaction()?.commit();
 
-        await requestSource.markRequestAsHandled(request);
+        await this.#markRequestAsHandled(requestSource, request);
 
         this.statistics.recordRequestSuccess(request.id || request.uniqueKey, request.retryCount);
 
@@ -2733,7 +2736,7 @@ export class BasicCrawler<
             // Safety net - the error handler neither marked the request as handled nor reclaimed it (e.g. after a
             // CriticalError). Reclaiming a request that is no longer in progress is a harmless no-op on the storage backend.
             try {
-                await requestSource.reclaimRequest(request);
+                await this.#reclaimRequest(requestSource, request);
             } catch {
                 // The request was never in progress, or could not be reclaimed. Either way it's fine.
             }
@@ -2797,6 +2800,36 @@ export class BasicCrawler<
     }
 
     /**
+     * Runs a request manager call under the internal timeout, handing it the signal that aborts when the timeout
+     * fires. The call is not retried - that is up to the request manager and its storage backend.
+     */
+    async #withDeadline<T>(call: (signal: AbortSignal) => Promise<T>, timeoutMessage: string): Promise<T> {
+        return addTimeoutToPromise(
+            async () => call(timeoutStorage.getStore()!.cancelTask.signal),
+            this.internalTimeoutMillis,
+            timeoutMessage,
+        );
+    }
+
+    async #markRequestAsHandled(source: IRequestManager, request: CrawlingRequest) {
+        await this.#withDeadline(
+            (signal) => source.markRequestAsHandled(request, { signal }),
+            `Marking request ${request.url} (${request.id}) as handled timed out after ${
+                this.internalTimeoutMillis / 1e3
+            } seconds.`,
+        );
+    }
+
+    async #reclaimRequest(source: IRequestManager, request: CrawlingRequest, forefront = false) {
+        await this.#withDeadline(
+            (signal) => source.reclaimRequest(request, { forefront, signal }),
+            `Reclaiming request ${request.url} (${request.id}) timed out after ${
+                this.internalTimeoutMillis / 1e3
+            } seconds.`,
+        );
+    }
+
+    /**
      * Whether the request manager has a request ready for processing. A manager that is only `waiting` also gets a
      * wake-up scheduled, so a paced crawl resumes on its clock rather than on the task loop's polling interval.
      */
@@ -2847,7 +2880,7 @@ export class BasicCrawler<
                 id: request.id,
                 url: request.url,
             });
-            await source.reclaimRequest(request, { forefront: true });
+            await this.#reclaimRequest(source, request, true);
             return;
         }
 
@@ -2901,7 +2934,7 @@ export class BasicCrawler<
                     retryCount,
                 });
 
-                await source.reclaimRequest(request);
+                await this.#reclaimRequest(source, request);
                 return;
             }
         }
@@ -2923,7 +2956,7 @@ export class BasicCrawler<
         // If we get here, the request is either not retryable
         // or failed more than retryCount times and will not be retried anymore.
         // Mark the request as failed and do not retry.
-        await source.markRequestAsHandled(request);
+        await this.#markRequestAsHandled(source, request);
         this.statistics.recordRequestFailure(request.id || request.uniqueKey, request.retryCount);
 
         await this.handleFailedRequestHandler(crawlingContext, error); // This function prints an error message.
@@ -2943,7 +2976,7 @@ export class BasicCrawler<
             );
             request.state = RequestState.SKIPPED;
             request.noRetry = true;
-            await source.markRequestAsHandled(request);
+            await this.#markRequestAsHandled(source, request);
             this.statistics.discardRequestRecord(request.id || request.uniqueKey);
             return undefined;
         } catch (settleError) {

@@ -1,4 +1,4 @@
-import type { Dictionary } from '@crawlee/types';
+import type { AbortableOptions, Dictionary } from '@crawlee/types';
 
 import type { Request } from '../request.js';
 import type { IRequestManager } from './request-manager.js';
@@ -131,8 +131,10 @@ export interface IRequestLoader {
      * {@apilink IRequestLoader.markRequestAsHandled}. The caller is responsible for eventually marking
      * every fetched request as handled; otherwise the loader never considers itself finished and the
      * request may be re-served after a restart. See the request lifecycle contract on {@apilink IRequestLoader}.
+     *
+     * @param options.signal Aborts when the caller stops waiting; the loader should stop the work in flight.
      */
-    fetchNextRequest<T extends Dictionary = Dictionary>(): Promise<Request<T> | null>;
+    fetchNextRequest<T extends Dictionary = Dictionary>(options?: AbortableOptions): Promise<Request<T> | null>;
 
     /**
      * Can be used to iterate over the loader instance in a `for await .. of` loop.
@@ -149,8 +151,13 @@ export interface IRequestLoader {
      * signal completion; failing to do so prevents {@apilink IRequestLoader.checkReadiness} from ever reporting
      * `finished` and skews the handled and pending counts. See the request lifecycle contract on
      * {@apilink IRequestLoader}.
+     *
+     * @param options.signal Aborts when the caller stops waiting; the loader should stop the work in flight.
      */
-    markRequestAsHandled(request: Request): Promise<RequestQueueOperationInfo | void | null>;
+    markRequestAsHandled(
+        request: Request,
+        options?: AbortableOptions,
+    ): Promise<RequestQueueOperationInfo | void | null>;
 
     /**
      * Combines the loader with a request manager to support adding and reclaiming requests.

@@ -81,7 +81,7 @@ describe('RequestManagerTandem', () => {
         await tandem.markRequestAsHandled(request!);
 
         // Verify the queue's markRequestAsHandled was called
-        expect(markHandledSpy).toHaveBeenCalledWith(request);
+        expect(markHandledSpy).toHaveBeenCalledWith(request, undefined);
     });
 
     test('reclaimRequest properly reclaims request in the queue', async () => {
