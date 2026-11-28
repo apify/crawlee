@@ -30,6 +30,16 @@ describe('Enqueue links shared functions', () => {
         });
     });
 
+    describe('constructRegExpObjectsFromRegExps() with the global and sticky flags', () => {
+        test.each([[/\/product\//g], [/^https:\/\/a\.com\/product\//y]])('matches every URL for %s', (regexp) => {
+            const [pattern] = constructRegExpObjectsFromRegExps([regexp]);
+            const urls = [1, 2, 3, 4].map((i) => `https://a.com/product/${i}`);
+            expect(urls.map((url) => pattern.match(url))).toEqual([true, true, true, true]);
+            expect(pattern.match('https://a.com/other')).toBe(false);
+            expect(pattern.match(urls[0])).toBe(true);
+        });
+    });
+
     describe('constructUrlPatternObjects()', () => {
         test('should handle mixed glob and regexp patterns', () => {
             const patterns = [

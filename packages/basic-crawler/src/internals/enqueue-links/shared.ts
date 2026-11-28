@@ -146,7 +146,15 @@ export function constructRegExpObjectsFromRegExps(
         if (cached) return cached as RegExpObject & UrlPatternObject;
 
         const regexp = item instanceof RegExp ? item : item.regexp;
-        const regexpObject = { regexp, match: (url: string) => regexp.test(url) };
+        const regexpObject = {
+            regexp,
+            match: (url: string) => {
+                // A RegExp with the `g` or `y` flag remembers where its last match ended, so the same pattern
+                // would match every other URL only. Every URL is checked from the start.
+                regexp.lastIndex = 0;
+                return regexp.test(url);
+            },
+        };
 
         updateEnqueueLinksPatternCache(item, regexpObject);
 
